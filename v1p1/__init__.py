@@ -161,9 +161,9 @@ class OutputAnalyzer(PlotDescriptor):
         for sdfa in self:  ### Parallelisieren!
             feld = f(sdfa)
             retm.append(feld.matrix)
-        feld.matrix = np.array(retm).T
+        feld.matrix = np.array(retm)
         feld.addaxis('Time', unit)
-        feld.setaxisticks(-1, self.times(unit))
+        feld.setgrid_node_fromgrid(-1, self.times(unit))
         #feld.extent.tolist().append([self[0].time('fs'), self[-1].time('fs')])
         return feld
         
@@ -843,7 +843,7 @@ class ParticleAnalyzer(_Constants):
 	### TODO: Falls rangex oder rangy gegeben ist, ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
 		rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
-	if rangey is None:
+        if rangey is None:
         	rangey = [np.min(scalarfy(self)), np.max(scalarfy(self)) + 1e-7]
         if simextent:
             if hasattr(scalarfx, 'extent'):
@@ -868,7 +868,8 @@ class ParticleAnalyzer(_Constants):
     def createHistgramFeld1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, name='distfn', title=None):
         h, x = self.createHistgram1d(scalarfx, simextent=simextent, simgrid=simgrid, optargsh=optargsh)
         ret = Feld(h)
-        ret.extent = np.array([x[0], x[-1]])
+        #ret.extent = np.array([x[0], x[-1]])
+        ret.setgrid_node(0, x)        
         ret.name = name
         ret.name2 = ret.name2 + self.species
         ret.label = self.species
@@ -893,7 +894,9 @@ class ParticleAnalyzer(_Constants):
 		title = kwargs.pop('title')
         h, xedges, yedges, extent = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
         ret = Feld(h)
-        ret.extent = extent
+        #ret.extent = extent
+        ret.setgrid_node(0, xedges)
+        ret.setgrid_node(1, yedges)
         ret.name = name + self.species
         ret.name2 = ret.name2 + self.species
         if title:
@@ -961,6 +964,18 @@ class FieldAnalyzer(_Constants):
 
     def setextent(self, newextent, axis=None):
         self._extent[self._axisoptions[axis]] = newextent
+        
+    def setspacialtofield(self, field):
+        """
+        Fuegt dem Feld alle Informationen uber das rauemliche Grid hinzu.
+        """
+        field.setallaxesspacial()
+        field.setgrid_node(0, self.data['Grid/Grid_node/X'])
+        if self.data.has_key('Grid/Grid_node/Y'):
+            field.setgrid_node(1, self.data['Grid/Grid_node/Y'])
+        if self.data.has_key('Grid/Grid_node/Z'):
+            field.setgrid_node(2, self.data['Grid/Grid_node/Z'])
+        return None
 
 
     # --- Return functions for basic data layer
@@ -999,8 +1014,7 @@ class FieldAnalyzer(_Constants):
     def createfeldfromkey(self, key):
         ret = Feld(self._returnkey(key));
         ret.name = key
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
 
     def createfelderfromkeys(self, *keys):
@@ -1015,48 +1029,42 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._Ex(**kwargs))
         ret.unit='V/m'
         ret.name='Ex'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
         
     def Ey(self, **kwargs):
         ret = Feld(self._Ey(**kwargs))
         ret.unit='V/m'
         ret.name='Ey'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
         
     def Ez(self, **kwargs):
         ret = Feld(self._Ez(**kwargs))
         ret.unit='V/m'
         ret.name='Ez'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
 
     def Bx(self, **kwargs):
         ret = Feld(self._Bx(**kwargs))
         ret.unit='T'
         ret.name='Bx'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
 
     def By(self, **kwargs):
         ret = Feld(self._By(**kwargs))
         ret.unit='T'
         ret.name='By'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
         
     def Bz(self, **kwargs):
         ret = Feld(self._Bz(**kwargs))
         ret.unit='T'
         ret.name='Bz'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
 
 
@@ -1067,16 +1075,14 @@ class FieldAnalyzer(_Constants):
         ret = Feld( 0.5 * self._epsilon0 * (self._Ex(**kwargs)**2 + self._Ey(**kwargs)**2 + self._Ez(**kwargs)**2) )
         ret.unit='J/m^3'
         ret.name='Energy Density Electric-Field'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
         
     def energydensityM(self, **kwargs):
         ret = Feld( 0.5 / self._mu0 * (self._Bx(**kwargs)**2 + self._By(**kwargs)**2 + self._Bz(**kwargs)**2) )
         ret.unit='J/m^3'
         ret.name='Energy Density Magnetic-Field'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
 
     def energydensityEM(self, **kwargs):
@@ -1084,8 +1090,7 @@ class FieldAnalyzer(_Constants):
              + 0.5 / self._mu0 * (self._Bx(**kwargs)**2 + self._By(**kwargs)**2 + self._Bz(**kwargs)**2) )
         ret.unit='J/m^3'
         ret.name='Energy Density EM-Field'
-        ret.setallaxesspacial()
-        ret.extent = self._extent.copy()
+        self.setspacialtofield(ret)
         return ret
         
     # --- Spektren
@@ -1100,14 +1105,15 @@ class FieldAnalyzer(_Constants):
         ret.unit='?'
         ret.name='Spectrum Ex'
         ret.setallaxes(name=[r'$k_x$', r'$k_y$', r'$k_z$'], unit=['','',''])
-        ret.extent = np.zeros(2*self.simdimensions)
-        ret.extent[1::2] = np.pi / self.getspatialresolution()
+        extent = np.zeros(2*self.simdimensions)
+        extent[1::2] = np.pi / self.getspatialresolution()
         if self.k0:
             ret.setallaxes(name=[r'$k_x / k_0$', r'$k_y / k_0$', r'$k_z / k_0$'], unit=['$\lambda_0 =$' + str(self.lasnm) + 'nm','',''])
-            ret.extent[1::2] = ret.extent[1::2] / self.k0
-        mittel = np.mean(ret.extent[(0+2*axis):(2+2*axis)])
-        ret.extent[0+2*axis] = -2*mittel
-        ret.extent[1+2*axis] = 2*mittel
+            extent[1::2] = extent[1::2] / self.k0
+        mittel = np.mean(extent[(0+2*axis):(2+2*axis)])
+        extent[0+2*axis] = -2*mittel
+        extent[1+2*axis] = 2*mittel
+        ret.setgrid_node_fromextent(extent)
         return ret
         
     def spectrumBz(self, axis=0):
@@ -1120,14 +1126,15 @@ class FieldAnalyzer(_Constants):
         ret.unit='?'
         ret.name='Spectrum Bz'
         ret.setallaxes(name=[r'$k_x$', r'$k_y$', r'$k_z$'], unit=['','',''])
-        ret.extent = np.zeros(2*self.simdimensions)
-        ret.extent[1::2] = np.pi / self.getspatialresolution()
+        extent = np.zeros(2*self.simdimensions)
+        extent[1::2] = np.pi / self.getspatialresolution()
         if self.k0:
             ret.setallaxes(name=[r'$k_x / k_0$', r'$k_y / k_0$', r'$k_z / k_0$'], unit=['$\lambda_0 =$' + str(self.lasnm) + 'nm','',''])
-            ret.extent[1::2] = ret.extent[1::2] / self.k0
-        mittel = np.mean(ret.extent[(0+2*axis):(2+2*axis)])
-        ret.extent[0+2*axis] = -2*mittel
-        ret.extent[1+2*axis] = 2*mittel
+            extent[1::2] = extent[1::2] / self.k0
+        mittel = np.mean(extent[(0+2*axis):(2+2*axis)])
+        extent[0+2*axis] = -2*mittel
+        extent[1+2*axis] = 2*mittel
+        ret.setgrid_node_fromextent(extent)
         return ret
 
 
@@ -1143,20 +1150,71 @@ class Feld(_Constants):
         
     def __init__(self, matrix):
         self.matrix=np.array(matrix)
-        self.extent=None
-        self.axisticks=[None,None,None] #to allow unequally spaced grid (e.g. used in time series)
+        self.grid_nodes = []
+        self.axesnames = []
+        self.axesunits = []
+        for i in xrange(self.dimensions()):
+            self.addaxis()
         self.name='unbekannt'
         self.name2=''
         self.label=''
         self.unit=None           
-        #self.axesunits=['?', '?', '?']  
-        #self.axesnames=['', '', '']
         self.zusatz = ''
         self.textcond = ''
-        self.setallaxes(name='', unit='?')
+        self._grid_nodes_linear = True #None bedeutet unbekannt
 
     def __str__(self):
         return '<Feld '+self.name +' '+str(self.matrix.shape)+'>'
+        
+    def addaxis(self, name='', unit='?'):
+        self.axesnames.append(name)
+        self.axesunits.append(unit)
+        self.grid_nodes.append(np.array([0,1]))
+        return self
+    
+    def extent(self):
+        ret = []
+        for traeger in self.grid_nodes:
+            ret.append(traeger[0])
+            ret.append(traeger[-1])
+        return ret
+        
+    def grid_nodes_linear(self, force=True):
+        """
+        Testet, ob die grid_nodes linear verteielt sind. Ist das der Fall, reicht es auch nur mit extent() zu plotten.
+        Ausgabe ist die Liste der Varianzen der Grid Node Abstaende.
+        """
+        if self._grid_nodes_linear == None or force:
+            self._grid_nodes_linear = all([np.var(np.diff(gn)) < 1e-7 for gn in self.grid_nodes ])
+        return self._grid_nodes_linear 
+            
+        
+        
+    def setgrid_node(self, axis, grid_node):
+        if axis < self.dimensions():
+            self.grid_nodes[axis] = np.float64(grid_node)
+            self._grid_nodes_linear = None
+        return self
+        
+    def setgrid_node_fromextent(self, extent):
+        """
+        Errechnet eigene Werte fuer grid_node, falls nur der extent gegeben wurde.
+        Vereinfacht Kompatibilitaet, aber es ist empfohlen setgrid_node(self, axis, grid_node) direkt aufzurufen. 
+        """
+        assert not len(extent)%2, 'len(extent) ist kein Vielfaches von 2.' 
+        for dim in xrange(self.dimensions()):
+            self.setgrid_node(dim, np.linspace(extent[2*dim], extent[2*dim + 1], self.matrix.shape[dim] + 1))
+        return self
+        
+    def setgrid_node_fromgrid(self, axis, grid):
+        """
+        grid_node beinhaltet die Kanten des Grids. In 1D gehoert also zu einem Datenfeld der Laenge 1000 ein grid_node Vektor der Laenge 1001.
+        grid beinhaltet die Positionen. In 1D gehoert also zu einem Datenfeld der Laenge 1000 ein grid Vektor der Laenge 1000.
+        """
+        gn = np.convolve(grid, np.ones(2)/2.0, mode='full')
+        gn[0] = grid[0] + 2 * (grid[0] - gn[1])
+        gn[-1] = grid[-1] + 2 * (grid[-1] - gn[-2])
+        return self.setgrid_node(axis, gn)
         
     def ausschnitt(self, ausschnitt):
         if self.dimensions() == 0:
@@ -1173,34 +1231,18 @@ class Feld(_Constants):
         return self.name + ' ' + self.name2
 
     def mikro(self):
-        self.extent = self.extent * 1e6
+        #self.grid_nodes *= 1e6
+        map(lambda x: x*1e6, self.grid_nodes)
         self.axesunits = ['$\mu $'+x for x in self.axesunits]
-        return self
+        return self        
         
-    def addaxis(self, name='', unit='?'):
-        self.axesnames.append(name)
-        self.axesunits.append(unit)
-        self.extent.tolist().append(None)
-        self.extent.tolist().append(None)
-        return self
-        
-    def setaxisticks(self, axis, ticks):
-        self.axisticks[axis] = ticks
-        self.extent[2*axis] = ticks[0]
-        self.extent[2*axis+1] = ticks[-1]
-        return self
-        
-    def useextent(self,axis):
-        return not self.axisticks[axis] == None
-        
-    def mesh(self):
+    def grid(self):
         """
         Creates lists containing X and Y coordinates of the data (in 2D case). Those can be directly parsed to matplotlib.pyplot.pcolormesh
+        
+        Also von grid_node (Laenge N+1)  auf grid (Laenge N) konvertieren. 
         """
-        ret = []
-        for length in self.matrix.shape:
-            ret.append()
-        return
+        return tuple([np.convolve(gn, np.ones(2)/2.0, mode='valid') for gn in self.grid_nodes])
 
     def setallaxes(self, name=None, unit=None):
         def setlist(arg):
@@ -1226,8 +1268,9 @@ class Feld(_Constants):
         self.matrix=np.mean(self.matrix, axis=axis)
         self.axesunits.pop(axis)
         self.axesnames.pop(axis)
-        if self.extent != None:
-            self.extent = np.delete(self.extent, [2*axis, 2*axis+1])
+        if self.extent() != None:
+            self.grid_nodes.pop(axis)
+            #self.extent = np.delete(self.extent(), [2*axis, 2*axis+1])
         return self
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
@@ -1235,16 +1278,16 @@ class Feld(_Constants):
 extent=(phimin, phimax, rmin, rmax)"""
         ret = copy.deepcopy(self)
         if extent==None:
-            extent=[-np.pi, np.pi,0, self.extent[1]]
+            extent=[-np.pi, np.pi,0, self.extent()[1]]
         extent=np.asarray(extent)
         if shape==None:
             shape = (1000, np.min((np.floor(np.min(self.matrix.shape) / 2), 1000)) )
         
         extent[0:2]=extent[0:2] - angleoffset
-        ret.matrix = self.transfromxy2polar(self.matrix, self.extent, np.roll(extent,2), shape).T
+        ret.matrix = self.transfromxy2polar(self.matrix, self.extent(), np.roll(extent,2), shape).T
         extent[0:2]=extent[0:2] + angleoffset
     
-        ret.extent = extent        
+        ret.setgrid_nodefromextent(extent)    
         if ret.axesnames[0].startswith('$k_') and ret.axesnames[1].startswith('$k_'):
             ret.axesnames[0]='$k_\phi$'
             ret.axesnames[1]='$|k|$'
@@ -1253,7 +1296,7 @@ extent=(phimin, phimax, rmin, rmax)"""
     def exporttocsv(self, dateiname):
         if self.dimensions() == 1:
             data = np.asarray(self.matrix)
-            x = np.linspace(self.extent[0], self.extent[1], len(data))
+            x = np.linspace(self.extent()[0], self.extent()[1], len(data))
             np.savetxt(dateiname, np.transpose([x, data]), delimiter=' ')
         elif self.dimensions() == 2:
             export = np.asarray(self.matrix)
@@ -1284,8 +1327,10 @@ class SDFPlots(_Constants):
     #@staticmethod
     #def axesformatexp(x, pos): #'The two args are the value and tick position'
     #    return '%.1e' % x 
-    axesformatter = matplotlib.ticker.ScalarFormatter()
-    axesformatter.set_powerlimits((-2,3))
+    axesformatterx = matplotlib.ticker.ScalarFormatter()
+    axesformatterx.set_powerlimits((-2,3))
+    axesformattery = matplotlib.ticker.ScalarFormatter()
+    axesformattery.set_powerlimits((-2,3))
  
     efeldcdict={'red': ((0,0,0),(1,1,1)),
         'green': ((0,0,0),(1,0,0)),
@@ -1346,8 +1391,8 @@ class SDFPlots(_Constants):
 
     def plotspeichern(self,key, dpi=150, facecolor=(1,1,1,0.01)):
 	#Die sind zwar schoen, aber machen manchmal Probleme, wenn alle Werte null sind...
-        #plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatter);
-        #plt.gca().yaxis.set_major_formatter(SDFPlots.axesformatter);
+        plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
+        plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         plt.gcf().set_size_inches(9,7)
         savename=self._savename(key)
         if savename != None:
@@ -1380,7 +1425,7 @@ class SDFPlots(_Constants):
         assert feld.dimensions() == 1, 'Feld muss genau eine Dimension haben.'
         if name:
             feld.name2 = name
-        plt.plot(np.linspace(feld.extent[0], feld.extent[1], len(feld.matrix)), feld.matrix, label=feld.label)
+        plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
         if log10plot and ((feld.matrix < 0).sum() == 0) and (feld.matrix.sum() > 0):
             plt.yscale('log')
             #plt.gca().yaxis.set_major_formatter(FuncFormatter(SDFPlots.axesformatexp));
@@ -1447,20 +1492,25 @@ class SDFPlots(_Constants):
     def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, name='', majorgrid=False, savecsv=False, lineoutx=False, lineouty=False):
         assert feld.dimensions() == 2, 'Feld muss genau 2 Dimensionen haben.'
         fig, ax0 = plt.subplots()
-        if log10plot & ((feld.matrix < 0).sum() == 0) & (feld.matrix.sum() > 0):    
-            plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent, cmap='jet',interpolation=interpolation) 
+        if log10plot & ((feld.matrix < 0).sum() == 0) & (feld.matrix.sum() > 0):
+            if feld.grid_nodes_linear() and True:
+                plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent(), cmap='jet',interpolation=interpolation) 
+            else:
+                print 'using pcolormesh'
+                x, y = feld.grid()
+                plt.pcolormesh(x,y, np.log10(feld.matrix.T), cmap='jet')
             plt.colorbar(format='%3.1f')
             if clim:
                 plt.clim(clim)
         else:
             log10plot = False
-            plt.imshow(feld.matrix.T, aspect='auto', origin='lower', extent=feld.extent, cmap='EFeld', interpolation=interpolation)
+            plt.imshow(feld.matrix.T, aspect='auto', origin='lower', extent=feld.extent(), cmap='EFeld', interpolation=interpolation)
             if clim:
                 plt.clim(clim)
             self.symmetrisiereclim()
             plt.colorbar(format='%6.0e')
         if contourlevels.size != 0: #Einzelne Konturlinie(n) plotten
-            plt.contour(feld.matrix.T, contourlevels, hold='on', extent=feld.extent)
+            plt.contour(feld.matrix.T, contourlevels, hold='on', extent=feld.extent())
         if feld.axesunits[0] == '':
             plt.xlabel(feld.axesnames[0])
         else:
@@ -1480,9 +1530,9 @@ class SDFPlots(_Constants):
         if majorgrid:
             plt.grid(b=True, which='major', linestyle='--')
         if lineoutx:
-            self._addxlineout(ax0, feld.matrix.T, feld.extent, log10=log10plot)
+            self._addxlineout(ax0, feld.matrix.T, feld.extent(), log10=log10plot)
         if lineouty:
-            self._addylineout(ax0, feld.matrix.T, feld.extent, log10=log10plot)
+            self._addylineout(ax0, feld.matrix.T, feld.extent(), log10=log10plot)
         if saveandclose:
             self.plotspeichern(feld.savename())
             if savecsv:
