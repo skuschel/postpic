@@ -295,7 +295,7 @@ class SDFAnalyzer(PlotDescriptor):
         else:
             return ParticleAnalyzer(self.data, species)
 
-    
+    ### TODO: Passt hier eigntlich nicht so richtig hin, weil der SDFAnalyzer die einzige Klasse ist, die direkt mit den dem data objekt aus dem .sdf kommunizieren soll. 
     def getderived(self):
         """Gibt alle Keys zurueck die mit "Derived/" beginnen"""
         ret = []
@@ -1201,7 +1201,7 @@ class Feld(_Constants):
         Errechnet eigene Werte fuer grid_node, falls nur der extent gegeben wurde.
         Vereinfacht Kompatibilitaet, aber es ist empfohlen setgrid_node(self, axis, grid_node) direkt aufzurufen. 
         """
-        assert not len(extent)%2, 'len(extent) ist kein Vielfaches von 2.' 
+        assert not len(extent)%2, 'len(extent) muss gerade sein (2 Eintraege pro Achse)' 
         for dim in xrange(self.dimensions()):
             self.setgrid_node(dim, np.linspace(extent[2*dim], extent[2*dim + 1], self.matrix.shape[dim] + 1))
         return self
