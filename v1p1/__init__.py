@@ -265,9 +265,12 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         self.lasnm = lasnm
         #Simextent bestimmen
         self._simextent = np.real([self._data['Grid/Grid_node/X'][0], self._data['Grid/Grid_node/X'][-1]])
+        self.simgridpoints = [np.real(self._data['Grid/Grid_node/X']).shape[0] - 1]
         if self.simdimensions > 1:
+            self.simgridpoints = np.append(self.simgridpoints, np.real(self._data['Grid/Grid_node/Y']).shape[0] - 1)
             self._simextent = np.append(self._simextent, np.float64([self._data['Grid/Grid_node/Y'][0], self._data['Grid/Grid_node/Y'][-1]]))
         if self.simdimensions > 2:
+            self.simgridpoints = np.append(self.simgridpoints, np.real(self._data['Grid/Grid_node/Z']).shape[0] - 1)
             self._simextent = np.append(self._simextent, np.float64([self._data['Grid/Grid_node/Z'][0], self._data['Grid/Grid_node/Z'][-1]]))
         if lasnm:
             if printinfo:
@@ -276,7 +279,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         else:
             print "WARNING: Laserwellenlaenge nicht gegeben. Einige Plots stehen nicht zur Verfuegung."
             
-
+            
         
     def __str__(self):
         return '<SDFAnalyzer at ' + self.dateiname + ' using lambda0=' + str(self.lasnm) + 'nm>' 
@@ -360,7 +363,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         return ret
 
     def getfieldanalyzer(self):
-        return FieldAnalyzer(self._data, lasnm=self.lasnm)
+        return FieldAnalyzer(self, lasnm=self.lasnm)
 
     def getparticleanalyzer(self, species, ejected='ignore'):
         """
@@ -371,11 +374,11 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         'ignore' - ejected particles werden nicht mit ausgegeben.
         """
         if species == 'ions':
-            return ParticleAnalyzer(self._data, *self.ions(ejected=ejected))
+            return ParticleAnalyzer(self, *self.ions(ejected=ejected))
         elif species == 'nonions':
-            return ParticleAnalyzer(self._data, *self.nonions(ejected=ejected))
+            return ParticleAnalyzer(self, *self.nonions(ejected=ejected))
         else:
-            return ParticleAnalyzer(self._data, species)
+            return ParticleAnalyzer(self, species)
 
    #low-level
     def getderived(self):
@@ -532,27 +535,25 @@ class _SingleSpeciesAnalyzer(_Constants):
         return ret
         
 
-    def __init__(self, data, species):
+    def __init__(self, sdfanalyzer, species):
         self.species = species
         self.speciesexists = True
-        if not data.has_key('Particles/Weight'+species):
+        if not sdfanalyzer.hasSpecies(species):
             self.speciesexists = False
             return
-        self.data = data
-        self._weightdata = data['Particles/Weight' + species]
-        self._Xdata = data['Grid/Particles' + species + '/X']
+        self.sdfanalyzer = sdfanalyzer
+        self._weightdata = sdfanalyzer.getSpecies(species, 'weight')
+        self._Xdata = sdfanalyzer.getSpecies(species, 'x')
         self._Ydata = np.array([0,1])
         self._Zdata = np.array([0,1])
-        self.simdimensions = 1
-        if data.has_key('Grid/Particles'+species+'/Y'):
-            self._Ydata = data['Grid/Particles'+species+'/Y']
-            self.simdimensions = 2
-        if data.has_key('Grid/Particles'+species+'/Z'):
-            self._Zdata = data['Grid/Particles'+species+'/Z']
-            self.simdimensions = 3
-        self._Pxdata = data['Particles/Px'+species]
-        self._Pydata = data['Particles/Py'+species]
-        self._Pzdata = data['Particles/Pz'+species]
+        self.simdimensions = sdfanalyzer.simdimensions
+        if self.simdimensions > 1:
+            self._Ydata = sdfanalyzer.getSpecies(species, 'y')
+        if self.simdimensions > 2:
+            self._Zdata = sdfanalyzer.getSpecies(species,'z')
+        self._Pxdata = sdfanalyzer.getSpecies(species,'px')
+        self._Pydata = sdfanalyzer.getSpecies(species,'py')
+        self._Pzdata = sdfanalyzer.getSpecies(species,'pz')
         self._particleinfo = self.retrieveparticleinfo(species) 
         self._mass = self._particleinfo['mass'] #SI
         self._charge = self._particleinfo['charge'] #SI
@@ -583,7 +584,7 @@ class _SingleSpeciesAnalyzer(_Constants):
         """
         Verwirft alle Einschraenkungen (insbesondere durch compress). Reinitialisiert das Objekt.
         """
-        self.__init__(self.data, self.species)
+        self.__init__(self.sdfanalyzer, self.species)
 
         
     # --- Stellt ausschliesslich GRUNDLEGENDE funktionen bereit
@@ -625,37 +626,31 @@ class ParticleAnalyzer(_Constants):
         return _SingleSpeciesAnalyzer.isejected(species)
         
     
-    def __init__(self, data, *speciess):
-        #self.data = data
+    def __init__(self, sdfanalyzer, *speciess):
         self._speciess = speciess
         self.species = ''
         self._ssas = []
         self.simdimensions = None
         for s in speciess:
-            ssa = _SingleSpeciesAnalyzer(data,s)
+            ssa = _SingleSpeciesAnalyzer(sdfanalyzer,s)
             if ssa.speciesexists:
                 self.species = self.species + s
                 self._ssas.append(ssa)
                 self.simdimensions = self._ssas[0].simdimensions
         self._compresslog = []
 
-        #set default extents
-        self.simextent = np.real([data['Grid/Grid_node/X'][0], data['Grid/Grid_node/X'][-1]])
-        self.simgridpoints = [np.real(data['Grid/Grid_node/X']).shape[0] - 1]
+        self.simextent = sdfanalyzer.simextent()
+        self.simgridpoints = sdfanalyzer.simgridpoints
         self.X.__func__.extent=self.simextent[0:2]
         self.X.__func__.gridpoints=self.simgridpoints[0]
         self.X_um.__func__.extent=self.simextent[0:2] * 1e6
         self.X_um.__func__.gridpoints=self.simgridpoints[0]
         if self.simdimensions > 1:
-            self.simextent = np.append(self.simextent, np.real([data['Grid/Grid_node/Y'][0], data['Grid/Grid_node/Y'][-1]]))
-            self.simgridpoints = np.append(self.simgridpoints, np.real(data['Grid/Grid_node/Y']).shape[0] - 1)
             self.Y.__func__.extent=self.simextent[2:4]
             self.Y.__func__.gridpoints=self.simgridpoints[1]
             self.Y_um.__func__.extent=self.simextent[2:4] * 1e6
             self.Y_um.__func__.gridpoints=self.simgridpoints[1]
         if self.simdimensions > 2:
-            self.simextent = np.append(self.simextent, np.real([data['Grid/Grid_node/Z'][0], data['Grid/Grid_node/Z'][-1]]))
-            self.simgridpoints = np.append(self.simgridpoints, np.real(data['Grid/Grid_node/Z']).shape[0] - 1)
             self.Z.__func__.extent=self.simextent[4:6]
             self.Z.__func__.gridpoints=self.simgridpoints[2]
             self.Z_um.__func__.extent=self.simextent[4:6] * 1e6
@@ -975,24 +970,16 @@ class ParticleAnalyzer(_Constants):
 class FieldAnalyzer(_Constants):
     
 
-    def __init__(self, data, lasnm=None):
-        self.data=data
+    def __init__(self, sdfanalyzer, lasnm=None):
+        self.sdfanalyzer=sdfanalyzer
         self.lasnm=lasnm
         if lasnm:
             self.k0 = 2 * np.pi / (lasnm * 1e-9)
         else:
             self.k0 = None
-        self.simdimensions = 1
-        self._simextent = np.float64([data['Grid/Grid_node/X'][0], data['Grid/Grid_node/X'][-1]])
-        self._simgridpoints = np.float64([len(data['Grid/Grid_node/X'])-1])
-        if data.has_key('Grid/Grid_node/Y'):
-            self._simextent = np.append(self._simextent, np.float64([data['Grid/Grid_node/Y'][0], data['Grid/Grid_node/Y'][-1]]))
-            self._simgridpoints = np.append(self._simgridpoints, np.float64([len(data['Grid/Grid_node/Y'])-1]))
-            self.simdimensions = 2
-        if data.has_key('Grid/Grid_node/Z'):
-            self._simextent = np.append(self._simextent, np.float64([data['Grid/Grid_node/Z'][0], data['Grid/Grid_node/Z'][-1]]))
-            self._simgridpoints = np.append(self._simgridpoints, np.float64([len(data['Grid/Grid_node/Z'])-1]))
-            self.simdimensions = 3
+        self.simdimensions = sdfanalyzer.simdimensions
+        self._simextent = sdfanalyzer.simextent()
+        self._simgridpoints = sdfanalyzer.simgridpoints
         self._extent = self._simextent.copy() #Variable definiert den ausgeschnittenen Bereich
     
     def datenausschnitt_bound(self, m):
@@ -1021,49 +1008,37 @@ class FieldAnalyzer(_Constants):
         Fuegt dem Feld alle Informationen uber das rauemliche Grid hinzu.
         """
         field.setallaxesspacial()
-        field.setgrid_node(0, self.data['Grid/Grid_node/X'])
-        if self.data.has_key('Grid/Grid_node/Y'):
-            field.setgrid_node(1, self.data['Grid/Grid_node/Y'])
-        if self.data.has_key('Grid/Grid_node/Z'):
-            field.setgrid_node(2, self.data['Grid/Grid_node/Z'])
+        field.setgrid_node(0, self.sdfanalyzer.grid_node('x'))
+        if self.simdimensions > 1:
+            field.setgrid_node(1, self.sdfanalyzer.grid_node('y'))
+        if self.simdimensions > 2:
+            field.setgrid_node(2, self.sdfanalyzer.grid_node('z'))
         return None
 
 
     # --- Return functions for basic data layer
     
-    # -- very basic --
-    
-    def _returnkey(self, key):
-        assert self.data.has_key(key), 'Den Key ' + key + ' gibts nicht!'
-        return self.datenausschnitt_bound(np.float64(self.data[key]))
-        
-    def _returnkey2(self, key1, key2, average=False):
-        key = key1 + key2
-        if average:
-            key = key1 + '_average' + key2
-        return self._returnkey(key)
-    
-    # -- just basic --
-    
+    # -- basic --
+    #**kwargs ist z.B. average=True
     def _Ex(self, **kwargs):
-        return self._returnkey2('Electric Field', '/Ex', **kwargs)
+        return self.sdfanalyzer.dataE('x', **kwargs)
     def _Ey(self, **kwargs):
-        return self._returnkey2('Electric Field', '/Ey', **kwargs)
+        return self.sdfanalyzer.dataE('y', **kwargs)
     def _Ez(self, **kwargs):
-        return self._returnkey2('Electric Field', '/Ez', **kwargs)
+        return self.sdfanalyzer.dataE('z', **kwargs)
     def _Bx(self, **kwargs):
-        return self._returnkey2('Magnetic Field', '/Bx', **kwargs)
+        return self.sdfanalyzer.dataB('x', **kwargs)
     def _By(self, **kwargs):
-        return self._returnkey2('Magnetic Field', '/By', **kwargs)
+        return self.sdfanalyzer.dataB('y', **kwargs)
     def _Bz(self, **kwargs):
-        return self._returnkey2('Magnetic Field', '/Bz', **kwargs)
+        return self.sdfanalyzer.dataB('z', **kwargs)
 
 
     # --- Alle Funktionen geben ein Objekt vom Typ Feld zurueck
 
     # allgemein ueber dem Ort auftragen. Insbesondere fuer Derived/*
     def createfeldfromkey(self, key):
-        ret = Feld(self._returnkey(key));
+        ret = Feld(self.sdfanalyzer.data(key));
         ret.name = key
         self.setspacialtofield(ret)
         return ret
