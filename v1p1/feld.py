@@ -5,8 +5,9 @@ Ein Feld repraesentiert ein Datenfeld inkl. dessen Acheneinheiten und Beschriftu
 
 from . import *
 from _Constants import *
+import copy
 
-__all__=['Feld']
+__all__ = ['Feld']
 
 class Feld(_Constants):
     """
@@ -14,16 +15,16 @@ class Feld(_Constants):
     """
         
     def __init__(self, matrix):
-        self.matrix=np.array(matrix)
+        self.matrix = np.array(matrix, dtype='float64')
         self.grid_nodes = []
         self.axesnames = []
         self.axesunits = []
         for i in xrange(self.dimensions()):
             self.addaxis()
-        self.name='unbekannt'
-        self.name2=''
-        self.label=''
-        self.unit=None           
+        self.name = 'unbekannt'
+        self.name2 = ''
+        self.label = ''
+        self.unit = None           
         self.zusatz = ''
         self.textcond = ''
         self._grid_nodes_linear = True #None bedeutet unbekannt
@@ -31,6 +32,73 @@ class Feld(_Constants):
 
     def __str__(self):
         return '<Feld '+self.name +' '+str(self.matrix.shape)+'>'
+        
+        
+    #Operator overloading    
+    def __iadd__(self, other):
+        if isinstance(other, Feld):
+            self.matrix += other.matrix
+        else:
+            self.matrix += other
+        return self
+        
+    def __add__(self, other):
+        ret = copy.deepcopy(self)
+        ret += other
+        return ret
+        
+    def __neg__(self):
+        ret = copy.deepcopy(self)
+        ret.matrix *= -1
+        return ret
+        
+    def __isub__(self, other):
+        if isinstance(other, Feld):
+            self.matrix -= other.matrix
+        else:
+            self.matrix -= other
+        return self
+        
+    def __sub__(self, other):
+        ret = copy.deepcopy(self)
+        ret -= other
+        return ret 
+
+    def __pow__(self, other):
+        ret = copy.deepcopy(self)
+        ret.matrix = self.matrix**other
+        return ret
+ 
+    def __imul__(self, other):
+        if isinstance(other, Feld):
+            self.matrix *= other.matrix
+        else:
+            self.matrix *= other
+        return self
+        
+    def __mul__(self, other):
+        ret = copy.deepcopy(self)
+        ret *= other
+        return ret
+        
+    def __abs__(self):
+        ret = copy.deepcopy(self)
+        ret.matrix = np.abs(ret.matrix)
+        return ret
+        
+    # self /= other: Normierung implementieren
+    def __idiv__(self, other):
+        if isinstance(other, Feld):
+            self.matrix /= other.matrix
+        else:
+            self.matrix /= other
+        return self
+        
+    def __div__(self, other):
+        ret = copy.deepcopy(self)
+        ret /= other
+        return ret    
+
         
     def addaxis(self, name='', unit='?'):
         self.axesnames.append(name)
@@ -169,16 +237,6 @@ extent=(phimin, phimax, rmin, rmax)"""
             np.savetxt(dateiname, export)
         else:
             raise Exception('Not Implemented')
-        
-    def __add__(self, other):
-        ret = copy.deepcopy(self)
-        ret.matrix = self.matrix + other.matrix
-        return ret
 
-
-    def __pow__(self, other):
-        ret = copy.deepcopy(self)
-        ret.matrix = self.matrix**other
-        return ret
 
 
