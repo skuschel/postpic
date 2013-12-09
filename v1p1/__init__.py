@@ -37,7 +37,7 @@ from feld import *
 from sdfdatareader import *
 from sdfplots import *
 
-__all__=['Feld', 'SDFAnalyzer', 'SDFPlots', 'FieldAnalyzer', 'ParticleAnalyzer']
+__all__=['Feld', 'SDFAnalyzer', 'SDFPlots', 'FieldAnalyzer', 'ParticleAnalyzer', 'OutputAnalyzer']
 
 
 
