@@ -50,18 +50,14 @@ class SDFPlots(_Constants):
             nexttext = str(self.plotdescriptor.getprojektname2())
             if isinstance(self.plotdescriptor.getprojektname4(), float):
                 nexttext += ", step: %.0f" % (self.plotdescriptor.getprojektname4())
-            elif isinstance(self.plotdescriptor.getprojektname4(), str):
-                nexttext += " " + self.plotdescriptor.getprojektname4()
             else:
-                pass
+                nexttext += " " + str(self.plotdescriptor.getprojektname4())
             plt.figtext(0.03, 0.94, nexttext, horizontalalignment='left')
             nexttext = ''
             if isinstance(self.plotdescriptor.getprojektname3(), float):
                 nexttext += "%.1f fs" % (1e15*self.plotdescriptor.getprojektname3())
-            elif isinstance(self.plotdescriptor.getprojektname3(), str):
-                nexttext += " " + self.plotdescriptor.getprojektname3()
             else:
-                pass
+                nexttext += " " + str(self.plotdescriptor.getprojektname3())
             plt.figtext(0.92, 0.96, nexttext, horizontalalignment='right')    
         plt.figtext(0.92, 0.93, belowtime, ha='right')
         plt.figtext(0.04, 0.5, extray, horizontalalignment='center', va='center', rotation='vertical')
