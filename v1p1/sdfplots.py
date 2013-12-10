@@ -120,7 +120,7 @@ class SDFPlots(_Constants):
         if name:
             feld.name2 = name
         plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
-        if log10plot and ((feld.matrix < 0).sum() == 0) and (feld.matrix.sum() > 0):
+        if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
             plt.yscale('log')
             #plt.gca().yaxis.set_major_formatter(FuncFormatter(SDFPlots.axesformatexp));
         if feld.axesunits[0] == '':
@@ -186,7 +186,7 @@ class SDFPlots(_Constants):
     def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, name='', majorgrid=False, savecsv=False, lineoutx=False, lineouty=False):
         assert feld.dimensions() == 2, 'Feld muss genau 2 Dimensionen haben.'
         fig, ax0 = plt.subplots()
-        if log10plot & ((feld.matrix < 0).sum() == 0) & (feld.matrix.sum() > 0):
+        if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
             if feld.grid_nodes_linear() and True:
                 plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent(), cmap='jet',interpolation=interpolation) 
             else:
