@@ -487,8 +487,10 @@ class ParticleAnalyzer(_Constants):
         return h, xedges, yedges, extent
 
 
-    def createHistgramFeld1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, name='distfn', title=None):
-        h, x = self.createHistgram1d(scalarfx, simextent=simextent, simgrid=simgrid, optargsh=optargsh)
+    def createHistgramFeld1d(self, scalarfx, name='distfn', title=None, **kwargs):
+        if kwargs.has_key('weights'):
+            name = kwargs['weights'].name
+        h, x = self.createHistgram1d(scalarfx, **kwargs)
         ret = Feld(h)
         #ret.extent = np.array([x[0], x[-1]])
         ret.setgrid_node(0, x)        
@@ -507,13 +509,9 @@ class ParticleAnalyzer(_Constants):
 
 
     #def createHistgramFeld2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, name='distfn', title=None):
-    def createHistgramFeld2d(self, scalarfx, scalarfy, **kwargs):
-        name = 'distfn'
-        title = None
-        if kwargs.has_key('name'):
-    	    name = kwargs.pop('name')
-        if kwargs.has_key('title'):
-    	    title = kwargs.pop('title')
+    def createHistgramFeld2d(self, scalarfx, scalarfy, name='distfn', title=None, **kwargs):
+        if kwargs.has_key('weights'):
+            name = kwargs['weights'].name
         h, xedges, yedges, extent = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
         ret = Feld(h)
         ret.setgrid_node(0, xedges)
