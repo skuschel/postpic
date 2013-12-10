@@ -194,7 +194,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         """
         ret = []
         for key in self._data.keys():
-            match = re.match('Particles/Px(/\w+)', key)
+            match = re.match('Particles/Px/(\w+)', key)
             if match:
                 if ejected=='all' or (ParticleAnalyzer.isejected(match.group(1)) == (ejected=='only')):
                     ret = np.append(ret, match.group(1))
@@ -297,12 +297,12 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
     def getSpecies(self, spezies, attrib):
         """Gibt das Attribut (x,y,z,px,py,pz,weight) dieser Teilchenspezies zurueck"""
         attribid = _Constants._poptsidentify[attrib]
-        options={9:lambda s: 'Particles/Weight' + s,
-            0:lambda s: 'Grid/Particles' + s + '/X',
-            1:lambda s: 'Grid/Particles' + s + '/Y',
-            2:lambda s: 'Grid/Particles' + s + '/Z',
-            3:lambda s: 'Particles/Px' + s,
-            4:lambda s: 'Particles/Py' + s,
-            5:lambda s: 'Particles/Pz' + s}
+        options={9:lambda s: 'Particles/Weight/' + s,
+            0:lambda s: 'Grid/Particles/' + s + '/X',
+            1:lambda s: 'Grid/Particles/' + s + '/Y',
+            2:lambda s: 'Grid/Particles/' + s + '/Z',
+            3:lambda s: 'Particles/Px/' + s,
+            4:lambda s: 'Particles/Py/' + s,
+            5:lambda s: 'Particles/Pz/' + s}
         return self._data[options[attribid](spezies)]
 
