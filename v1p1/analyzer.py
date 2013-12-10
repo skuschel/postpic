@@ -431,7 +431,7 @@ class ParticleAnalyzer(_Constants):
     # ---- Hilfen zum erstellen des Histogramms ---
     
 
-    def createHistgram1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False):
+    def createHistgram1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, weights=lambda x:1):
         if simgrid:
             simextent = True
         #Falls alle Teilchen aussortiert wurden, z.B. durch ConditionFunctions
@@ -444,7 +444,8 @@ class ParticleAnalyzer(_Constants):
         if simgrid:
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'] = scalarfx.gridpoints
-        h, edges = np.histogram(scalarfx(self), weights=self.weight(), range=rangex, **optargsh)
+        w = self.weight() * weights(self)
+        h, edges = np.histogram(scalarfx(self), weights=w, range=rangex, **optargsh)
         h = h/np.diff(edges) #um auf Teilchen pro xunit zu kommen
         if hasattr(scalarfx, 'volumenelement'):
             h = h * scalarfx.volumenelement(np.convolve(edges, [0.5, 0.5], 'valid'))
@@ -452,10 +453,11 @@ class ParticleAnalyzer(_Constants):
         return h, x
 
 
-    def createHistgram2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, rangex=None, rangey=None):
+    def createHistgram2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, rangex=None, rangey=None, weights=lambda x:1):
         """
         simgrid=True erzwingt, dass Ortsachsen dasselbe Grid zugeordnet wird wie in der Simulation. Bedingt simextent=True
         simextent=True erzwingt, dass Ortsachsen sich ueber den gleichen Bereich erstrecken, wie in der Simulation.
+        weights gewichtet die Maropartikel zusatzlich mit einem Wert, der von ParticleAnalyzer zurueckgegeben werden kann. Wie z.B. ParticleAnalyzer.Ekin_MeV.
         """
         if simgrid:
             simextent = True
@@ -474,7 +476,8 @@ class ParticleAnalyzer(_Constants):
                 optargsh['bins'][0] = scalarfx.gridpoints
             if hasattr(scalarfy, 'gridpoints'):
                 optargsh['bins'][1] = scalarfy.gridpoints
-        h, xedges, yedges = np.histogram2d(scalarfx(self), scalarfy(self), weights=self.weight(), range=[rangex, rangey], **optargsh)
+        w = self.weight() * weights(self) #Gewichten mit Makropartikelgroesse * Gewichtungsfaktor
+        h, xedges, yedges = np.histogram2d(scalarfx(self), scalarfy(self), weights=w, range=[rangex, rangey], **optargsh)
         h = h / (xedges[1]-xedges[0]) / (yedges[1] - yedges[0])
         if hasattr(scalarfy, 'volumenelement'):
             h = h * scalarfy.volumenelement(np.convolve(yedges, [0.5, 0.5], 'valid'))
