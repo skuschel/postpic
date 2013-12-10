@@ -506,17 +506,16 @@ class ParticleAnalyzer(_Constants):
         return ret
 
 
-   # def createHistgramFeld2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, name='distfn', title=None):
+    #def createHistgramFeld2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, name='distfn', title=None):
     def createHistgramFeld2d(self, scalarfx, scalarfy, **kwargs):
-	name = 'distfn'
-	title = None
-	if kwargs.has_key('name'):
-		name = kwargs.pop('name')
-	if kwargs.has_key('title'):
-		title = kwargs.pop('title')
+        name = 'distfn'
+        title = None
+        if kwargs.has_key('name'):
+    	    name = kwargs.pop('name')
+        if kwargs.has_key('title'):
+    	    title = kwargs.pop('title')
         h, xedges, yedges, extent = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
         ret = Feld(h)
-        #ret.extent = extent
         ret.setgrid_node(0, xedges)
         ret.setgrid_node(1, yedges)
         ret.name = name + self.species
