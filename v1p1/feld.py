@@ -38,6 +38,7 @@ class Feld(_Constants):
     def __iadd__(self, other):
         if isinstance(other, Feld):
             self.matrix += other.matrix
+            self.name = self.name + ' + ' + other.name
         else:
             self.matrix += other
         return self
@@ -55,6 +56,7 @@ class Feld(_Constants):
     def __isub__(self, other):
         if isinstance(other, Feld):
             self.matrix -= other.matrix
+            self.name = self.name + ' - ' + other.name
         else:
             self.matrix -= other
         return self
@@ -72,6 +74,7 @@ class Feld(_Constants):
     def __imul__(self, other):
         if isinstance(other, Feld):
             self.matrix *= other.matrix
+            self.name = self.name + ' * ' + other.name
         else:
             self.matrix *= other
         return self
@@ -90,6 +93,7 @@ class Feld(_Constants):
     def __idiv__(self, other):
         if isinstance(other, Feld):
             self.matrix /= other.matrix
+            self.name = self.name + ' / ' + other.name
         else:
             self.matrix /= other
         return self
