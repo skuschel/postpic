@@ -463,9 +463,9 @@ class ParticleAnalyzer(_Constants):
             simextent = True
 	### TODO: Falls rangex oder rangy gegeben ist, ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
-		rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
+            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
         if rangey is None:
-        	rangey = [np.min(scalarfy(self)), np.max(scalarfy(self)) + 1e-7]
+            rangey = [np.min(scalarfy(self)), np.max(scalarfy(self)) + 1e-7]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent

@@ -91,7 +91,7 @@ class OutputAnalyzer(PlotDescriptor):
         
     def _createtimeseries_simple(self, f, unit=''):
         """
-        einfach implementiert, aber richtig.
+        einfach implementiert.
         Parallele Alternative schreiben!
         """
         retm = []
@@ -99,6 +99,7 @@ class OutputAnalyzer(PlotDescriptor):
             feld = f(sdfa)
             retm.append(feld.matrix)
         feld.matrix = np.array(retm)
+        feld.matrix = feld.matrix.T
         feld.addaxis('Time', unit)
         feld.setgrid_node_fromgrid(-1, self.times(unit))
         #feld.extent.tolist().append([self[0].time('fs'), self[-1].time('fs')])
