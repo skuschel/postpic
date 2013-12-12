@@ -222,7 +222,7 @@ class Feld(_Constants):
     def interpolater(self, fill_value=0.0):
         grid = self.grid()
         if self.dimensions() == 0:
-            raise Exception('This Field contains either 1 or 0 scalar values. What do you try to achieve?')
+            raise Exception('This Field contains either 1 or 0 scalar values. What do you try to interpolate?')
         elif self.dimensions() == 1:
             return scipy.interpolate.interp1d(grid[0], self.matrix, fill_value=fill_value, bounds_error=False, kind='nearest')
         elif self.dimensions() == 2:
@@ -238,12 +238,32 @@ class Feld(_Constants):
             return self
         ip = self.interpolater()
         grid_new = [np.convolve(gn, np.ones(2)/2.0, mode='valid') for gn in grid_nodes_new]
-        if self.dimensions() == 1:
-            grid_new = grid_new[0]
-        self.matrix = ip(grid_new)
+        self.matrix = ip(*tuple(grid_new))
         for dim in xrange(self.dimensions()):
             self.setgrid_node(dim, grid_nodes_new[dim])
         return self
+
+    def autoreduce(self, maxlenth=15000, maxlen=5000, force=False):
+        """
+        Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth.
+        Any unequally spaced grid will be equally spaced afterwards.
+        """
+        gnds = self.grid_node()
+        changes = False
+        gnneu = []
+        for gn in gnds:
+            if len(gn) > maxlenth or force:
+                changes = True
+                gnneu.append(np.linspace(gn[0], gn[-1], maxlen))
+                print 'autoreduce applied'
+            else:
+                gnneu.append(gn)
+        if changes:
+            ret = self.to_grid_nodes_new(gnneu)
+        else:
+            ret = self
+        return ret
+
 
     def setallaxesspacial(self):
         """
