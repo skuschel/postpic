@@ -493,7 +493,7 @@ class ParticleAnalyzer(_Constants):
         ret = Feld(h)
         #ret.extent = np.array([x[0], x[-1]])
         ret.setgrid_node(0, edges)        
-        ret.name = name
+        ret.name = name + self.species
         ret.name2 = ret.name2 + self.species
         ret.label = self.species
         if title:
