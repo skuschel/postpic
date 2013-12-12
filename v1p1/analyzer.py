@@ -449,8 +449,7 @@ class ParticleAnalyzer(_Constants):
         h = h/np.diff(edges) #um auf Teilchen pro xunit zu kommen
         if hasattr(scalarfx, 'volumenelement'):
             h = h * scalarfx.volumenelement(np.convolve(edges, [0.5, 0.5], 'valid'))
-        x = np.convolve(edges, [0.5,0.5], 'valid')
-        return h, x
+        return h, edges
 
 
     def createHistgram2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, rangex=None, rangey=None, weights=lambda x:1):
@@ -490,10 +489,10 @@ class ParticleAnalyzer(_Constants):
     def createHistgramFeld1d(self, scalarfx, name='distfn', title=None, **kwargs):
         if kwargs.has_key('weights'):
             name = kwargs['weights'].name
-        h, x = self.createHistgram1d(scalarfx, **kwargs)
+        h, edges = self.createHistgram1d(scalarfx, **kwargs)
         ret = Feld(h)
         #ret.extent = np.array([x[0], x[-1]])
-        ret.setgrid_node(0, x)        
+        ret.setgrid_node(0, edges)        
         ret.name = name
         ret.name2 = ret.name2 + self.species
         ret.label = self.species
