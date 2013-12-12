@@ -94,7 +94,11 @@ class OutputAnalyzer(PlotDescriptor):
         einfach implementiert.
         Parallele Alternative schreiben!
         """
-        ret = Feld.factorystack(*tuple([f(sdfa) for sdfa in self]))
+        try:
+            #try to override 1D Histogram bin default to improve quality
+            ret = Feld.factorystack(*tuple([f(sdfa, optargsh={'bins':800}) for sdfa in self]))
+        except TypeError:
+            ret = Feld.factorystack(*tuple([f(sdfa) for sdfa in self]))
         ret.addaxis('Time', unit)
         ret.setgrid_node_fromgrid(-1, self.times(unit))
         ret.zusatz = ''
@@ -104,8 +108,8 @@ class OutputAnalyzer(PlotDescriptor):
         """
         Erzeugt eine Zeitserie.
         f ist eine Funktion, die einen SDFAnalyzer als Argument nimmt und ein Feld (0D oder 1D) als Rueckgabewert hat. Diese Felder werden dann zu mehreren Felder kombiniert, mit der Zeit (genauer: den Dumps) auf einer weiteren Achse.
+        If f is created by any histogram, createtimeseries improves the quality by trying to override the 'bins' setting. In this case make sure to forward **kwargs through f.
         """
-        ### todo: f should be able to forward kwargs to instruct the particle analyzer for higher sampling due to possible resampling during combining process in Feld. Implement that the function makes use if possible
         return self._createtimeseries_simple(f)
 
 
