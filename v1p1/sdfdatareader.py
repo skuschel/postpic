@@ -94,22 +94,18 @@ class OutputAnalyzer(PlotDescriptor):
         einfach implementiert.
         Parallele Alternative schreiben!
         """
-        retm = []
-        for sdfa in self:  ### Parallelisieren!
-            feld = f(sdfa)
-            retm.append(feld.matrix)
-        feld.matrix = np.array(retm)
-        feld.matrix = feld.matrix.T
-        feld.addaxis('Time', unit)
-        feld.setgrid_node_fromgrid(-1, self.times(unit))
-        #feld.extent.tolist().append([self[0].time('fs'), self[-1].time('fs')])
-        return feld
+        ret = Feld.factorystack(*tuple([f(sdfa) for sdfa in self]))
+        ret.addaxis('Time', unit)
+        ret.setgrid_node_fromgrid(-1, self.times(unit))
+        ret.zusatz = ''
+        return ret
         
     def createtimeseries(self, f):
         """
         Erzeugt eine Zeitserie.
         f ist eine Funktion, die einen SDFAnalyzer als Argument nimmt und ein Feld (0D oder 1D) als Rueckgabewert hat. Diese Felder werden dann zu mehreren Felder kombiniert, mit der Zeit (genauer: den Dumps) auf einer weiteren Achse.
         """
+        ### todo: f should be able to forward kwargs to instruct the particle analyzer for higher sampling due to possible resampling during combining process in Feld. Implement that the function makes use if possible
         return self._createtimeseries_simple(f)
 
 

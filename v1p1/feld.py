@@ -6,6 +6,7 @@ Ein Feld repraesentiert ein Datenfeld inkl. dessen Acheneinheiten und Beschriftu
 from . import *
 from _Constants import *
 import copy
+import scipy.interpolate
 
 __all__ = ['Feld']
 
@@ -14,6 +15,27 @@ class Feld(_Constants):
     Repraesentiert ein Feld, das spaeter dirket geplottet werden kann.
     """
         
+    @staticmethod
+    def factorystack(*felder):
+        """
+        Creates a new Feld from many Feld-object stacked together in an additional dimension. It is possible to stack Feld-Objects with different grid_node mappings, because this factory function makes sure to keep Grid alignment properly.
+        The additional axis MUST be added afterwards manually!
+        """
+        #First find grid_node to use
+        gn = copy.copy(felder[0].grid_node())
+        for f in felder:
+            gnds = f.grid_node()
+            for dim in xrange(len(gn)):
+                #Just choose largest extent (will create shit having a moving window!) ###todo
+                if gnds[dim][-1] - gnds[dim][0] > gn[dim][-1] - gn[dim][0]:
+                    gn[dim] = gnds[dim]
+        #make all Fields use gn and combine matrices to a new one.
+        m = [f.to_grid_nodes_new(gn).matrix for f in felder]
+        #take last field and edit for return
+        ret = felder[-1]
+        ret.matrix = np.array(m).T
+        return ret
+
     def __init__(self, matrix):
         self.matrix = np.array(matrix, dtype='float64')
         self.grid_nodes = []
@@ -127,6 +149,8 @@ class Feld(_Constants):
         return self._grid_nodes_linear 
             
         
+    def grid_node(self):
+        return self.grid_nodes
         
     def setgrid_node(self, axis, grid_node):
         if axis < self.dimensions():
@@ -148,6 +172,7 @@ class Feld(_Constants):
         """
         grid_node beinhaltet die Kanten des Grids. In 1D gehoert also zu einem Datenfeld der Laenge 1000 ein grid_node Vektor der Laenge 1001.
         grid beinhaltet die Positionen. In 1D gehoert also zu einem Datenfeld der Laenge 1000 ein grid Vektor der Laenge 1000.
+        This function sets only a single axis! Use multiple calls to set multiple axes.
         """
         gn = np.convolve(grid, np.ones(2)/2.0, mode='full')
         gn[0] = grid[0] + 2 * (grid[0] - gn[1])
@@ -172,7 +197,7 @@ class Feld(_Constants):
         #self.grid_nodes *= 1e6
         map(lambda x: x*1e6, self.grid_nodes)
         self.axesunits = ['$\mu $'+x for x in self.axesunits]
-        return self        
+        return self
         
     def grid(self):
         """
@@ -194,6 +219,32 @@ class Feld(_Constants):
             self.axesunits = setlist(unit)
         return self
         
+    def interpolater(self, fill_value=0.0):
+        grid = self.grid()
+        if self.dimensions() == 0:
+            raise Exception('This Field contains either 1 or 0 scalar values. What do you try to achieve?')
+        elif self.dimensions() == 1:
+            return scipy.interpolate.interp1d(grid[0], self.matrix, fill_value=fill_value, bounds_error=False, kind='nearest')
+        elif self.dimensions() == 2:
+            return scipy.interpolate.interp2d(grid[0], grid[1], self.matrix, fill_value=fill_value, bounds_error=False)
+        else:
+            raise Exception('Not Implemented')
+
+    def to_grid_nodes_new(self, grid_nodes_new):
+        """
+        Interpoliert auf das neue Grid definiert durch new_grid_nodes.
+        """
+        if self.dimensions() == 0:
+            return self
+        ip = self.interpolater()
+        grid_new = [np.convolve(gn, np.ones(2)/2.0, mode='valid') for gn in grid_nodes_new]
+        if self.dimensions() == 1:
+            grid_new = grid_new[0]
+        self.matrix = ip(grid_new)
+        for dim in xrange(self.dimensions()):
+            self.setgrid_node(dim, grid_nodes_new[dim])
+        return self
+
     def setallaxesspacial(self):
         """
         Alle (vorhandenen) Achsen werden zu Raumachsen.
