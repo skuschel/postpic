@@ -84,7 +84,7 @@ class OutputAnalyzer(PlotDescriptor):
         Gibt einen einzelnen Particle Analzer zurueck der alle Teilchen des letzten Dumps und alle ejected Particles der vorhergehenden Dumps einer einzelnen Spezies beinhaltet.
         """
         pa = self[-1].getparticleanalyzer(species)
-        species = '/ejected_' + species.replace('/','')
+        species = 'ejected_' + species.replace('/','')
         for sdfa in self:
             pa += sdfa.getparticleanalyzer(species)
         return pa
