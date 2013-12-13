@@ -115,7 +115,7 @@ class SDFPlots(_Constants):
         plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
-        if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
+        if log10plot and ((feld.matrix < 0).sum() == 0) and any(feld.matrix > 0):
             plt.yscale('log') #sets the axis to log scale AND overrides our previously set axesformatter to the default matplotlib.ticker.LogFormatterMathtext.
         if feld.axesunits[0] == '':
             plt.xlabel(feld.axesnames[0])
