@@ -494,6 +494,7 @@ class ParticleAnalyzer(_Constants):
         #ret.extent = np.array([x[0], x[-1]])
         ret.setgrid_node(0, edges)        
         ret.name = name + self.species
+        ret.name = self.species
         ret.name2 = ret.name2 + self.species
         ret.label = self.species
         if title:
@@ -516,6 +517,7 @@ class ParticleAnalyzer(_Constants):
         ret.setgrid_node(0, xedges)
         ret.setgrid_node(1, yedges)
         ret.name = name + self.species
+        ret.label = self.species
         ret.name2 = ret.name2 + self.species
         if title:
             ret.name = title
@@ -627,6 +629,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._Ex(**kwargs))
         ret.unit='V/m'
         ret.name='Ex'
+        ret.label='Ex'
         self.setspacialtofield(ret)
         return ret
         
@@ -634,6 +637,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._Ey(**kwargs))
         ret.unit='V/m'
         ret.name='Ey'
+        ret.label='Ey'
         self.setspacialtofield(ret)
         return ret
         
@@ -641,6 +645,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._Ez(**kwargs))
         ret.unit='V/m'
         ret.name='Ez'
+        ret.label='Ez'
         self.setspacialtofield(ret)
         return ret
 
@@ -648,6 +653,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._Bx(**kwargs))
         ret.unit='T'
         ret.name='Bx'
+        ret.label='Bx'
         self.setspacialtofield(ret)
         return ret
 
@@ -655,6 +661,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._By(**kwargs))
         ret.unit='T'
         ret.name='By'
+        ret.label='By'
         self.setspacialtofield(ret)
         return ret
         
@@ -662,6 +669,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld(self._Bz(**kwargs))
         ret.unit='T'
         ret.name='Bz'
+        ret.label='Bz'
         self.setspacialtofield(ret)
         return ret
 
@@ -673,6 +681,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld( 0.5 * self._epsilon0 * (self._Ex(**kwargs)**2 + self._Ey(**kwargs)**2 + self._Ez(**kwargs)**2) )
         ret.unit='J/m^3'
         ret.name='Energy Density Electric-Field'
+        ret.label='E'
         self.setspacialtofield(ret)
         return ret
         
@@ -680,6 +689,7 @@ class FieldAnalyzer(_Constants):
         ret = Feld( 0.5 / self._mu0 * (self._Bx(**kwargs)**2 + self._By(**kwargs)**2 + self._Bz(**kwargs)**2) )
         ret.unit='J/m^3'
         ret.name='Energy Density Magnetic-Field'
+        ret.label='M'
         self.setspacialtofield(ret)
         return ret
 
@@ -688,6 +698,7 @@ class FieldAnalyzer(_Constants):
              + 0.5 / self._mu0 * (self._Bx(**kwargs)**2 + self._By(**kwargs)**2 + self._Bz(**kwargs)**2) )
         ret.unit='J/m^3'
         ret.name='Energy Density EM-Field'
+        ret.label='EM'
         self.setspacialtofield(ret)
         return ret
         
@@ -702,6 +713,7 @@ class FieldAnalyzer(_Constants):
             ret = Feld( 0.5 * self._epsilon0 * abs(np.fft.fftshift(np.fft.rfft2(self._Ex(),axes=rfftaxes), axes=axis))**2 )
         ret.unit='?'
         ret.name='Spectrum Ex'
+        ret.label='Spectrum Ex'
         ret.setallaxes(name=[r'$k_x$', r'$k_y$', r'$k_z$'], unit=['','',''])
         extent = np.zeros(2*self.simdimensions)
         extent[1::2] = np.pi / self.getspatialresolution()
@@ -723,6 +735,7 @@ class FieldAnalyzer(_Constants):
             ret = Feld( 0.5 / self._mu0 * abs(np.fft.fftshift(np.fft.rfft2(self._Bz(), axes=rfftaxes), axes=axis))**2 )
         ret.unit='?'
         ret.name='Spectrum Bz'
+        ret.label='Spectrum Bz'
         ret.setallaxes(name=[r'$k_x$', r'$k_y$', r'$k_z$'], unit=['','',''])
         extent = np.zeros(2*self.simdimensions)
         extent[1::2] = np.pi / self.getspatialresolution()
