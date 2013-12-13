@@ -80,9 +80,6 @@ class SDFPlots(_Constants):
         plt.clim(-bound,bound)
 
     def plotspeichern(self,key, dpi=150, facecolor=(1,1,1,0.01)):
-	#Die sind zwar schoen, aber machen manchmal Probleme, wenn alle Werte null sind...
-        plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
-        plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         plt.gcf().set_size_inches(9,7)
         savename=self._savename(key)
         if savename != None:
@@ -116,9 +113,10 @@ class SDFPlots(_Constants):
         if name:
             feld.name2 = name
         plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
+        plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
+        plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
-            plt.yscale('log')
-            #plt.gca().yaxis.set_major_formatter(FuncFormatter(SDFPlots.axesformatexp));
+            plt.yscale('log') #sets the axis to log scale AND overrides our previously set axesformatter to the default matplotlib.ticker.LogFormatterMathtext.
         if feld.axesunits[0] == '':
             plt.xlabel(feld.axesnames[0])
         else:
@@ -182,6 +180,8 @@ class SDFPlots(_Constants):
     def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, name='', majorgrid=False, savecsv=False, lineoutx=False, lineouty=False):
         assert feld.dimensions() == 2, 'Feld muss genau 2 Dimensionen haben.'
         fig, ax0 = plt.subplots()
+        plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
+        plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
             if feld.grid_nodes_linear() and True:
                 plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent(), cmap='jet',interpolation=interpolation) 
