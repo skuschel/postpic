@@ -252,11 +252,11 @@ class ParticleAnalyzer(_Constants):
         
     def __add__(self, other): # self + other
         ret = copy.copy(self)
-        ret.append(other)
+        ret += other
         return ret
         
     def __iadd__(self, other): # self += other
-       return self.append(other)
+       return self.append(copy.deepcopy(other))
        
         
     # --- nur GRUNDLEGENDE Funktionen auf SingleSpeciesAnalyzer abbilden 
