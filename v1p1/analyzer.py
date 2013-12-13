@@ -234,7 +234,7 @@ class ParticleAnalyzer(_Constants):
         self.angle_offaxis.__func__.extent=np.real([0, np.pi])
         
     def __str__(self):
-        return '<ParticleAnalyzer including ' + str(self._speciess) +'>'
+        return '<ParticleAnalyzer including ' + str(self._speciess) + '(' + str(len(self)) + ')>'
         
     def __len__(self):
         """
