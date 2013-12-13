@@ -63,6 +63,21 @@ class OutputAnalyzer(PlotDescriptor):
     def getlasnm(self):
         return self.lasnm
         
+    #High Level
+    def species(self, ejected='ignore'):
+        """
+        Gibt eine Liste aller an der Simulation beteiligten Species aus
+        ejected='ignore' gibt an, wie ejected particles behandelt werden (falls vorhanden). Optionen sind
+        'all' - normale und ejected particles werden ausgegeben
+        'only' - nur ejected particles werden ausgegeben
+        'ignore' - ejected particles werden nicht mit ausgegeben.
+        """
+        ret = set()
+        for dump in self:
+            ret |= set(dump.species(ejected=ejected))
+        ret=list(ret)
+        ret.sort()
+        return ret
 
     def getparticleanalyzercollect(self, species):
         """
