@@ -6,6 +6,7 @@ Stellt Klassen und Methoden zum abstracten Datenzugriff mit einem Dump oder mit 
 from . import *
 import re
 import os
+import sys
 from _Interfaces import *
 from analyzer import *
 from _Constants import *
@@ -79,13 +80,17 @@ class OutputAnalyzer(PlotDescriptor):
         ret.sort()
         return ret
 
-    def getparticleanalyzercollect(self, species):
+    def getparticleanalyzercollect(self, species, ndumps=sys.maxint):
         """
         Gibt einen einzelnen Particle Analzer zurueck der alle Teilchen des letzten Dumps und alle ejected Particles der vorhergehenden Dumps einer einzelnen Spezies beinhaltet.
+        ndumps=n verwendet nur die ersten n+1 dumps aus dieser visit file, so alsob die Simulation danach abgebrochen worden waere. 
+        Achtung: Bei ndumps=15 ist mit fortlaufender nummerierung (0000.sdf, 0001.sdf,..., 0014.sdf) also <ndumps-1>.sdf die letzte sdf-datei.
         """
-        pa = self[-1].getparticleanalyzer(species)
+        sl = slice(0,ndumps+1)
+        sdfas = self[sl]
+        pa = sdfas[-1].getparticleanalyzer(species)
         species = 'ejected_' + species.replace('/','')
-        for sdfa in self:
+        for sdfa in sdfas:
             pa += sdfa.getparticleanalyzer(species)
         return pa
         
