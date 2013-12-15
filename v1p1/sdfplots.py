@@ -229,9 +229,9 @@ class SDFPlots(_Constants):
                 feld.exporttocsv(self.lastsavename() + '.csv')
 
 
-    def plotFeld(self, feld, autoreduce=True, **kwargs):
+    def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, **kwargs):
         if autoreduce:
-            feld.autoreduce()
+            feld.autoreduce(maxlen_th = ar_maxlen_th)
         if feld == None:
             return self._skipplot()
         elif feld.dimensions() == 0:

@@ -8,6 +8,7 @@ from _Constants import *
 import copy
 import scipy.interpolate
 import scipy.signal
+import sys
 
 __all__ = ['Feld']
 
@@ -244,37 +245,41 @@ class Feld(_Constants):
             self.setgrid_node(dim, grid_nodes_new[dim])
         return self
 
-    def autoreduce(self, maxlen_th=15000, maxlen=10000, force=False):
+    def autoreduce(self, maxlen_th=8000):
         """
         Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth by just removing every second grid point.
         """
         gnds = self.grid_node()
         changes = False
         gnneu = []
-        longest = 0
-        for gn in gnds:
-            if len(gn)-1 > maxlen_th or force:
-                longest = np.max([longest, len(gn)-1]) 
-                print 'autoreduce: ' + str(longest)
-                changes = True
-                gnneu.append(np.linspace(gn[0], gn[-1], maxlen))
-            else:
-                gnneu.append(gn)
-        if changes:
-            for i in xrange(int(np.log(longest/maxlen)/np.log(2.0))):
-                self.half_resolution()
+        for i in xrange(len(gnds)):
+            if len(gnds[i])-1 > maxlen_th:
+                self.half_resolution(i)
+                self.autoreduce()
+                break
         return self
         
-    def half_resolution(self):
+    def half_resolution(self, axis):
         '''
         Halfs the resolution along the given axis by removing every second grid point.
         '''
-        self.grid_nodes = [gn[::2] for gn in self.grid_nodes]
+        gnds = np.array(self.grid_nodes)
+        gn = gnds[axis]
+        self.grid_nodes[axis] = gn[::2]
         dims = len(self.matrix.shape)
-        mconv = np.ones(tuple([2 for i in xrange(dims)])) / 2.0**dims
-        m = scipy.signal.convolve2d(self.matrix, mconv, mode='same')
-        self.matrix = m[::2, ::2]
-        print 'reduced to:' + str(self.matrix.shape)
+        if dims == 1:
+            return NotImplemented
+        elif dims == 2:
+            mconv = np.array([[0.5,0.5]])
+            if axis == 1:
+                mconv = mconv.T
+            m = scipy.signal.convolve2d(self.matrix, mconv, mode='same')
+            ind = [slice(0, sys.maxint, 1), slice(0, sys.maxint, 1)]
+            ind[axis] = slice(0, sys.maxint, 2)
+            self.matrix = m[ind]
+        else:
+            return NotImplemented
+        #print 'reduced to:' + str(self.matrix.shape)
         return self
 
 
