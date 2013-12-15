@@ -137,10 +137,14 @@ class SDFPlots(_Constants):
     def plotFelder1d(self, *felder, **kwargs):
         kwargs.update({'saveandclose': False})
         zusatz = []
+        #only write textcond to Image if all textcond of all felder are equal.
+        cleartextcond = not all([str(f.textcond) == str(felder[0].textcond) for f in felder])
         for feld in felder:
             if feld.dimensions() == 0:
                 continue
             zusatz.append(feld.zusatz)
+            if cleartextcond:
+                feld.textcond = ''
             self._plotFeld1d(feld, **kwargs)
         self.setzetextfeld(feld, zusatz=zusatz)
         plt.legend()
