@@ -110,27 +110,32 @@ class _SingleSpeciesAnalyzer(_Constants):
 
     def __init__(self, sdfanalyzer, species):
         self.species = species
-        self.speciesexists = True
-        if not sdfanalyzer.hasSpecies(species):
-            self.speciesexists = False
-            return
+        self.speciesexists = False
         self.sdfanalyzer = sdfanalyzer
-        self._weightdata = sdfanalyzer.getSpecies(species, 'weight')
-        self._Xdata = sdfanalyzer.getSpecies(species, 'x')
-        self._Ydata = np.array([0,1])
-        self._Zdata = np.array([0,1])
         self.simdimensions = sdfanalyzer.simdimensions
-        if self.simdimensions > 1:
-            self._Ydata = sdfanalyzer.getSpecies(species, 'y')
-        if self.simdimensions > 2:
-            self._Zdata = sdfanalyzer.getSpecies(species,'z')
-        self._Pxdata = sdfanalyzer.getSpecies(species,'px')
-        self._Pydata = sdfanalyzer.getSpecies(species,'py')
-        self._Pzdata = sdfanalyzer.getSpecies(species,'pz')
         self._particleinfo = self.retrieveparticleinfo(species) 
         self._mass = self._particleinfo['mass'] #SI
         self._charge = self._particleinfo['charge'] #SI
         self.compresslog=[]
+        self._weightdata = np.array([])
+        self._Xdata = np.array([])
+        self._Ydata = np.array([])
+        self._Zdata = np.array([])
+        self._Pxdata = np.array([])
+        self._Pydata = np.array([])
+        self._Pzdata = np.array([])
+        if sdfanalyzer.hasSpecies(species):
+            #Hold local copies to allow compress function
+            self.speciesexists = True
+            self._weightdata = sdfanalyzer.getSpecies(species, 'weight')
+            self._Xdata = sdfanalyzer.getSpecies(species, 'x')
+            if self.simdimensions > 1:
+                self._Ydata = sdfanalyzer.getSpecies(species, 'y')
+            if self.simdimensions > 2:
+                self._Zdata = sdfanalyzer.getSpecies(species,'z')
+            self._Pxdata = sdfanalyzer.getSpecies(species,'px')
+            self._Pydata = sdfanalyzer.getSpecies(species,'py')
+            self._Pzdata = sdfanalyzer.getSpecies(species,'pz')
             
 
     def compress(self, condition, name='unknown condition'):
@@ -200,18 +205,10 @@ class ParticleAnalyzer(_Constants):
         
     
     def __init__(self, sdfanalyzer, *speciess):
-        self._speciess = speciess
-        self.species = ''
+        #create 'empty' ParticleAnalyzer
         self._ssas = []
-        self.simdimensions = None
-        for s in speciess:
-            ssa = _SingleSpeciesAnalyzer(sdfanalyzer,s)
-            if ssa.speciesexists:
-                self.species = self.species + s
-                self._ssas.append(ssa)
-                self.simdimensions = self._ssas[0].simdimensions
+        self.simdimensions = sdfanalyzer.simdimensions
         self._compresslog = []
-
         self.simextent = sdfanalyzer.simextent()
         self.simgridpoints = sdfanalyzer.simgridpoints
         self.X.__func__.extent=self.simextent[0:2]
@@ -232,6 +229,9 @@ class ParticleAnalyzer(_Constants):
         self.angle_yz.__func__.extent=np.real([-np.pi, np.pi])
         self.angle_zx.__func__.extent=np.real([-np.pi, np.pi])
         self.angle_offaxis.__func__.extent=np.real([0, np.pi])
+        #add particle species one by one
+        for s in speciess:
+            self.add(sdfanalyzer, s)
         
     def __str__(self):
         return '<ParticleAnalyzer including ' + str(self._speciess) + '(' + str(len(self)) + ')>'
@@ -242,13 +242,26 @@ class ParticleAnalyzer(_Constants):
         """
         return self.N()
         
-    # --- Funktionen, um ParticleAnalyzer zu kombinieren
+    def species(self):
+        '''
+        returns an string name for the species involved. Basically only returns uniqe names from all species (used for plotting and labeling purposes -- not for completeness).
+        '''
+        ret = ''
+        for s in set(self.speciess()):
+            ret += s + ' '
+        ret = ret[0:-1]
+        return ret
         
-    def append(self, other):
-        if len(self._ssas) > 0:
-            self._ssas = copy.deepcopy(self._ssas) + copy.deepcopy(other._ssas)
-            self.species = self.species + other.species
-        return self
+    def speciess(self):
+        return [ssa.species for ssa in self._ssas]
+
+    def add(self, sdfanalyzer, species):
+        '''
+        adds a single species to this analyzer
+        '''
+        self._ssas.append(_SingleSpeciesAnalyzer(sdfanalyzer,species))
+
+    # --- Funktionen, um ParticleAnalyzer zu kombinieren
         
     def __add__(self, other): # self + other
         ret = copy.copy(self)
@@ -256,7 +269,15 @@ class ParticleAnalyzer(_Constants):
         return ret
         
     def __iadd__(self, other): # self += other
-       return self.append(copy.deepcopy(other))
+        '''
+        adding ParticleAnalyzers should give the feeling as if you were adding their particle lists. Thats why there is no append function. Compare those outputs:
+        a=[1,2,3]; a.append([4,5]); print a
+        [1,2,3,[4,5]]
+        a=[1,2,3]; a += [4,5]; print a
+        [1,2,3,4,5]
+        '''
+        self._ssas += copy.copy(other._ssas)
+        return self
        
         
     # --- nur GRUNDLEGENDE Funktionen auf SingleSpeciesAnalyzer abbilden 
@@ -264,8 +285,11 @@ class ParticleAnalyzer(_Constants):
     def _funcabbilden(self, func):
         ret = np.array([])
         for ssa in self._ssas:
-            a = getattr(ssa, func)()
-            ret = np.append(ret, a)
+            if ssa.speciesexists:
+                a = getattr(ssa, func)()
+                ret = np.append(ret, a)
+            else: ##Issue warning as soon as warnings are implemented. Although this might be on purpose i.e. if ejected paricles get collected and this dump doesnt have any ejected particles of this kind.
+                pass
         return ret
     
     def _weight(self):
@@ -493,10 +517,8 @@ class ParticleAnalyzer(_Constants):
         ret = Feld(h)
         #ret.extent = np.array([x[0], x[-1]])
         ret.setgrid_node(0, edges)        
-        ret.name = name + self.species
-        ret.name = self.species
-        ret.name2 = ret.name2 + self.species
-        ret.label = self.species
+        ret.name = name + ' ' + self.species()
+        ret.label = self.species()
         if title:
             ret.name = title
         if hasattr(scalarfx, 'unit'):
@@ -516,9 +538,8 @@ class ParticleAnalyzer(_Constants):
         ret = Feld(h)
         ret.setgrid_node(0, xedges)
         ret.setgrid_node(1, yedges)
-        ret.name = name + self.species
-        ret.label = self.species
-        ret.name2 = ret.name2 + self.species
+        ret.name = name + self.species()
+        ret.label = self.species()
         if title:
             ret.name = title
         ret.axesunits = [scalarfx.unit, scalarfy.unit]
