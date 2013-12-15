@@ -140,7 +140,7 @@ class SDFPlots(_Constants):
         #only write textcond to Image if all textcond of all felder are equal.
         cleartextcond = not all([str(f.textcond) == str(felder[0].textcond) for f in felder])
         for feld in felder:
-            if feld.dimensions() == 0:
+            if feld.dimensions() <= 0:
                 continue
             zusatz.append(feld.zusatz)
             if cleartextcond:

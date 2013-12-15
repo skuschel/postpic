@@ -22,15 +22,22 @@ class Feld(_Constants):
         The additional axis MUST be added afterwards manually!
         """
         #First find grid_node to use
-        gn = copy.copy(felder[0].grid_node())
-        for f in felder:
+        #Only use Felder that carry data.
+        def use(f):
+            try:
+                return len(f.matrix) > 0  #yields error if f.matrix is scalar value
+            except TypeError: 
+                return True
+        usefelder = [f for f in felder if use(f)]
+        gn = copy.copy(usefelder[0].grid_node())
+        for f in usefelder:
             gnds = f.grid_node()
             for dim in xrange(len(gn)):
                 #Just choose largest extent (will create shit having a moving window!) ###todo
                 if gnds[dim][-1] - gnds[dim][0] > gn[dim][-1] - gn[dim][0]:
                     gn[dim] = gnds[dim]
         #make all Fields use gn and combine matrices to a new one.
-        m = [f.to_grid_nodes_new(gn).matrix for f in felder]
+        m = [f.to_grid_nodes_new(gn).matrix for f in usefelder]
         #take last field and edit for return
         ret = felder[-1]
         ret.matrix = np.array(m).T
@@ -188,7 +195,14 @@ class Feld(_Constants):
         self.extent = ausschnitt
     
     def dimensions(self):
-        return len(self.matrix.shape)
+        '''
+        returns only present dimensions. [] and [[]] are interpreted as -1
+        '''
+        ret = len(self.matrix.shape) # gives the dims of self.matrix. so [] would be 1 and [[]] would be 2.
+        ret -= self.matrix.shape.count(1)
+        if np.prod(self.matrix.shape) == 0:
+            ret = -1
+        return ret
         
     def savename(self):
         return self.name + ' ' + self.name2

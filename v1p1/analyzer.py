@@ -460,7 +460,7 @@ class ParticleAnalyzer(_Constants):
             simextent = True
         #Falls alle Teilchen aussortiert wurden, z.B. durch ConditionFunctions
         if len(scalarfx(self)) == 0: 
-            return [0], [0]
+            return [], []
         rangex = [np.min(scalarfx(self)), np.max(scalarfx(self))]
         if simextent:
             if hasattr(scalarfx, 'extent'):
