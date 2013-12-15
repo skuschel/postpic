@@ -7,6 +7,7 @@ from . import *
 from _Constants import *
 import copy
 import scipy.interpolate
+import scipy.signal
 
 __all__ = ['Feld']
 
@@ -243,26 +244,39 @@ class Feld(_Constants):
             self.setgrid_node(dim, grid_nodes_new[dim])
         return self
 
-    def autoreduce(self, maxlenth=15000, maxlen=5000, force=False):
+    def autoreduce(self, maxlen_th=15000, maxlen=10000, force=False):
         """
-        Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth.
-        Any unequally spaced grid will be equally spaced afterwards.
+        Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth by just removing every second grid point.
         """
         gnds = self.grid_node()
         changes = False
         gnneu = []
+        longest = 0
         for gn in gnds:
-            if len(gn) > maxlenth or force:
+            if len(gn)-1 > maxlen_th or force:
+                longest = np.max([longest, len(gn)-1]) 
+                print 'autoreduce: ' + str(longest)
                 changes = True
                 gnneu.append(np.linspace(gn[0], gn[-1], maxlen))
-                print 'autoreduce applied'
             else:
                 gnneu.append(gn)
         if changes:
-            ret = self.to_grid_nodes_new(gnneu)
-        else:
-            ret = self
-        return ret
+            for i in xrange(int(np.log(longest/maxlen)/np.log(2.0))):
+                self.half_resolution()
+        return self
+        
+    def half_resolution(self):
+        '''
+        Halfs the resolution along the given axis by removing every second grid point.
+        '''
+        self.grid_nodes = [gn[::2] for gn in self.grid_nodes]
+        dims = len(self.matrix.shape)
+        mconv = np.ones(tuple([2 for i in xrange(dims)])) / 2.0**dims
+        m = scipy.signal.convolve2d(self.matrix, mconv, mode='same')
+        self.matrix = m[::2, ::2]
+        print 'reduced to:' + str(self.matrix.shape)
+        return self
+
 
 
     def setallaxesspacial(self):
