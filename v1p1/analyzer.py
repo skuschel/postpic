@@ -484,6 +484,8 @@ class ParticleAnalyzer(_Constants):
         """
         if simgrid:
             simextent = True
+        if len(scalarfx(self)) == 0:
+            return [], [], []
 	### TODO: Falls rangex oder rangy gegeben ist, ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
             rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
@@ -506,8 +508,7 @@ class ParticleAnalyzer(_Constants):
             h = h * scalarfy.volumenelement(np.convolve(yedges, [0.5, 0.5], 'valid'))
         if hasattr(scalarfx, 'volumenelement'):
             h = (h.T * scalarfx.volumenelement(np.convolve(xedges, [0.5, 0.5], 'valid'))).T
-        extent = np.array([xedges[0], xedges[-1], yedges[0], yedges[-1]])
-        return h, xedges, yedges, extent
+        return h, xedges, yedges
 
 
     def createHistgramFeld1d(self, scalarfx, name='distfn', title=None, **kwargs):
@@ -534,7 +535,7 @@ class ParticleAnalyzer(_Constants):
     def createHistgramFeld2d(self, scalarfx, scalarfy, name='distfn', title=None, **kwargs):
         if kwargs.has_key('weights'):
             name = kwargs['weights'].name
-        h, xedges, yedges, extent = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
+        h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
         ret = Feld(h)
         ret.setgrid_node(0, xedges)
         ret.setgrid_node(1, yedges)

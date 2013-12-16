@@ -238,7 +238,7 @@ class SDFPlots(_Constants):
             feld.autoreduce(maxlen_th = ar_maxlen_th)
         if feld == None:
             return self._skipplot()
-        elif feld.dimensions() == 0:
+        elif feld.dimensions() <= 0:
             return self._skipplot()
         elif feld.dimensions() == 1:
             return self.plotFelder1d(feld, **kwargs)
