@@ -108,10 +108,8 @@ class SDFPlots(_Constants):
             return self._savenamesused[-1]
 
 
-    def _plotFeld1d(self, feld, log10plot=True, saveandclose=True, xlim=None, clim=None, scaletight=None, name=None, majorgrid=False, savecsv=False):
+    def _plotFeld1d(self, feld, log10plot=True, saveandclose=True, xlim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False):
         assert feld.dimensions() == 1, 'Feld muss genau eine Dimension haben.'
-        if name:
-            feld.name2 = name
         plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
@@ -181,7 +179,7 @@ class SDFPlots(_Constants):
         #ax.spines['top'].set_position(('axes',0.9))
         return ax
 
-    def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, name='', majorgrid=False, savecsv=False, lineoutx=False, lineouty=False):
+    def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, lineoutx=False, lineouty=False):
         assert feld.dimensions() == 2, 'Feld muss genau 2 Dimensionen haben.'
         fig, ax0 = plt.subplots()
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
@@ -218,8 +216,6 @@ class SDFPlots(_Constants):
             plt.xlim(xlim)
         if ylim != None:
             plt.ylim(ylim)
-        if name != None:
-            feld.name2 = name            
         self.setzetextfeld(feld)
         if majorgrid:
             plt.grid(b=True, which='major', linestyle='--')
@@ -233,13 +229,15 @@ class SDFPlots(_Constants):
                 feld.exporttocsv(self.lastsavename() + '.csv')
 
 
-    def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, **kwargs):
+    def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, name = None, **kwargs):
+        if name:
+            feld.name2 = name
         if autoreduce:
             feld.autoreduce(maxlen_th = ar_maxlen_th)
         if feld == None:
-            return self._skipplot()
+            return self._skipplot(feld.savename())
         elif feld.dimensions() <= 0:
-            return self._skipplot()
+            return self._skipplot(feld.savename())
         elif feld.dimensions() == 1:
             return self.plotFelder1d(feld, **kwargs)
         elif feld.dimensions() == 2:
@@ -247,8 +245,11 @@ class SDFPlots(_Constants):
         else:
             raise Exception('plotFeld kann nur 1 oder 2 dimensionale Felder plotten.')
 
-    def _skipplot(self):
-        print 'Skipped Plot: ' + self._savename('')
+    def _skipplot(self, key):
+        fig = plt.figure()
+        plt.figtext(0.5,0.5,'No data available.', ha='center')
+        self.plotspeichern(key)
+        print 'Skipped Plot: ' + self.lastsavename()
         return
     
         
