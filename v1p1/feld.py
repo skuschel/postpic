@@ -7,6 +7,8 @@ from . import *
 from _Constants import *
 import copy
 import scipy.interpolate
+import scipy.signal
+import sys
 
 __all__ = ['Feld']
 
@@ -236,7 +238,7 @@ class Feld(_Constants):
     def interpolater(self, fill_value=0.0):
         grid = self.grid()
         if self.dimensions() == 0:
-            raise Exception('This Field contains either 1 or 0 scalar values. What do you try to achieve?')
+            raise Exception('This Field contains either 1 or 0 scalar values. What do you try to interpolate?')
         elif self.dimensions() == 1:
             return scipy.interpolate.interp1d(grid[0], self.matrix, fill_value=fill_value, bounds_error=False, kind='nearest')
         elif self.dimensions() == 2:
@@ -252,12 +254,49 @@ class Feld(_Constants):
             return self
         ip = self.interpolater()
         grid_new = [np.convolve(gn, np.ones(2)/2.0, mode='valid') for gn in grid_nodes_new]
-        if self.dimensions() == 1:
-            grid_new = grid_new[0]
-        self.matrix = ip(grid_new)
+        self.matrix = ip(*tuple(grid_new))
         for dim in xrange(self.dimensions()):
             self.setgrid_node(dim, grid_nodes_new[dim])
         return self
+
+    def autoreduce(self, maxlen_th=8000):
+        """
+        Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth by just removing every second grid point.
+        """
+        gnds = self.grid_node()
+        changes = False
+        gnneu = []
+        for i in xrange(len(gnds)):
+            if len(gnds[i])-1 > maxlen_th:
+                self.half_resolution(i)
+                self.autoreduce()
+                break
+        return self
+        
+    def half_resolution(self, axis):
+        '''
+        Halfs the resolution along the given axis by removing every second grid point.
+        '''
+        gnds = np.array(self.grid_nodes)
+        gn = gnds[axis]
+        self.grid_nodes[axis] = gn[::2]
+        dims = len(self.matrix.shape)
+        if dims == 1:
+            return NotImplemented
+        elif dims == 2:
+            mconv = np.array([[0.5,0.5]])
+            if axis == 1:
+                mconv = mconv.T
+            m = scipy.signal.convolve2d(self.matrix, mconv, mode='same')
+            ind = [slice(0, sys.maxint, 1), slice(0, sys.maxint, 1)]
+            ind[axis] = slice(0, sys.maxint, 2)
+            self.matrix = m[ind]
+        else:
+            return NotImplemented
+        #print 'reduced to:' + str(self.matrix.shape)
+        return self
+
+
 
     def setallaxesspacial(self):
         """
