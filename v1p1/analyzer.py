@@ -342,6 +342,9 @@ class ParticleAnalyzer(_Constants):
         
     def _mass_u(self):
         return self._mass() / self._me / 1836.2
+
+    def _charge_e(self):
+        return self._charge() / self._qe
     
     def _Eruhe(self):
         return self._mass() * self._c**2
@@ -425,6 +428,10 @@ class ParticleAnalyzer(_Constants):
         return self.Ekin_MeV() / self._mass_u()
     Ekin_MeV_amu.unit='MeV / amu'
     Ekin_MeV_amu.name='Ekin / amu'
+    def Ekin_MeV_qm(self):
+        return self.Ekin_MeV() * self._charge_e() / self._mass_u()
+    Ekin_MeV_amu.unit='MeV*q/m'
+    Ekin_MeV_amu.name='Ekin * q/m'
     def Ekin_keV(self):
         return self.Ekin() / self._qe / 1e3
     Ekin_keV.unit='keV'
@@ -433,6 +440,10 @@ class ParticleAnalyzer(_Constants):
         return self.Ekin_keV() / self._mass_u()
     Ekin_keV_amu.unit='keV / amu'
     Ekin_keV_amu.name='Ekin / amu'
+    def Ekin_keV_qm(self):
+        return self.Ekin_MeV() * self._charge_e() / self._mass_u()
+    Ekin_MeV_amu.unit='keV*q/m'
+    Ekin_MeV_amu.name='Ekin * q/m'
     def angle_xy(self):
         return np.arctan2(self._Py(), self._Px())
     angle_xy.unit='rad'
