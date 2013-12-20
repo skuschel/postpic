@@ -259,7 +259,7 @@ class Feld(_Constants):
             self.setgrid_node(dim, grid_nodes_new[dim])
         return self
 
-    def autoreduce(self, maxlen_th=8000):
+    def autoreduce(self, maxlen_th=4000):
         """
         Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth by just removing every second grid point.
         """
@@ -279,18 +279,19 @@ class Feld(_Constants):
         '''
         gnds = np.array(self.grid_nodes)
         gn = gnds[axis]
-        self.grid_nodes[axis] = gn[::2]
+        last = sys.maxint
+        if self.matrix.shape[axis] % 2 != 0:
+            last = -1
+        self.grid_nodes[axis] = gn[:last:2]
         dims = len(self.matrix.shape)
         if dims == 1:
             return NotImplemented
         elif dims == 2:
-            mconv = np.array([[0.5,0.5]])
-            if axis == 1:
-                mconv = mconv.T
-            m = scipy.signal.convolve2d(self.matrix, mconv, mode='same')
             ind = [slice(0, sys.maxint, 1), slice(0, sys.maxint, 1)]
-            ind[axis] = slice(0, sys.maxint, 2)
-            self.matrix = m[ind]
+            ind[axis] = slice(0, last, 2)
+            ind2 = copy.copy(ind)
+            ind2[axis] = slice(1,sys.maxint, 2)
+            self.matrix = (self.matrix[ind] + self.matrix[ind2]) / 2.0
         else:
             return NotImplemented
         #print 'reduced to:' + str(self.matrix.shape)
