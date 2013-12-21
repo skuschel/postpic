@@ -10,6 +10,6 @@ setup(name='epochsdftools',
 	author='Stephan Kuschel',
 	author_email='stephan.kuschel@uni-jena.de',
 	description='Toolkit um Daten aus PIC Simulationen zu verarbeiten und darzustellen.',
-	packages=['epochsdftools','epochsdftools.v1p1'],
+	packages=['epochsdftools','epochsdftools.v1p0', 'epochsdftools.v1p1'],
 	install_requires=['matplotlib']
 	)
