@@ -20,6 +20,9 @@ class OutputAnalyzer(PlotDescriptor):
 
     def __init__(self, visitfile, lasnm=None):
         self.visitfile = visitfile
+        import os.path
+        if not os.path.isfile(visitfile):
+            raise IOError('File ' + str(visitfile) + ' doesnt exist.')
         self.lasnm = lasnm
         self.projektname = os.path.basename(os.getcwd())
         if lasnm:
@@ -148,6 +151,9 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
             print("-------------- " + dateiname + " --------------")
         import sdf
         self.dateiname = dateiname
+        import os.path
+        if not os.path.isfile(dateiname):
+            raise IOError('File ' + str(dateiname) + ' doesnt exist.')
         self._data = sdf.SDF(dateiname).read()
         self.dumpname = os.path.basename(dateiname).replace('.sdf','')
         self.projektname = os.path.basename(os.getcwd())
