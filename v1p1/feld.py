@@ -269,7 +269,7 @@ class Feld(_Constants):
         for i in xrange(len(gnds)):
             if len(gnds[i])-1 > maxlen_th:
                 self.half_resolution(i)
-                self.autoreduce()
+                self.autoreduce(maxlen_th=maxlen_th)
                 break
         return self
         
