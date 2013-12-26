@@ -130,6 +130,7 @@ class SDFPlots(_Constants):
             self.plotspeichern(feld.savename())
             if savecsv:
                 feld.exporttocsv(self.lastsavename() + '.csv')
+        return plt.gcf()
 
             
     def plotFelder1d(self, *felder, **kwargs):
@@ -143,7 +144,7 @@ class SDFPlots(_Constants):
             zusatz.append(feld.zusatz)
             if cleartextcond:
                 feld.textcond = ''
-            self._plotFeld1d(feld, **kwargs)
+            ret = self._plotFeld1d(feld, **kwargs)
         self.setzetextfeld(feld, zusatz=zusatz)
         plt.legend()
         self.plotspeichern(feld.savename())
@@ -152,6 +153,7 @@ class SDFPlots(_Constants):
                 if feld.dimensions() == 0:
                     continue
                 feld.exporttocsv(self.lastsavename() + feld.label + '.csv')
+        return ret
 
 
     #add lineouts to 2D-plots
@@ -227,6 +229,7 @@ class SDFPlots(_Constants):
             self.plotspeichern(feld.savename())
             if savecsv:
                 feld.exporttocsv(self.lastsavename() + '.csv')
+        return fig
 
 
     def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, name = None, **kwargs):

@@ -10,6 +10,7 @@ CLI Interface.
 
 import epochsdftools.v1p1 as ep
 import argparse
+import numpy as np
 
 print """+------------------------+
 |   EPOCHSDFTOOLS  CLI   |
@@ -72,6 +73,22 @@ if args.mode == 'info':
         print str(keys)
 
 
+def def_onclick(feld=None):
+    if feld.dimensions() != 2:
+        feld = None
+    if feld:
+        interpol = feld.interpolater(fill_value=np.nan)
+        def onclick(event):
+            zdata = interpol(event.xdata, event.ydata)
+            print 'button=%d, xdata=%f, ydata=%f, zdata=%f'%(
+                event.button, event.xdata, event.ydata, zdata) 
+            
+    else:
+        def onclick(event):
+            print 'button=%d, xdata=%f, ydata=%f'%(
+                event.button, event.xdata, event.ydata)
+    return onclick
+
 if args.mode == 'plot':
     import matplotlib.pyplot as plt
     sdfa = ep.SDFAnalyzer(args.inputfile)
@@ -79,7 +96,7 @@ if args.mode == 'plot':
 
     #Feld
     if hasattr(args,'feld'):
-        sdfplots.plotFeld(getattr(sdfa.getfieldanalyzer(), args.feld)())
+        feld = getattr(sdfa.getfieldanalyzer(), args.feld)()
 
     #Histogram
     elif hasattr(args, 'axes'):
@@ -88,8 +105,12 @@ if args.mode == 'plot':
         if args.weights:
             kwargs={'weights': getattr(ep.ParticleAnalyzer, args.weights)}
         feld = pa.createFeld(*[getattr(ep.ParticleAnalyzer, x) for x in args.axes], **kwargs)
-        sdfplots.plotFeld(feld)
 
+
+    #Plot
+    fig = sdfplots.plotFeld(feld)
+    onclick = def_onclick(feld=feld)
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
     #show and wait for closing graphics.
     plt.show(block=True)
 
