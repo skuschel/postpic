@@ -365,7 +365,7 @@ class ParticleAnalyzer(_Constants):
     weight.name='Particle weight'
     weight.unit=''
     def Px(self):
-        return np.self._Px()
+        return self._Px()
     Px.unit=''
     Px.name='Px'
     def Py(self):
