@@ -5,7 +5,7 @@ Plottet und speichert Felder, die die Analyzer Klassen generiert haben.
 
 
 from . import *
-import matplotlib; matplotlib.use('Agg') #Bilder auch ohne X11 rendern
+import matplotlib; matplotlib.use('GTKAgg') #Bilder auch ohne X11 rendern
 import matplotlib.pyplot as plt
 from _Constants import *
 
