@@ -74,18 +74,16 @@ if args.mode == 'info':
 
 
 def def_onclick(feld=None):
-    if feld.dimensions() != 2:
-        feld = None
-    if feld:
+    if feld and feld.dimensions() == 2:
         interpol = feld.interpolater(fill_value=np.nan)
         def onclick(event):
             zdata = interpol(event.xdata, event.ydata)
-            print 'button=%d, xdata=%f, ydata=%f, zdata=%f'%(
+            print 'button=%d, xdata=%1.4e, ydata=%1.4e, zdata=%1.4e'%(
                 event.button, event.xdata, event.ydata, zdata) 
             
     else:
         def onclick(event):
-            print 'button=%d, xdata=%f, ydata=%f'%(
+            print 'button=%d, xdata=%1.4e, ydata=%1.4e'%(
                 event.button, event.xdata, event.ydata)
     return onclick
 
@@ -108,7 +106,7 @@ if args.mode == 'plot':
 
 
     #Plot
-    fig = sdfplots.plotFeld(feld)
+    fig = sdfplots.plotFeld(feld, format_coord_interactive=True)
     onclick = def_onclick(feld=feld)
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
     #show and wait for closing graphics.
