@@ -32,11 +32,8 @@ class OutputAnalyzer(PlotDescriptor):
         self.sdffiles = []
         with open(visitfile) as f:
             relpath = os.path.dirname(visitfile)
-            if relpath == '':
-                relpath = '.'
-            relpath = relpath + '/'
             for line in f:
-                self.sdffiles.append(relpath + line.replace('\n',''))
+                self.sdffiles.append(os.path.join(relpath, line.replace('\n','')))
     
     def __str__(self):
         return '<OutputAnalyzer at ' + self.visitfile + ' using lambda0=' + str(self.lasnm) + 'nm>'
