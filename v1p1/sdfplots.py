@@ -5,7 +5,7 @@ Plottet und speichert Felder, die die Analyzer Klassen generiert haben.
 
 
 from . import *
-import matplotlib; matplotlib.use('Agg') #Bilder auch ohne X11 rendern
+import matplotlib; matplotlib.use('GTKAgg') #Bilder auch ohne X11 rendern
 import matplotlib.pyplot as plt
 from _Constants import *
 
@@ -108,9 +108,10 @@ class SDFPlots(_Constants):
             return self._savenamesused[-1]
 
 
-    def _plotFeld1d(self, feld, log10plot=True, saveandclose=True, xlim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False):
+#format_coord_interactive is just for compatibility with PlotFeld2d and is beeing ignored.  
+    def _plotFeld1d(self, feld, log10plot=True, saveandclose=True, xlim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, format_coord_interactive=False,):
         assert feld.dimensions() == 1, 'Feld muss genau eine Dimension haben.'
-        plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
+        fig = plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         if log10plot and ((feld.matrix < 0).sum() == 0) and any(feld.matrix > 0):
@@ -130,20 +131,22 @@ class SDFPlots(_Constants):
             self.plotspeichern(feld.savename())
             if savecsv:
                 feld.exporttocsv(self.lastsavename() + '.csv')
+        return fig
 
-            
+ 
     def plotFelder1d(self, *felder, **kwargs):
         kwargs.update({'saveandclose': False})
         zusatz = []
         #only write textcond to Image if all textcond of all felder are equal.
         cleartextcond = not all([str(f.textcond) == str(felder[0].textcond) for f in felder])
+        ret = None
         for feld in felder:
             if feld.dimensions() <= 0:
                 continue
             zusatz.append(feld.zusatz)
             if cleartextcond:
                 feld.textcond = ''
-            self._plotFeld1d(feld, **kwargs)
+            ret = self._plotFeld1d(feld, **kwargs)
         self.setzetextfeld(feld, zusatz=zusatz)
         plt.legend()
         self.plotspeichern(feld.savename())
@@ -152,6 +155,7 @@ class SDFPlots(_Constants):
                 if feld.dimensions() == 0:
                     continue
                 feld.exporttocsv(self.lastsavename() + feld.label + '.csv')
+        return ret
 
 
     #add lineouts to 2D-plots
@@ -179,7 +183,7 @@ class SDFPlots(_Constants):
         #ax.spines['top'].set_position(('axes',0.9))
         return ax
 
-    def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, lineoutx=False, lineouty=False):
+    def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, lineoutx=False, lineouty=False, format_coord_interactive=False):
         assert feld.dimensions() == 2, 'Feld muss genau 2 Dimensionen haben.'
         fig, ax0 = plt.subplots()
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
@@ -201,6 +205,13 @@ class SDFPlots(_Constants):
                 plt.clim(clim)
             self.symmetrisiereclim()
             plt.colorbar(format='%6.0e')
+        #set format_coord to show z value under cursor at lower right corner of window in interactive plot mode.
+        if format_coord_interactive:
+            feldinterp = feld.interpolater(fill_value=np.nan)
+            def format_coord(x,y):
+                z = feldinterp(x,y)
+                return 'x=%1.4f, y=%1.4f, z=%1.4e'%(x, y, z)
+            ax0.format_coord = format_coord
         if contourlevels.size != 0: #Einzelne Konturlinie(n) plotten
             plt.contour(feld.matrix.T, contourlevels, hold='on', extent=feld.extent())
         if feld.axesunits[0] == '':
@@ -227,6 +238,7 @@ class SDFPlots(_Constants):
             self.plotspeichern(feld.savename())
             if savecsv:
                 feld.exporttocsv(self.lastsavename() + '.csv')
+        return fig
 
 
     def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, name = None, **kwargs):

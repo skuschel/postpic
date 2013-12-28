@@ -242,7 +242,7 @@ class Feld(_Constants):
         elif self.dimensions() == 1:
             return scipy.interpolate.interp1d(grid[0], self.matrix, fill_value=fill_value, bounds_error=False, kind='nearest')
         elif self.dimensions() == 2:
-            return scipy.interpolate.interp2d(grid[0], grid[1], self.matrix, fill_value=fill_value, bounds_error=False)
+            return scipy.interpolate.interp2d(grid[0], grid[1], self.matrix.T, fill_value=fill_value, bounds_error=False)
         else:
             raise Exception('Not Implemented')
 
