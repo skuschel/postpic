@@ -111,7 +111,7 @@ class SDFPlots(_Constants):
 #format_coord_interactive is just for compatibility with PlotFeld2d and is beeing ignored.  
     def _plotFeld1d(self, feld, log10plot=True, saveandclose=True, xlim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, format_coord_interactive=False,):
         assert feld.dimensions() == 1, 'Feld muss genau eine Dimension haben.'
-        plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
+        fig = plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         if log10plot and ((feld.matrix < 0).sum() == 0) and any(feld.matrix > 0):
@@ -131,7 +131,7 @@ class SDFPlots(_Constants):
             self.plotspeichern(feld.savename())
             if savecsv:
                 feld.exporttocsv(self.lastsavename() + '.csv')
-        return plt.gcf()
+        return fig
 
  
     def plotFelder1d(self, *felder, **kwargs):
@@ -139,6 +139,7 @@ class SDFPlots(_Constants):
         zusatz = []
         #only write textcond to Image if all textcond of all felder are equal.
         cleartextcond = not all([str(f.textcond) == str(felder[0].textcond) for f in felder])
+        ret = None
         for feld in felder:
             if feld.dimensions() <= 0:
                 continue
