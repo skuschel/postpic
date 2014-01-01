@@ -60,49 +60,56 @@ class _SingleSpeciesAnalyzer(_Constants):
         charge in C (SI)
         """
         import re
-        ret = {}
+        ret = {'tracer':False, 'ejected':False}
         s = species.replace('/','')
-        #Evtl. vorangestelltes "ejected_" entfernen
-        r = re.match(r'(ejected_)?(.*)', s)
-        s = r.group(2)
-            
+
+        #Regex for parsing ion species name. Valid Exaples are
+        #ejected_tracer_electronx, c6, F2, H1, ejected_c6b, tracer_proton, protonb, ionm12c2, ionc20m110, ejected_tracer_ionc5m20b
+        regex = '(?P<prae>(.*_)*)(?P<name>(ionc(?P<c1>\d+)m(?P<m2>\d+)|ionm(?P<m1>\d+)c(?P<c2>\d+))|(?P<electron>[Ee]le[ck]tron)|(?P<elem>[A-Za-z]+)(?P<elem_c>\d*))(?P<suffix>[a-z]*)'
+        r = re.match(regex,s)
+        if r == None:
+            raise Exception('Species ' + str(s) + ' does not match regex name pattern: ' + str(regex) )
+        regexdict = r.groupdict()
+
+        #Prae erkennen und Eigenschaft auf True setzen
+        if regexdict['prae']:
+            for i in regexdict['prae'].split('_'):
+                ret[i.replace('_','')] = True
+
         #Name ist Elementsymbol und Ladungszustand, Bsp: C1, C6, F2, F9, Au20, Pb34a
-        r = re.match('([A-Za-z]+)(\d+)([a-z]*)', s)
-        if r:
-            if _SingleSpeciesAnalyzer.masslistelement.has_key(r.group(1)):
-                ret.update({'mass' : float(_SingleSpeciesAnalyzer.masslistelement[r.group(1)]) * 1836.2 * _Constants._me})
-                ret.update({'charge' : float(r.group(2)) * _Constants._qe})
-                ret.update({'ision' : True})
-                return ret
-                
-        #Elektron identifizieren
-        r = re.match('[Ee]le[ck]tron\d*', s)
-        if r:
-            ret.update({'mass' : _Constants._me})
-            ret.update({'charge' : -1})
-            ret.update({'ision' : False})
-            return ret
+        if regexdict['elem']:
+            try:
+                ret['mass'] = float(_SingleSpeciesAnalyzer.masslistelement[regexdict['elem']]) * 1836.2 * _Constants._me
+                ret['charge'] = float(regexdict['elem_c']) * _Constants._qe
+                ret['ision'] = True
+            except KeyError:
+                #this pattern will also match, if name is defined in masslist, so just ignore if key is not found.
+                pass
+
+        if regexdict['electron']:
+            ret['mass'] = _Constants._me
+            ret['charge'] = -1 * _Constants._qe
+            ret['ision'] = False
         
         # --- seltener Bloedsinn. Sollte nicht besser nicht verwendet werden
         #Name ist ion mit charge (in Elementarladungen) und mass (in amu), Bsp: ionc1m1, ionc20m110,...
-        r = re.match('ionc(\d+)m(\d+)', s)
-        if r != None:
-            ret.update({'mass' : float(r.group(2)) * 1836.2 * _Constants._me})
-            ret.update({'charge' : float(r.group(1)) * 1836.2 * _Constants._qe})
-            ret.update({'ision' : True})
-        r = re.match('ionm(\d+)c(\d+)', s)
-        if r != None:
-            ret.update({'mass' : float(r.group(1)) * 1836.2 * _Constants._me})
-            ret.update({'charge' : float(r.group(2)) * 1836.2 * _Constants._qe})
-            ret.update({'ision' : True})
+        if regexdict['c1']:
+            ret['mass'] = float(regexdict['m2']) * 1836.2 * _Constants._me
+            ret['charge'] = float(regexdict['c1']) * _Constants._qe
+            ret['ision'] = True
+
+        if regexdict['c2']:
+            ret['mass'] = float(regexdict['m1']) * 1836.2 * _Constants._me
+            ret['charge'] = float(regexdict['c2']) * _Constants._qe
+            ret['ision'] = True
                 
         # einzeln in Liste masslist und chargelist
-        if _SingleSpeciesAnalyzer.masslist.has_key(s):
-            ret.update({'mass': float(_SingleSpeciesAnalyzer.masslist[s]) * _Constants._me})
-        if _SingleSpeciesAnalyzer.chargelist.has_key(s):
-            ret.update({'charge': float(_SingleSpeciesAnalyzer.chargelist[s] * _Constants._qe)})
-        if _SingleSpeciesAnalyzer.isionlist.has_key(s):
-            ret.update({'ision': _SingleSpeciesAnalyzer.isionlist[s]})
+        if _SingleSpeciesAnalyzer.masslist.has_key(regexdict['name']):
+            ret['mass'] = float(_SingleSpeciesAnalyzer.masslist[regexdict['name']]) * _Constants._me
+        if _SingleSpeciesAnalyzer.chargelist.has_key(regexdict['name']):
+            ret['charge'] =  float(_SingleSpeciesAnalyzer.chargelist[regexdict['name']] * _Constants._qe)
+        if _SingleSpeciesAnalyzer.isionlist.has_key(regexdict['name']):
+            ret['ision'] = _SingleSpeciesAnalyzer.isionlist[regexdict['name']]
         
         assert ret.has_key('mass') & ret.has_key('charge'), 'Masse/Ladung der Spezies ' + species + ' nicht gefunden.'
         return ret
@@ -194,6 +201,9 @@ class ParticleAnalyzer(_Constants):
     """
     Hat die Gleiche Funktionilitaet wie SingleSpeciesAnalyzer, jedoch koennen mehrere ParticleAnalyzer addiert werden, um die Gesamtheit der Teilchen auszuwaehlen.
     """
+    @staticmethod
+    def retrieveparticleinfo(species):
+        return _SingleSpeciesAnalyzer.retrieveparticleinfo(species)
     
     @staticmethod
     def ision(species):
