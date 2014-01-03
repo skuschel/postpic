@@ -142,7 +142,7 @@ class _SingleSpeciesAnalyzer(_Constants):
             self._Pxdata = sdfanalyzer.getSpecies(species, 'px')
             self._Pydata = sdfanalyzer.getSpecies(species, 'py')
             self._Pzdata = sdfanalyzer.getSpecies(species, 'pz')
-            self._ID = np.array(sdfanalyzer.getSpecies(species, 'ID'), dtype='int')  # This function will also return None if no IDs were dumped.
+            self._ID = sdfanalyzer.getSpecies(species, 'ID')  # This function will also return None if no IDs were dumped.
 
 
     def compress(self, condition, name='unknown condition'):
