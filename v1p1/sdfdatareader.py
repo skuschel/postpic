@@ -125,6 +125,9 @@ class OutputAnalyzer(PlotDescriptor):
         ret.zusatz = ''
         return ret
 
+    def hasID(self):
+        return self[0].hasID()
+
     def createtimeseries(self, f):
         """
         Erzeugt eine Zeitserie.
@@ -338,4 +341,8 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         except(KeyError):
             ret = None
         return ret
+
+    def hasID(self):
+        return self.getSpecies(self.species()[0], 'ID') is not None
+
 
