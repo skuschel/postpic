@@ -22,7 +22,7 @@ class _Constants:
     _axisoptionseinzel = {'X':slice(0, 1), 'Y':slice(1, 2), 'Z':slice(2, 3), None:slice(None), 'x':slice(0, 1), 'y':slice(1, 2), 'z':slice(2, 3)}
     _axesidentify = {'X':0, 'x':0, 0:0, 'Y':1, 'y':1, 1:1, 'Z':2, 'z':2, 2:2}
     _poptsidentify = _axesidentify.copy()
-    _poptsidentify.update({'px':3, 'Px':3, 'py':4, 'Py':4, 'pz':5, 'Pz':5, 'weight':9, 'w':9})
+    _poptsidentify.update({'px':3, 'Px':3, 'py':4, 'Py':4, 'pz':5, 'Pz':5, 'weight':9, 'w':9, 'id':10, 'ID':10})
 
     @staticmethod
     def ncrit_um(lambda_um):
