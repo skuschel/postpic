@@ -208,7 +208,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
             raise Exception('Unit ' + str(unit) + ' unbekannt')
 
 
-   # High Level
+    # High Level
     def species(self, ejected='ignore'):
         """
         Gibt eine Liste aller an der Simulation beteiligten Species aus

@@ -30,6 +30,8 @@ class Feld(_Constants):
             except TypeError:
                 return True
         usefelder = [f for f in felder if use(f)]
+        if len(usefelder) == 0:
+            return Feld([])
         gn = copy.copy(usefelder[0].grid_node())
         for f in usefelder:
             gnds = f.grid_node()

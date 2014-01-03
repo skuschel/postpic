@@ -142,7 +142,7 @@ class _SingleSpeciesAnalyzer(_Constants):
             self._Pxdata = sdfanalyzer.getSpecies(species, 'px')
             self._Pydata = sdfanalyzer.getSpecies(species, 'py')
             self._Pzdata = sdfanalyzer.getSpecies(species, 'pz')
-            self._ID = sdfanalyzer.getSpecies(species, 'ID')  # This function will also return None if no IDs were dumped.
+            self._ID = np.array(sdfanalyzer.getSpecies(species, 'ID'), dtype='int')  # This function will also return None if no IDs were dumped.
 
 
     def compress(self, condition, name='unknown condition'):
@@ -158,7 +158,7 @@ class _SingleSpeciesAnalyzer(_Constants):
         condtition = [1, 2, 4, 5, 9, ... , 805, 809]
         In diesem Beispiel ist condition eine Liste beliebiger Laenge, die die IDs der Teilchen beinhaltet, die behalten werden sollen.
         """
-        if condition.dtype is np.dtype('bool'):  # Case 1: condition is list of boolean values specifying particles to use
+        if np.array(condition).dtype is np.dtype('bool'):  # Case 1: condition is list of boolean values specifying particles to use
             assert self._weightdata.shape[0] == condition.shape[0], 'condition hat die falsche Laenge'
             self._weightdata = np.compress(condition, self._weightdata)
             self._Xdata = np.compress(condition, self._Xdata)
@@ -172,7 +172,8 @@ class _SingleSpeciesAnalyzer(_Constants):
                 if self._ID is not None:
                     self._ID = np.compress(condition, self._ID)
         else:  # Case 2: condition is list of particle IDs to use
-            bools = [idx in condition for idx in self._ID]
+            condition = np.array(condition, dtype='int')
+            bools = np.array([idx in condition for idx in self._ID])
             return self.compress(bools, name=name)
 
         self.compresslog = np.append(self.compresslog, name)
@@ -353,10 +354,13 @@ class ParticleAnalyzer(_Constants):
 
     def compress(self, condition, name='unknown condition'):
         i = 0
-        for ssa in self._ssas:
-            n = ssa.weight().shape[0]
-            ssa.compress(condition[i:i + n], name=name)
-            i += n
+        for ssa in self._ssas:  # condition is list of booleans
+            if condition.dtype == np.dtype('bool'):
+                n = ssa.weight().shape[0]
+                ssa.compress(condition[i:i + n], name=name)
+                i += n
+            else:  # condition is list of particle IDs
+                ssa.compress(condition, name=name)
         self._compresslog = np.append(self._compresslog, name)
 
     # --- Hilfsfunktionen
