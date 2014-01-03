@@ -27,6 +27,7 @@ parser_info = modeparsers.add_parser('info', help='info')
 parser_info.set_defaults(mode='info')
 parser_info.add_argument('--list-keys', action='store_true', dest='listkeys', help='list keys written to sdf file.')
 parser_info.add_argument('-l', action='store_true', dest='listkeys', help='alias for --list-keys')
+parser_info.add_argument('keys', help='Show contents of key.', nargs='*')
 
 # Plotting mode
 parser_plot = modeparsers.add_parser('plot', help='interactive plotting')
@@ -72,6 +73,14 @@ if args.mode == 'info':
         keys = sdfa._data.keys()
         keys.sort()
         print str(keys)
+
+    for key in args.keys:
+        try:
+            print ('--- Printing key: ' + str(key) + ' ---')
+            print str(sdfa._data[key])
+            print ('Length of key ' + str(key) + ': ' + str(len(sdfa._data[key])))
+        except(KeyError):
+            print ('ERROR: Key \'' + str(key) + '\' does not exist!')
 
 
 def def_onclick(feld=None):
