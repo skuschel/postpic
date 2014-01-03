@@ -3,13 +3,14 @@ Stellt Klassen und Methoden zum abstracten Datenzugriff mit einem Dump oder mit 
 """
 
 
-from . import *
 import re
 import os
 import sys
-from _Interfaces import *
-from analyzer import *
-from _Constants import *
+import numpy as np
+from _Interfaces import PlotDescriptor
+from _Constants import _Constants
+from . import Feld, ParticleAnalyzer, FieldAnalyzer
+
 
 __all__ = ['OutputAnalyzer', 'SDFAnalyzer']
 
@@ -274,7 +275,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         else:
             return ParticleAnalyzer(self, species)
 
-   # low-level
+    # low-level
     def getderived(self):
         """Gibt alle Keys zurueck die mit "Derived/" beginnen. Diese sollten direkt an data(key) weitergegeben werden koennen, um die Daten zu erhalten."""
         ret = []

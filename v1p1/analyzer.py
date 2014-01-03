@@ -3,12 +3,11 @@ Die Analyzer Klassen erkennen die Spezies und berechnen aus den gedumpten Daten 
 """
 
 
-from . import *
 import copy
 import re
-from _Interfaces import *
-from _Constants import *
-from feld import *
+import numpy as np
+from _Constants import _Constants
+from . import Feld
 
 __all__ = ['ParticleAnalyzer', 'FieldAnalyzer']
 
@@ -59,7 +58,6 @@ class _SingleSpeciesAnalyzer(_Constants):
         mass in kg (SI)
         charge in C (SI)
         """
-        import re
         ret = {'tracer':False, 'ejected':False}
         s = species.replace('/', '')
 
@@ -507,7 +505,7 @@ class ParticleAnalyzer(_Constants):
             simextent = True
         if len(scalarfx(self)) == 0:
             return [], [], []
-	# ## TODO: Falls rangex oder rangy gegeben ist, ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
+        # TODO: Falls rangex oder rangy gegeben ist, ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
             rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
         if rangey is None:

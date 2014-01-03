@@ -4,10 +4,10 @@ Plottet und speichert Felder, die die Analyzer Klassen generiert haben.
 
 
 
-from . import *
+import numpy as np
 import matplotlib; matplotlib.use('GTKAgg')  # Bilder auch ohne X11 rendern
 import matplotlib.pyplot as plt
-from _Constants import *
+from _Constants import _Constants
 
 
 __all__ = ['SDFPlots']
@@ -258,7 +258,7 @@ class SDFPlots(_Constants):
             raise Exception('plotFeld kann nur 1 oder 2 dimensionale Felder plotten.')
 
     def _skipplot(self, key):
-        fig = plt.figure()
+        plt.figure()
         plt.figtext(0.5, 0.5, 'No data available.', ha='center')
         self.plotspeichern(key)
         print 'Skipped Plot: ' + self.lastsavename()

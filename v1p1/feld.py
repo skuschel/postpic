@@ -3,12 +3,11 @@ Ein Feld repraesentiert ein Datenfeld inkl. dessen Acheneinheiten und Beschriftu
 """
 
 
-from . import *
-from _Constants import *
+import numpy as np
 import copy
 import scipy.interpolate
-import scipy.signal
 import sys
+from _Constants import _Constants
 
 __all__ = ['Feld']
 
@@ -50,7 +49,7 @@ class Feld(_Constants):
         self.grid_nodes = []
         self.axesnames = []
         self.axesunits = []
-        for i in xrange(self.dimensions()):
+        for _ in xrange(self.dimensions()):
             self.addaxis()
         self.name = 'unbekannt'
         self.name2 = ''
@@ -230,7 +229,7 @@ class Feld(_Constants):
             else:
                 return [arg for dim in xrange(self.dimensions())]
         if name:
-              self.axesnames = setlist(name)
+            self.axesnames = setlist(name)
         if unit:
             self.axesunits = setlist(unit)
         return self
@@ -264,8 +263,6 @@ class Feld(_Constants):
         Reduces the Grid to a maximum length of maxlen per dimension if it is larger than maxlenth by just removing every second grid point.
         """
         gnds = self.grid_node()
-        changes = False
-        gnneu = []
         for i in xrange(len(gnds)):
             if len(gnds[i]) - 1 > maxlen_th:
                 self.half_resolution(i)
