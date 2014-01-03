@@ -32,14 +32,16 @@ class Feld(_Constants):
         usefelder = [f for f in felder if use(f)]
         if len(usefelder) == 0:
             return Feld([])
-        gn = copy.copy(usefelder[0].grid_node())
+        extent = usefelder[0].extent()
         for f in usefelder:
             gnds = f.grid_node()
-            for dim in xrange(len(gn)):
-                # Just choose largest extent (will create shit having a moving window!) ###todo
-                if gnds[dim][-1] - gnds[dim][0] > gn[dim][-1] - gn[dim][0]:
-                    gn[dim] = gnds[dim]
-        # make all Fields use gn and combine matrices to a new one.
+            for dim in xrange(len(gnds)):
+                extent[2 * dim] = np.min([extent[2 * dim], gnds[dim][0]])
+                extent[2 * dim + 1] = np.max([extent[2 * dim + 1], gnds[dim][-1]])
+        # create new grid nodes gn by using as many points as in gnds covering extent
+        gn = []
+        for dim in xrange(len(gnds)):
+            gn.append(np.linspace(extent[2 * dim], extent[2 * dim + 1], len(gnds[dim])))
         m = [f.to_grid_nodes_new(gn).matrix for f in usefelder]
         # take last field and edit for return
         ret = felder[-1]
