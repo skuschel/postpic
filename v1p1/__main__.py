@@ -22,28 +22,28 @@ parser = argparse.ArgumentParser(description='Prints informations about given sd
 parser.add_argument('inputfile', help='sdf file to process.')
 modeparsers = parser.add_subparsers(help='Mode switch')
 
-#Info mode
+# Info mode
 parser_info = modeparsers.add_parser('info', help='info')
 parser_info.set_defaults(mode='info')
-parser_info.add_argument('--list-keys', action='store_true', dest='listkeys',help='list keys writtien to sdf file.')
+parser_info.add_argument('--list-keys', action='store_true', dest='listkeys', help='list keys writtien to sdf file.')
 
-#Plotting mode
+# Plotting mode
 parser_plot = modeparsers.add_parser('plot', help='interactive plotting')
 parser_plot.set_defaults(mode='plot')
 modeparsers_plot = parser_plot.add_subparsers(help='Plot Feld or Histogram')
-#Plotting mode - Feld
+# Plotting mode - Feld
 parser_plotfeld = modeparsers_plot.add_parser('feld')
 feldchoices = ['Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz', 'energydensityE', 'energydensityM', 'energydensityEM', 'spectrumEx', 'spectrumBz']
-parser_plotfeld.add_argument('feld', choices=feldchoices, help='the Feld to plot. Allowed Values are: '+', '.join(feldchoices), metavar='Feld')
-#Plotting mode - hist
+parser_plotfeld.add_argument('feld', choices=feldchoices, help='the Feld to plot. Allowed Values are: ' + ', '.join(feldchoices), metavar='Feld')
+# Plotting mode - hist
 parser_plothist = modeparsers_plot.add_parser('hist')
 scalarchoices = ['X', 'X_um', 'Y', 'Y_um', 'Z', 'Z_um', 'Px', 'Py', 'Pz', 'P', 'beta', 'V', 'gamma', 'Ekin', 'Ekin_MeV', 'Ekin_MeV_amu', 'Ekin_MeV_qm', 'Ekin_keV', 'Ekin_keV_amu', 'Ekin_keV_qm', 'angle_xy', 'angle_yz', 'angle_zx', 'angle_offaxis']
 parser_plothist.add_argument('species', help='the species used for plotting.')
-parser_plothist.add_argument('axes', choices=scalarchoices, help='the axes scalars to use. (order matters!) Allowed Values are: '+', '.join(scalarchoices), nargs='+', metavar='scalar')
+parser_plothist.add_argument('axes', choices=scalarchoices, help='the axes scalars to use. (order matters!) Allowed Values are: ' + ', '.join(scalarchoices), nargs='+', metavar='scalar')
 parser_plothist.add_argument('--weights', choices=scalarchoices, metavar='scalar', help='include additional particle weight factor. Same choices as for axis')
 
-#Parsing
-args=parser.parse_args()
+# Parsing
+args = parser.parse_args()
 print vars(args)
 
 
@@ -78,12 +78,12 @@ def def_onclick(feld=None):
         interpol = feld.interpolater(fill_value=np.nan)
         def onclick(event):
             zdata = interpol(event.xdata, event.ydata)
-            print 'button=%d, xdata=%1.4e, ydata=%1.4e, zdata=%1.4e'%(
-                event.button, event.xdata, event.ydata, zdata) 
-            
+            print 'button=%d, xdata=%1.4e, ydata=%1.4e, zdata=%1.4e' % (
+                event.button, event.xdata, event.ydata, zdata)
+
     else:
         def onclick(event):
-            print 'button=%d, xdata=%1.4e, ydata=%1.4e'%(
+            print 'button=%d, xdata=%1.4e, ydata=%1.4e' % (
                 event.button, event.xdata, event.ydata)
     return onclick
 
@@ -92,24 +92,24 @@ if args.mode == 'plot':
     sdfa = ep.SDFAnalyzer(args.inputfile)
     sdfplots = ep.SDFPlots(sdfa)
 
-    #Feld
-    if hasattr(args,'feld'):
+    # Feld
+    if hasattr(args, 'feld'):
         feld = getattr(sdfa.getfieldanalyzer(), args.feld)()
 
-    #Histogram
+    # Histogram
     elif hasattr(args, 'axes'):
         pa = sdfa.getparticleanalyzer(args.species)
-        kwargs={}
+        kwargs = {}
         if args.weights:
-            kwargs={'weights': getattr(ep.ParticleAnalyzer, args.weights)}
+            kwargs = {'weights': getattr(ep.ParticleAnalyzer, args.weights)}
         feld = pa.createFeld(*[getattr(ep.ParticleAnalyzer, x) for x in args.axes], **kwargs)
 
 
-    #Plot
+    # Plot
     fig = sdfplots.plotFeld(feld, format_coord_interactive=True)
     onclick = def_onclick(feld=feld)
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
-    #show and wait for closing graphics.
+    # show and wait for closing graphics.
     plt.show(block=True)
 
 

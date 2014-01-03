@@ -4,7 +4,7 @@ Interfaces aus denen Klassen, die besondere Aufgaben erfuellen koennen sollen ab
 
 
 
-__all__=['PlotDescriptor']
+__all__ = ['PlotDescriptor']
 
 
 class PlotDescriptor():
@@ -14,22 +14,22 @@ class PlotDescriptor():
 
     def __init__(self):
         pass
-    
+
     def getprojektname(self):
         raise NotImplementedError
-        
+
     def getprojektname2(self):
         """
         genauere Beschreibung des Projekts, z.B. dumpname
         """
         raise NotImplementedError
-        
+
     def getprojektname3(self):
         """
         noch genauere Beschreibung des Projekts, z.B. Zeit
         """
         raise NotImplementedError
-    
+
     def getprojektname4(self):
         """
         z.B. Zeitschritt

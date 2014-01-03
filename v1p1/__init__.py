@@ -25,7 +25,7 @@ UPDATE HISTORY:
 130610: erkennt automatisch die Anzahl der Dimensionen in der Simulation, sowie ionenspezies vom typ ionc22m70
 """
 
-__version__='1.1.0'
+__version__ = '1.1.0'
 
 
 import numpy as np
@@ -37,7 +37,7 @@ from feld import *
 from sdfdatareader import *
 from sdfplots import *
 
-__all__=['Feld', 'SDFAnalyzer', 'SDFPlots', 'FieldAnalyzer', 'ParticleAnalyzer', 'OutputAnalyzer']
+__all__ = ['Feld', 'SDFAnalyzer', 'SDFPlots', 'FieldAnalyzer', 'ParticleAnalyzer', 'OutputAnalyzer']
 
 
 

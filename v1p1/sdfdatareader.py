@@ -11,7 +11,7 @@ from _Interfaces import *
 from analyzer import *
 from _Constants import *
 
-__all__=['OutputAnalyzer', 'SDFAnalyzer']
+__all__ = ['OutputAnalyzer', 'SDFAnalyzer']
 
 class OutputAnalyzer(PlotDescriptor):
     """
@@ -33,17 +33,17 @@ class OutputAnalyzer(PlotDescriptor):
         with open(visitfile) as f:
             relpath = os.path.dirname(visitfile)
             for line in f:
-                self.sdffiles.append(os.path.join(relpath, line.replace('\n','')))
-    
+                self.sdffiles.append(os.path.join(relpath, line.replace('\n', '')))
+
     def __str__(self):
         return '<OutputAnalyzer at ' + self.visitfile + ' using lambda0=' + str(self.lasnm) + 'nm>'
-        
+
     def __len__(self):
         """
         Anzahl der beinhaltenden Dumps.
         """
         return len(self.sdffiles)
-        
+
     def __getitem__(self, key):
         if isinstance(key, slice):
             return [self[i] for i in xrange(*key.indices(len(self)))]
@@ -51,8 +51,8 @@ class OutputAnalyzer(PlotDescriptor):
             return SDFAnalyzer(self.sdffiles[key], lasnm=self.lasnm, printinfo=False)
         else:
             raise TypeError
-            
-    #PlotDescriptor Interface
+
+    # PlotDescriptor Interface
     def getprojektname(self):
         return self.projektname
     def getprojektname2(self):
@@ -63,8 +63,8 @@ class OutputAnalyzer(PlotDescriptor):
         return ''
     def getlasnm(self):
         return self.lasnm
-        
-    #High Level
+
+    # High Level
     def species(self, ejected='ignore'):
         """
         Gibt eine Liste aller an der Simulation beteiligten Species aus
@@ -76,7 +76,7 @@ class OutputAnalyzer(PlotDescriptor):
         ret = set()
         for dump in self:
             ret |= set(dump.species(ejected=ejected))
-        ret=list(ret)
+        ret = list(ret)
         ret.sort()
         return ret
 
@@ -86,36 +86,36 @@ class OutputAnalyzer(PlotDescriptor):
         ndumps=n verwendet nur die ersten n+1 dumps aus dieser visit file, so alsob die Simulation danach abgebrochen worden waere. 
         Achtung: Bei ndumps=15 ist mit fortlaufender nummerierung (0000.sdf, 0001.sdf,..., 0014.sdf) also <ndumps-1>.sdf die letzte sdf-datei.
         """
-        sl = slice(0,ndumps+1)
+        sl = slice(0, ndumps + 1)
         sdfas = self[sl]
         pa = sdfas[-1].getparticleanalyzer(species)
-        species = 'ejected_' + species.replace('/','')
+        species = 'ejected_' + species.replace('/', '')
         for sdfa in sdfas:
             pa += sdfa.getparticleanalyzer(species)
         return pa
-        
+
     def maptoSDFAnalyzer(self, f, *args, **kwargs):
         return [getattr(s, f)(*args, **kwargs) for s in self]
-               
+
     def getparticleanalyzerlist(self, *speciess):
         return [s.getparticleanalyzer(*speciess) for s in self]
 
     def getfieldanalyzerlist(self):
         return [s.getfieldanalyzer() for s in self]
-        
+
     def times(self, unit=''):
-        #Alle folgenden Zeilen sind aequivalent
-        #return self.maptoSDFAnalyzer('time')  
-        return [s.time(unit) for s in self]    
-        #return map(SDFAnalyzer.time, self)
-        
+        # Alle folgenden Zeilen sind aequivalent
+        # return self.maptoSDFAnalyzer('time')
+        return [s.time(unit) for s in self]
+        # return map(SDFAnalyzer.time, self)
+
     def _createtimeseries_simple(self, f, unit=''):
         """
         einfach implementiert.
         Parallele Alternative schreiben!
         """
         try:
-            #try to override 1D Histogram bin default to improve quality
+            # try to override 1D Histogram bin default to improve quality
             ret = Feld.factorystack(*tuple([f(sdfa, optargsh={'bins':800}) for sdfa in self]))
         except TypeError:
             ret = Feld.factorystack(*tuple([f(sdfa) for sdfa in self]))
@@ -123,7 +123,7 @@ class OutputAnalyzer(PlotDescriptor):
         ret.setgrid_node_fromgrid(-1, self.times(unit))
         ret.zusatz = ''
         return ret
-        
+
     def createtimeseries(self, f):
         """
         Erzeugt eine Zeitserie.
@@ -152,12 +152,12 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         if not os.path.isfile(dateiname):
             raise IOError('File ' + str(dateiname) + ' doesnt exist.')
         self._data = sdf.SDF(dateiname).read()
-        self.dumpname = os.path.basename(dateiname).replace('.sdf','')
+        self.dumpname = os.path.basename(dateiname).replace('.sdf', '')
         self.projektname = os.path.basename(os.getcwd())
         self.header = self._data['Header']
         self.simdimensions = float(re.match('Epoch(\d)d', self.header['code_name']).group(1))
         self.lasnm = lasnm
-        #Simextent bestimmen
+        # Simextent bestimmen
         self._simextent = np.real([self._data['Grid/Grid_node/X'][0], self._data['Grid/Grid_node/X'][-1]])
         self.simgridpoints = [np.real(self._data['Grid/Grid_node/X']).shape[0] - 1]
         if self.simdimensions > 1:
@@ -172,13 +172,13 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
                 print self.species(ejected='all')
         else:
             print "WARNING: Laserwellenlaenge nicht gegeben. Einige Plots stehen nicht zur Verfuegung."
-            
-            
-        
-    def __str__(self):
-        return '<SDFAnalyzer at ' + self.dateiname + ' using lambda0=' + str(self.lasnm) + 'nm>' 
 
-    #Plot Descriptor Funktionen    
+
+
+    def __str__(self):
+        return '<SDFAnalyzer at ' + self.dateiname + ' using lambda0=' + str(self.lasnm) + 'nm>'
+
+    # Plot Descriptor Funktionen
     def getprojektname(self):
         return self.projektname
     def getprojektname2(self):
@@ -190,7 +190,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         """
         noch genauere Beschreibung des Projekts, z.B. Zeitschritt
         """
-        return self.time() 
+        return self.time()
     def getprojektname4(self):
         return self.header['step']
     def getlasnm(self):
@@ -199,15 +199,15 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
 
     def time(self, unit=''):
         t = self.header['time']
-        if unit=='':
+        if unit == '':
             return t
-        elif unit=='f' or unit=='fs':
-            return t * 10**15   
+        elif unit == 'f' or unit == 'fs':
+            return t * 10 ** 15
         else:
             raise Exception('Unit ' + str(unit) + ' unbekannt')
-            
-            
-   #High Level
+
+
+   # High Level
     def species(self, ejected='ignore'):
         """
         Gibt eine Liste aller an der Simulation beteiligten Species aus
@@ -220,14 +220,14 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         for key in self._data.keys():
             match = re.match('Particles/Px/(\w+)', key)
             if match:
-                if ejected=='all' or (ParticleAnalyzer.isejected(match.group(1)) == (ejected=='only')):
+                if ejected == 'all' or (ParticleAnalyzer.isejected(match.group(1)) == (ejected == 'only')):
                     ret = np.append(ret, match.group(1))
         ret.sort()
         return ret
-        
+
     def hasSpecies(self, species):
         return species in self.species(ejected='all')
-     
+
     def ions(self, ejected='ignore'):
         """
         Gibt eine Liste aller an der Simulation beteiligten Ionen aus
@@ -241,7 +241,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
             if ParticleAnalyzer.ision(species):
                 ret.append(species)
         return ret
-        
+
     def nonions(self, ejected='ignore'):
         """
         Gibt eine Liste aller an der Simulation beteiligten nicht-Ionen aus
@@ -274,7 +274,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         else:
             return ParticleAnalyzer(self, species)
 
-   #low-level
+   # low-level
     def getderived(self):
         """Gibt alle Keys zurueck die mit "Derived/" beginnen. Diese sollten direkt an data(key) weitergegeben werden koennen, um die Daten zu erhalten."""
         ret = []
@@ -284,8 +284,8 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
                 ret.append(r.group(0))
         ret.sort()
         return ret
-    
-    def data(self,key):
+
+    def data(self, key):
         """Gibt die Daten zu diesem Key zurueck (in float64)"""
         assert self._data.has_key(key), 'Den Key ' + key + ' gibts nicht!'
         return np.float64(self._data[key])
@@ -295,33 +295,33 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         if average:
             key = key1 + '_average' + key2
         return self.data(key)
-        
+
     def dataE(self, axis, **kwargs):
-        axsuffix = {0:'x',1:'y',2:'z'}[_Constants._axesidentify[axis]]
+        axsuffix = {0:'x', 1:'y', 2:'z'}[_Constants._axesidentify[axis]]
         return self._returnkey2('Electric Field', '/E' + axsuffix, **kwargs)
-        
+
     def dataB(self, axis, **kwargs):
-        axsuffix = {0:'x',1:'y',2:'z'}[_Constants._axesidentify[axis]]
+        axsuffix = {0:'x', 1:'y', 2:'z'}[_Constants._axesidentify[axis]]
         return self._returnkey2('Magnetic Field', '/B' + axsuffix, **kwargs)
 
 
     def simextent(self):
         return self._simextent
-       
+
     def grid(self, axis):
         """axis wird erkannt sofern es in _Constants._axesidentify ist"""
-        axsuffix = {0:'X',1:'Y',2:'Z'}[_Constants._axesidentify[axis]]
+        axsuffix = {0:'X', 1:'Y', 2:'Z'}[_Constants._axesidentify[axis]]
         return self._data['Grid/Grid/' + axsuffix]
 
     def grid_node(self, axis):
         """axis wird erkannt sofern es in _Constants._axesidentify ist"""
-        axsuffix = {0:'X',1:'Y',2:'Z'}[_Constants._axesidentify[axis]]
+        axsuffix = {0:'X', 1:'Y', 2:'Z'}[_Constants._axesidentify[axis]]
         return self._data['Grid/Grid_node/' + axsuffix]
 
     def getSpecies(self, spezies, attrib):
         """Gibt das Attribut (x,y,z,px,py,pz,weight) dieser Teilchenspezies zurueck"""
         attribid = _Constants._poptsidentify[attrib]
-        options={9:lambda s: 'Particles/Weight/' + s,
+        options = {9:lambda s: 'Particles/Weight/' + s,
             0:lambda s: 'Grid/Particles/' + s + '/X',
             1:lambda s: 'Grid/Particles/' + s + '/Y',
             2:lambda s: 'Grid/Particles/' + s + '/Z',

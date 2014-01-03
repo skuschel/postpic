@@ -5,45 +5,45 @@ Plottet und speichert Felder, die die Analyzer Klassen generiert haben.
 
 
 from . import *
-import matplotlib; matplotlib.use('GTKAgg') #Bilder auch ohne X11 rendern
+import matplotlib; matplotlib.use('GTKAgg')  # Bilder auch ohne X11 rendern
 import matplotlib.pyplot as plt
 from _Constants import *
 
 
-__all__=['SDFPlots']
+__all__ = ['SDFPlots']
 
 class SDFPlots(_Constants):
 
-    #@staticmethod
-    #def axesformat(x, pos): #'The two args are the value and tick position'
+    # @staticmethod
+    # def axesformat(x, pos): #'The two args are the value and tick position'
     #    return '%.3f' % x #1.1float
-    #@staticmethod
-    #def axesformatexp(x, pos): #'The two args are the value and tick position'
-    #    return '%.1e' % x 
+    # @staticmethod
+    # def axesformatexp(x, pos): #'The two args are the value and tick position'
+    #    return '%.1e' % x
     axesformatterx = matplotlib.ticker.ScalarFormatter()
-    axesformatterx.set_powerlimits((-2,3))
+    axesformatterx.set_powerlimits((-2, 3))
     axesformattery = matplotlib.ticker.ScalarFormatter()
-    axesformattery.set_powerlimits((-2,3))
- 
+    axesformattery.set_powerlimits((-2, 3))
+
     from matplotlib.colors import LinearSegmentedColormap
-    efeldcdict={'red': ((0,0,0),(1,1,1)),
-        'green': ((0,0,0),(1,0,0)),
-        'blue':    ((0,1,1),(1,0,0)),
-        'alpha': ((0,1,1),(0.5,0,0),(1,1,1))}
-    lsc=LinearSegmentedColormap('EFeld',efeldcdict,1024)
-    plt.register_cmap(cmap=lsc, name='EFeld', data=efeldcdict)    
+    efeldcdict = {'red': ((0, 0, 0), (1, 1, 1)),
+        'green': ((0, 0, 0), (1, 0, 0)),
+        'blue':    ((0, 1, 1), (1, 0, 0)),
+        'alpha': ((0, 1, 1), (0.5, 0, 0), (1, 1, 1))}
+    lsc = LinearSegmentedColormap('EFeld', efeldcdict, 1024)
+    plt.register_cmap(cmap=lsc, name='EFeld', data=efeldcdict)
 
 
     def __init__(self, plotdescriptor, outdir=None):
         self.lasnm = plotdescriptor.getlasnm()
         self.outdir = outdir
-        self.plotdescriptor = plotdescriptor        
+        self.plotdescriptor = plotdescriptor
         self._savenamesused = []
         if self.outdir == None:
             print 'Kein Ausgabeverzeichnis angegeben. Es werden keine Plots gespeichert.'
 
     def setzetext(self, titel, extray='', belowtime='', textcond=''):
-        #plt.title(titel)
+        # plt.title(titel)
         plt.figtext(0.5 , 0.97, titel, ha='center', fontsize=14)
         if not self.plotdescriptor == None:
             plt.figtext(0.03, 0.965, self.plotdescriptor.getprojektname(), horizontalalignment='left')
@@ -55,33 +55,33 @@ class SDFPlots(_Constants):
             plt.figtext(0.03, 0.94, nexttext, horizontalalignment='left')
             nexttext = ''
             if isinstance(self.plotdescriptor.getprojektname3(), float):
-                nexttext += "%.1f fs" % (1e15*self.plotdescriptor.getprojektname3())
+                nexttext += "%.1f fs" % (1e15 * self.plotdescriptor.getprojektname3())
             else:
                 nexttext += " " + str(self.plotdescriptor.getprojektname3())
-            plt.figtext(0.92, 0.96, nexttext, horizontalalignment='right')    
+            plt.figtext(0.92, 0.96, nexttext, horizontalalignment='right')
         plt.figtext(0.92, 0.93, belowtime, ha='right')
         plt.figtext(0.04, 0.5, extray, horizontalalignment='center', va='center', rotation='vertical')
         if textcond != None and textcond != []:
             plt.figtext(0.5, 0.87, textcond, ha='center')
-    
+
     def setzetextfeld(self, feld, zusatz=None):
-        if zusatz==None:
-            zusatz=feld.zusatz
+        if zusatz == None:
+            zusatz = feld.zusatz
         if feld.dimensions() == 2:
             self.setzetext(feld.savename(), belowtime=zusatz, textcond=feld.textcond)
         else:
-            self.setzetext(feld.savename(), belowtime=zusatz, textcond=feld.textcond) #oder nur feld.name, damit die spezies nicht mit angegeben wird?
+            self.setzetext(feld.savename(), belowtime=zusatz, textcond=feld.textcond)  # oder nur feld.name, damit die spezies nicht mit angegeben wird?
 
     def symmetrisiereclim(self):
         """
         symmetrisiert die clim so, dass bei der colorbar auf jeden Fall eine 0 in der Mitte ist.
         """
-        bound=max(abs(np.asarray(plt.gci().get_clim())))
-        plt.clim(-bound,bound)
+        bound = max(abs(np.asarray(plt.gci().get_clim())))
+        plt.clim(-bound, bound)
 
-    def plotspeichern(self,key, dpi=150, facecolor=(1,1,1,0.01)):
-        plt.gcf().set_size_inches(9,7)
-        savename=self._savename(key)
+    def plotspeichern(self, key, dpi=150, facecolor=(1, 1, 1, 0.01)):
+        plt.gcf().set_size_inches(9, 7)
+        savename = self._savename(key)
         if savename != None:
             plt.savefig(savename, dpi=dpi, facecolor=facecolor, transparent=True);
             plt.close()
@@ -90,15 +90,15 @@ class SDFPlots(_Constants):
     def _savename(self, key):
         if self.outdir == None:
             return None
-        name = self.outdir + self.plotdescriptor.getprojektname2()+'_' + str(len(self._savenamesused)) + '_' + key.replace('/','_').replace(' ','')+'_'+self.plotdescriptor.getprojektname()
+        name = self.outdir + self.plotdescriptor.getprojektname2() + '_' + str(len(self._savenamesused)) + '_' + key.replace('/', '_').replace(' ', '') + '_' + self.plotdescriptor.getprojektname()
         nametmp = name + '_%d'
         i = 0
         while name in self._savenamesused:
             i = i + 1
             name = nametmp % i
         self._savenamesused.append(name)
-        #print name
-        return name + '.png' 
+        # print name
+        return name + '.png'
 
     def lastsavename(self):
         """Gibt den zuletzt verwendeten Savename zurueck. zieht einen neuen, falls es keinen letzten gab."""
@@ -108,14 +108,14 @@ class SDFPlots(_Constants):
             return self._savenamesused[-1]
 
 
-#format_coord_interactive is just for compatibility with PlotFeld2d and is beeing ignored.  
+# format_coord_interactive is just for compatibility with PlotFeld2d and is beeing ignored.
     def _plotFeld1d(self, feld, log10plot=True, saveandclose=True, xlim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, format_coord_interactive=False,):
         assert feld.dimensions() == 1, 'Feld muss genau eine Dimension haben.'
         fig = plt.plot(np.linspace(feld.extent()[0], feld.extent()[1], len(feld.matrix)), feld.matrix, label=feld.label)
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         if log10plot and ((feld.matrix < 0).sum() == 0) and any(feld.matrix > 0):
-            plt.yscale('log') #sets the axis to log scale AND overrides our previously set axesformatter to the default matplotlib.ticker.LogFormatterMathtext.
+            plt.yscale('log')  # sets the axis to log scale AND overrides our previously set axesformatter to the default matplotlib.ticker.LogFormatterMathtext.
         if feld.axesunits[0] == '':
             plt.xlabel(feld.axesnames[0])
         else:
@@ -133,11 +133,11 @@ class SDFPlots(_Constants):
                 feld.exporttocsv(self.lastsavename() + '.csv')
         return fig
 
- 
+
     def plotFelder1d(self, *felder, **kwargs):
         kwargs.update({'saveandclose': False})
         zusatz = []
-        #only write textcond to Image if all textcond of all felder are equal.
+        # only write textcond to Image if all textcond of all felder are equal.
         cleartextcond = not all([str(f.textcond) == str(felder[0].textcond) for f in felder])
         ret = None
         for feld in felder:
@@ -158,29 +158,29 @@ class SDFPlots(_Constants):
         return ret
 
 
-    #add lineouts to 2D-plots
+    # add lineouts to 2D-plots
     @staticmethod
     def _addxlineout(ax0, m, extent, log10=False):
         ax = ax0.twinx()
-        l = m.mean(axis=0)        
+        l = m.mean(axis=0)
         if log10:
             l = np.log10(l)
         x = np.linspace(extent[0], extent[1], len(l))
-        ax.plot(x,l, 'k', lw=1)
+        ax.plot(x, l, 'k', lw=1)
         ax.autoscale(tight=True)
         return ax
-    
+
     @staticmethod
     def _addylineout(ax0, m, extent, log10=False):
         ax = ax0.twiny()
-        #ax.set_xlim(ax.get_xlim()[::-1])
+        # ax.set_xlim(ax.get_xlim()[::-1])
         l = m.mean(axis=1)
         if log10:
             l = np.log10(l)
         x = np.linspace(extent[2], extent[3], len(l))
-        ax.plot(l,x, 'k', lw=1)
+        ax.plot(l, x, 'k', lw=1)
         ax.autoscale(tight=True)
-        #ax.spines['top'].set_position(('axes',0.9))
+        # ax.spines['top'].set_position(('axes',0.9))
         return ax
 
     def plotFeld2d(self, feld, log10plot=True, interpolation='none', contourlevels=np.array([]), saveandclose=True, xlim=None, ylim=None, clim=None, scaletight=None, majorgrid=False, savecsv=False, lineoutx=False, lineouty=False, format_coord_interactive=False):
@@ -190,11 +190,11 @@ class SDFPlots(_Constants):
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
         if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
             if feld.grid_nodes_linear() and True:
-                plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent(), cmap='jet',interpolation=interpolation) 
+                plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent(), cmap='jet', interpolation=interpolation)
             else:
                 print 'using pcolormesh'
                 x, y = feld.grid()
-                plt.pcolormesh(x,y, np.log10(feld.matrix.T), cmap='jet')
+                plt.pcolormesh(x, y, np.log10(feld.matrix.T), cmap='jet')
             plt.colorbar(format='%3.1f')
             if clim:
                 plt.clim(clim)
@@ -205,14 +205,14 @@ class SDFPlots(_Constants):
                 plt.clim(clim)
             self.symmetrisiereclim()
             plt.colorbar(format='%6.0e')
-        #set format_coord to show z value under cursor at lower right corner of window in interactive plot mode.
+        # set format_coord to show z value under cursor at lower right corner of window in interactive plot mode.
         if format_coord_interactive:
             feldinterp = feld.interpolater(fill_value=np.nan)
-            def format_coord(x,y):
-                z = feldinterp(x,y)
-                return 'x=%1.4f, y=%1.4f, z=%1.4e'%(x, y, z)
+            def format_coord(x, y):
+                z = feldinterp(x, y)
+                return 'x=%1.4f, y=%1.4f, z=%1.4e' % (x, y, z)
             ax0.format_coord = format_coord
-        if contourlevels.size != 0: #Einzelne Konturlinie(n) plotten
+        if contourlevels.size != 0:  # Einzelne Konturlinie(n) plotten
             plt.contour(feld.matrix.T, contourlevels, hold='on', extent=feld.extent())
         if feld.axesunits[0] == '':
             plt.xlabel(feld.axesnames[0])
@@ -241,11 +241,11 @@ class SDFPlots(_Constants):
         return fig
 
 
-    def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, name = None, **kwargs):
+    def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, name=None, **kwargs):
         if name:
             feld.name2 = name
         if autoreduce:
-            feld.autoreduce(maxlen_th = ar_maxlen_th)
+            feld.autoreduce(maxlen_th=ar_maxlen_th)
         if feld == None:
             return self._skipplot(feld.savename())
         elif feld.dimensions() <= 0:
@@ -259,12 +259,12 @@ class SDFPlots(_Constants):
 
     def _skipplot(self, key):
         fig = plt.figure()
-        plt.figtext(0.5,0.5,'No data available.', ha='center')
+        plt.figtext(0.5, 0.5, 'No data available.', ha='center')
         self.plotspeichern(key)
         print 'Skipped Plot: ' + self.lastsavename()
         return
-    
-        
+
+
     def plotFelder(self, *felder, **kwargs):
         for feld in felder:
             self.plotFeld(feld, **kwargs)
