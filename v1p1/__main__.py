@@ -25,7 +25,8 @@ modeparsers = parser.add_subparsers(help='Mode switch')
 # Info mode
 parser_info = modeparsers.add_parser('info', help='info')
 parser_info.set_defaults(mode='info')
-parser_info.add_argument('--list-keys', action='store_true', dest='listkeys', help='list keys writtien to sdf file.')
+parser_info.add_argument('--list-keys', action='store_true', dest='listkeys', help='list keys written to sdf file.')
+parser_info.add_argument('-l', action='store_true', dest='listkeys', help='alias for --list-keys')
 
 # Plotting mode
 parser_plot = modeparsers.add_parser('plot', help='interactive plotting')
