@@ -173,7 +173,13 @@ class _SingleSpeciesAnalyzer(_Constants):
                     self._ID = np.compress(condition, self._ID)
         else:  # Case 2: condition is list of particle IDs to use
             condition = np.array(condition, dtype='int')
-            bools = np.array([idx in condition for idx in self._ID])  # TODO: Speed the shit up. it takes way too long!
+            # same as
+            # bools = np.array([idx in condition for idx in self._ID])
+            # but benchmarked to be 1500 times faster :)
+            condition.sort()
+            idx = np.searchsorted(condition, self._ID)
+            idx[idx == len(condition)] = 0
+            bools = condition[idx] == self._ID
             return self.compress(bools, name=name)
 
         self.compresslog = np.append(self.compresslog, name)
