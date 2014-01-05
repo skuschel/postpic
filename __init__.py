@@ -6,7 +6,7 @@
 Stephan Kuschel (C) 2013
 """
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 
 # import order matters: feld must be imported before analyzer, since the analyzer module uses the Feld class of the feld module.

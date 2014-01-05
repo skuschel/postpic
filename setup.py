@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import os
 from setuptools import setup
 from epochsdftools import __version__
 
