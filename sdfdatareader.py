@@ -125,6 +125,9 @@ class OutputAnalyzer(PlotDescriptor):
         ret.zusatz = ''
         return ret
 
+    def hasID(self):
+        return self[0].hasID()
+
     def createtimeseries(self, f):
         """
         Erzeugt eine Zeitserie.
@@ -208,7 +211,7 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
             raise Exception('Unit ' + str(unit) + ' unbekannt')
 
 
-   # High Level
+    # High Level
     def species(self, ejected='ignore'):
         """
         Gibt eine Liste aller an der Simulation beteiligten Species aus
@@ -320,7 +323,10 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         return self._data['Grid/Grid_node/' + axsuffix]
 
     def getSpecies(self, spezies, attrib):
-        """Gibt das Attribut (x,y,z,px,py,pz,weight) dieser Teilchenspezies zurueck"""
+        """
+        Gibt das Attribut (x,y,z,px,py,pz,weight,ID) dieser Teilchenspezies zurueck.
+        returning None means that this particle property wasnt dumped. Note that this is different from returning an empty list.
+        """
         attribid = _Constants._poptsidentify[attrib]
         options = {9:lambda s: 'Particles/Weight/' + s,
             0:lambda s: 'Grid/Particles/' + s + '/X',
@@ -328,6 +334,15 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
             2:lambda s: 'Grid/Particles/' + s + '/Z',
             3:lambda s: 'Particles/Px/' + s,
             4:lambda s: 'Particles/Py/' + s,
-            5:lambda s: 'Particles/Pz/' + s}
-        return self._data[options[attribid](spezies)]
+            5:lambda s: 'Particles/Pz/' + s,
+            10:lambda s:'Particles/ID/' + s}
+        try:
+            ret = self._data[options[attribid](spezies)]
+        except(KeyError):
+            ret = None
+        return ret
+
+    def hasID(self):
+        return self.getSpecies(self.species()[0], 'ID') is not None
+
 

@@ -22,7 +22,7 @@ class _Constants:
     _axisoptionseinzel = {'X':slice(0, 1), 'Y':slice(1, 2), 'Z':slice(2, 3), None:slice(None), 'x':slice(0, 1), 'y':slice(1, 2), 'z':slice(2, 3)}
     _axesidentify = {'X':0, 'x':0, 0:0, 'Y':1, 'y':1, 1:1, 'Z':2, 'z':2, 2:2}
     _poptsidentify = _axesidentify.copy()
-    _poptsidentify.update({'px':3, 'Px':3, 'py':4, 'Py':4, 'pz':5, 'Pz':5, 'weight':9, 'w':9})
+    _poptsidentify.update({'px':3, 'Px':3, 'py':4, 'Py':4, 'pz':5, 'Pz':5, 'weight':9, 'w':9, 'id':10, 'ID':10})
 
     @staticmethod
     def ncrit_um(lambda_um):
@@ -81,5 +81,34 @@ class _Constants:
         return ret
 
 
+    @staticmethod
+    def _constructsavename(name=None):
+        import os
+        fname = 'tmp'
+        if name:
+            fname = name
+        f = os.path.join(os.getcwd(), 'datasave', fname)
+        if not os.path.exists(os.path.dirname(f)):
+            os.makedirs(os.path.dirname(f))
+        return f
 
+    @staticmethod
+    def saveidlist(idlist, name=None):
+        '''
+        saves an list of particle IDs inside the sdfdir.
+        name can be given in addition to change the output filename
+        '''
+        import pickle
+        with open(_Constants._constructsavename(name), 'w') as f:
+            pickle.dump(idlist, f)
 
+    @staticmethod
+    def loadidlist(name=None):
+        '''
+        saves an list of particle IDs inside the sdfdir.
+        name can be given in addition to change the output filename
+        '''
+        import pickle
+        with open(_Constants._constructsavename(name), 'r') as f:
+            ret = pickle.load(f)
+        return ret

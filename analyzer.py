@@ -129,6 +129,7 @@ class _SingleSpeciesAnalyzer(_Constants):
         self._Pxdata = np.array([])
         self._Pydata = np.array([])
         self._Pzdata = np.array([])
+        self._ID = None  # None means no IDs dumped
         if sdfanalyzer.hasSpecies(species):
             # Hold local copies to allow compress function
             self.speciesexists = True
@@ -141,26 +142,46 @@ class _SingleSpeciesAnalyzer(_Constants):
             self._Pxdata = sdfanalyzer.getSpecies(species, 'px')
             self._Pydata = sdfanalyzer.getSpecies(species, 'py')
             self._Pzdata = sdfanalyzer.getSpecies(species, 'pz')
+            self._ID = sdfanalyzer.getSpecies(species, 'ID')  # This function will also return None if no IDs were dumped.
 
 
     def compress(self, condition, name='unknown condition'):
         """
         In Anlehnung an numpy.compress.  Zusatzlich, kann ein name angegeben werden, der fortlaufend in compresslog gespeichert wird.
-        Bsp.:
-        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3 
+        1) 
+        condition =  [True, False, True, True, ... , True, False]
+        In diesem Beispiel ist condition eine Liste der Laenge N (Anzahl der Teilchen) mit jeweils boolschem Wert, der anzeigt, ob das Teilchen behalten wird oder nicht.
+        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
         cfintospectrometer.name = '< 30mrad offaxis'
         pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
+        2)
+        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
+        In diesem Beispiel ist condition eine Liste beliebiger Laenge, die die IDs der Teilchen beinhaltet, die behalten werden sollen.
         """
-        assert self._weightdata.shape[0] == condition.shape[0], 'condition hat die falsche Laenge'
-        self._weightdata = np.compress(condition, self._weightdata)
-        self._Xdata = np.compress(condition, self._Xdata)
-        if self.simdimensions > 1:
-            self._Ydata = np.compress(condition, self._Ydata)
-        if self.simdimensions > 2:
-            self._Zdata = np.compress(condition, self._Zdata)
-        self._Pxdata = np.compress(condition, self._Pxdata)
-        self._Pydata = np.compress(condition, self._Pydata)
-        self._Pzdata = np.compress(condition, self._Pzdata)
+        if np.array(condition).dtype is np.dtype('bool'):  # Case 1: condition is list of boolean values specifying particles to use
+            assert self._weightdata.shape[0] == condition.shape[0], 'condition hat die falsche Laenge'
+            self._weightdata = np.compress(condition, self._weightdata)
+            self._Xdata = np.compress(condition, self._Xdata)
+            if self.simdimensions > 1:
+                self._Ydata = np.compress(condition, self._Ydata)
+                if self.simdimensions > 2:
+                    self._Zdata = np.compress(condition, self._Zdata)
+                self._Pxdata = np.compress(condition, self._Pxdata)
+                self._Pydata = np.compress(condition, self._Pydata)
+                self._Pzdata = np.compress(condition, self._Pzdata)
+                if self._ID is not None:
+                    self._ID = np.compress(condition, self._ID)
+        else:  # Case 2: condition is list of particle IDs to use
+            condition = np.array(condition, dtype='int')
+            # same as
+            # bools = np.array([idx in condition for idx in self._ID])
+            # but benchmarked to be 1500 times faster :)
+            condition.sort()
+            idx = np.searchsorted(condition, self._ID)
+            idx[idx == len(condition)] = 0
+            bools = condition[idx] == self._ID
+            return self.compress(bools, name=name)
+
         self.compresslog = np.append(self.compresslog, name)
 
     def uncompress(self):
@@ -190,6 +211,11 @@ class _SingleSpeciesAnalyzer(_Constants):
         return np.float64(self._Ydata)
     def Z(self):
         return np.float64(self._Zdata)
+    def ID(self):
+        if self._ID is not None:
+            return np.array(self._ID, dtype=int)
+        else:
+            return None
 
 
 
@@ -295,8 +321,10 @@ class ParticleAnalyzer(_Constants):
         for ssa in self._ssas:
             if ssa.speciesexists:
                 a = getattr(ssa, func)()
+                if a is None:  # This particle property is not dumped in the current SingleSpeciesAnalyzer
+                    return None
                 ret = np.append(ret, a)
-            else:  # #Issue warning as soon as warnings are implemented. Although this might be on purpose i.e. if ejected paricles get collected and this dump doesnt have any ejected particles of this kind.
+            else:  # TODO: Issue warning as soon as warnings are implemented. Although this might be on purpose i.e. if ejected paricles get collected and this dump doesnt have any ejected particles of this kind.
                 pass
         return ret
 
@@ -327,12 +355,18 @@ class ParticleAnalyzer(_Constants):
     def _Z(self):
         return self._funcabbilden('Z')
 
+    def ID(self):
+        return self._funcabbilden('ID')
+
     def compress(self, condition, name='unknown condition'):
         i = 0
-        for ssa in self._ssas:
-            n = ssa.weight().shape[0]
-            ssa.compress(condition[i:i + n], name=name)
-            i += n
+        for ssa in self._ssas:  # condition is list of booleans
+            if condition.dtype == np.dtype('bool'):
+                n = ssa.weight().shape[0]
+                ssa.compress(condition[i:i + n], name=name)
+                i += n
+            else:  # condition is list of particle IDs
+                ssa.compress(condition, name=name)
         self._compresslog = np.append(self._compresslog, name)
 
     # --- Hilfsfunktionen
