@@ -8,7 +8,7 @@ Stephan Kuschel (C) 2013
 CLI Interface.
 """
 
-import v1p1 as ep
+import epochsdftools as ep
 import argparse
 import numpy as np
 
