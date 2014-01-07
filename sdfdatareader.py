@@ -90,9 +90,12 @@ class OutputAnalyzer(PlotDescriptor):
         sl = slice(0, ndumps + 1)
         sdfas = self[sl]
         pa = sdfas[-1].getparticleanalyzer(species)
+        nparticles = len(pa)
         species = 'ejected_' + species.replace('/', '')
         for sdfa in sdfas:
             pa += sdfa.getparticleanalyzer(species)
+        if len(pa) == nparticles:
+            print('WARNING: No ejected Particles collected. Did you forget to dump ejected particles?')
         return pa
 
     def maptoSDFAnalyzer(self, f, *args, **kwargs):
