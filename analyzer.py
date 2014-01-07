@@ -193,6 +193,9 @@ class _SingleSpeciesAnalyzer(_Constants):
 
     # --- Stellt ausschliesslich GRUNDLEGENDE funktionen bereit
 
+    def __len__(self):
+        return self.weight().shape[0]
+
     def weight(self):  # np.float64(np.array([4.3])) == 4.3 fuehrt sonst zu Fehler
         return np.asfarray(self._weightdata, dtype='float64')
     def mass(self):  # SI
@@ -310,7 +313,10 @@ class ParticleAnalyzer(_Constants):
         a=[1,2,3]; a += [4,5]; print a
         [1,2,3,4,5]
         '''
-        self._ssas += copy.copy(other._ssas)
+        # only add ssa with more than 0 particles.
+        for ssa in other._ssas:
+            if len(ssa) > 0:
+                self._ssas.append(copy.copy(ssa))
         return self
 
 
