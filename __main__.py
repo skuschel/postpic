@@ -99,6 +99,7 @@ def def_onclick(feld=None):
 
 if args.mode == 'plot':
     import matplotlib.pyplot as plt
+    plt.switch_backend('GTKAgg')
     sdfa = ep.SDFAnalyzer(args.inputfile)
     sdfplots = ep.SDFPlots(sdfa)
 
