@@ -514,13 +514,14 @@ class ParticleAnalyzer(_Constants):
     # ---- Hilfen zum erstellen des Histogramms ---
 
 
-    def createHistgram1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, weights=lambda x:1):
+    def createHistgram1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, rangex=None, weights=lambda x:1):
         if simgrid:
             simextent = True
         # Falls alle Teilchen aussortiert wurden, z.B. durch ConditionFunctions
         if len(scalarfx(self)) == 0:
             return [], []
-        rangex = [np.min(scalarfx(self)), np.max(scalarfx(self))]
+        if rangex is None:
+            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
