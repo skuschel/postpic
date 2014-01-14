@@ -188,7 +188,7 @@ class SDFPlots(_Constants):
         fig, ax0 = plt.subplots()
         plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx);
         plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery);
-        if log10plot and ((feld.matrix < 0).sum() == 0) and not (feld.matrix.sum() < 0):
+        if log10plot and not any(feld.matrix.flatten() < 0) and any(feld.matrix.flatten() > 0):
             if feld.grid_nodes_linear() and True:
                 plt.imshow(np.log10(feld.matrix.T), origin='lower', aspect='auto', extent=feld.extent(), cmap='jet', interpolation=interpolation)
             else:
