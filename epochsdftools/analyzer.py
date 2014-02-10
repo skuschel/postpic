@@ -16,14 +16,14 @@ class _SingleSpeciesAnalyzer(_Constants):
     Wird ausschliesslich von der ParticleAnalyzer Klasse benutzt.
     Oberste Prioritaet haben die Spezies, die in masslist und chargelist eingetragen sind.
     """
-    masslist = {'electrongold':1, 'proton':1836 * 1,
-        'ionp':1836, 'ion':1836 * 12, 'c6':1836 * 12,
-        'ionf':1836 * 19, 'Palladium':1836 * 106,
-        'Palladium1':1836 * 106, 'Palladium2':1836 * 106,
-        'Ion':1836, 'Photon':0, 'Positron':1, 'positron':1,
-        'gold1':1836 * 197, 'gold2':1836 * 197, 'gold3':1836 * 197,
-        'gold4':1836 * 197, 'gold7':1836 * 197, 'gold10':1836 * 197,
-        'gold20':1836 * 197}  # unit: electronmass
+    masslist = {'electrongold':1, 'proton':1836.2 * 1,
+        'ionp':1836.2, 'ion':1836.2 * 12, 'c6':1836.2 * 12,
+        'ionf':1836.2 * 19, 'Palladium':1836.2 * 106,
+        'Palladium1':1836.2 * 106, 'Palladium2':1836.2 * 106,
+        'Ion':1836.2, 'Photon':0, 'Positron':1, 'positron':1,
+        'gold1':1836.2 * 197, 'gold2':1836.2 * 197, 'gold3':1836.2 * 197,
+        'gold4':1836.2 * 197, 'gold7':1836.2 * 197, 'gold10':1836.2 * 197,
+        'gold20':1836.2 * 197}  # unit: electronmass
     chargelist = {'electrongold':-1, 'proton':1,
         'ionp':1, 'ion':1, 'c6':6,
         'ionf':1, 'Palladium':0,
