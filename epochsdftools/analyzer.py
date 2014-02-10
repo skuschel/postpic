@@ -72,7 +72,9 @@ class _SingleSpeciesAnalyzer(_Constants):
         # Prae erkennen und Eigenschaft auf True setzen
         if regexdict['prae']:
             for i in regexdict['prae'].split('_'):
-                ret[i.replace('_', '')] = True
+                key = i.replace('_', '')
+                if not key == '':
+                    ret[key] = True
 
         # Name ist Elementsymbol und Ladungszustand, Bsp: C1, C6, F2, F9, Au20, Pb34a
         if regexdict['elem']:
