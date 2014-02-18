@@ -192,12 +192,14 @@ class Feld(_Constants):
         return self.setgrid_node(axis, gn)
 
     def ausschnitt(self, ausschnitt):
+        '''
+        "ausschnitt" is the new extent the current image should be cropped down to.
+        '''
         if self.dimensions() == 0:
             return
-        if self.extent != None:
-            raise Exception('extent kann nicht geaendert werden, wenn der aktuelle extent unbekannt ist.')
-        self.matrix = _Constants.datenausschnitt(self.matrix, self.extent, ausschnitt)
-        self.extent = ausschnitt
+        #current extent is always known, since addaxis() adds default extent [0, 1].
+        self.matrix = _Constants.datenausschnitt(self.matrix, self.extent(), ausschnitt)
+        self.setgrid_node_fromextent(ausschnitt)
 
     def dimensions(self):
         '''
@@ -331,7 +333,7 @@ extent=(phimin, phimax, rmin, rmax)"""
         ret.matrix = self.transfromxy2polar(self.matrix, self.extent(), np.roll(extent, 2), shape).T
         extent[0:2] = extent[0:2] + angleoffset
 
-        ret.setgrid_nodefromextent(extent)
+        ret.setgrid_node_fromextent(extent)
         if ret.axesnames[0].startswith('$k_') and ret.axesnames[1].startswith('$k_'):
             ret.axesnames[0] = '$k_\phi$'
             ret.axesnames[1] = '$|k|$'
