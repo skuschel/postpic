@@ -216,7 +216,7 @@ class Feld(_Constants):
 
     def mikro(self):
         # self.grid_nodes *= 1e6
-        map(lambda x: x * 1e6, self.grid_nodes)
+        self.grid_nodes = map(lambda x: x * 1e6, self.grid_nodes)
         self.axesunits = ['$\mu $' + x for x in self.axesunits]
         return self
 
