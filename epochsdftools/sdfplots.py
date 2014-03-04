@@ -12,7 +12,7 @@ from _Constants import _Constants
 
 __all__ = ['SDFPlots']
 
-class SDFPlots(_Constants):
+class SDFPlots(_Constants, object):
 
     # @staticmethod
     # def axesformat(x, pos): #'The two args are the value and tick position'
@@ -24,6 +24,7 @@ class SDFPlots(_Constants):
     axesformatterx.set_powerlimits((-2, 3))
     axesformattery = matplotlib.ticker.ScalarFormatter()
     axesformattery.set_powerlimits((-2, 3))
+
 
     from matplotlib.colors import LinearSegmentedColormap
     efeldcdict = {'red': ((0, 0, 0), (1, 1, 1)),
@@ -38,12 +39,28 @@ class SDFPlots(_Constants):
         self.lasnm = plotdescriptor.getlasnm()
         self.outdir = outdir
         self.plotdescriptor = plotdescriptor
+        # this is a global prefix that will be add to every plot name as well as filename
+        self._globalnameprefix = ''
         self._savenamesused = []
         if self.outdir == None:
             print 'Kein Ausgabeverzeichnis angegeben. Es werden keine Plots gespeichert.'
 
+    @property
+    def globalnameprefix(self):
+        return self._globalnameprefix
+
+    @globalnameprefix.setter
+    def globalnameprefix(self, value):
+        if value is None:
+            value = ''
+        if isinstance(value, str):
+            self._globalnameprefix = value
+        else:
+            raise Exception('globalnameprefix has to be of string type (some other type found).')
+
     def setzetext(self, titel, extray='', belowtime='', textcond=''):
-        # plt.title(titel)
+        if not self.globalnameprefix == '':
+            titel = self.globalnameprefix + ': ' + titel
         plt.figtext(0.5 , 0.97, titel, ha='center', fontsize=14)
         if not self.plotdescriptor == None:
             plt.figtext(0.03, 0.965, self.plotdescriptor.getprojektname(), horizontalalignment='left')
@@ -90,7 +107,7 @@ class SDFPlots(_Constants):
     def _savename(self, key):
         if self.outdir == None:
             return None
-        name = self.outdir + self.plotdescriptor.getprojektname2() + '_' + str(len(self._savenamesused)) + '_' + key.replace('/', '_').replace(' ', '') + '_' + self.plotdescriptor.getprojektname()
+        name = self.outdir + self.plotdescriptor.getprojektname2() + '_' + self.globalnameprefix + str(len(self._savenamesused)) + '_' + key.replace('/', '_').replace(' ', '') + '_' + self.plotdescriptor.getprojektname()
         nametmp = name + '_%d'
         i = 0
         while name in self._savenamesused:
