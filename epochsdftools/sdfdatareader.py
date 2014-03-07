@@ -275,11 +275,14 @@ class SDFAnalyzer(PlotDescriptor, _Constants):
         'ignore' - ejected particles werden nicht mit ausgegeben.
         """
         if species == 'ions':
-            return ParticleAnalyzer(self, *self.ions(ejected=ejected))
+            ret = ParticleAnalyzer(self, *self.ions(ejected=ejected))
+            ret.setspecies('ions')
         elif species == 'nonions':
-            return ParticleAnalyzer(self, *self.nonions(ejected=ejected))
+            ret = ParticleAnalyzer(self, *self.nonions(ejected=ejected))
+            ret.setspecies('nonions')
         else:
-            return ParticleAnalyzer(self, species)
+            ret = ParticleAnalyzer(self, species)
+        return ret
 
     # low-level
     def getderived(self):

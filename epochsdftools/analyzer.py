@@ -246,6 +246,7 @@ class ParticleAnalyzer(_Constants):
     def __init__(self, sdfanalyzer, *speciess):
         # create 'empty' ParticleAnalyzer
         self._ssas = []
+        self._species = None
         self.simdimensions = sdfanalyzer.simdimensions
         self._compresslog = []
         self.simextent = sdfanalyzer.simextent()
@@ -284,12 +285,18 @@ class ParticleAnalyzer(_Constants):
     def species(self):
         '''
         returns an string name for the species involved. Basically only returns uniqe names from all species (used for plotting and labeling purposes -- not for completeness).
+        May be overwritten using self.setspecies(self, name)
         '''
+        if self._species is not None:
+            return self._species
         ret = ''
         for s in set(self.speciess()):
             ret += s + ' '
         ret = ret[0:-1]
         return ret
+
+    def setspecies(self, name):
+        self._species = name
 
     def speciess(self):
         return [ssa.species for ssa in self._ssas]
