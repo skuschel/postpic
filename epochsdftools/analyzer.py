@@ -648,7 +648,11 @@ class FieldAnalyzer(_Constants):
         self._extent = self._simextent.copy()  # Variable definiert den ausgeschnittenen Bereich
 
     def datenausschnitt_bound(self, m):
-        return self.datenausschnitt(m, self._simextent, self._extent)
+        if all(self._simextent == self._extent):
+            ret = m
+        else:
+            ret = self.datenausschnitt(m, self._simextent, self._extent)
+        return ret
 
     def getsimextent(self, axis=None):
         return self._simextent.copy()[self._axisoptions[axis]]
@@ -686,24 +690,24 @@ class FieldAnalyzer(_Constants):
     # -- basic --
     # **kwargs ist z.B. average=True
     def _Ex(self, **kwargs):
-        return self.sdfanalyzer.dataE('x', **kwargs)
+        return self.datenausschnitt_bound(self.sdfanalyzer.dataE('x', **kwargs))
     def _Ey(self, **kwargs):
-        return self.sdfanalyzer.dataE('y', **kwargs)
+        return self.datenausschnitt_bound(self.sdfanalyzer.dataE('y', **kwargs))
     def _Ez(self, **kwargs):
-        return self.sdfanalyzer.dataE('z', **kwargs)
+        return self.datenausschnitt_bound(self.sdfanalyzer.dataE('z', **kwargs))
     def _Bx(self, **kwargs):
-        return self.sdfanalyzer.dataB('x', **kwargs)
+        return self.datenausschnitt_bound(self.sdfanalyzer.dataB('x', **kwargs))
     def _By(self, **kwargs):
-        return self.sdfanalyzer.dataB('y', **kwargs)
+        return self.datenausschnitt_bound(self.sdfanalyzer.dataB('y', **kwargs))
     def _Bz(self, **kwargs):
-        return self.sdfanalyzer.dataB('z', **kwargs)
+        return self.datenausschnitt_bound(self.sdfanalyzer.dataB('z', **kwargs))
 
 
     # --- Alle Funktionen geben ein Objekt vom Typ Feld zurueck
 
     # allgemein ueber dem Ort auftragen. Insbesondere fuer Derived/*
     def createfeldfromkey(self, key):
-        ret = Feld(self.sdfanalyzer.data(key));
+        ret = Feld(self.datenausschnitt_bound(self.sdfanalyzer.data(key)));
         ret.name = key
         self.setspacialtofield(ret)
         return ret
