@@ -32,7 +32,7 @@ parser_info.add_argument('keys', help='Show contents of key.', nargs='*')
 # Plotting mode
 parser_plot = modeparsers.add_parser('plot', help='interactive plotting')
 parser_plot.set_defaults(mode='plot')
-parser.add_argument('-s', action='store_true', dest='savedata', help='saves data to an appropriately named csv file after plotting.')
+parser_plot.add_argument('-s', action='store_true', dest='savedata', help='saves data to an appropriately named csv file after plotting.')
 modeparsers_plot = parser_plot.add_subparsers(help='Plot Feld or Histogram')
 # Plotting mode - Feld
 parser_plotfeld = modeparsers_plot.add_parser('feld')
