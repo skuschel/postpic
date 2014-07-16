@@ -1,14 +1,20 @@
 #!/usr/bin/env python2
 
 from setuptools import setup
-from epochsdftools import __version__
+from postpic import __version__
 
 
-setup(name='epochsdftools',
-    version=__version__,
-	author='Stephan Kuschel',
-	author_email='stephan.kuschel@gmail.de',
-	description='Provides easy-to-use functions to create customized plots from simulations data created by the epoch code. This toolset can be easily adapted to also support the output of other particle in cell code.',
-	packages=['epochsdftools'],
-	install_requires=['matplotlib', 'numpy', 'scipy']
-	)
+setup(name='postpic',
+      version=__version__,
+      author='Stephan Kuschel',
+      author_email='stephan.kuschel@gmail.de',
+      description='The open source particle-in-cell post processor.',
+      url='http://github.com/skuschel/postpic',
+      packages=['postpic'],
+      install_requires=['matplotlib', 'numpy', 'scipy'],
+      classifiers=[
+          'Intended Audience :: Science/Research',
+          'Topic :: Scientific/Engineering :: Astronomy',
+          'Topic :: Scientific/Engineering :: Physics',
+          'Topic :: Scientific/Engineering :: Visualization']
+      )
