@@ -172,10 +172,12 @@ class Simulationreader_ifc(collections.Sequence):
 
 # --- datareader package functions ---
 
-__all__ = ['Dumpreader_ifc', 'Simulationreader_ifc', 'chooseCode', 'readDump', 'readSim']
+__all__ = ['Dumpreader_ifc', 'Simulationreader_ifc', 'chooseCode',
+           'readDump', 'readSim']
 
 _dumpreadercls = None
 _simreadercls = None
+
 
 def setdumpreadercls(dumpreadercls):
     '''
@@ -186,8 +188,9 @@ def setdumpreadercls(dumpreadercls):
         global _dumpreadercls
         _dumpreadercls = dumpreadercls
     else:
-        raise Exception('In order to set a reader class for a new file' \
+        raise Exception('In order to set a reader class for a new file'
                         ' format it needs to be subclass of "Dumpreader_ifc"')
+
 
 def setsimreadercls(simreadercls):
     '''
@@ -198,9 +201,10 @@ def setsimreadercls(simreadercls):
         global _simreadercls
         _simreadercls = simreadercls
     else:
-        raise Exception('In order to set a reader for a new file' \
-                        ' format it needs to be subclass of ' \
+        raise Exception('In order to set a reader for a new file'
+                        ' format it needs to be subclass of '
                         '"Simulationreader_ifc"')
+
 
 def readDump(dumpidentifier):
     global _dumpreadercls
@@ -208,11 +212,13 @@ def readDump(dumpidentifier):
         raise Exception('Specify dumpreaderclass first.')
     return _dumpreadercls(dumpidentifier)
 
+
 def readSim(simidentifier):
     global _simreadercls
     if _simreadercls is None:
         raise Exception('Specify simreaderclass first.')
     return _simreadercls(simidentifier)
+
 
 def chooseCode(code):
     '''
@@ -233,7 +239,7 @@ def chooseCode(code):
         setsimreadercls(Dummysim)
     else:
         raise TypeError('Code "' + str(code) + '" not recognized.')
-        
+
 
 
 
