@@ -182,6 +182,10 @@ class Simulationreader_ifc(collections.Sequence):
         '''
         pass
 
+    @abc.abstractmethod
+    def __len__(self):
+        pass
+
     def __str__(self):
         return '<Simulationreader initialized with "' \
                + str(self.simidentifier) + '">'

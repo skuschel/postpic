@@ -176,11 +176,11 @@ class Field(object):
 
     @property
     def grid_nodes(self):
-        return [a.grid_node for a in axes]
+        return [a.grid_node for a in self.axes]
 
     @property
     def grid(self):
-        return [a.grid for a in axes]
+        return [a.grid for a in self.axes]
 
     @property
     def dimensions(self):
