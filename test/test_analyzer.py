@@ -1,39 +1,56 @@
 #!/usr/bin/env python2
 
 import unittest
-import epochsdftools as ep
+import postpic.analyzer as pa
 
-class TestSingleSpeciesAnalyzer(unittest.TestCase):
+class TestSpeciesIdentifier(unittest.TestCase):
     
     def setUp(self):
         pass
-        
-    def test_particleinfo_ion(self):
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('proton'), {'charge':1*ep.ParticleAnalyzer._qe, 'mass':1*1836.2*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('H1'), {'charge':1*ep.ParticleAnalyzer._qe, 'mass':1*1836.2*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('tracer_O3'), {'charge':3*ep.ParticleAnalyzer._qe, 'mass':16*1836.2*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('ejected_tracer_C4'), {'charge':4*ep.ParticleAnalyzer._qe, 'mass':12*1836.2*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':True, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('H1'), {'charge':1*ep.ParticleAnalyzer._qe, 'mass':1*1836.2*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('ionm3c7'), {'charge':7*ep.ParticleAnalyzer._qe, 'mass':3*1836.2*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('ionc3m7'), {'charge':3*ep.ParticleAnalyzer._qe, 'mass':7*1836.2*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('tracer_ionc9m5'), {'charge':9*ep.ParticleAnalyzer._qe, 'mass':5*1836.2*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':False, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('tracer_ejected_Au27a'), {'charge':27*ep.ParticleAnalyzer._qe, 'mass':197*1836.2*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':True, 'ision':True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('ejected_tracer_Au27'), {'charge':27*ep.ParticleAnalyzer._qe, 'mass':197*1836.2*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':True, 'ision':True})
 
+    def checke(self, data, m, c, eject, tracer, ision):
+        pc = pa.PhysicalConstants
+        self.assertEqual(data['mass'], m * pc.me)
+        self.assertEqual(data['charge'], c * pc.qe)
+        self.assertEqual(data['ejected'], eject)
+        self.assertEqual(data['tracer'], tracer)
+        self.assertEqual(data['ision'], ision)
 
-    def test_particleinfo_electron(self):
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('Elektron'), {'charge':-1*ep.ParticleAnalyzer._qe, 'mass':1*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':False})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('Electronx'), {'charge':-1*ep.ParticleAnalyzer._qe, 'mass':1*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':False})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('Electron2'), {'charge':-1*ep.ParticleAnalyzer._qe, 'mass':1*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':False})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('ElectronAu2'), {'charge':-1*ep.ParticleAnalyzer._qe, 'mass':1*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':False, 'ision':False})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('ejected_ElectronAu2'), {'charge':-1*ep.ParticleAnalyzer._qe, 'mass':1*ep.ParticleAnalyzer._me, 'tracer':False, 'ejected':True, 'ision':False})
-        
-        
-    def test_particleinfo_extra(self):
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('tracer_blahh_Au27x'), {'charge':27*ep.ParticleAnalyzer._qe, 'mass':197*1836.2*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':False, 'ision':True, 'blahh': True})
-        self.assertEqual(ep.ParticleAnalyzer.retrieveparticleinfo('tracer_blahh_electronHe2b'), {'charge':-1*ep.ParticleAnalyzer._qe, 'mass':1*ep.ParticleAnalyzer._me, 'tracer':True, 'ejected':False, 'ision':False, 'blahh': True})
+    def checkion(self, data, m, c, eject, tracer, ision):
+        self.checke(data, 1836.2 * m, c, eject, tracer, ision)
 
+    def test_identifyspecies_ion(self):
+        idfy = pa.identifyspecies
+        self.checkion(idfy('proton'), 1, 1, False, False, True)
+        self.checkion(idfy('H1'), 1, 1, False, False, True)
+        self.checkion(idfy('tracer_O3'), 16, 3, False, True, True)
+        self.checkion(idfy('ejected_tracer_C4'), 12, 4, True, True, True)
+        self.checkion(idfy('ionm3c7'), 3, 7, False, False, True)
+        self.checkion(idfy('ionm30c70xx5'), 30, 70, False, False, True)
+        self.checkion(idfy('tracer_ejected_Au27a'), 197, 27, True, True, True)
+        self.checkion(idfy('ejected_tracer_Au27'), 197, 27, True, True, True)
+        self.checkion(idfy('tracer_blahh_Au27x'), 197, 27, False, True, True)
 
+    def test_identifyspecies_electron(self):
+        idfy = pa.identifyspecies
+        self.checke(idfy('Elektron'), 1, -1, False, False, False)
+        self.checke(idfy('Elektronx'), 1, -1, False, False, False)
+        self.checke(idfy('Elektron2'), 1, -1, False, False, False)
+        self.checke(idfy('ElektronAu2'), 1, -1, False, False, False)
+        self.checke(idfy('ejected_ElektronAu2'), 1, -1, True, False, False)
+        self.checke(idfy('tracer_blahh_electronHe2b'), 1, -1, False, True, False)
+
+    def test_identifyspecies_praefix(self):
+        x = pa.identifyspecies('a_b_c_xxx_tracer_h_w_33_He5_O3x2')
+        self.assertEqual(x['a'], True)
+        self.assertEqual(x['b'], True)
+        self.assertEqual(x['c'], True)
+        self.assertEqual(x['xxx'], True)
+        self.assertEqual(x['h'], True)
+        self.assertEqual(x['w'], True)
+        self.assertEqual(x['33'], True)
+        self.assertEqual(x['He5'], True)
+        self.checkion(x, 16,3, False, True, True)
 
 if __name__ == '__main__':
     unittest.main()
