@@ -7,6 +7,7 @@ Stephan Kuschel 2014
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc
 import numpy as np
+from .. import _const
 
 
 class Dummyreader(Dumpreader_ifc):
@@ -31,11 +32,11 @@ class Dummyreader(Dumpreader_ifc):
 
     def dataE(self, axis):
         xx, yy = np.meshgrid(self.grid('x'), self.grid('y'))
-        if self._axesidentify[axis] == 0:
+        if _const.axesidentify[axis] == 0:
             ret = np.sin(self.timestep() * xx)
-        elif self._axesidentify[axis] == 1:
+        elif _const.axesidentify[axis] == 1:
             ret = np.cos(xx + yy**2)
-        elif self._axesidentify[axis] == 2:
+        elif _const.axesidentify[axis] == 2:
             ret = xx * 0
         return ret
 
@@ -47,9 +48,9 @@ class Dummyreader(Dumpreader_ifc):
         returns the grid points for the axis specified.
         Thus only regular grids are supported currently.
         '''
-        if self._axesidentify[axis] == 0:  # x-axis
+        if _const.axesidentify[axis] == 0:  # x-axis
             ret = np.linspace(0, 2*np.pi, 100)
-        elif self._axesidentify[axis] == 1:  # y-axis
+        elif _const.axesidentify[axis] == 1:  # y-axis
             ret = np.linspace(-5, 10, 100)
         else:  # no z-axis present, since simdimensions() returns 2.
             raise IndexError('axis ' + str(axis) + ' not present.')
