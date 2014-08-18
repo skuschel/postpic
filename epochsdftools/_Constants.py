@@ -33,52 +33,13 @@ class _Constants:
         return _Constants.ncrit_um(laslambda * 1e6)  # 1/m^3
 
     @staticmethod
-    def datenausschnitt(m, oldextent, newextent):
-        """
-        Schneidet aus einer Datenmatrix m den Teil heraus, der newextent entspricht, wenn die gesamte Matrix zuvor oldextent entsprochen hat. Hat m insgeamt dims dimensionen, dann muessen oldextent und newextent die Laenge 2*dims haben.
-        Einschraenkung: newextent muss innerhalb von oldextent liegen
-        
-        """
-        dims = len(m.shape)
-        assert not oldextent is newextent, 'oldextent und newextent zeigen auf dasselbe Objekt(!). Da hat wohl jemand beim Programmieren geschlafen :)'
-        assert len(oldextent) / 2 == dims, 'Dimensionen von m und oldextent falsch!'
-        assert len(newextent) / 2 == dims, 'Dimensionen von m und newextent falsch!'
-        s = ()
-        for dim in range(dims):
-            i = 2 * dim
-            thisdimmin = round((newextent[i] - oldextent[i]) / (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-            thisdimmax = round((newextent[i + 1] - oldextent[i]) / (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-            s = np.append(s, slice(thisdimmin, thisdimmax))
-        if len(s) == 1:
-            s = s[0]
-        else:
-            s = tuple(s)
-        return m[s]
+
 
     # Transformation: polarkoordinaten --> kartesische Koordinaten,
     # (i,j), Indizes des Bildes in Polardarstellung --> Indizes des Bildes in kartesischer Darstellung
     # damit das Bild transformiert wird: kartesischen Koordinaten --> polarkoordinaten
     @staticmethod
-    def transfromxy2polar(matrixxy, extentxy, extentpolar, shapepolar, ashistogram=True):
-        """transformiert eine Matrix in kartesischer Darstellung (matrixxy, Achsen x,y) in eine Matrix in polardarstellung (Achsen r,phi)."""
-        from scipy import ndimage
-        def polar2xy((r, phi)):
-            x = r * np.cos(phi)
-            y = r * np.sin(phi)
-            return (x, y)
-        def koord2index((q1, q2), extent, shape):
-            return ((q1 - extent[0]) / (extent[1] - extent[0]) * shape[0], (q2 - extent[2]) / (extent[3] - extent[2]) * shape[1])
-        def index2koord((i, j), extent, shape):
-            return (extent[0] + i / shape[0] * (extent[1] - extent[0]), extent[2] + j / shape[1] * (extent[3] - extent[2]))
-        def mappingxy2polar((i, j), extentxy, shapexy, extentpolar, shapepolar):
-            """actually maps indizes of polar matrix to indices of kartesian matrix"""
-            ret = polar2xy(index2koord((float(i), float(j)), extentpolar, shapepolar))
-            ret = koord2index(ret, extentxy, shapexy)
-            return ret
-        ret = ndimage.interpolation.geometric_transform(matrixxy, mappingxy2polar, output_shape=shapepolar, extra_arguments=(extentxy, matrixxy.shape, extentpolar, shapepolar), order=1)
-        if ashistogram:  # Volumenelement ist einfach nur r
-            ret = (ret.T * np.abs(np.linspace(extentpolar[0], extentpolar[1], ret.shape[0]))).T
-        return ret
+
 
 
     @staticmethod
