@@ -23,8 +23,10 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 
 import numpy as np
+import copy
 from . import _const
 
+__all__=['Field', 'Axis']
 
 class Axis(object):
     '''
@@ -188,6 +190,16 @@ class Field(object):
         '''
         return np.ravel([a.extent for a in self.axes])
 
+    @extent.setter
+    def extent(self, newextent):
+        '''
+        sets the new extent to the specific values
+        '''
+        assert self.dimensions * 2 == len(newextent), \
+            'size of newextent doesnt match self.dimensions * 2'
+        for i in xrange(len(self.axes)):
+            self.axes[i].setextent(newextent[2*i:2*i+2], self.matrix.shape[i])
+
     def half_resolution(self, axis):
         '''
         Halfs the resolution along the given axis by removing
@@ -197,7 +209,6 @@ class Field(object):
         be ignored. (that means, the extent will change by the size of
         the last grid cell)
         '''
-        import sys
         axis = _const.axesidentify[axis]
         self.axes[axis].half_resolution()
         n = self.matrix.ndim
@@ -223,8 +234,126 @@ class Field(object):
                 break
         return self
 
+    def cutout(self, newextent):
+        '''
+        only keeps that part of the matrix, that belongs to newextent.
+        '''
+        if self.dimensions() == 0:
+            return
+        assert self.dimensions * 2 == len(newextent), \
+            'size of newextent doesnt match self.dimensions * 2'
+        self.matrix = _const.cutout(self.matrix, self.extent, newextent)
+        for i in xrange(len(self.axes)):
+            self.axes[i].cutout(newextent[2*i:2*i+2])
+
+    def topolar(self, extent=None, shape=None, angleoffset=0):
+        '''
+        remaps the current kartesian coordinates to polar coordinates
+        extent should be given as extent=(phimin, phimax, rmin, rmax)
+        ''''
+        ret = copy.deepcopy(self)
+        if extent is None:
+            extent = [-np.pi, np.pi, 0, self.extent[1]]
+        extent = np.asarray(extent)
+        if shape is None:
+            maxpt_r = np.min((np.floor(np.min(self.matrix.shape) / 2), 1000))
+            shape = (1000, maxpt_r)
+
+        extent[0:2] = extent[0:2] - angleoffset
+        ret.matrix = _const.transfromxy2polar(self.matrix, self.extent,
+                                              np.roll(extent, 2), shape).T
+        extent[0:2] = extent[0:2] + angleoffset
+
+        ret.extent = extent
+        if ret.axes[0].name.startswith('$k_') \
+           and ret.axes[1].name.startswith('$k_'):
+            ret.axes[0].name = '$k_\phi$'
+            ret.axes[1].name = '$|k|$'
+        return ret
+
+    def exporttocsv(self, filename):
+        if self.dimensions == 1:
+            data = np.asarray(self.matrix)
+            x = np.linspace(self.extent[0], self.extent[1], len(data))
+            np.savetxt(dateiname, np.transpose([x, data]), delimiter=' ')
+        elif self.dimensions == 2:
+            export = np.asarray(self.matrix)
+            np.savetxt(dateiname, export)
+        else:
+            raise Exception('Not Implemented')
+
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.matrix.shape) + '>'
-        
-        
-        
+
+    # Operator overloading
+    def __iadd__(self, other):
+        if isinstance(other, Field):
+            self.matrix += other.matrix
+            self.name = self.name + ' + ' + other.name
+        else:
+            self.matrix += other
+        return self
+
+    def __add__(self, other):
+        ret = copy.deepcopy(self)
+        ret += other
+        return ret
+
+    def __neg__(self):
+        ret = copy.deepcopy(self)
+        ret.matrix *= -1
+        return ret
+
+    def __isub__(self, other):
+        if isinstance(other, Field):
+            self.matrix -= other.matrix
+            self.name = self.name + ' - ' + other.name
+        else:
+            self.matrix -= other
+        return self
+
+    def __sub__(self, other):
+        ret = copy.deepcopy(self)
+        ret -= other
+        return ret
+
+    def __pow__(self, other):
+        ret = copy.deepcopy(self)
+        ret.matrix = self.matrix ** other
+        return ret
+
+    def __imul__(self, other):
+        if isinstance(other, Field):
+            self.matrix *= other.matrix
+            self.name = self.name + ' * ' + other.name
+        else:
+            self.matrix *= other
+        return self
+
+    def __mul__(self, other):
+        ret = copy.deepcopy(self)
+        ret *= other
+        return ret
+
+    def __abs__(self):
+        ret = copy.deepcopy(self)
+        ret.matrix = np.abs(ret.matrix)
+        return ret
+
+    # self /= other: normalization
+    def __idiv__(self, other):
+        if isinstance(other, Field):
+            self.matrix /= other.matrix
+            self.name = self.name + ' / ' + other.name
+        else:
+            self.matrix /= other
+        return self
+
+    def __div__(self, other):
+        ret = copy.deepcopy(self)
+        ret /= other
+        return ret
+
+
+
+
