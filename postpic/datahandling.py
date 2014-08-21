@@ -153,6 +153,19 @@ class Field(object):
         ax.setextent(extent, matrixpts)
         self._addaxisobj(ax)
 
+    def setaxisobj(self, axis, axisobj):
+        '''
+        replaces the current axisobject for axis axis by the
+        new axisobj axisobj.
+        '''
+        axid = _const.axesidentify[axis]
+        if not len(axisobj) == self.matrix.shape[axid]:
+            raise ValueError('Axis object has {:3n} grid points, whereas '
+                             'the data matrix has {:3n} on axis {:1n}'
+                             ''.format(len(axisobj),
+                                       self.matrix.shape[axid], axid))
+        self.axes[axid] = axisobj
+
     def islinear(self):
         return [a.islinear() for a in self.axes]
 
@@ -250,7 +263,7 @@ class Field(object):
         '''
         remaps the current kartesian coordinates to polar coordinates
         extent should be given as extent=(phimin, phimax, rmin, rmax)
-        ''''
+        '''
         ret = copy.deepcopy(self)
         if extent is None:
             extent = [-np.pi, np.pi, 0, self.extent[1]]

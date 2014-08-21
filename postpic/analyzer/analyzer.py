@@ -11,6 +11,7 @@ class PhysicalConstants:
 
     c = 299792458.0
     me = 9.109383e-31
+    mass_u = me * 1836.2
     qe = 1.602176565e-19
     mu0 = np.pi * 4e-7  # N/A^2
     epsilon0 = 1 / (mu0 * c ** 2)  # 8.85419e-12 As/Vm

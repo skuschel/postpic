@@ -5,80 +5,80 @@ Particle related routines.
 __all__ = ['ParticleAnalyzer']
 
 import numpy as np
-import analyzer.PhysicalConstants as pc
-from .analyzer import *
+from analyzer import PhysicalConstants as pc
+import analyzer
+from ..datahandling import *
 
 identifyspecies = analyzer.SpeciesIdentifier.identifyspecies
 
 
 
-class _SingleSpeciesAnalyzer(_Constants):
+class _SingleSpeciesAnalyzer(object):
     """
-    Wird ausschliesslich von der ParticleAnalyzer Klasse benutzt.
-    Oberste Prioritaet haben die Spezies, die in masslist und chargelist eingetragen sind.
+    used by the ParticleAnalyzer class only.
     """
 
-
-
-    def __init__(self, sdfanalyzer, species):
+    def __init__(self, dumpreader, species):
         self.species = species
-        self.speciesexists = False
-        self.sdfanalyzer = sdfanalyzer
-        self.simdimensions = sdfanalyzer.simdimensions
-        self._particleinfo = self.retrieveparticleinfo(species)
-        self._mass = self._particleinfo['mass']  # SI
-        self._charge = self._particleinfo['charge']  # SI
+        self.dumpreader = dumpreader
+        self._idfy = identifyspecies(species)
+        self._mass = self._idfy['mass']  # SI
+        self._charge = self._idfy['charge']  # SI
         self.compresslog = []
-        self._weightdata = np.array([])
-        self._Xdata = np.array([])
-        self._Ydata = np.array([])
-        self._Zdata = np.array([])
-        self._Pxdata = np.array([])
-        self._Pydata = np.array([])
-        self._Pzdata = np.array([])
-        self._ID = None  # None means no IDs dumped
-        if sdfanalyzer.hasSpecies(species):
-            # Hold local copies to allow compress function
-            self.speciesexists = True
-            self._weightdata = sdfanalyzer.getSpecies(species, 'weight')
-            self._Xdata = sdfanalyzer.getSpecies(species, 'x')
-            if self.simdimensions > 1:
-                self._Ydata = sdfanalyzer.getSpecies(species, 'y')
-            if self.simdimensions > 2:
-                self._Zdata = sdfanalyzer.getSpecies(species, 'z')
-            self._Pxdata = sdfanalyzer.getSpecies(species, 'px')
-            self._Pydata = sdfanalyzer.getSpecies(species, 'py')
-            self._Pzdata = sdfanalyzer.getSpecies(species, 'pz')
-            self._ID = sdfanalyzer.getSpecies(species, 'ID')  # This function will also return None if no IDs were dumped.
+        # Hold local copies to allow compress function
+        # Any function will return None if property wasnt dumped.
+        self._weightdata = dumpreader.getSpecies(species, 'weight')
+        self._Xdata = dumpreader.getSpecies(species, 'x')
+        self._Ydata = dumpreader.getSpecies(species, 'y')
+        self._Zdata = dumpreader.getSpecies(species, 'z')
+        self._Pxdata = dumpreader.getSpecies(species, 'px')
+        self._Pydata = dumpreader.getSpecies(species, 'py')
+        self._Pzdata = dumpreader.getSpecies(species, 'pz')
+        self._ID = dumpreader.getSpecies(species, 'ID')
 
+    def _compressifdumped(condition, data):
+        if data is None:
+            ret = None
+        else:
+            ret = np.compress(condition, data)
+        return ret
 
     def compress(self, condition, name='unknown condition'):
         """
-        In Anlehnung an numpy.compress.  Zusatzlich, kann ein name angegeben werden, der fortlaufend in compresslog gespeichert wird.
-        1) 
+        works like numpy.compress.
+        Additionaly you can specify a name, that gets saved in the compresslog.
+
+        condition has to be one out of:
+        1)
         condition =  [True, False, True, True, ... , True, False]
-        In diesem Beispiel ist condition eine Liste der Laenge N (Anzahl der Teilchen) mit jeweils boolschem Wert, der anzeigt, ob das Teilchen behalten wird oder nicht.
+        condition is a list of length N, specifing which particles to keep.
+        Example:
         cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
         cfintospectrometer.name = '< 30mrad offaxis'
         pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
         2)
         condtition = [1, 2, 4, 5, 9, ... , 805, 809]
-        In diesem Beispiel ist condition eine Liste beliebiger Laenge, die die IDs der Teilchen beinhaltet, die behalten werden sollen.
+        condition can be a list of arbitraty length, so only the particles
+        with the ids listed here are kept.
         """
-        if np.array(condition).dtype is np.dtype('bool'):  # Case 1: condition is list of boolean values specifying particles to use
-            assert self._weightdata.shape[0] == condition.shape[0], 'condition hat die falsche Laenge'
-            self._weightdata = np.compress(condition, self._weightdata)
-            self._Xdata = np.compress(condition, self._Xdata)
-            if self.simdimensions > 1:
-                self._Ydata = np.compress(condition, self._Ydata)
-                if self.simdimensions > 2:
-                    self._Zdata = np.compress(condition, self._Zdata)
-                self._Pxdata = np.compress(condition, self._Pxdata)
-                self._Pydata = np.compress(condition, self._Pydata)
-                self._Pzdata = np.compress(condition, self._Pzdata)
-                if self._ID is not None:
-                    self._ID = np.compress(condition, self._ID)
-        else:  # Case 2: condition is list of particle IDs to use
+        if np.array(condition).dtype is np.dtype('bool'):
+            # Case 1:
+            # condition is list of boolean values specifying particles to use
+            assert self._weightdata.shape[0] == condition.shape[0], \
+                'number of particles ({:7n}) has to match' \
+                'length of condition ({:7n})' \
+                ''.format(self._weightdata.shape[0], len(condition))
+            self._weightdata = _compressifdumped(condition, self._weightdata)
+            self._Xdata = _compressifdumped(condition, self._Xdata)
+            self._Ydata = _compressifdumped(condition, self._Ydata)
+            self._Zdata = _compressifdumped(condition, self._Zdata)
+            self._Pxdata = _compressifdumped(condition, self._Pxdata)
+            self._Pydata = _compressifdumped(condition, self._Pydata)
+            self._Pzdata = _compressifdumped(condition, self._Pzdata)
+            self._ID = _compressifdumped(condition, self._ID)
+        else:
+            # Case 2:
+            # condition is list of particle IDs to use
             condition = np.array(condition, dtype='int')
             # same as
             # bools = np.array([idx in condition for idx in self._ID])
@@ -88,109 +88,114 @@ class _SingleSpeciesAnalyzer(_Constants):
             idx[idx == len(condition)] = 0
             bools = condition[idx] == self._ID
             return self.compress(bools, name=name)
-
         self.compresslog = np.append(self.compresslog, name)
 
     def uncompress(self):
         """
-        Verwirft alle Einschraenkungen (insbesondere durch compress). Reinitialisiert das Objekt.
+        Discard all previous runs of 'compress'
         """
-        self.__init__(self.sdfanalyzer, self.species)
+        self.__init__(self.dumpreader, self.species)
 
 
-    # --- Stellt ausschliesslich GRUNDLEGENDE funktionen bereit
+    # --- Only very basic functions
 
-    def __len__(self):
-        return self.weight().shape[0]
+    def __len__(self):  # = number of particles
+        if self._weightdata is None:
+            return 0
+        else:
+            return self.weight().shape[0]
 
-    def weight(self):  # np.float64(np.array([4.3])) == 4.3 fuehrt sonst zu Fehler
+# --- These functions are for practical use. Return None if not dumped.
+
+    @staticmethod
+    def _returnifdumped(data):
+        if data is None:
+            ret = None
+        else:
+            ret = np.float64(data)
+        return ret
+
+    def weight(self):  # np.float64(np.array([4.3])) == 4.3 may cause error
         return np.asfarray(self._weightdata, dtype='float64')
     def mass(self):  # SI
         return np.repeat(self._mass, self.weight().shape[0])
     def charge(self):  # SI
         return np.repeat(self._charge, self.weight().shape[0])
     def Px(self):
-        return np.float64(self._Pxdata)
+        return self._returnifdumped(self._Pxdata)
     def Py(self):
-        return np.float64(self._Pydata)
+        return self._returnifdumped(self._Pydata)
     def Pz(self):
-        return np.float64(self._Pzdata)
+        return self._returnifdumped(self._Pzdata)
     def X(self):
-        return np.float64(self._Xdata)
+        return self._returnifdumped(self._Xdata)
     def Y(self):
-        return np.float64(self._Ydata)
+        return self._returnifdumped(self._Ydata)
     def Z(self):
-        return np.float64(self._Zdata)
+        return self._returnifdumped(self._Zdata)
     def ID(self):
-        if self._ID is not None:
-            return np.array(self._ID, dtype=int)
+        if self._ID is None:
+            ret = None
         else:
-            return None
+            ret = np.array(self._ID, dtype=int)
+        return ret
 
 
 
 
 
-class ParticleAnalyzer(_Constants):
+class ParticleAnalyzer(object):
     """
-    Hat die Gleiche Funktionilitaet wie SingleSpeciesAnalyzer, jedoch koennen mehrere ParticleAnalyzer addiert werden, um die Gesamtheit der Teilchen auszuwaehlen.
+    The ParticleAnalyzer class. Different ParticleAnalyzer can be
+    added together to create a combined collection.
     """
-    @staticmethod
-    def retrieveparticleinfo(species):
-        return _SingleSpeciesAnalyzer.retrieveparticleinfo(species)
-
-    @staticmethod
-    def ision(species):
-        return _SingleSpeciesAnalyzer.retrieveparticleinfo(species)['ision']
-
-    @staticmethod
-    def isejected(species):
-        return _SingleSpeciesAnalyzer.isejected(species)
 
 
-    def __init__(self, sdfanalyzer, *speciess):
+    def __init__(self, dumpreader, *speciess):
         # create 'empty' ParticleAnalyzer
         self._ssas = []
-        self._species = None
-        self.simdimensions = sdfanalyzer.simdimensions
+        self._species = None  # trivial name if set
         self._compresslog = []
-        self.simextent = sdfanalyzer.simextent()
-        self.simgridpoints = sdfanalyzer.simgridpoints
-        self.X.__func__.extent = self.simextent[0:2]
-        self.X.__func__.gridpoints = self.simgridpoints[0]
-        self.X_um.__func__.extent = self.simextent[0:2] * 1e6
-        self.X_um.__func__.gridpoints = self.simgridpoints[0]
+        self.simdimensions = dumpreader.simdimensions()
+        self.X.__func__.extent = dumpreader.extent('x')
+        self.X.__func__.gridpoints = dumpreader.gridpoints('x')
+        self.X_um.__func__.extent = dumpreader.extent('x') * 1e6
+        self.X_um.__func__.gridpoints = dumpreader.gridpoints('x')
         if self.simdimensions > 1:
-            self.Y.__func__.extent = self.simextent[2:4]
-            self.Y.__func__.gridpoints = self.simgridpoints[1]
-            self.Y_um.__func__.extent = self.simextent[2:4] * 1e6
-            self.Y_um.__func__.gridpoints = self.simgridpoints[1]
+            self.Y.__func__.extent = dumpreader.extent('y')
+            self.Y.__func__.gridpoints = dumpreader.gridpoints('y')
+            self.Y_um.__func__.extent = dumpreader.extent('y') * 1e6
+            self.Y_um.__func__.gridpoints = dumpreader.gridpoints('y')
         if self.simdimensions > 2:
-            self.Z.__func__.extent = self.simextent[4:6]
-            self.Z.__func__.gridpoints = self.simgridpoints[2]
-            self.Z_um.__func__.extent = self.simextent[4:6] * 1e6
-            self.Z_um.__func__.gridpoints = self.simgridpoints[2]
+            self.Z.__func__.extent = dumpreader.extent('z')
+            self.Z.__func__.gridpoints = dumpreader.gridpoints('z')
+            self.Z_um.__func__.extent = self.dumpreader.extent('z') * 1e6
+            self.Z_um.__func__.gridpoints = dumpreader.gridpoints('z')
         self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_offaxis.__func__.extent = np.real([0, np.pi])
         # add particle species one by one
         for s in speciess:
-            self.add(sdfanalyzer, s)
+            self.add(dumpreader, s)
 
     def __str__(self):
-        return '<ParticleAnalyzer including ' + str(self._speciess) + '(' + str(len(self)) + ')>'
+        return '<ParticleAnalyzer including ' + str(self._speciess) \
+             + '(' + str(len(self)) + ')>'
 
     def __len__(self):
         """
-        identisch zu self.N()
+        Number of Particles.
         """
-        return self.N()
+        return self._weight().shape[0]
 
+    @property
     def species(self):
         '''
-        returns an string name for the species involved. Basically only returns uniqe names from all species (used for plotting and labeling purposes -- not for completeness).
-        May be overwritten using self.setspecies(self, name)
+        returns an string name for the species involved.
+        Basically only returns uniqe names from all species
+        (used for plotting and labeling purposes -- not for completeness).
+        May be overwritten.
         '''
         if self._species is not None:
             return self._species
@@ -200,19 +205,28 @@ class ParticleAnalyzer(_Constants):
         ret = ret[0:-1]
         return ret
 
-    def setspecies(self, name):
-        self._species = name
+    @species.setter
+    def species(self, name):
+        self._name = name
 
+    @property
+    def name(self):
+        '''
+        an alias to self.species
+        '''
+        return self.species
+
+    @property
     def speciess(self):
         return [ssa.species for ssa in self._ssas]
 
-    def add(self, sdfanalyzer, species):
+    def add(self, dumpreader, species):
         '''
-        adds a single species to this analyzer
+        adds a single species into this analyzer
         '''
-        self._ssas.append(_SingleSpeciesAnalyzer(sdfanalyzer, species))
+        self._ssas.append(_SingleSpeciesAnalyzer(dumpreader, species))
 
-    # --- Funktionen, um ParticleAnalyzer zu kombinieren
+    # --- Operator overloading
 
     def __add__(self, other):  # self + other
         ret = copy.copy(self)
@@ -221,7 +235,9 @@ class ParticleAnalyzer(_Constants):
 
     def __iadd__(self, other):  # self += other
         '''
-        adding ParticleAnalyzers should give the feeling as if you were adding their particle lists. Thats why there is no append function. Compare those outputs:
+        adding ParticleAnalyzers should give the feeling as if you were adding
+        their particle lists. Thats why there is no append function.
+        Compare those outputs (numpy.array handles that differently!):
         a=[1,2,3]; a.append([4,5]); print a
         [1,2,3,[4,5]]
         a=[1,2,3]; a += [4,5]; print a
@@ -234,18 +250,18 @@ class ParticleAnalyzer(_Constants):
         return self
 
 
-    # --- nur GRUNDLEGENDE Funktionen auf SingleSpeciesAnalyzer abbilden
+    # --- only point BASIC functions to SingleSpeciesAnalyzer
 
     def _funcabbilden(self, func):
         ret = np.array([])
         for ssa in self._ssas:
-            if ssa.speciesexists:
-                a = getattr(ssa, func)()
-                if a is None:  # This particle property is not dumped in the current SingleSpeciesAnalyzer
-                    return None
+            a = getattr(ssa, func)()
+            if a is None:
+            # This particle property is not dumped in the
+            # current SingleSpeciesAnalyzer
+                continue
+            if len(a) > 0:
                 ret = np.append(ret, a)
-            else:  # TODO: Issue warning as soon as warnings are implemented. Although this might be on purpose i.e. if ejected paricles get collected and this dump doesnt have any ejected particles of this kind.
-                pass
         return ret
 
     def _weight(self):
@@ -289,7 +305,7 @@ class ParticleAnalyzer(_Constants):
                 ssa.compress(condition, name=name)
         self._compresslog = np.append(self._compresslog, name)
 
-    # --- Hilfsfunktionen
+    # --- user friendly functions
 
     def compressfn(self, conditionf, name='unknown condition'):
         if hasattr(conditionf, 'name'):
@@ -303,13 +319,13 @@ class ParticleAnalyzer(_Constants):
         # self.__init__(self.data, *self._speciess)
 
     def _mass_u(self):
-        return self._mass() / self._me / 1836.2
+        return self._mass() / pc.mass_u
 
     def _charge_e(self):
-        return self._charge() / self._qe
+        return self._charge() / pc.qe
 
     def _Eruhe(self):
-        return self._mass() * self._c ** 2
+        return self._mass() * pc.c ** 2
 
     def getcompresslog(self):
         ret = {'all': self._compresslog}
@@ -317,10 +333,8 @@ class ParticleAnalyzer(_Constants):
             ret.update({ssa.species: ssa.compresslog})
         return ret
 
-    def N(self):
-        return self._weight().shape[0]
 
-    # --- Skalarfunktionen. Ordnen jedem Teilchen ein Skalar zu.
+    # --- "A scalar for every particle"-functions.
 
     def weight(self):
         return self._weight()
@@ -371,11 +385,13 @@ class ParticleAnalyzer(_Constants):
     beta.unit = r'$\beta$'
     beta.name = 'beta'
     def V(self):
-        return self._c * self.beta()
+        return pc.c * self.beta()
     V.unit = 'm/s'
     V.name = 'V'
     def gamma(self):
-        return np.sqrt(1 + (self._Px() ** 2 + self._Py() ** 2 + self._Pz() ** 2) / (self._mass() * self._c) ** 2)
+        return np.sqrt(1 +
+                       (self._Px() ** 2 + self._Py() ** 2 + self._Pz() ** 2)
+                       / (self._mass() * pc.c) ** 2)
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
     def Ekin(self):
@@ -383,7 +399,7 @@ class ParticleAnalyzer(_Constants):
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
     def Ekin_MeV(self):
-        return self.Ekin() / self._qe / 1e6
+        return self.Ekin() / pc.qe / 1e6
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
     def Ekin_MeV_amu(self):
@@ -395,7 +411,7 @@ class ParticleAnalyzer(_Constants):
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
     def Ekin_keV(self):
-        return self.Ekin() / self._qe / 1e3
+        return self.Ekin() / pc.qe / 1e3
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
     def Ekin_keV_amu(self):
@@ -420,12 +436,11 @@ class ParticleAnalyzer(_Constants):
     angle_zx.name = 'anglezx'
     def angle_offaxis(self):
         return np.arccos(self._Px() / (self.P() + 1e-300))
-    angle_offaxis.volumenelement = lambda theta: 1  # /np.sin(theta)
     angle_offaxis.unit = 'rad'
     angle_offaxis.name = 'angleoffaxis'
 
 
-    # ---- Hilfen zum erstellen des Histogramms ---
+    # ---- Functions to create a Histogram. ---
 
 
     def createHistgram1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, rangex=None, weights=lambda x:1):

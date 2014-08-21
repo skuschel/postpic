@@ -15,6 +15,12 @@ class Dummyreader(Dumpreader_ifc):
     Dummyreader creates fake Data for testing purposes.
     '''
 
+    def __init__(self, dumpid):
+        super(self.__class__, self).__init__(dumpid)
+        # initialize fake data
+        self._xdata = np.random.normal(size=dumpid)
+        self._ydata = np.random.normal(size=dumpid)
+
     def keys(self):
         pass
 
@@ -31,7 +37,7 @@ class Dummyreader(Dumpreader_ifc):
         return 2
 
     def dataE(self, axis):
-        xx, yy = np.meshgrid(self.grid('x'), self.grid('y'))
+        xx, yy = np.meshgrid(self.grid('y'), self.grid('x'))
         if _const.axesidentify[axis] == 0:
             ret = np.sin(self.timestep() * xx)
         elif _const.axesidentify[axis] == 1:
@@ -51,16 +57,32 @@ class Dummyreader(Dumpreader_ifc):
         if _const.axesidentify[axis] == 0:  # x-axis
             ret = np.linspace(0, 2*np.pi, 100)
         elif _const.axesidentify[axis] == 1:  # y-axis
-            ret = np.linspace(-5, 10, 100)
+            ret = np.linspace(-5, 10, 200)
         else:  # no z-axis present, since simdimensions() returns 2.
             raise IndexError('axis ' + str(axis) + ' not present.')
         return ret
 
     def listSpecies(self):
-        pass
+        return ['electron']
 
     def getSpecies(self, species, attrib):
-        pass
+        attribid = _const.attribidentify[attrib]
+        if attribid == 0:  # x
+            ret = self._xdata
+        elif attribid == 1:  # y
+            ret = self._ydata
+        elif attribid == 3:  # px
+            ret = self._xdata ** 2
+        elif attribid == 4:  # py
+            ret = self._ydata ** 2
+        elif attribid == 5:  # pz
+            ret = self._ydata * self._xdata
+        elif attribid == 9:  # weights
+            ret = np.repeat(1, len(self._xdata))
+        else:
+            ret = None
+        return ret
+        
 
     def __str__(self):
         return '<Dummyreader initialized with "' \

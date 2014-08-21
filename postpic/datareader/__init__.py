@@ -29,7 +29,8 @@ Stephan Kuschel 2014
 import abc
 import collections
 import numpy as np
-
+from .. import _const
+from .. import datahandling as dh
 
 # --- Interface ---
 
@@ -109,6 +110,34 @@ class Dumpreader_ifc(object):
 
     # Higher Level Functions for usability
 
+    def getaxis(self, axis):
+        '''
+        returns an Axis object for a given axis.
+        '''
+        name = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
+        ret = dh.Axis(name=name, unit='m')
+        ret.grid = self.grid(axis)
+        return ret
+
+    def extent(self, axis):
+        '''
+        returns the extent of the simulation for a given axis.
+        '''
+        ax = self.getaxis(axis)
+        return np.array(ax.extent)
+
+    def gridpoints(self, axis):
+        '''
+        returns the number of grid points along a given axis.
+        '''
+        return len(self.grid(axis))
+
+    def getspacialresolution(self, axis):
+        '''
+        returns the spacial grid resolution along a given axis.
+        '''
+        extent = self.extent(axis)
+        return (extent[1] - extent[0]) / float(self.gridpoints(axis))
 
 class Simulationreader_ifc(collections.Sequence):
     '''
