@@ -1,5 +1,5 @@
 """
-Plottet und speichert Felder, die die Analyzer Klassen generiert haben.
+Various methods for easy plotting and saving Field objects using matplotlib
 """
 
 
@@ -7,19 +7,13 @@ Plottet und speichert Felder, die die Analyzer Klassen generiert haben.
 import numpy as np
 import matplotlib; matplotlib.use('Agg')  # Bilder auch ohne X11 rendern
 import matplotlib.pyplot as plt
-from _Constants import _Constants
+from .. import _const
 
 
 __all__ = ['SDFPlots']
 
-class SDFPlots(_Constants, object):
+class matplotlib_plotter(object):
 
-    # @staticmethod
-    # def axesformat(x, pos): #'The two args are the value and tick position'
-    #    return '%.3f' % x #1.1float
-    # @staticmethod
-    # def axesformatexp(x, pos): #'The two args are the value and tick position'
-    #    return '%.1e' % x
     axesformatterx = matplotlib.ticker.ScalarFormatter()
     axesformatterx.set_powerlimits((-2, 3))
     axesformattery = matplotlib.ticker.ScalarFormatter()
@@ -35,15 +29,10 @@ class SDFPlots(_Constants, object):
     plt.register_cmap(cmap=lsc, name='EFeld', data=efeldcdict)
 
 
-    def __init__(self, plotdescriptor, outdir=None):
-        self.lasnm = plotdescriptor.getlasnm()
+    def __init__(self, outdir=None):
         self.outdir = outdir
-        self.plotdescriptor = plotdescriptor
-        # this is a global prefix that will be add to every plot name as well as filename
         self._globalnameprefix = ''
         self._savenamesused = []
-        if self.outdir == None:
-            print 'Kein Ausgabeverzeichnis angegeben. Es werden keine Plots gespeichert.'
 
     @property
     def globalnameprefix(self):
@@ -56,7 +45,8 @@ class SDFPlots(_Constants, object):
         if isinstance(value, str):
             self._globalnameprefix = value
         else:
-            raise Exception('globalnameprefix has to be of string type (some other type found).')
+            raise Exception('globalnameprefix has to be of string type'
+                            ' (some other type found).')
 
     def setzetext(self, titel, extray='', belowtime='', textcond=''):
         if not self.globalnameprefix == '':
