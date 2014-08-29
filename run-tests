@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# run all tests and pep8 changes of this project.
+
+# For development, please see pre-commit for
+# instructions how to add this as a git pre-commit hook.
+
+# Stephan Kuschel, 2014
+
+exitonfailure () {
+    if [ $1 -ne 0 ]; then
+        echo '"./run-tests" failed. Aborting.'
+        exit $1
+    fi
+}
+
+# run actual tests
+nosetests
+exitonfailure $?
+
+pep8 postpic --statistics --count --show-source --ignore=W391
+exitonfailure $?
+
+exit 0
+
