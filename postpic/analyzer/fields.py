@@ -23,7 +23,6 @@ class FieldAnalyzer(object):
     field transforming it into another.
     '''
 
-
     def __init__(self, dumpreader):
         self.dumpreader = dumpreader
 
@@ -37,7 +36,6 @@ class FieldAnalyzer(object):
         if self.dumpreader.simdimensions() > 2:
             field.setaxisobj('z', self.dumpreader.getaxis('z'))
 
-
     # --- Return functions for basic data layer
     @staticmethod
     def _returnfunc(data):
@@ -47,23 +45,27 @@ class FieldAnalyzer(object):
     # **kwargs is not used up to now
     def _Ex(self, **kwargs):
         return self._returnfunc(self.dumpreader.dataE('x', **kwargs))
+
     def _Ey(self, **kwargs):
         return self._returnfunc(self.dumpreader.dataE('y', **kwargs))
+
     def _Ez(self, **kwargs):
         return self._returnfunc(self.dumpreader.dataE('z', **kwargs))
+
     def _Bx(self, **kwargs):
         return self._returnfunc(self.dumpreader.dataB('x', **kwargs))
+
     def _By(self, **kwargs):
         return self._returnfunc(self.dumpreader.dataB('y', **kwargs))
+
     def _Bz(self, **kwargs):
         return self._returnfunc(self.dumpreader.dataB('z', **kwargs))
-
 
     # --- Always return an object of Field type
 
     # General interface for everything
     def createfeldfromkey(self, key):
-        ret = Field(self.returnfunc(self.dumpreader[key]));
+        ret = Field(self.returnfunc(self.dumpreader[key]))
         ret.name = key
         self.setspacialtofield(ret)
         return ret
@@ -73,7 +75,6 @@ class FieldAnalyzer(object):
         for key in keys:
             ret += (self.createfeldfromkey(key),)
         return ret
-
 
     # most common fields listed here nicely
     def Ex(self, **kwargs):
@@ -124,15 +125,13 @@ class FieldAnalyzer(object):
         self.setspacialtofield(ret)
         return ret
 
-
-
     # --- spezielle Funktionen
 
     def energydensityE(self, **kwargs):
         ret = Field(0.5 * pc.epsilon0
-                   * ( self._Ex(**kwargs) ** 2
-                     + self._Ey(**kwargs) ** 2
-                     + self._Ez(**kwargs) ** 2))
+                    * (self._Ex(**kwargs) ** 2
+                       + self._Ey(**kwargs) ** 2
+                       + self._Ez(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Electric-Field'
         ret.label = 'E'
@@ -141,9 +140,9 @@ class FieldAnalyzer(object):
 
     def energydensityM(self, **kwargs):
         ret = Field(0.5 / pc.mu0
-                   * (self._Bx(**kwargs) ** 2
-                    + self._By(**kwargs) ** 2
-                    + self._Bz(**kwargs) ** 2))
+                    * (self._Bx(**kwargs) ** 2
+                       + self._By(**kwargs) ** 2
+                       + self._Bz(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Magnetic-Field'
         ret.label = 'M'
@@ -152,13 +151,13 @@ class FieldAnalyzer(object):
 
     def energydensityEM(self, **kwargs):
         ret = Field(0.5 * pc.epsilon0
-                   * (self._Ex(**kwargs) ** 2
-                    + self._Ey(**kwargs) ** 2
-                    + self._Ez(**kwargs) ** 2)
-                  + 0.5 / pc.mu0
-                   * (self._Bx(**kwargs) ** 2
-                    + self._By(**kwargs) ** 2
-                    + self._Bz(**kwargs) ** 2))
+                    * (self._Ex(**kwargs) ** 2
+                       + self._Ey(**kwargs) ** 2
+                       + self._Ez(**kwargs) ** 2)
+                    + 0.5 / pc.mu0
+                    * (self._Bx(**kwargs) ** 2
+                       + self._By(**kwargs) ** 2
+                       + self._Bz(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density EM-Field'
         ret.label = 'EM'

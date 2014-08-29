@@ -26,7 +26,8 @@ import numpy as np
 import copy
 from . import _const
 
-__all__=['Field', 'Axis']
+__all__ = ['Field', 'Axis']
+
 
 class Axis(object):
     '''
@@ -211,7 +212,8 @@ class Field(object):
         assert self.dimensions * 2 == len(newextent), \
             'size of newextent doesnt match self.dimensions * 2'
         for i in xrange(len(self.axes)):
-            self.axes[i].setextent(newextent[2*i:2*i+2], self.matrix.shape[i])
+            self.axes[i].setextent(newextent[2 * i:2 * i + 2],
+                                   self.matrix.shape[i])
 
     def half_resolution(self, axis):
         '''
@@ -257,7 +259,7 @@ class Field(object):
             'size of newextent doesnt match self.dimensions * 2'
         self.matrix = _const.cutout(self.matrix, self.extent, newextent)
         for i in xrange(len(self.axes)):
-            self.axes[i].cutout(newextent[2*i:2*i+2])
+            self.axes[i].cutout(newextent[2 * i:2 * i + 2])
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
         '''

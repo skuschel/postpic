@@ -41,7 +41,7 @@ class Dummyreader(Dumpreader_ifc):
         if _const.axesidentify[axis] == 0:
             ret = np.sin(self.timestep() * xx)
         elif _const.axesidentify[axis] == 1:
-            ret = np.cos(xx + yy**2)
+            ret = np.cos(xx + yy ** 2)
         elif _const.axesidentify[axis] == 2:
             ret = xx * 0
         return ret
@@ -55,7 +55,7 @@ class Dummyreader(Dumpreader_ifc):
         Thus only regular grids are supported currently.
         '''
         if _const.axesidentify[axis] == 0:  # x-axis
-            ret = np.linspace(0, 2*np.pi, 100)
+            ret = np.linspace(0, 2 * np.pi, 100)
         elif _const.axesidentify[axis] == 1:  # y-axis
             ret = np.linspace(-5, 10, 200)
         else:  # no z-axis present, since simdimensions() returns 2.
@@ -82,7 +82,6 @@ class Dummyreader(Dumpreader_ifc):
         else:
             ret = None
         return ret
-        
 
     def __str__(self):
         return '<Dummyreader initialized with "' \

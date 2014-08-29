@@ -34,6 +34,7 @@ from .. import datahandling as dh
 
 # --- Interface ---
 
+
 class Dumpreader_ifc(object):
     '''
     Interface class for reading a single dump. A dump contains informations
@@ -49,7 +50,6 @@ class Dumpreader_ifc(object):
     It is highly recommended to also override the __str__ function.
     '''
     __metaclass__ = abc.ABCMeta
-
 
     def __init__(self, dumpidentifier):
         '''
@@ -138,6 +138,7 @@ class Dumpreader_ifc(object):
         '''
         extent = self.extent(axis)
         return (extent[1] - extent[0]) / float(self.gridpoints(axis))
+
 
 class Simulationreader_ifc(collections.Sequence):
     '''

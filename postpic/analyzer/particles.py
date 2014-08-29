@@ -12,7 +12,6 @@ from ..datahandling import *
 identifyspecies = analyzer.SpeciesIdentifier.identifyspecies
 
 
-
 class _SingleSpeciesAnalyzer(object):
     """
     used by the ParticleAnalyzer class only.
@@ -96,7 +95,6 @@ class _SingleSpeciesAnalyzer(object):
         """
         self.__init__(self.dumpreader, self.species)
 
-
     # --- Only very basic functions
 
     def __len__(self):  # = number of particles
@@ -117,22 +115,31 @@ class _SingleSpeciesAnalyzer(object):
 
     def weight(self):  # np.float64(np.array([4.3])) == 4.3 may cause error
         return np.asfarray(self._weightdata, dtype='float64')
+
     def mass(self):  # SI
         return np.repeat(self._mass, self.weight().shape[0])
+
     def charge(self):  # SI
         return np.repeat(self._charge, self.weight().shape[0])
+
     def Px(self):
         return self._returnifdumped(self._Pxdata)
+
     def Py(self):
         return self._returnifdumped(self._Pydata)
+
     def Pz(self):
         return self._returnifdumped(self._Pzdata)
+
     def X(self):
         return self._returnifdumped(self._Xdata)
+
     def Y(self):
         return self._returnifdumped(self._Ydata)
+
     def Z(self):
         return self._returnifdumped(self._Zdata)
+
     def ID(self):
         if self._ID is None:
             ret = None
@@ -141,15 +148,11 @@ class _SingleSpeciesAnalyzer(object):
         return ret
 
 
-
-
-
 class ParticleAnalyzer(object):
     """
     The ParticleAnalyzer class. Different ParticleAnalyzer can be
     added together to create a combined collection.
     """
-
 
     def __init__(self, dumpreader, *speciess):
         # create 'empty' ParticleAnalyzer
@@ -181,7 +184,7 @@ class ParticleAnalyzer(object):
 
     def __str__(self):
         return '<ParticleAnalyzer including ' + str(self._speciess) \
-             + '(' + str(len(self)) + ')>'
+            + '(' + str(len(self)) + ')>'
 
     def __len__(self):
         """
@@ -249,7 +252,6 @@ class ParticleAnalyzer(object):
                 self._ssas.append(copy.copy(ssa))
         return self
 
-
     # --- only point BASIC functions to SingleSpeciesAnalyzer
 
     def _funcabbilden(self, func):
@@ -257,8 +259,8 @@ class ParticleAnalyzer(object):
         for ssa in self._ssas:
             a = getattr(ssa, func)()
             if a is None:
-            # This particle property is not dumped in the
-            # current SingleSpeciesAnalyzer
+                # This particle property is not dumped in the
+                # current SingleSpeciesAnalyzer
                 continue
             if len(a) > 0:
                 ret = np.append(ret, a)
@@ -333,120 +335,143 @@ class ParticleAnalyzer(object):
             ret.update({ssa.species: ssa.compresslog})
         return ret
 
-
     # --- "A scalar for every particle"-functions.
 
     def weight(self):
         return self._weight()
     weight.name = 'Particle weight'
     weight.unit = ''
+
     def Px(self):
         return self._Px()
     Px.unit = ''
     Px.name = 'Px'
+
     def Py(self):
         return self._Py()
     Py.unit = ''
     Py.name = 'Py'
+
     def Pz(self):
         return self._Pz()
     Pz.unit = ''
     Pz.name = 'Pz'
+
     def P(self):
         return np.sqrt(self._Px() ** 2 + self._Py() ** 2 + self._Pz() ** 2)
     P.unit = ''
     P.name = 'P'
+
     def X(self):
         return self._X()
     X.unit = 'm'
     X.name = 'X'
+
     def X_um(self):
         return self._X() * 1e6
     X_um.unit = '$\mu m$'
     X_um.name = 'X'
+
     def Y(self):
         return self._Y()
     Y.unit = 'm'
     Y.name = 'Y'
+
     def Y_um(self):
         return self._Y() * 1e6
     Y_um.unit = '$\mu m$'
     Y_um.name = 'Y'
+
     def Z(self):
         return self._Z()
     Z.unit = 'm'
     Z.name = 'Z'
+
     def Z_um(self):
         return self._Z() * 1e6
     Z_um.unit = '$\mu m$'
     Z_um.name = 'Z'
+
     def beta(self):
         return np.sqrt(self.gamma() ** 2 - 1) / self.gamma()
     beta.unit = r'$\beta$'
     beta.name = 'beta'
+
     def V(self):
         return pc.c * self.beta()
     V.unit = 'm/s'
     V.name = 'V'
+
     def gamma(self):
         return np.sqrt(1 +
                        (self._Px() ** 2 + self._Py() ** 2 + self._Pz() ** 2)
                        / (self._mass() * pc.c) ** 2)
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
+
     def Ekin(self):
         return (self.gamma() - 1) * self._Eruhe()
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
+
     def Ekin_MeV(self):
         return self.Ekin() / pc.qe / 1e6
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
+
     def Ekin_MeV_amu(self):
         return self.Ekin_MeV() / self._mass_u()
     Ekin_MeV_amu.unit = 'MeV / amu'
     Ekin_MeV_amu.name = 'Ekin / amu'
+
     def Ekin_MeV_qm(self):
         return self.Ekin_MeV() * self._charge_e() / self._mass_u()
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
+
     def Ekin_keV(self):
         return self.Ekin() / pc.qe / 1e3
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
+
     def Ekin_keV_amu(self):
         return self.Ekin_keV() / self._mass_u()
     Ekin_keV_amu.unit = 'keV / amu'
     Ekin_keV_amu.name = 'Ekin / amu'
+
     def Ekin_keV_qm(self):
         return self.Ekin_MeV() * self._charge_e() / self._mass_u()
     Ekin_keV_qm.unit = 'keV*q/m'
     Ekin_keV_qm.name = 'Ekin * q/m'
+
     def angle_xy(self):
         return np.arctan2(self._Py(), self._Px())
     angle_xy.unit = 'rad'
     angle_xy.name = 'anglexy'
+
     def angle_yz(self):
         return np.arctan2(self._Pz(), self._Py())
     angle_yz.unit = 'rad'
     angle_yz.name = 'angleyz'
+
     def angle_zx(self):
         return np.arctan2(self._Px(), self._Pz())
     angle_zx.unit = 'rad'
     angle_zx.name = 'anglezx'
+
     def angle_offaxis(self):
         return np.arccos(self._Px() / (self.P() + 1e-300))
     angle_offaxis.unit = 'rad'
     angle_offaxis.name = 'angleoffaxis'
 
-
     # ---- Functions to create a Histogram. ---
 
-
-    def createHistgram1d(self, scalarfx, optargsh={'bins':300}, simextent=False, simgrid=False, rangex=None, weights=lambda x:1):
+    def createHistgram1d(self, scalarfx, optargsh={'bins': 300},
+                         simextent=False, simgrid=False, rangex=None,
+                         weights=lambda x: 1):
         if simgrid:
             simextent = True
-        # Falls alle Teilchen aussortiert wurden, z.B. durch ConditionFunctions
+        # In case there are no particles
         if len(scalarfx(self)) == 0:
             return [], []
         if rangex is None:
@@ -458,24 +483,42 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'] = scalarfx.gridpoints
         w = self.weight() * weights(self)
-        h, edges = np.histogram(scalarfx(self), weights=w, range=rangex, **optargsh)
-        h = h / np.diff(edges)  # um auf Teilchen pro xunit zu kommen
-        if hasattr(scalarfx, 'volumenelement'):
-            h = h * scalarfx.volumenelement(np.convolve(edges, [0.5, 0.5], 'valid'))
+        h, edges = np.histogram(scalarfx(self), weights=w,
+                                range=rangex, **optargsh)
+        h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
 
-
-    def createHistgram2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, rangex=None, rangey=None, weights=lambda x:1):
+    def createHistgram2d(self, scalarfx, scalarfy,
+                         optargsh={'bins': [500, 500]}, simextent=False,
+                         simgrid=False, rangex=None, rangey=None,
+                         weights=lambda x: 1):
         """
-        simgrid=True erzwingt, dass Ortsachsen dasselbe Grid zugeordnet wird wie in der Simulation. Bedingt simextent=True
-        simextent=True erzwingt, dass Ortsachsen sich ueber den gleichen Bereich erstrecken, wie in der Simulation.
-        weights gewichtet die Maropartikel zusatzlich mit einem Wert, der von ParticleAnalyzer zurueckgegeben werden kann. Wie z.B. ParticleAnalyzer.Ekin_MeV.
+        Creates an 2d Histogram.
+
+        Attributes
+        ----------
+        scalarfx : function
+            returns a list of scalar values for the x axis.
+        scalarfy : function
+            returns a list of scalar values for the y axis.
+        simgrid : boolean, optional
+            enforces the same grid as used in the simulation.
+            Implies simextent=True. Defaults to False.
+        simextent : boolean, optional
+            enforces, that the axis show the same extent as used in the
+            simulation. Defaults to False.
+        weights : function, optional
+            applies additional weights to the macroparticles, for example
+            "ParticleAnalyzer.Ekin_MeV"".
+            Defaults to "lambda x:1".
         """
         if simgrid:
             simextent = True
         if len(scalarfx(self)) == 0:
             return [], [], []
-        # TODO: Falls rangex oder rangy gegeben ist, ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
+        # TODO: Falls rangex oder rangy gegeben ist,
+        # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
+        # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
             rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
         if rangey is None:
@@ -490,18 +533,32 @@ class ParticleAnalyzer(object):
                 optargsh['bins'][0] = scalarfx.gridpoints
             if hasattr(scalarfy, 'gridpoints'):
                 optargsh['bins'][1] = scalarfy.gridpoints
-        w = self.weight() * weights(self)  # Gewichten mit Makropartikelgroesse * Gewichtungsfaktor
-        h, xedges, yedges = np.histogram2d(scalarfx(self), scalarfy(self), weights=w, range=[rangex, rangey], **optargsh)
+        w = self.weight() * weights(self)  # Particle Size * additional weights
+        h, xedges, yedges = np.histogram2d(scalarfx(self), scalarfy(self),
+                                           weights=w, range=[rangex, rangey],
+                                           **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
-        if hasattr(scalarfy, 'volumenelement'):
-            h = h * scalarfy.volumenelement(np.convolve(yedges, [0.5, 0.5], 'valid'))
-        if hasattr(scalarfx, 'volumenelement'):
-            h = (h.T * scalarfx.volumenelement(np.convolve(xedges, [0.5, 0.5], 'valid'))).T
         return h, xedges, yedges
 
+    def createHistgramField1d(self, scalarfx, name='distfn', title=None,
+                              **kwargs):
+        """
+        Creates an 1d Histogram enclosed in a Field object.
 
-    def createHistgramFeld1d(self, scalarfx, name='distfn', title=None, **kwargs):
-        if kwargs.has_key('weights'):
+        Attributes
+        ----------
+        scalarfx : function
+            returns a list of scalar values for the x axis.
+        name : string, optional
+            addes a name. usually used for generating savenames.
+            Defaults to "distfn".
+        title: string, options
+            overrides the title. Autocreated if title==None.
+            Defaults to None.
+        **kwargs
+            given to createHistgram1d.
+        """
+        if 'weights' in kwargs:
             name = kwargs['weights'].name
         h, edges = self.createHistgram1d(scalarfx, **kwargs)
         ret = Feld(h)
@@ -519,10 +576,27 @@ class ParticleAnalyzer(object):
         ret.zusatz = self.N()
         return ret
 
+    def createHistgramFeld2d(self, scalarfx, scalarfy, name='distfn',
+                             title=None, **kwargs):
+        """
+        Creates an 2d Histogram enclosed in a Field object.
 
-    # def createHistgramFeld2d(self, scalarfx, scalarfy, optargsh={'bins':[500, 500]}, simextent=False, simgrid=False, name='distfn', title=None):
-    def createHistgramFeld2d(self, scalarfx, scalarfy, name='distfn', title=None, **kwargs):
-        if kwargs.has_key('weights'):
+        Attributes
+        ----------
+        scalarfx : function
+            returns a list of scalar values for the x axis.
+        scalarfy : function
+            returns a list of scalar values for the y axis.
+        name : string, optional
+            addes a name. usually used for generating savenames.
+            Defaults to "distfn".
+        title: string, options
+            overrides the title. Autocreated if title==None.
+            Defaults to None.
+        **kwargs
+            given to createHistgram2d.
+        """
+        if 'weights' in kwargs:
             name = kwargs['weights'].name
         h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
         ret = Feld(h)
@@ -539,13 +613,26 @@ class ParticleAnalyzer(object):
         return ret
 
     def createFeld(self, *scalarf, **kwargs):
-        if self.simdimensions == None:
+        """
+        Creates an n-d Histogram enclosed in a Field object.
+        Try using this function first.
+
+        Attributes
+        ----------
+        *args
+            list of scalarfunctions that should be used for the axis.
+            the number of args given determins the dimensionality of the
+            field returned by this function.
+        **kwargs
+            given to createHistgram1d or createHistgram2d.
+        """
+        if self.simdimensions is None:
             return None
         if len(scalarf) == 1:
             return self.createHistgramFeld1d(*scalarf, **kwargs)
         elif len(scalarf) == 2:
             return self.createHistgramFeld2d(*scalarf, **kwargs)
         else:
-            raise Exception('createFeld kann nur 1 oder 2 Skalarfunktionen entgegennehmen')
+            raise Exception('only 1d or 2d field creation implemented yet.')
 
 
