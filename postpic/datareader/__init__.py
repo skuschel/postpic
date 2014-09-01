@@ -104,6 +104,10 @@ class Dumpreader_ifc(object):
     def getSpecies(self, species, attrib):
         pass
 
+    @property
+    def name(self):
+        return str(self.dumpidentifier)
+
     def __str__(self):
         return '<Dumpreader initialized with "' \
                + str(self.dumpidentifier) + '">'
@@ -182,6 +186,10 @@ class Simulationreader_ifc(collections.Sequence):
         '''
         pass
 
+    @property
+    def name(self):
+        return str(self.simidentifier)
+
     @abc.abstractmethod
     def __len__(self):
         pass
@@ -231,18 +239,18 @@ def setsimreadercls(simreadercls):
                         '"Simulationreader_ifc"')
 
 
-def readDump(dumpidentifier):
+def readDump(dumpidentifier, **kwargs):
     global _dumpreadercls
     if _dumpreadercls is None:
         raise Exception('Specify dumpreaderclass first.')
-    return _dumpreadercls(dumpidentifier)
+    return _dumpreadercls(dumpidentifier, **kwargs)
 
 
-def readSim(simidentifier):
+def readSim(simidentifier, **kwargs):
     global _simreadercls
     if _simreadercls is None:
         raise Exception('Specify simreaderclass first.')
-    return _simreadercls(simidentifier)
+    return _simreadercls(simidentifier, **kwargs)
 
 
 def chooseCode(code):

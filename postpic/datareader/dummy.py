@@ -15,11 +15,15 @@ class Dummyreader(Dumpreader_ifc):
     Dummyreader creates fake Data for testing purposes.
     '''
 
-    def __init__(self, dumpid):
+    def __init__(self, dumpid, dimensions=2):
         super(self.__class__, self).__init__(dumpid)
+        self._dimensions = dimensions
         # initialize fake data
         self._xdata = np.random.normal(size=dumpid)
-        self._ydata = np.random.normal(size=dumpid)
+        if dimensions > 1:
+            self._ydata = np.random.normal(size=dumpid)
+        if dimensions > 2:
+            self._zdata = np.random.normal(size=dumpid)
 
     def keys(self):
         pass
@@ -34,16 +38,39 @@ class Dummyreader(Dumpreader_ifc):
         return self.timestep() * 1e-10
 
     def simdimensions(self):
-        return 2
+        return self._dimensions
 
     def dataE(self, axis):
-        xx, yy = np.meshgrid(self.grid('y'), self.grid('x'))
-        if _const.axesidentify[axis] == 0:
-            ret = np.sin(self.timestep() * xx)
-        elif _const.axesidentify[axis] == 1:
-            ret = np.cos(xx + yy ** 2)
-        elif _const.axesidentify[axis] == 2:
-            ret = xx * 0
+        axid = _const.axesidentify[axis]
+
+        def _Ex(x, y, z):
+            ret = np.sin(np.pi * self.timestep() *
+                         np.sqrt(x**2 + y**2 + z**2)) / \
+                np.sqrt(x**2 + y**2 + z**2 + 1e-9)
+            return ret
+
+        def _Ey(x, y, z):
+            ret = np.sin(np.pi * self.timestep() * x) + \
+                np.sin(np.pi * (self.timestep() - 1) * y) + \
+                np.sin(np.pi * (self.timestep() - 2) * z)
+            return ret
+
+        def _Ez(x, y, z):
+            ret = x**2 + y**2 + z**2
+            return ret
+        fkts = {0: _Ex,
+                1: _Ey,
+                2: _Ez}
+        if self.simdimensions() == 1:
+            ret = fkts[axid](self.grid('x'), 0, 0)
+        elif self.simdimensions() == 2:
+            xx, yy = np.meshgrid(self.grid('x'), self.grid('y'), indexing='ij')
+            ret = fkts[axid](xx, yy, 0)
+        elif self.simdimensions() == 3:
+            xx, yy, zz = np.meshgrid(self.grid('x'),
+                                     self.grid('y'),
+                                     self.grid('z'), indexing='ij')
+            ret = fkts[axid](xx, yy, zz)
         return ret
 
     def dataB(self, axis):
@@ -54,12 +81,14 @@ class Dummyreader(Dumpreader_ifc):
         returns the grid points for the axis specified.
         Thus only regular grids are supported currently.
         '''
-        if _const.axesidentify[axis] == 0:  # x-axis
-            ret = np.linspace(0, 2 * np.pi, 100)
-        elif _const.axesidentify[axis] == 1:  # y-axis
-            ret = np.linspace(-5, 10, 200)
-        else:  # no z-axis present, since simdimensions() returns 2.
+        axid = _const.axesidentify[axis]
+        grids = {1: [(-2, 10, 600)],
+                 2: [(-2, 10, 300), (-5, 5, 400)],
+                 3: [(-2, 10, 100), (-5, 5, 80), (-4, 4, 60)]}
+        if axid >= self.simdimensions():
             raise IndexError('axis ' + str(axis) + ' not present.')
+        args = grids[self.simdimensions()][axid]
+        ret = np.linspace(*args)
         return ret
 
     def listSpecies(self):
@@ -69,14 +98,18 @@ class Dummyreader(Dumpreader_ifc):
         attribid = _const.attribidentify[attrib]
         if attribid == 0:  # x
             ret = self._xdata
-        elif attribid == 1:  # y
+        elif attribid == 1 and self.simdimensions() > 1:  # y
             ret = self._ydata
+        elif attribid == 2 and self.simdimensions() > 2:  # z
+            ret = self._zdata
         elif attribid == 3:  # px
             ret = self._xdata ** 2
         elif attribid == 4:  # py
-            ret = self._ydata ** 2
+            ret = self._ydata ** 2 if self.simdimensions() > 1 \
+                else np.repeat(0, len(self._xdata))
         elif attribid == 5:  # pz
-            ret = self._ydata * self._xdata
+            ret = self._ydata * self._xdata if self.simdimensions() > 1 \
+                else np.repeat(0, len(self._xdata))
         elif attribid == 9:  # weights
             ret = np.repeat(1, len(self._xdata))
         else:
@@ -84,27 +117,32 @@ class Dummyreader(Dumpreader_ifc):
         return ret
 
     def __str__(self):
-        return '<Dummyreader initialized with "' \
-               + str(self.dumpidentifier) + '">'
+        ret = '<Dummyreader ({:d}d) initialized with "' \
+            + str(self.dumpidentifier) + '">'
+        ret = ret.format(self._dimensions)
+        return ret
 
 
 class Dummysim(Simulationreader_ifc):
 
-    def __init__(self, simidentifier):
+    def __init__(self, simidentifier, dimensions=2):
         super(self.__class__, self).__init__(simidentifier)
+        self._dimensions = dimensions
 
     def __len__(self):
         return self.simidentifier
 
     def getDumpnumber(self, index):
         if index < len(self):
-            return Dummyreader(index)
+            return Dummyreader(index, dimensions=self._dimensions)
         else:
             raise IndexError()
 
     def __str__(self):
-        return '<Dummysimulation initialized with "' \
-               + str(self.simidentifier) + '">'
+        ret = '<Dummysimulation ({:d}d) initialized with "' \
+            + str(self.dumpidentifier) + '">'
+        ret = ret.format(self._dimensions)
+        return ret
 
 
 

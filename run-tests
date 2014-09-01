@@ -18,7 +18,7 @@ exitonfailure () {
 nosetests
 exitonfailure $?
 
-pep8 postpic --statistics --count --show-source --ignore=W391
+pep8 postpic --statistics --count --show-source --ignore=W391,E123,E226,E24
 exitonfailure $?
 
 exit 0
