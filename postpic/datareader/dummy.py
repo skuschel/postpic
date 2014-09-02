@@ -15,8 +15,8 @@ class Dummyreader(Dumpreader_ifc):
     Dummyreader creates fake Data for testing purposes.
     '''
 
-    def __init__(self, dumpid, dimensions=2):
-        super(self.__class__, self).__init__(dumpid)
+    def __init__(self, dumpid, dimensions=2, **kwargs):
+        super(self.__class__, self).__init__(dumpid, **kwargs)
         self._dimensions = dimensions
         # initialize fake data
         self._xdata = np.random.normal(size=dumpid)
@@ -125,8 +125,8 @@ class Dummyreader(Dumpreader_ifc):
 
 class Dummysim(Simulationreader_ifc):
 
-    def __init__(self, simidentifier, dimensions=2):
-        super(self.__class__, self).__init__(simidentifier)
+    def __init__(self, simidentifier, dimensions=2, **kwargs):
+        super(self.__class__, self).__init__(simidentifier, **kwargs)
         self._dimensions = dimensions
 
     def __len__(self):

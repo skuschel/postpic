@@ -51,11 +51,12 @@ class Dumpreader_ifc(object):
     '''
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, dumpidentifier):
+    def __init__(self, dumpidentifier, name=None):
         '''
         initializes the reader object with a specific dump.
         '''
         self.dumpidentifier = dumpidentifier
+        self._name = name
 
     @abc.abstractmethod
     def keys(self):
@@ -106,7 +107,15 @@ class Dumpreader_ifc(object):
 
     @property
     def name(self):
-        return str(self.dumpidentifier)
+        if self._name:
+            ret = self._name
+        else:
+            ret = str(self.dumpidentifier)
+        return ret
+
+    @name.setter
+    def name(self, val):
+        self._name = str(val) if bool(val) else None
 
     def __str__(self):
         return '<Dumpreader initialized with "' \
@@ -160,12 +169,13 @@ class Simulationreader_ifc(collections.Sequence):
     It is highly recommended to also override the __str__ function.
     '''
 
-    def __init__(self, simidentifier):
+    def __init__(self, simidentifier, name=None):
         '''
         This Function should raise a TypeError if the Reader
         dosent support the file format specified.
         '''
         self.simidentifier = simidentifier
+        self._name = name
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -188,7 +198,15 @@ class Simulationreader_ifc(collections.Sequence):
 
     @property
     def name(self):
-        return str(self.simidentifier)
+        if self._name:
+            ret = self._name
+        else:
+            ret = str(self.simidentifier)
+        return ret
+
+    @name.setter
+    def name(self, val):
+        self._name = str(val) if bool(val) else None
 
     @abc.abstractmethod
     def __len__(self):

@@ -23,11 +23,11 @@ class Sdfreader(Dumpreader_ifc):
     in .sdf format.
     '''
 
-    def __init__(self, sdffile):
+    def __init__(self, sdffile, **kwargs):
         '''
         Initializes the sdfreader for a specific sdffile.
         '''
-        super(self.__class__, self).__init__(sdffile)
+        super(self.__class__, self).__init__(sdffile, **kwargs)
         import os.path
         import sdf
         if not os.path.isfile(sdffile):
@@ -61,7 +61,7 @@ class Sdfreader(Dumpreader_ifc):
         return np.float64(self._returnkey2('Electric Field', '/E' +
                                            axsuffix, **kwargs))
 
-    def dataB(self, axis):
+    def dataB(self, axis, **kwargs):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
         return np.float64(self._returnkey2('Magnetic Field', '/B' +
                                            axsuffix, **kwargs))
@@ -96,9 +96,21 @@ class Sdfreader(Dumpreader_ifc):
                    5: lambda s: 'Particles/Pz/' + s,
                    10: lambda s: 'Particles/ID/' + s}
         try:
-            ret = np.float64(self[options[attribid](spezies)])
+            ret = np.float64(self[options[attribid](species)])
         except(KeyError):
             ret = None
+        return ret
+
+    def getderived(self):
+        '''
+        Returns all Keys starting with "Derived/".
+        '''
+        ret = []
+        for key in self._data.keys():
+            r = re.match('Derived/[\w/ ]*', key)
+            if r:
+                ret.append(r.group(0))
+        ret.sort()
         return ret
 
     def __str__(self):
@@ -112,8 +124,8 @@ class Visitreader(Simulationreader_ifc):
     any other code using these files.
     '''
 
-    def __init__(self, visitfile):
-        super(self.__class__, self).__init__(visitfile)
+    def __init__(self, visitfile, **kwargs):
+        super(self.__class__, self).__init__(visitfile, **kwargs)
         self.visitfile = visitfile
         import os.path
         if not os.path.isfile(visitfile):
