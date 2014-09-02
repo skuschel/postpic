@@ -1,11 +1,20 @@
 '''
-The plot subpackage should provide an interface to different plot backends.
+The plot subpackage should provide an interface to various plot backends.
 '''
 
+plottercls = None
 
-plotobject = None
 
+def use(plotcls):
+    global plottercls
+    if isinstance(plotcls, str):
+        if plotcls in ['matplotlib', 'plotter_matplotlib']:
+            import plotter_matplotlib
+            plottercls = plotter_matplotlib.MatplotlibPlotter
+        else:
+            raise NameError('unknown type {:s}'.format(plotcls))
+    else:
+        plottercls = plotcls
 
-def setplotobj(plotobj):
-    global plotobject
-    plotobject = plotobj
+# Default
+use('matplotlib')

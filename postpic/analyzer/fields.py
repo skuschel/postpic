@@ -64,24 +64,22 @@ class FieldAnalyzer(object):
     # --- Always return an object of Field type
 
     # General interface for everything
-    def createfeldfromkey(self, key):
-        ret = Field(self.returnfunc(self.dumpreader[key]))
+    def createfieldfromkey(self, key):
+        ret = Field(self._returnfunc(self.dumpreader[key]))
         ret.name = key
         self.setspacialtofield(ret)
         return ret
 
-    def createfelderfromkeys(self, *keys):
-        ret = ()
+    def createfieldsfromkeys(self, *keys):
         for key in keys:
-            ret += (self.createfeldfromkey(key),)
-        return ret
+            yield self.createfieldfromkey(key)
 
     # most common fields listed here nicely
     def Ex(self, **kwargs):
         ret = Field(self._Ex(**kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ex'
-        ret.label = 'Ex'
+        ret.shortname = 'Ex'
         self.setspacialtofield(ret)
         return ret
 
@@ -89,7 +87,7 @@ class FieldAnalyzer(object):
         ret = Field(self._Ey(**kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ey'
-        ret.label = 'Ey'
+        ret.shortname = 'Ey'
         self.setspacialtofield(ret)
         return ret
 
@@ -97,7 +95,7 @@ class FieldAnalyzer(object):
         ret = Field(self._Ez(**kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ez'
-        ret.label = 'Ez'
+        ret.shortname = 'Ez'
         self.setspacialtofield(ret)
         return ret
 
@@ -105,7 +103,7 @@ class FieldAnalyzer(object):
         ret = Field(self._Bx(**kwargs))
         ret.unit = 'T'
         ret.name = 'Bx'
-        ret.label = 'Bx'
+        ret.shortname = 'Bx'
         self.setspacialtofield(ret)
         return ret
 
@@ -113,7 +111,7 @@ class FieldAnalyzer(object):
         ret = Field(self._By(**kwargs))
         ret.unit = 'T'
         ret.name = 'By'
-        ret.label = 'By'
+        ret.shortname = 'By'
         self.setspacialtofield(ret)
         return ret
 
@@ -121,7 +119,7 @@ class FieldAnalyzer(object):
         ret = Field(self._Bz(**kwargs))
         ret.unit = 'T'
         ret.name = 'Bz'
-        ret.label = 'Bz'
+        ret.shortname = 'Bz'
         self.setspacialtofield(ret)
         return ret
 
@@ -134,7 +132,7 @@ class FieldAnalyzer(object):
                        + self._Ez(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Electric-Field'
-        ret.label = 'E'
+        ret.shortname = 'E'
         self.setspacialtofield(ret)
         return ret
 
@@ -145,7 +143,7 @@ class FieldAnalyzer(object):
                        + self._Bz(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Magnetic-Field'
-        ret.label = 'M'
+        ret.shortname = 'M'
         self.setspacialtofield(ret)
         return ret
 
@@ -160,7 +158,7 @@ class FieldAnalyzer(object):
                        + self._Bz(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density EM-Field'
-        ret.label = 'EM'
+        ret.shortname = 'EM'
         self.setspacialtofield(ret)
         return ret
 

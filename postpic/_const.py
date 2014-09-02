@@ -24,6 +24,7 @@ def cutout(m, oldextent, newextent):
     nexextent has to be inside of oldextent!
     (this should be fixed in the future...)
     """
+    import numpy as np
     dims = len(m.shape)
     assert oldextent is not newextent, 'oldextent and newextent point to the' \
                                        'same objekt(!). Get a coffe and' \
@@ -54,6 +55,7 @@ def transfromxy2polar(matrixxy, extentxy,
     representation with axes r, phi.
     '''
     from scipy.ndimage.interpolation import geometric_transform
+    import numpy as np
 
     def polar2xy((r, phi)):
         x = r * np.cos(phi)

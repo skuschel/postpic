@@ -1,36 +1,47 @@
 """
-Various methods for easy plotting and saving Field objects using matplotlib
+This package provides the MatplotlibPlotter Class.
+
+This Class can be used to plot Field Objects using the matplotlib interface.
 """
 
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Render without X11
-import matplotlib.pyplot as plt
 from .. import _const
 
 
-__all__ = ['SDFPlots']
+__all__ = ['MatplotlibPlotter']
 
 
-class matplotlib_plotter(object):
+class MatplotlibPlotter(object):
+    '''
+    Provides Methods to modify figures and axes objects for convenient
+    plotting.
+    It also autogenerates savenames and annotates the plot if a reader
+    is given. A reader can be a dumpreader or a simulationreder.
+    '''
 
+    import matplotlib.ticker
     axesformatterx = matplotlib.ticker.ScalarFormatter()
     axesformatterx.set_powerlimits((-2, 3))
     axesformattery = matplotlib.ticker.ScalarFormatter()
     axesformattery.set_powerlimits((-2, 3))
 
     from matplotlib.colors import LinearSegmentedColormap
-    efeldcdict = {'red': ((0, 0, 0), (1, 1, 1)),
-                  'green': ((0, 0, 0), (1, 0, 0)),
-                  'blue': ((0, 1, 1), (1, 0, 0)),
-                  'alpha': ((0, 1, 1), (0.5, 0, 0), (1, 1, 1))}
-    lsc = LinearSegmentedColormap('EFeld', efeldcdict, 1024)
-    plt.register_cmap(cmap=lsc, name='EFeld', data=efeldcdict)
+    efieldcdict = {'red': ((0, 0, 0), (1, 1, 1)),
+                   'green': ((0, 0, 0), (1, 0, 0)),
+                   'blue': ((0, 1, 1), (1, 0, 0)),
+                   'alpha': ((0, 1, 1), (0.5, 0, 0), (1, 1, 1))}
+    symmap = LinearSegmentedColormap('EField', efieldcdict, 1024)
 
-    def __init__(self, outdir=None):
+    def __init__(self, reader, outdir='./', autosave=False, project=None):
+        self.autosave = autosave
+        self.reader = reader
         self.outdir = outdir
+        self.project = project
         self._globalnameprefix = ''
         self._savenamesused = []
+
+    def __len__(self):
+        return len(self._savenamesused)
 
     @property
     def globalnameprefix(self):
@@ -45,66 +56,14 @@ class matplotlib_plotter(object):
         else:
             raise Exception('globalnameprefix has to be of string type'
                             ' (some other type found).')
+        return
 
-    def setzetext(self, titel, extray='', belowtime='', textcond=''):
-        if not self.globalnameprefix == '':
-            titel = self.globalnameprefix + ': ' + titel
-        plt.figtext(0.5, 0.97, titel, ha='center', fontsize=14)
-        if self.plotdescriptor is not None:
-            plt.figtext(0.03, 0.965, self.plotdescriptor.getprojektname(),
-                        horizontalalignment='left')
-            nexttext = str(self.plotdescriptor.getprojektname2())
-            if isinstance(self.plotdescriptor.getprojektname4(), float):
-                nexttext += ", step: %.0f" % \
-                            self.plotdescriptor.getprojektname4()
-            else:
-                nexttext += " " + str(self.plotdescriptor.getprojektname4())
-            plt.figtext(0.03, 0.94, nexttext, horizontalalignment='left')
-            nexttext = ''
-            if isinstance(self.plotdescriptor.getprojektname3(), float):
-                nexttext += "%.1f fs" % \
-                            (1e15 * self.plotdescriptor.getprojektname3())
-            else:
-                nexttext += " " + str(self.plotdescriptor.getprojektname3())
-            plt.figtext(0.92, 0.96, nexttext, horizontalalignment='right')
-        plt.figtext(0.92, 0.93, belowtime, ha='right')
-        plt.figtext(0.04, 0.5, extray, horizontalalignment='center',
-                    va='center', rotation='vertical')
-        if textcond is not None and textcond != []:
-            plt.figtext(0.5, 0.87, textcond, ha='center')
-
-    def setzetextfeld(self, feld, zusatz=None):
-        if zusatz is None:
-            zusatz = feld.zusatz
-        if feld.dimensions() == 2:
-            self.setzetext(feld.savename(), belowtime=zusatz,
-                           textcond=feld.textcond)
-        else:
-            self.setzetext(feld.savename(), belowtime=zusatz,
-                           textcond=feld.textcond)
-
-    def symmetrisiereclim(self):
-        """
-        symmetrized the clim around 0.
-        """
-        bound = max(abs(np.asarray(plt.gci().get_clim())))
-        plt.clim(-bound, bound)
-
-    def plotspeichern(self, key, dpi=150, facecolor=(1, 1, 1, 0.01)):
-        plt.gcf().set_size_inches(9, 7)
-        savename = self._savename(key)
-        if savename is not None:
-            plt.savefig(savename, dpi=dpi, facecolor=facecolor,
-                        transparent=True)
-            plt.close()
-
-    def _savename(self, key):
-        if self.outdir is None:
-            return None
-        name = self.outdir + self.plotdescriptor.getprojektname2() + \
+    def savename(self, key, ext='.png'):
+        name = self.reader.name + \
             '_' + self.globalnameprefix + str(len(self._savenamesused)) + \
-            '_' + key.replace('/', '_').replace(' ', '') + \
-            '_' + self.plotdescriptor.getprojektname()
+            '_' + key
+        name = name.replace('/', '_').replace(' ', '')
+        name = self.outdir + name
         nametmp = name + '_%d'
         i = 0
         while name in self._savenamesused:
@@ -112,7 +71,7 @@ class matplotlib_plotter(object):
             name = nametmp % i
         self._savenamesused.append(name)
         # print name
-        return name + '.png'
+        return name + ext
 
     def lastsavename(self):
         '''
@@ -123,62 +82,127 @@ class matplotlib_plotter(object):
             return self._savename('lastsavename')
         else:
             return self._savenamesused[-1]
+        return
 
-# format_coord_interactive is just for compatibility
-# with PlotFeld2d and is beeing ignored.
-    def _plotFeld1d(self, feld, log10plot=True, saveandclose=True,
-                    xlim=None, clim=None, scaletight=None, majorgrid=False,
-                    savecsv=False, format_coord_interactive=False,):
-        assert feld.dimensions() == 1, 'Feld muss genau eine Dimension haben.'
-        fig = plt.plot(np.linspace(feld.extent()[0], feld.extent()[1],
-                       len(feld.matrix)), feld.matrix, label=feld.label)
-        plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx)
-        plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery)
-        if log10plot and ((feld.matrix < 0).sum() == 0) \
-                and any(feld.matrix > 0):
-            plt.yscale('log')  # sets the axis to log scale AND overrides
+    def savefig(self, fig, key, dpi=160, facecolor=(1, 1, 1, 0.01)):
+        fig.set_size_inches(9, 7)
+        savename = self.savename(key)
+        fig.savefig(savename, dpi=dpi, facecolor=facecolor,
+                    transparent=True)
+        return
+
+    @staticmethod
+    def annotate(figorax, title=None, time=None, step=None, project=None, dump=None,
+                 infostring=None, infos=None):
+        if title:
+            if hasattr(figorax, 'set_title'):  # figorax is ax
+                figorax.set_title(title)
+            else:  # figorax is fig
+                figorax.suptitle(title)
+        nexttext = ''
+        if time:
+            if isinstance(time, float):
+                nexttext = '{:.1f} fs'.format(1e15 * time)
+            else:
+                nexttext = str(time)
+        if step:
+            if isinstance(step, (int, long, float)):
+                nexttext += ', step: {:6.0f}'.format(step)
+            else:
+                nexttext += ' ' + str(step)
+        if nexttext != '':
+            figorax.text(0.92, 0.965, nexttext, horizontalalignment='right')
+        if project:
+            figorax.text(0.03, 0.965, project, horizontalalignment='left')
+        if dump:
+            figorax.text(0.03, 0.94, str(dump), horizontalalignment='left')
+        if infostring:
+            figorax.text(0.92, 0.93, infostring, ha='right')
+        if infos is not None and infos != [] and infos != ['']:
+            figorax.text(0.5, 0.87, str(infos), ha='center')
+        return
+
+    @staticmethod
+    def annotate_fromfield(figorax, field):
+        MatplotlibPlotter.annotate(figorax, title=field.label,
+                                   infostring=field.infostring,
+                                   infos=field.infos)
+        return
+
+    @staticmethod
+    def annotate_fromreader(figorax, reader):
+        try:
+            MatplotlibPlotter.annotate(figorax,
+                                       time=reader.time(),
+                                       step=reader.timestep(),
+                                       project=reader.name)
+        except AttributeError:
+            MatplotlibPlotter.annotate(figorax)
+        return
+
+    @staticmethod
+    def symmetricclimaximage(aximage):
+        """
+        symmetrize the clim around 0.
+        """
+        bound = max(abs(np.asarray(aximage.get_clim())))
+        aximage.set_clim(-bound, bound)
+        return
+
+    @staticmethod
+    def symmetricclim(ax):
+        """
+        symmetrize the clim around 0.
+        """
+        MatplotlibPlotter.symmetricclimaximage(ax.images[0])
+        return
+
+    @staticmethod
+    def addaxislabels(ax, field):
+        if len(field.axes) > 0:
+            ax.set_xlabel(field.axes[0].label)
+        if len(field.axes) > 1:
+            ax.set_ylabel(field.axes[1].label)
+        return
+
+    @staticmethod
+    def addField1d(ax, field, log10plot=True,
+                   xlim=None, ylim=None, scaletight=None):
+        assert field.dimensions == 1, 'Field needs to be 1 dimensional'
+        ax.plot(field.grid, field.matrix, label=field.label)
+        ax.xaxis.set_major_formatter(MatplotlibPlotter.axesformatterx)
+        ax.yaxis.set_major_formatter(MatplotlibPlotter.axesformattery)
+        if log10plot and ((field.matrix < 0).sum() == 0) \
+                and any(field.matrix > 0):
+            ax.set_yscale('log')  # sets the axis to log scale AND overrides
             # our previously set axesformatter to the default
             # matplotlib.ticker.LogFormatterMathtext.
-        if feld.axesunits[0] == '':
-            plt.xlabel(feld.axesnames[0])
-        else:
-            plt.xlabel(feld.axesnames[0] + '[' + feld.axesunits[0] + ']')
-        plt.autoscale(tight=scaletight)
+        MatplotlibPlotter.addaxislabels(ax, field)
+        ax.autoscale(tight=scaletight)
         if xlim is not None:
-            plt.xlim(xlim)
-        if clim is not None:
-            plt.ylim(clim)
-        if majorgrid:
-            plt.grid(b=True, which='major', linestyle='--')
-        if saveandclose:
-            self.plotspeichern(feld.savename())
-            if savecsv:
-                feld.exporttocsv(self.lastsavename() + '.csv')
-        return fig
+            ax.set_xlim(xlim)
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        return ax
 
-    def plotFelder1d(self, *felder, **kwargs):
-        kwargs.update({'saveandclose': False})
-        zusatz = []
-        # only write textcond to Image if all textcond of all felder are equal.
-        cleartextcond = not all([str(f.textcond) == str(felder[0].textcond)
-                                 for f in felder])
-        ret is None
-        for feld in felder:
-            if feld.dimensions() <= 0:
+    @staticmethod
+    def addFields1d(ax, *fields, **kwargs):
+        # only write infos to Image if all infos of all fields are equal.
+        clearinfos = not all([str(f.infos) == str(fields[0].infos)
+                              for f in fields])
+        infostrings = []
+        for field in fields:
+            if field.dimensions <= 0:
                 continue
-            zusatz.append(feld.zusatz)
-            if cleartextcond:
-                feld.textcond = ''
-            ret = self._plotFeld1d(feld, **kwargs)
-        self.setzetextfeld(feld, zusatz=zusatz)
-        plt.legend()
-        self.plotspeichern(feld.savename())
-        if 'savecsv' in kwargs and kwargs['savecsv']:
-            for feld in felder:
-                if feld.dimensions() == 0:
-                    continue
-                feld.exporttocsv(self.lastsavename() + feld.label + '.csv')
-        return ret
+            infostrings.append(field.infostring)
+            if clearinfos:
+                field.infos = []
+            MatplotlibPlotter.addField1d(ax, field, **kwargs)
+        MatplotlibPlotter.annotate_fromfield(ax, field)
+        MatplotlibPlotter.annotate(ax, infostring=str(infostrings))
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels)
+        return
 
     # add lineouts to 2D-plots
     @staticmethod
@@ -205,112 +229,127 @@ class matplotlib_plotter(object):
         # ax.spines['top'].set_position(('axes',0.9))
         return ax
 
-    def plotFeld2d(self, feld, log10plot=True, interpolation='none',
+    @staticmethod
+    def addField2d((fig, ax), field, log10plot=True, interpolation='none',
                    contourlevels=np.array([]), saveandclose=True, xlim=None,
-                   ylim=None, clim=None, scaletight=None, majorgrid=False,
-                   savecsv=False, lineoutx=False, lineouty=False,
-                   format_coord_interactive=False):
-        assert feld.dimensions() == 2, 'Feld muss genau 2 Dimensionen haben.'
-        fig, ax0 = plt.subplots()
-        plt.gca().xaxis.set_major_formatter(SDFPlots.axesformatterx)
-        plt.gca().yaxis.set_major_formatter(SDFPlots.axesformattery)
-        if log10plot and not any(feld.matrix.flatten() < 0) and \
-                any(feld.matrix.flatten() > 0):
-            if feld.grid_nodes_linear() and True:
-                plt.imshow(np.log10(feld.matrix.T), origin='lower',
-                           aspect='auto', extent=feld.extent(), cmap='jet',
-                           interpolation=interpolation)
+                   ylim=None, clim=None,
+                   savecsv=False, lineoutx=False, lineouty=False):
+        assert field.dimensions == 2, 'Field needs to be 2 dimensional'
+        ax.xaxis.set_major_formatter(MatplotlibPlotter.axesformatterx)
+        ax.yaxis.set_major_formatter(MatplotlibPlotter.axesformattery)
+        if log10plot and not any(field.matrix.flatten() < 0) and \
+                any(field.matrix.flatten() > 0):
+            if field.islinear() and True:
+                ax.imshow(np.log10(field.matrix.T), origin='lower',
+                          aspect='auto', extent=field.extent, cmap='jet',
+                          interpolation=interpolation)
             else:
-                print 'using pcolormesh'
-                x, y = feld.grid()
-                plt.pcolormesh(x, y, np.log10(feld.matrix.T), cmap='jet')
-            plt.colorbar(format='%3.1f')
+                print 'using pcolormesh, this is experimental.'
+                x, y = field.grid()
+                ax.pcolormesh(x, y, np.log10(field.matrix.T), cmap='jet')
+            fig.colorbar(ax.images[0], format='%3.1f')
             if clim:
-                plt.clim(clim)
+                ax.images[0].set_clim(clim)
         else:
             log10plot = False
-            plt.imshow(feld.matrix.T, aspect='auto', origin='lower',
-                       extent=feld.extent(), cmap='EFeld',
-                       interpolation=interpolation)
+            ax.imshow(field.matrix.T, aspect='auto', origin='lower',
+                      extent=field.extent, cmap=MatplotlibPlotter.symmap,
+                      interpolation=interpolation)
             if clim:
-                plt.clim(clim)
-            self.symmetrisiereclim()
-            plt.colorbar(format='%6.0e')
-        # set format_coord to show z value under cursor at lower right
-        # corner of window in interactive plot mode.
-        if format_coord_interactive:
-            feldinterp = feld.interpolater(fill_value=np.nan)
+                ax.images[0].set_clim(clim)
+            MatplotlibPlotter.symmetricclim(ax)
+            fig.colorbar(ax.images[0], format='%6.0e')
 
-            def format_coord(x, y):
-                z = feldinterp(x, y)
-                return 'x=%1.4f, y=%1.4f, z=%1.4e' % (x, y, z)
-            ax0.format_coord = format_coord
-        if contourlevels.size != 0:  # Einzelne Konturlinie(n) plotten
-            plt.contour(feld.matrix.T, contourlevels, hold='on',
-                        extent=feld.extent())
-        if feld.axesunits[0] == '':
-            plt.xlabel(feld.axesnames[0])
-        else:
-            plt.xlabel(feld.axesnames[0] + '[' + feld.axesunits[0] + ']')
-        if feld.axesunits[1] == '':
-            plt.ylabel(feld.axesnames[1])
-        else:
-            plt.ylabel(feld.axesnames[1] + '[' + feld.axesunits[1] + ']')
-        plt.autoscale(tight=scaletight)
+        if contourlevels.size != 0:  # Draw contour lines
+            ax.contour(field.matrix.T, contourlevels, hold='on',
+                       extent=field.extent())
         if xlim is not None:
-            plt.xlim(xlim)
+            ax.set_xlim(xlim)
         if ylim is not None:
-            plt.ylim(ylim)
-        self.setzetextfeld(feld)
-        if majorgrid:
-            plt.grid(b=True, which='major', linestyle='--')
+            ax.set_ylim(ylim)
         if lineoutx:
-            self._addxlineout(ax0, feld.matrix.T, feld.extent(),
+            self._addxlineout(ax, field.matrix.T, field.extent,
                               log10=log10plot)
         if lineouty:
-            self._addylineout(ax0, feld.matrix.T, feld.extent(),
+            self._addylineout(ax, field.matrix.T, field.extent,
                               log10=log10plot)
-        if saveandclose:
-            self.plotspeichern(feld.savename())
-            if savecsv:
-                feld.exporttocsv(self.lastsavename() + '.csv')
-        return fig
-
-    def plotFeld(self, feld, autoreduce=True, ar_maxlen_th=8000, name=None,
-                 **kwargs):
-        if name:
-            feld.name2 = name
-        if autoreduce:
-            feld.autoreduce(maxlen_th=ar_maxlen_th)
-        if feld is None:
-            return self._skipplot(feld.savename())
-        elif feld.dimensions() <= 0:
-            return self._skipplot(feld.savename())
-        elif feld.dimensions() == 1:
-            return self.plotFelder1d(feld, **kwargs)
-        elif feld.dimensions() == 2:
-            return self.plotFeld2d(feld, **kwargs)
-        else:
-            raise Exception('plotFeld kann nur 1 oder 2 dimensionale
-                            'Felder plotten.')
-
-    def _skipplot(self, key):
-        plt.figure()
-        plt.figtext(0.5, 0.5, 'No data available.', ha='center')
-        self.plotspeichern(key)
-        print 'Skipped Plot: ' + self.lastsavename()
+        MatplotlibPlotter.addaxislabels(ax, field)
+        MatplotlibPlotter.annotate_fromfield(ax, field)
         return
 
-    def plotFelder(self, *felder, **kwargs):
-        for feld in felder:
-            self.plotFeld(feld, **kwargs)
+    def _plotfinalize(self, fig):
+        self.annotate_fromreader(fig, self.reader)
+        return
 
-    def plotallderived(self, sdfanalyzer):
-        fa = sdfanalyzer.getfieldanalyzer()
-        felder = fa.createfelderfromkeys(*sdfanalyzer.getderived())
-        self.plotFelder(*felder)
-        return 0
+    def plotFields1d(self, *fields, **kwargs):
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        name = kwargs.pop('name') if 'name' in kwargs else fields[0].name
+        MatplotlibPlotter.addFields1d(ax, *fields, **kwargs)
+        self._plotfinalize(fig)
+        if self.autosave:
+            self.savefig(fig, name)
+        if 'savecsv' in kwargs and kwargs['savecsv']:
+            for field in fields:
+                if field.dimensions == 0:
+                    continue
+                field.exporttocsv(self.lastsavename() + field.label + '.csv')
+        return fig
 
+    def plotField2d(self, field, name=None, **kwargs):
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        MatplotlibPlotter.addField2d((fig, ax), field, **kwargs)
+        self._plotfinalize(fig)
+        if self.autosave:
+            self.savefig(fig, name if name else field.name)
+        return fig
 
+    def plotField(self, field, autoreduce=True, maxlen=6000, name=None,
+                  **kwargs):
+        '''
+        This is the main method, that should be used for plotting.
+        '''
+        if autoreduce:
+            field.autoreduce(maxlen=maxlen)
+        if field is None:
+            ret = self._skipplot('none')
+        elif field.dimensions <= 0:
+            ret = self._skipplot(field.name)
+        elif field.dimensions == 1:
+            ret = self.plotFields1d(field, **kwargs)
+        elif field.dimensions == 2:
+            ret = self.plotField2d(field, **kwargs)
+        else:
+            raise Exception('3D not implemented')
+        return ret
+
+    def _skipplot(self, key):
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        plt.figtext(0.5, 0.5, 'No data available.', ha='center')
+        print 'Skipped Plot: ' + self.lastsavename()
+        return fig
+
+    def plotFields(self, *fields, **kwargs):
+        ret = [self.plotField(field, **kwargs) for field in fields]
+        return ret
+
+    def plotallderived(self, dumpreader):
+        '''
+        plots all fields dumped.
+        '''
+        from .. import analyzer
+        try:
+            derived = dumpreader.getderived()
+        except AttributeError:
+            return
+        fa = analyzer.FieldAnalyzer(dumpreader)
+        fields = fa.createfieldsfromkeys(*derived)
+        for f in fields:
+            self.plotField(f)
+        return
 
 

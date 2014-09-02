@@ -35,6 +35,7 @@ class _SingleSpeciesAnalyzer(object):
         self._Pzdata = dumpreader.getSpecies(species, 'pz')
         self._ID = dumpreader.getSpecies(species, 'ID')
 
+    @staticmethod
     def _compressifdumped(condition, data):
         if data is None:
             ret = None
@@ -67,14 +68,14 @@ class _SingleSpeciesAnalyzer(object):
                 'number of particles ({:7n}) has to match' \
                 'length of condition ({:7n})' \
                 ''.format(self._weightdata.shape[0], len(condition))
-            self._weightdata = _compressifdumped(condition, self._weightdata)
-            self._Xdata = _compressifdumped(condition, self._Xdata)
-            self._Ydata = _compressifdumped(condition, self._Ydata)
-            self._Zdata = _compressifdumped(condition, self._Zdata)
-            self._Pxdata = _compressifdumped(condition, self._Pxdata)
-            self._Pydata = _compressifdumped(condition, self._Pydata)
-            self._Pzdata = _compressifdumped(condition, self._Pzdata)
-            self._ID = _compressifdumped(condition, self._ID)
+            self._weightdata = self._compressifdumped(condition, self._weightdata)
+            self._Xdata = self._compressifdumped(condition, self._Xdata)
+            self._Ydata = self._compressifdumped(condition, self._Ydata)
+            self._Zdata = self._compressifdumped(condition, self._Zdata)
+            self._Pxdata = self._compressifdumped(condition, self._Pxdata)
+            self._Pydata = self._compressifdumped(condition, self._Pydata)
+            self._Pzdata = self._compressifdumped(condition, self._Pzdata)
+            self._ID = self._compressifdumped(condition, self._ID)
         else:
             # Case 2:
             # condition is list of particle IDs to use
@@ -186,24 +187,32 @@ class ParticleAnalyzer(object):
         return '<ParticleAnalyzer including ' + str(self._speciess) \
             + '(' + str(len(self)) + ')>'
 
-    def __len__(self):
-        """
+    @property
+    def npart(self):
+        '''
         Number of Particles.
-        """
+        '''
         return self._weight().shape[0]
+
+    @property
+    def nspecies(self):
+        return len(self._ssas)
+
+    def __len__(self):
+        return self.npart
 
     @property
     def species(self):
         '''
         returns an string name for the species involved.
-        Basically only returns uniqe names from all species
+        Basically only returns unique names from all species
         (used for plotting and labeling purposes -- not for completeness).
         May be overwritten.
         '''
         if self._species is not None:
             return self._species
         ret = ''
-        for s in set(self.speciess()):
+        for s in set(self.speciess):
             ret += s + ' '
         ret = ret[0:-1]
         return ret
@@ -221,13 +230,38 @@ class ParticleAnalyzer(object):
 
     @property
     def speciess(self):
+        '''
+        a complete list of all species involved.
+        '''
         return [ssa.species for ssa in self._ssas]
 
     def add(self, dumpreader, species):
         '''
-        adds a single species into this analyzer
+        adds species to this analyzer.
+
+        Attributes
+        ----------
+        species can be a single species name
+                or a reserved name for collection of species, such as
+                ions    adds all available particles that are ions
+                nonions adds all available particles that are not ions
+                ejected
+                noejected
+                all
         '''
-        self._ssas.append(_SingleSpeciesAnalyzer(dumpreader, species))
+        keys = {'ions': lambda s: identifyspecies(s)['ision'],
+                'nonions': lambda s: not identifyspecies(s)['ision'],
+                'ejected': lambda s: identifyspecies(s)['ejected'],
+                'noejected': lambda s: not identifyspecies(s)['ejected'],
+                'all': lambda s: True}
+        if species in keys:
+            ls = dumpreader.listSpecies()
+            toadd = [s for s in ls if keys[species](s)]
+            for s in toadd:
+                self.add(dumpreader, s)
+        else:
+            self._ssas.append(_SingleSpeciesAnalyzer(dumpreader, species))
+        return
 
     # --- Operator overloading
 
@@ -561,23 +595,22 @@ class ParticleAnalyzer(object):
         if 'weights' in kwargs:
             name = kwargs['weights'].name
         h, edges = self.createHistgram1d(scalarfx, **kwargs)
-        ret = Feld(h)
-        # ret.extent = np.array([x[0], x[-1]])
-        ret.setgrid_node(0, edges)
-        ret.name = name + ' ' + self.species()
-        ret.label = self.species()
+        ret = Field(h)
+        ret.axes[0].grid_node = edges
+        ret.name = name + ' ' + self.species
+        ret.label = self.species
         if title:
             ret.name = title
         if hasattr(scalarfx, 'unit'):
-            ret.axesunits = [scalarfx.unit]
+            ret.axes[0].unit = scalarfx.unit
         if hasattr(scalarfx, 'name'):
-            ret.axesnames = [scalarfx.name]
-        ret.textcond = self.getcompresslog()['all']
-        ret.zusatz = self.N()
+            ret.axes[0].name = scalarfx.name
+        ret.infos = self.getcompresslog()['all']
+        ret.infostring = self.npart
         return ret
 
-    def createHistgramFeld2d(self, scalarfx, scalarfy, name='distfn',
-                             title=None, **kwargs):
+    def createHistgramField2d(self, scalarfx, scalarfy, name='distfn',
+                              title=None, **kwargs):
         """
         Creates an 2d Histogram enclosed in a Field object.
 
@@ -599,20 +632,22 @@ class ParticleAnalyzer(object):
         if 'weights' in kwargs:
             name = kwargs['weights'].name
         h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
-        ret = Feld(h)
-        ret.setgrid_node(0, xedges)
-        ret.setgrid_node(1, yedges)
-        ret.name = name + self.species()
-        ret.label = self.species()
+        ret = Field(h)
+        ret.axes[0].grid_node = xedges
+        ret.axes[1].grid_node = yedges
+        ret.name = name + self.species
+        ret.label = self.species
         if title:
             ret.name = title
-        ret.axesunits = [scalarfx.unit, scalarfy.unit]
-        ret.axesnames = [scalarfx.name, scalarfy.name]
-        ret.zusatz = "%.0f particles" % self.N()
-        ret.textcond = self.getcompresslog()['all']
+        ret.axes[0].unit = scalarfx.unit
+        ret.axes[0].name = scalarfx.name
+        ret.axes[1].unit = scalarfx.unit
+        ret.axes[1].name = scalarfx.name
+        ret.infostring = '{:.0f} part in {:.0f} species'.format(self.npart, self.nspecies)
+        ret.infos = self.getcompresslog()['all']
         return ret
 
-    def createFeld(self, *scalarf, **kwargs):
+    def createField(self, *scalarf, **kwargs):
         """
         Creates an n-d Histogram enclosed in a Field object.
         Try using this function first.
@@ -629,9 +664,9 @@ class ParticleAnalyzer(object):
         if self.simdimensions is None:
             return None
         if len(scalarf) == 1:
-            return self.createHistgramFeld1d(*scalarf, **kwargs)
+            return self.createHistgramField1d(*scalarf, **kwargs)
         elif len(scalarf) == 2:
-            return self.createHistgramFeld2d(*scalarf, **kwargs)
+            return self.createHistgramField2d(*scalarf, **kwargs)
         else:
             raise Exception('only 1d or 2d field creation implemented yet.')
 

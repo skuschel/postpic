@@ -82,6 +82,10 @@ class SpeciesIdentifier(PhysicalConstants):
         return r is not None
 
     @classmethod
+    def ision(cls, species):
+        return cls.identifyspecies(species)['ision']
+
+    @classmethod
     def identifyspecies(cls, species):
         """
         Returns a dictionary contining particle informations.
