@@ -178,7 +178,6 @@ class ParticleAnalyzer(object):
         self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
-        self.angle_offaxis.__func__.extent = np.real([0, np.pi])
         # add particle species one by one
         for s in speciess:
             self.add(dumpreader, s)
@@ -493,10 +492,25 @@ class ParticleAnalyzer(object):
     angle_zx.unit = 'rad'
     angle_zx.name = 'anglezx'
 
-    def angle_offaxis(self):
-        return np.arccos(self._Px() / (self.P() + 1e-300))
-    angle_offaxis.unit = 'rad'
-    angle_offaxis.name = 'angleoffaxis'
+    def angle_yx(self):
+        return np.arctan2(self._Px(), self._Py())
+    angle_yx.unit = 'rad'
+    angle_yx.name = 'angleyx'
+
+    def angle_zy(self):
+        return np.arctan2(self._Py(), self._Pz())
+    angle_zy.unit = 'rad'
+    angle_zy.name = 'anglezy'
+
+    def angle_xz(self):
+        return np.arctan2(self._Pz(), self._Px())
+    angle_xz.unit = 'rad'
+    angle_xz.name = 'anglexz'
+
+    def angle_xaxis(self):
+        return np.arctan2(np.sqrt(self._Py()**2 + self._Pz()**2), self.Px())
+    angle_xaxis.unit = 'rad'
+    angle_xaxis.name = 'angle_xaxis'
 
     # ---- Functions to create a Histogram. ---
 
@@ -595,7 +609,7 @@ class ParticleAnalyzer(object):
         if 'weights' in kwargs:
             name = kwargs['weights'].name
         h, edges = self.createHistgram1d(scalarfx, **kwargs)
-        ret = Field(h)
+        ret = Field(h, edges)
         ret.axes[0].grid_node = edges
         ret.name = name + ' ' + self.species
         ret.label = self.species
@@ -632,7 +646,7 @@ class ParticleAnalyzer(object):
         if 'weights' in kwargs:
             name = kwargs['weights'].name
         h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
-        ret = Field(h)
+        ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
         ret.axes[1].grid_node = yedges
         ret.name = name + self.species
