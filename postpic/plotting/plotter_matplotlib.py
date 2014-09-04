@@ -36,32 +36,19 @@ class MatplotlibPlotter(object):
         self.autosave = autosave
         self.reader = reader
         self.outdir = outdir
-        self.project = project
-        self._globalnameprefix = ''
+        self._project = project
         self._savenamesused = []
 
     def __len__(self):
         return len(self._savenamesused)
 
     @property
-    def globalnameprefix(self):
-        return self._globalnameprefix
-
-    @globalnameprefix.setter
-    def globalnameprefix(self, value):
-        if value is None:
-            value = ''
-        if isinstance(value, str):
-            self._globalnameprefix = value
-        else:
-            raise Exception('globalnameprefix has to be of string type'
-                            ' (some other type found).')
-        return
+    def project(self):
+        return self._project if self._project else ''
 
     def savename(self, key, ext='.png'):
-        name = self.reader.name + \
-            '_' + self.globalnameprefix + str(len(self._savenamesused)) + \
-            '_' + key
+        name = self.project + '_' + self.reader.name + \
+            '_' + str(len(self._savenamesused)) + '_' + key
         name = name.replace('/', '_').replace(' ', '')
         name = self.outdir + name
         nametmp = name + '_%d'
@@ -92,34 +79,59 @@ class MatplotlibPlotter(object):
         return
 
     @staticmethod
+    def settext_fig(fig, title=None, ur=None, ur2=None, ul=None, ul2=None,
+                    center=None):
+        if title:
+            fig.suptitle(title)
+        if ur:
+            fig.text(0.92, 0.965, ur, ha='right')
+        if ur2:
+            fig.text(0.92, 0.93, ur2, ha='right')
+        if ul:
+            fig.text(0.03, 0.965, ul, horizontalalignment='left')
+        if ul2:
+            fig.text(0.03, 0.93, ul2, horizontalalignment='left')
+        if center:
+            fig.text(0.5, 0.87, mid, horizontalalignment='center')
+
+    @staticmethod
+    def settext_ax(ax, title=None, ur=None, ur2=None, ul=None, ul2=None,
+                   center=None):
+        if title:
+            ax.set_title(title)
+        if ur2:
+            ax.text(0.99, 1.01, ur2, ha='right', transform=ax.transAxes)
+        if ur:
+            ax.text(0.99, 0.97, ur, ha='right', transform=ax.transAxes)
+        if ul2:
+            ax.text(0.01, 1.01, ul2, horizontalalignment='left', transform=ax.transAxes)
+        if ul:
+            ax.text(0.01, 0.97, ul, horizontalalignment='left', transform=ax.transAxes)
+        if center:
+            ax.text(0.5, 0.87, mid, horizontalalignment='center', transform=ax.transAxes)
+
+    @staticmethod
     def annotate(figorax, title=None, time=None, step=None, project=None, dump=None,
                  infostring=None, infos=None):
-        if title:
-            if hasattr(figorax, 'set_title'):  # figorax is ax
-                figorax.set_title(title)
-            else:  # figorax is fig
-                figorax.suptitle(title)
-        nexttext = ''
+        ur = ''
         if time:
             if isinstance(time, float):
-                nexttext = '{:.1f} fs'.format(1e15 * time)
+                ur = '{:.1f} fs'.format(1e15 * time)
             else:
-                nexttext = str(time)
+                ur = str(time)
         if step:
             if isinstance(step, (int, long, float)):
-                nexttext += ', step: {:6.0f}'.format(step)
+                ur += ', step: {:6.0f}'.format(step)
             else:
-                nexttext += ' ' + str(step)
-        if nexttext != '':
-            figorax.text(0.92, 0.965, nexttext, horizontalalignment='right')
-        if project:
-            figorax.text(0.03, 0.965, project, horizontalalignment='left')
-        if dump:
-            figorax.text(0.03, 0.94, str(dump), horizontalalignment='left')
-        if infostring:
-            figorax.text(0.92, 0.93, infostring, ha='right')
-        if infos is not None and infos != [] and infos != ['']:
-            figorax.text(0.5, 0.87, str(infos), ha='center')
+                ur += ' ' + str(step)
+        ul = project
+        ul2 = dump
+        ur2 = infostring
+        center = None if infos != [] or infos != [''] else infos
+        import matplotlib
+        func = MatplotlibPlotter.settext_ax if isinstance(figorax, matplotlib.axes.Axes) \
+            else MatplotlibPlotter.settext_fig
+        func(figorax, title, ur, ur2, ul, ul2, center)
         return
 
     @staticmethod
@@ -135,7 +147,7 @@ class MatplotlibPlotter(object):
             MatplotlibPlotter.annotate(figorax,
                                        time=reader.time(),
                                        step=reader.timestep(),
-                                       project=reader.name)
+                                       dump=reader.name)
         except AttributeError:
             MatplotlibPlotter.annotate(figorax)
         return
@@ -288,6 +300,8 @@ class MatplotlibPlotter(object):
         name = kwargs.pop('name') if 'name' in kwargs else fields[0].name
         MatplotlibPlotter.addFields1d(ax, *fields, **kwargs)
         self._plotfinalize(fig)
+        self.annotate(fig, project=self.project)
+        self.annotate(ax, infostring=str([f.infostring for f in fields]))
         if self.autosave:
             self.savefig(fig, name)
         if 'savecsv' in kwargs and kwargs['savecsv']:
@@ -303,6 +317,8 @@ class MatplotlibPlotter(object):
         ax = fig.add_subplot(1, 1, 1)
         MatplotlibPlotter.addField2d((fig, ax), field, **kwargs)
         self._plotfinalize(fig)
+        self.annotate(fig, project=self.project)
+        self.annotate(ax, infostring=field.infostring)
         if self.autosave:
             self.savefig(fig, name if name else field.name)
         return fig

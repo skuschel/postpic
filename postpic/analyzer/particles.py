@@ -173,7 +173,7 @@ class ParticleAnalyzer(object):
         if self.simdimensions > 2:
             self.Z.__func__.extent = dumpreader.extent('z')
             self.Z.__func__.gridpoints = dumpreader.gridpoints('z')
-            self.Z_um.__func__.extent = self.dumpreader.extent('z') * 1e6
+            self.Z_um.__func__.extent = dumpreader.extent('z') * 1e6
             self.Z_um.__func__.gridpoints = dumpreader.gridpoints('z')
         self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])
@@ -509,7 +509,7 @@ class ParticleAnalyzer(object):
         if len(scalarfx(self)) == 0:
             return [], []
         if rangex is None:
-            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
+            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self))]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -554,9 +554,9 @@ class ParticleAnalyzer(object):
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
-            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self)) + 1e-7]
+            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self))]
         if rangey is None:
-            rangey = [np.min(scalarfy(self)), np.max(scalarfy(self)) + 1e-7]
+            rangey = [np.min(scalarfy(self)), np.max(scalarfy(self))]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -641,9 +641,9 @@ class ParticleAnalyzer(object):
             ret.name = title
         ret.axes[0].unit = scalarfx.unit
         ret.axes[0].name = scalarfx.name
-        ret.axes[1].unit = scalarfx.unit
-        ret.axes[1].name = scalarfx.name
-        ret.infostring = '{:.0f} part in {:.0f} species'.format(self.npart, self.nspecies)
+        ret.axes[1].unit = scalarfy.unit
+        ret.axes[1].name = scalarfy.name
+        ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
 
