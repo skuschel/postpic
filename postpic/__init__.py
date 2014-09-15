@@ -27,9 +27,25 @@ import datareader
 import analyzer
 import plotting
 
-__version__ = '0.0.0'
+__all__ = ['datareader', 'analyzer', 'plotting']
 
-# Use Git description for __version__ if present
+# read version from installed metadata
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    import os.path
+    _dist = get_distribution('postpic')
+    # Normalize case for Windows systems
+    dist_loc = os.path.normcase(_dist.location)
+    here = os.path.normcase(__file__)
+    if not here.startswith(os.path.join(dist_loc, 'postpic')):
+        # not installed, but there is another version that *is*
+        raise DistributionNotFound
+except DistributionNotFound:
+    __version__ = 'Please install this project with setup.py'
+else:
+    __version__ = _dist.version
+
+# add Git description for __version__ if present
 try:
     import subprocess as sub
     import os.path

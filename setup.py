@@ -16,11 +16,9 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 from setuptools import setup
-from postpic import __version__
-
 
 setup(name='postpic',
-      version=__version__,
+      version='0.0.0',
       author='Stephan Kuschel',
       author_email='stephan.kuschel@gmail.de',
       description='The open source particle-in-cell post processor.',

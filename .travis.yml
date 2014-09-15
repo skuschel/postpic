@@ -1,0 +1,27 @@
+# Check this file before committing a new version:
+# http://lint.travis-ci.org/
+
+language: python
+
+python:
+  - "2.7"
+
+before_install:
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
+  - python -V
+
+virtualenv:
+  system_site_packages: true
+
+# command to install dependencies
+install:
+  - sudo apt-get update -qq
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-matplotlib python-scipy; fi
+  - pip install -r pip-requirements.txt
+
+# run tests
+script:
+  - ./run-tests
