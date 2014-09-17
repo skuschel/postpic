@@ -200,7 +200,7 @@ class ParticleAnalyzer(object):
             self.add(dumpreader, s)
 
     def __str__(self):
-        return '<ParticleAnalyzer including ' + str(self._speciess) \
+        return '<ParticleAnalyzer including ' + str(self.species) \
             + '(' + str(len(self)) + ')>'
 
     @property
