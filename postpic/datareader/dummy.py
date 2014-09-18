@@ -30,6 +30,12 @@ from .. import _const
 class Dummyreader(Dumpreader_ifc):
     '''
     Dummyreader creates fake Data for testing purposes.
+
+    Args:
+      dumpid : int
+        the dumpidentifier is the dumpid in this case. It is a float variable,
+        that will also change the dummyreaders output (for example it
+        will pretend to have dumpid many particles).
     '''
 
     def __init__(self, dumpid, dimensions=2, **kwargs):
@@ -95,7 +101,12 @@ class Dummyreader(Dumpreader_ifc):
 
     def grid(self, axis):
         '''
-        returns the grid points for the axis specified.
+        Args:
+          axis : string or int
+            the axisidentifier
+
+        Returns: list of grid points of the axis specified.
+
         Thus only regular grids are supported currently.
         '''
         axid = _const.axesidentify[axis]

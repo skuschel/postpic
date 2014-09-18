@@ -3,3 +3,6 @@
 .project
 .pydevproject
 *.egg-info
+build/
+dist/
+doc/_build

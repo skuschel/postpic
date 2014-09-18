@@ -65,21 +65,24 @@ class Dumpreader_ifc(object):
     (for example .sdf file for EPOCH, .hdf5 for some other code).
 
     It is highly recommended to also override the __str__ function.
+
+    Args:
+      dumpidentifier : variable type
+        whatever identifies the dump. It is recommended to use a String
+        here pointing to a file.
     '''
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, dumpidentifier, name=None):
-        '''
-        initializes the reader object with a specific dump.
-        '''
         self.dumpidentifier = dumpidentifier
         self._name = name
 
     @abc.abstractmethod
     def keys(self):
         '''
-        returns a list of keys, that can be used in __getitem__ to read
-        any information from this dump.
+        Returns:
+          a list of keys, that can be used in __getitem__ to read
+          any information from this dump.
         '''
         pass
 
@@ -142,7 +145,11 @@ class Dumpreader_ifc(object):
 
     def getaxis(self, axis):
         '''
-        returns an Axis object for a given axis.
+        Args:
+          axis : string or int
+            the axisidentifier
+
+        Returns: an Axis object for a given axis.
         '''
         name = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
         ret = dh.Axis(name=name, unit='m')
@@ -151,20 +158,32 @@ class Dumpreader_ifc(object):
 
     def extent(self, axis):
         '''
-        returns the extent of the simulation for a given axis.
+        Args:
+          axis : string or int
+            the axisidentifier
+
+        Returns: the extent of the simulation for a given axis.
         '''
         ax = self.getaxis(axis)
         return np.array(ax.extent)
 
     def gridpoints(self, axis):
         '''
-        returns the number of grid points along a given axis.
+        Args:
+          axis : string or int
+            the axisidentifier
+
+        Returns: the number of grid points along a given axis.
         '''
         return len(self.grid(axis))
 
     def getspacialresolution(self, axis):
         '''
-        returns the spacial grid resolution along a given axis.
+        Args:
+          axis : string or int
+            the axisidentifier
+
+        Returns: the spacial grid resolution along a given axis.
         '''
         extent = self.extent(axis)
         return (extent[1] - extent[0]) / float(self.gridpoints(axis))
@@ -184,13 +203,13 @@ class Simulationreader_ifc(collections.Sequence):
     subclassed from Dumpreader_ifc.
 
     It is highly recommended to also override the __str__ function.
+
+    Args:
+      simidentifier : variable type
+        something identifiying a series of dumps.
     '''
 
     def __init__(self, simidentifier, name=None):
-        '''
-        This Function should raise a TypeError if the Reader
-        dosent support the file format specified.
-        '''
         self.simidentifier = simidentifier
         self._name = name
 
@@ -209,7 +228,7 @@ class Simulationreader_ifc(collections.Sequence):
     @abc.abstractmethod
     def getDumpnumber(self, number):
         '''
-        Returns the corresponding Dumpreader.
+        :returns: the corresponding Dumpreader.
         '''
         pass
 
@@ -290,12 +309,13 @@ def readSim(simidentifier, **kwargs):
 
 def chooseCode(code):
     '''
-    Chooses between codes available.
-    Parameters:
-    ----------------
-    code    The code that has produced the dumps.
-            "EPOCH" - .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
-            "DUMMY" - dummy class creating fake data.
+    Chooses appropriate reader for the given simulation code.
+
+    Args:
+      code : string
+        Possible options are:
+          - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
+          - "DUMMY": dummy class creating fake data.
     '''
     if code in ['EPOCH', 'epoch', 'EPOCH1D', 'EPOCH2D', 'EPOCH3D']:
         from epochsdf import Sdfreader, Visitreader
