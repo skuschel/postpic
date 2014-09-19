@@ -16,12 +16,15 @@
 #
 # Stephan Kuschel 2014
 '''
-Reader for SDF File format written by the EPOCH Code:
-http://ccpforge.cse.rl.ac.uk/gf/project/epoch/
+.. _EPOCH: http://ccpforge.cse.rl.ac.uk/gf/project/epoch/
+
+Reader for SDF File format written by the EPOCH_ Code.
+
 Dependecies:
-sdf   The Python actual reader for sdf file format.
-      It is part of the EPOCH code base and needs to be
-      compiled and installed from there.
+  - sdf: The actual python reader for the .sdf file format written in C.
+    It is part of the EPOCH_ code base and needs to be
+    compiled and installed from there.
+
 Stephan Kuschel 2014
 '''
 
@@ -36,14 +39,15 @@ __all__ = ['Sdfreader', 'Visitreader']
 
 class Sdfreader(Dumpreader_ifc):
     '''
-    The Reader implementation for Data written by the EPOCH Code
+    The Reader implementation for Data written by the EPOCH_ Code
     in .sdf format.
+
+    Args:
+      sdffile : String
+        A String containing the relative Path to the .sdf file.
     '''
 
     def __init__(self, sdffile, **kwargs):
-        '''
-        Initializes the sdfreader for a specific sdffile.
-        '''
         super(self.__class__, self).__init__(sdffile, **kwargs)
         import os.path
         import sdf
@@ -137,7 +141,7 @@ class Sdfreader(Dumpreader_ifc):
 class Visitreader(Simulationreader_ifc):
     '''
     Reads a series of dumps specified in a .visit file. This is specifically
-    written for .visit files from the EPOCH code, but should also work for
+    written for .visit files from the EPOCH_ code, but should also work for
     any other code using these files.
     '''
 
