@@ -130,7 +130,9 @@ class Axis(object):
         self.grid_node = self.grid_node[::2]
 
     def __len__(self):
-        return len(self._grid_node) - 1
+        ret = len(self._grid_node) - 1
+        ret = 0 if ret < 0 else ret
+        return ret
 
     def __str__(self):
         return '<Axis "' + str(self.name) + \
@@ -252,8 +254,8 @@ class Field(object):
         np.array([1,2,3]) is interpreted as 1
         and so on...
         '''
-        ret = len(self.matrix.shape)  # handle self.matrix == [] seperately
-        if ret == 1 and len(self.matrix) == 0:
+        ret = len(self.matrix.shape)  # works for everything with data.
+        if np.prod(self.matrix.shape) == 0:  # handels everything without data
             ret = -1
         return ret
 

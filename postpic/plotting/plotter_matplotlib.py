@@ -82,7 +82,7 @@ class MatplotlibPlotter(object):
         is created.
         '''
         if len(self._savenamesused) == 0:
-            return self._savename('lastsavename')
+            return self.savename('lastsavename')
         else:
             return self._savenamesused[-1]
         return
@@ -366,7 +366,11 @@ class MatplotlibPlotter(object):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         plt.figtext(0.5, 0.5, 'No data available.', ha='center')
-        print 'Skipped Plot: ' + self.lastsavename()
+        if self.autosave:
+            self.savefig(fig, key)
+            plt.close(fig)
+            fig = None
+        print 'Skipped Plot.'
         return fig
 
     def plotFields(self, *fields, **kwargs):

@@ -580,7 +580,7 @@ class ParticleAnalyzer(object):
         if simgrid:
             simextent = True
         if len(scalarfx(self)) == 0:
-            return [], [], []
+            return [[]], [0, 1], [1]
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
