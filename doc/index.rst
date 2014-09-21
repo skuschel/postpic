@@ -15,6 +15,8 @@ Contents:
    
    contributing
 
+   getstarted   
+
    apidoc/modules
 
 Indices and tables
