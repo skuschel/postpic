@@ -536,11 +536,12 @@ class ParticleAnalyzer(object):
                          weights=lambda x: 1):
         if simgrid:
             simextent = True
+        xdata = scalarfx(self)
         # In case there are no particles
-        if len(scalarfx(self)) == 0:
+        if len(xdata) == 0:
             return [], []
         if rangex is None:
-            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self))]
+            rangex = [np.min(xdata), np.max(xdata)]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -548,7 +549,7 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'] = scalarfx.gridpoints
         w = self.weight() * weights(self)
-        h, edges = np.histogram(scalarfx(self), weights=w,
+        h, edges = np.histogram(xdata, weights=w,
                                 range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
@@ -579,15 +580,17 @@ class ParticleAnalyzer(object):
         """
         if simgrid:
             simextent = True
-        if len(scalarfx(self)) == 0:
+        xdata = scalarfx(self)
+        ydata = scalarfy(self)
+        if len(xdata) == 0:
             return [[]], [0, 1], [1]
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if rangex is None:
-            rangex = [np.min(scalarfx(self)), np.max(scalarfx(self))]
+            rangex = [np.min(xdata), np.max(xdata)]
         if rangey is None:
-            rangey = [np.min(scalarfy(self)), np.max(scalarfy(self))]
+            rangey = [np.min(ydata), np.max(ydata)]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -599,7 +602,7 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfy, 'gridpoints'):
                 optargsh['bins'][1] = scalarfy.gridpoints
         w = self.weight() * weights(self)  # Particle Size * additional weights
-        h, xedges, yedges = np.histogram2d(scalarfx(self), scalarfy(self),
+        h, xedges, yedges = np.histogram2d(xdata, ydata,
                                            weights=w, range=[rangex, rangey],
                                            **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
