@@ -36,28 +36,31 @@ class _SingleSpeciesAnalyzer(object):
 
     def __init__(self, dumpreader, species):
         self.species = species
-        self.dumpreader = dumpreader
+        self._dumpreader = dumpreader
         self._idfy = identifyspecies(species)
         self._mass = self._idfy['mass']  # SI
         self._charge = self._idfy['charge']  # SI
         self.compresslog = []
-        # Hold local copies to allow compress function
-        # Any function will return None if property wasnt dumped.
-        self._weightdata = dumpreader.getSpecies(species, 'weight')
-        self._Xdata = dumpreader.getSpecies(species, 'x')
-        self._Ydata = dumpreader.getSpecies(species, 'y')
-        self._Zdata = dumpreader.getSpecies(species, 'z')
-        self._Pxdata = dumpreader.getSpecies(species, 'px')
-        self._Pydata = dumpreader.getSpecies(species, 'py')
-        self._Pzdata = dumpreader.getSpecies(species, 'pz')
-        self._ID = dumpreader.getSpecies(species, 'ID')
+        self._compressboollist = None
+        self._cache = {}
+        # Variables will be read and added to cache when needed.
 
-    @staticmethod
-    def _compressifdumped(condition, data):
-        if data is None:
-            ret = None
+    def __getitem__(self, key):
+        '''
+        Reads a key property, thus one out of
+        weight, x, y, z, px, py, pz, ID
+        '''
+        if key in self._cache:
+            ret = self._cache[key]
         else:
-            ret = np.compress(condition, data)
+            ret = self._dumpreader.getSpecies(self.species, key)
+            if ret is not None:
+                ret = np.asfarray(ret, dtype='float64')
+                if self._compressboollist is not None:
+                    ret = ret[self._compressboollist]  # avoid executing this line too often.
+                    self._cache[key] = ret
+                    # if memomry is low, caching could be skipped entirely.
+                    # See commit message for benchmark.
         return ret
 
     def compress(self, condition, name='unknown condition'):
@@ -81,18 +84,17 @@ class _SingleSpeciesAnalyzer(object):
         if np.array(condition).dtype is np.dtype('bool'):
             # Case 1:
             # condition is list of boolean values specifying particles to use
-            assert self._weightdata.shape[0] == condition.shape[0], \
+            assert len(self) == len(condition), \
                 'number of particles ({:7n}) has to match' \
                 'length of condition ({:7n})' \
-                ''.format(self._weightdata.shape[0], len(condition))
-            self._weightdata = self._compressifdumped(condition, self._weightdata)
-            self._Xdata = self._compressifdumped(condition, self._Xdata)
-            self._Ydata = self._compressifdumped(condition, self._Ydata)
-            self._Zdata = self._compressifdumped(condition, self._Zdata)
-            self._Pxdata = self._compressifdumped(condition, self._Pxdata)
-            self._Pydata = self._compressifdumped(condition, self._Pydata)
-            self._Pzdata = self._compressifdumped(condition, self._Pzdata)
-            self._ID = self._compressifdumped(condition, self._ID)
+                ''.format(len(self), len(condition))
+            if self._compressboollist is None:
+                self._compressboollist = condition
+            else:
+                self._compressboollist[self._compressboollist] = condition
+            for key in self._cache:
+                self._cache[key] = self._cache[key][condition]
+            self.compresslog = np.append(self.compresslog, name)
         else:
             # Case 2:
             # condition is list of particle IDs to use
@@ -104,65 +106,59 @@ class _SingleSpeciesAnalyzer(object):
             idx = np.searchsorted(condition, self._ID)
             idx[idx == len(condition)] = 0
             bools = condition[idx] == self._ID
-            return self.compress(bools, name=name)
-        self.compresslog = np.append(self.compresslog, name)
+            self.compress(bools, name=name)
 
     def uncompress(self):
         """
         Discard all previous runs of 'compress'
         """
-        self.__init__(self.dumpreader, self.species)
+        self.compresslog = []
+        self._compressboollist = None
+        self._cache = {}
 
     # --- Only very basic functions
 
     def __len__(self):  # = number of particles
-        if self._weightdata is None:
-            return 0
+        w = self['weight']
+        if w is None:
+            ret = 0
         else:
-            return self.weight().shape[0]
+            ret = len(w)
+        return ret
 
 # --- These functions are for practical use. Return None if not dumped.
 
-    @staticmethod
-    def _returnifdumped(data):
-        if data is None:
-            ret = None
-        else:
-            ret = np.float64(data)
-        return ret
-
     def weight(self):  # np.float64(np.array([4.3])) == 4.3 may cause error
-        return np.asfarray(self._weightdata, dtype='float64')
+        return self['weight']
 
     def mass(self):  # SI
-        return np.repeat(self._mass, self.weight().shape[0])
+        return np.repeat(self._mass, len(self))
 
     def charge(self):  # SI
-        return np.repeat(self._charge, self.weight().shape[0])
+        return np.repeat(self._charge, len(self))
 
     def Px(self):
-        return self._returnifdumped(self._Pxdata)
+        return self['px']
 
     def Py(self):
-        return self._returnifdumped(self._Pydata)
+        return self['py']
 
     def Pz(self):
-        return self._returnifdumped(self._Pzdata)
+        return self['pz']
 
     def X(self):
-        return self._returnifdumped(self._Xdata)
+        return self['x']
 
     def Y(self):
-        return self._returnifdumped(self._Ydata)
+        return self['y']
 
     def Z(self):
-        return self._returnifdumped(self._Zdata)
+        return self['z']
 
     def ID(self):
-        if self._ID is None:
-            ret = None
-        else:
-            ret = np.array(self._ID, dtype=int)
+        ret = self['ID']
+        if ret is not None:
+            ret = np.array(ret, dtype=int)
         return ret
 
 
