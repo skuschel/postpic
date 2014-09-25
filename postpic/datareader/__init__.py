@@ -221,12 +221,12 @@ class Simulationreader_ifc(collections.Sequence):
                 key += len(self)
             if key >= len(self):
                 raise IndexError("The index (%d) is out of range." % key)
-            return self.getDumpnumber(key)
+            return self.getDumpreader(key)
         else:
             raise TypeError("Invalid argument type.")
 
     @abc.abstractmethod
-    def getDumpnumber(self, number):
+    def getDumpreader(self, number):
         '''
         :returns: the corresponding Dumpreader.
         '''

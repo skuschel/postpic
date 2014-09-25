@@ -145,9 +145,10 @@ class Visitreader(Simulationreader_ifc):
     any other code using these files.
     '''
 
-    def __init__(self, visitfile, **kwargs):
+    def __init__(self, visitfile, dumpreadercls=Sdfreader, **kwargs):
         super(self.__class__, self).__init__(visitfile, **kwargs)
         self.visitfile = visitfile
+        self.dumpreadercls = dumpreadercls
         import os.path
         if not os.path.isfile(visitfile):
             raise IOError('File "' + str(visitfile) + '" doesnt exist.')
@@ -161,9 +162,8 @@ class Visitreader(Simulationreader_ifc):
     def __len__(self):
         return len(self._dumpfiles)
 
-    def getDumpnumber(self, index):
-        from . import readDump
-        return readDump(self._dumpfiles[index])
+    def getDumpreader(self, index):
+        return self.dumpreadercls(self._dumpfiles[index])
 
     def __str__(self):
         return '<Visitreader at "' + self.visitfile + '">'
