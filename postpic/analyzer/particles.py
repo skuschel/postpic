@@ -204,7 +204,10 @@ class ParticleAnalyzer(object):
         '''
         Number of Particles.
         '''
-        return self._weight().shape[0]
+        ret = 0
+        for ssa in self._ssas:
+            ret += len(ssa)
+        return ret
 
     @property
     def nspecies(self):
