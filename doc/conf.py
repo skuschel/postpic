@@ -25,6 +25,19 @@ import os
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.0'
 
+#pretend to have the following dependecies (needed for autodoc generation)
+from mock import Mock as MagicMock
+class Mock(MagicMock):
+    pi = 3.141592653589793
+    @classmethod
+    def __getattr__(cls, name):
+        return Mock()
+
+MOCK_MODULES = ['numpy', 'matplotlib.colors', 'matplotlib.pyplot', 'matplotlib',
+                'scipy', 'scipy.ndimage',
+                'scipy.ndimage.interpolation', 'matplotlib.ticker']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.

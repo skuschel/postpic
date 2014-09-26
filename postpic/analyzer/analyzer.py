@@ -16,6 +16,7 @@
 #
 # Stephan Kuschel 2014
 import re
+import numpy as np
 
 __all__ = ['PhysicalConstants', 'SpeciesIdentifier']
 
@@ -24,7 +25,6 @@ class PhysicalConstants:
     """
     gives you some constants.
     """
-    import numpy as np
 
     c = 299792458.0
     me = 9.109383e-31

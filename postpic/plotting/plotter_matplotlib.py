@@ -21,7 +21,6 @@ This Class can be used to plot Field Objects using the matplotlib interface.
 """
 
 import numpy as np
-from .. import _const
 
 
 __all__ = ['MatplotlibPlotter']
