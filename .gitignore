@@ -1,5 +1,6 @@
 *~
 *.pyc
+*.odt
 .project
 .pydevproject
 *.egg-info
