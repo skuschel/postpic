@@ -89,8 +89,8 @@ class SpeciesIdentifier(PhysicalConstants):
                   'gold20': True}
 
     #  unit: amu
-    _masslistelement = {'H': 1, 'He': 4, 'C': 12, 'N': 14, 'O': 16, 'F': 19,
-                        'Ne': 20.2, 'Al': 27, 'Si': 28, 'Ar': 40, 'Au': 197}
+    _masslistelement = {'H': 1, 'He': 4, 'Li': 6.9, 'C': 12, 'N': 14, 'O': 16, 'F': 19,
+                        'Ne': 20.2, 'Al': 27, 'Si': 28, 'Ar': 40, 'Rb': 85.5, 'Au': 197}
 
     @staticmethod
     def isejected(species):
@@ -105,7 +105,8 @@ class SpeciesIdentifier(PhysicalConstants):
     @classmethod
     def identifyspecies(cls, species):
         """
-        Returns a dictionary contining particle informations.
+        Returns a dictionary containing particle informations deduced from
+        the species name.
         The following keys in the dictionary will always be present:
         name   species name string
         mass    kg (SI)
@@ -125,15 +126,20 @@ class SpeciesIdentifier(PhysicalConstants):
 
         # Regex for parsing ion species name.
         # See docsting for valid examples
-        regex = '(?P<prae>(.*_)*)(?P<name>(ionc(?P<c1>\d+)m(?P<m2>\d+)|' \
-                'ionm(?P<m1>\d+)c(?P<c2>\d+))|(?P<electron>[Ee]le[ck]tron)|' \
-                '(?P<elem>[A-Za-z]+)(?P<elem_c>\d*))(?P<suffix>[a-z]*)'
+        regex = '(?P<prae>(.*_)*)' \
+                '((?P<elem>((?!El)[A-Z][a-z]?))(?P<elem_c>\d*)|' \
+                '(?P<ionmc>(ionc(?P<c1>\d+)m(?P<m2>\d+)|ionm(?P<m1>\d+)c(?P<c2>\d+)))' \
+                ')?' \
+                '(?P<plus>(Plus)*)' \
+                '(?P<electron>[Ee]le[ck])?' \
+                '(?P<suffix>\w*?)$'
         r = re.match(regex, s)
         if r is None:
             raise Exception('Species ' + str(s) +
                             ' does not match regex name pattern: ' +
                             str(regex))
         regexdict = r.groupdict()
+        # print(regexdict)
 
         # recognize anz prae and add dictionary key
         if regexdict['prae']:
@@ -142,44 +148,52 @@ class SpeciesIdentifier(PhysicalConstants):
                 if not key == '':
                     ret[key] = True
 
-        # Name Element + charge state: C1, C6, F2, F9, Au20, Pb34a
+        # Excluding patterns start here
+        # 1) Name Element + charge state: C1, C6, F2, F9, Au20, Pb34a
         if regexdict['elem']:
-            try:
-                ret['mass'] = float(cls._masslistelement[regexdict['elem']]) * \
-                    1836.2 * cls.me
+            ret['mass'] = float(cls._masslistelement[regexdict['elem']]) * \
+                1836.2 * cls.me
+            if regexdict['elem_c'] == '':
+                ret['charge'] = 0
+            else:
                 ret['charge'] = float(regexdict['elem_c']) * cls.qe
+            ret['ision'] = True
+        # 2) ionmc like
+        elif regexdict['ionmc']:
+            if regexdict['c1']:
+                ret['mass'] = float(regexdict['m2']) * 1836.2 * cls.me
+                ret['charge'] = float(regexdict['c1']) * cls.qe
                 ret['ision'] = True
-            except KeyError:
-                # this pattern will also match, if name is defined in masslist,
-                # so just ignore if key is not found.
-                pass
 
+            if regexdict['c2']:
+                ret['mass'] = float(regexdict['m1']) * 1836.2 * cls.me
+                ret['charge'] = float(regexdict['c2']) * cls.qe
+                ret['ision'] = True
+
+        # charge may be given via plus
+        if regexdict['plus']:
+            charge = len(regexdict['plus'])/4 * cls.qe
+            if ret['charge'] == 0:
+                ret['charge'] = charge
+
+        # Elektron can be appended to any ion name, so overwrite.
         if regexdict['electron']:
             ret['mass'] = cls.me
             ret['charge'] = -1 * cls.qe
             ret['ision'] = False
 
-        if regexdict['c1']:
-            ret['mass'] = float(regexdict['m2']) * 1836.2 * cls.me
-            ret['charge'] = float(regexdict['c1']) * cls.qe
-            ret['ision'] = True
-
-        if regexdict['c2']:
-            ret['mass'] = float(regexdict['m1']) * 1836.2 * cls.me
-            ret['charge'] = float(regexdict['c2']) * cls.qe
-            ret['ision'] = True
-
         # simply added to _masslist and _chargelist
         # this should not be used anymore
-        if regexdict['name'] in cls._masslist:
-            ret['mass'] = float(cls._masslist[regexdict['name']]) * cls.me
-        if regexdict['name'] in cls._chargelist:
-            ret['charge'] = float(cls._chargelist[regexdict['name']] * cls.qe)
-        if regexdict['name'] in cls._isionlist:
-            ret['ision'] = cls._isionlist[regexdict['name']]
+        # set only if property is not already set
+        if 'mass' not in ret and regexdict['suffix'] in cls._masslist:
+            ret['mass'] = float(cls._masslist[regexdict['suffix']]) * cls.me
+        if 'charge' not in ret and regexdict['suffix'] in cls._chargelist:
+            ret['charge'] = float(cls._chargelist[regexdict['suffix']] * cls.qe)
+        if 'ision' not in ret and regexdict['suffix'] in cls._isionlist:
+            ret['ision'] = cls._isionlist[regexdict['suffix']]
 
         if not (('mass' in ret) and ('charge' in ret) and ('ision' in ret)):
-            raise Error('species ' + species + ' not recognized.')
+            raise Exception('species ' + species + ' not recognized.')
 
         return ret
 
