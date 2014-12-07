@@ -47,10 +47,10 @@ class Hdf5reader(Dumpreader_ifc):
         super(self.__class__, self).__init__(h5file, **kwargs)
         if not os.path.isfile(h5file):
             raise IOError('File "' + str(h5file) + '" doesnt exist.')
-        self.h5file = h5file
-        filelist = [f for f in os.listdir(".") if f.endswith(".h5")]
+        pathname = os.path.abspath(os.path.dirname(h5file))
+        filelist = [os.path.join(pathname, f) for f in os.listdir(pathname) if f.endswith(".h5")]
         self._time = h5py.File(h5file)["time"].attrs["vsTime"]
-        # all dumped h5 files at one time
+        # all dumped h5 files at the same time
         self._dumplist = [f for f in filelist
                           if self._time == h5py.File(f)["time"].attrs["vsTime"]]
 
@@ -72,12 +72,7 @@ class Hdf5reader(Dumpreader_ifc):
         return None
 
     def timestep(self):
-        temp = self["compGridGlobal"]
-        NX = temp.attrs["vsNumCells"][0]
-        xl = temp.attrs["vsLowerBounds"][0]
-        xu = temp.attrs["vsUpperBounds"][0]
-        LX = abs(xu-xl)
-        return 0.5*(LX/NX)/299792458.
+        return self["time"].attrs['vsStep']
 
     def time(self):
         return self._time
@@ -111,14 +106,13 @@ class Hdf5reader(Dumpreader_ifc):
 
     def listSpecies(self):
         ''' returns all h5 dumps that have a attribute "mass" '''
-        SpeciesList = []
+        specieslist = []
         for f in self._dumplist:
-            for k in h5py.File(f):
-                for a in h5py.File(f)[k].attrs:
-                    if a == "mass":
-                        SpeciesList.append(k)
-                        break
-        return SpeciesList
+            h5 = h5py.File(f)
+            for key in h5:
+                if 'mass' in h5[key].attrs:
+                    specieslist.append(key)
+        return specieslist
 
     def getSpecies(self, species, attrib):
         '''
@@ -135,7 +129,7 @@ class Hdf5reader(Dumpreader_ifc):
                       11: 'charge', 12: 'mass'}[attrib]
             if isinstance(attrib, int):
                 ret = np.float64(self[species])[:, attrib]
-                # VSim dumps gamma*v = p/m0, so multiply by mass if px, or pz requested
+                # VSim dumps gamma*v = p/m0, so multiply by mass if px, pz or pz requested
                 if attrib > 2:
                     ret = ret * self.getSpecies(species, 'mass')
                 return ret
