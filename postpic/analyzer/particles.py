@@ -37,9 +37,12 @@ class _SingleSpeciesAnalyzer(object):
     def __init__(self, dumpreader, species):
         self.species = species
         self._dumpreader = dumpreader
-        self._idfy = identifyspecies(species)
-        self._mass = self._idfy['mass']  # SI
-        self._charge = self._idfy['charge']  # SI
+        self._mass = dumpreader.getSpecies(species, 'mass')
+        self._charge = dumpreader.getSpecies(species, 'charge')
+        if self._mass is None or self._charge is None:
+            self._idfy = identifyspecies(species)
+            self._mass = self._idfy['mass']  # SI
+            self._charge = self._idfy['charge']  # SI
         self.compresslog = []
         self._compressboollist = None
         self._cache = {}
