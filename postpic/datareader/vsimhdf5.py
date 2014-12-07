@@ -72,7 +72,6 @@ class Hdf5reader(Dumpreader_ifc):
         return None
 
     def timestep(self):
-        ''' returns the timestem 0.5*DX/c  '''
         temp = self["compGridGlobal"]
         NX = temp.attrs["vsNumCells"][0]
         xl = temp.attrs["vsLowerBounds"][0]
@@ -125,15 +124,24 @@ class Hdf5reader(Dumpreader_ifc):
         '''
         Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID) of
         this particle species.
+        Valid Scalar attributes are (mass, charge).
         returning None means that this particle property wasnt dumped.
         Note that this is different from returning an empty list!
         '''
         # x, y, z, px, py, pz same as in sdf. weigt and ID not included.
-        attrib = _const.axesidentify[attrib]
-        attrib = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 9: 6, 10: 7}[attrib]
+        attrib = _const.attribidentify[attrib]
         try:
-            return np.float64(self[species])[:, attrib]
-        except:
+            attrib = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 9: 'numPtclsInMacro',
+                      11: 'charge', 12: 'mass'}[attrib]
+            if isinstance(attrib, int):
+                ret = np.float64(self[species])[:, attrib]
+                # VSim dumps gamma*v = p/m0, so multiply by mass if px, or pz requested
+                if attrib > 2:
+                    ret = ret * self.getSpecies(species, 'mass')
+                return ret
+            else:
+                return np.float64(self[species].attrs[attrib])
+        except(KeyError):
             return None
 
     def getderived(self):
