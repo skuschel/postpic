@@ -32,7 +32,7 @@ import h5py
 import numpy as np
 import os
 
-__all__ = ['Hdf5reader']
+__all__ = ['Hdf5reader', 'VSimReader']
 
 
 class Hdf5reader(Dumpreader_ifc):
@@ -126,7 +126,7 @@ class Hdf5reader(Dumpreader_ifc):
         attrib = _const.attribidentify[attrib]
         try:
             attrib = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 9: 'numPtclsInMacro',
-                      11: 'charge', 12: 'mass'}[attrib]
+                      11: 'mass', 12: 'charge'}[attrib]
             if isinstance(attrib, int):
                 ret = np.float64(self[species])[:, attrib]
                 # VSim dumps gamma*v = p/m0, so multiply by mass if px, pz or pz requested
@@ -146,4 +146,56 @@ class Hdf5reader(Dumpreader_ifc):
 
     def __str__(self):
         return '<Hdf5reader at "' + str(self.dumpidentifier) + '">'
+
+
+class VSimReader(Simulationreader_ifc):
+    '''
+    Represents a full Simulation ( = Series of Dumps with equal output). The VSimReader must be
+    initialized with the path to a folder containing all the dumps. It will then walk through
+    all available .h5 files in this directory to identify the available timesteps of the
+    simulation.
+    '''
+
+    def __init__(self, path, **kwargs):
+        super(self.__class__, self).__init__(path, **kwargs)
+        self.path = path
+        import os.path
+        if not os.path.isdir(path):
+            raise IOError('Path "' + str(path) + '" is no directory.')
+        # check every .h5 file in directory path
+        self._filelist = [os.path.join(path, f) for f in os.listdir(path) if f.endswith(".h5")]
+        # only use dumps with time > 0
+        h5s = [h5py.File(f) for f in self._filelist]
+        boollist = [h5['time'].attrs['vsTime'] > 0 for h5 in h5s]
+        self._filelist = [self._filelist[i] for i in xrange(len(self._filelist)) if boollist[i]]
+        h5s = [h5s[i] for i in xrange(len(h5s)) if boollist[i]]
+        # find all possible timesteps
+        self._steplist = [h5['time'].attrs['vsStep'] for h5 in h5s]
+        self._stepsdumped = list(set(self._steplist))
+        self._stepsdumped.sort()
+
+    def __len__(self):
+        return len(self._stepsdumped)
+
+    def getDumpreader(self, index):
+        fileindex = self._steplist.index(self._stepsdumped[index])
+        return Hdf5reader(self._filelist[fileindex])
+
+    def __str__(self):
+        return '<VSimReader at "' + str(self.path) + '">'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -323,9 +323,9 @@ def chooseCode(code):
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
     elif code in ['VSim', 'VSIM', 'vsim']:
-        from vsimhdf5 import Hdf5reader
+        from vsimhdf5 import Hdf5reader, VSimReader
         setdumpreadercls(Hdf5reader)
-        # no Simulationsreader implemented yet
+        setsimreadercls(VSimReader)
     elif code in ['DUMMY', 'dummy']:
         from dummy import Dummyreader, Dummysim
         setdumpreadercls(Dummyreader)
