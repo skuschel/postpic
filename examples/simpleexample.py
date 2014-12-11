@@ -3,6 +3,12 @@
 import numpy as np
 import postpic as pp
 
+# postpic will use matplotlib for plotting. Changing matplotlibs backend
+# to "Agg" makes it possible to save plots without a display attached.
+# This is necessary to run this example within the "run-tests" script
+# on travis-ci.
+import matplotlib; matplotlib.use('Agg')
+
 
 pp.datareader.chooseCode('dummy')
 
