@@ -7,7 +7,12 @@ import postpic as pp
 pp.datareader.chooseCode('dummy')
 
 dr = pp.datareader.readDump(3e5)  # Dummyreader takes a float as argument, not a string.
-plotter = pp.plotting.plottercls(dr, outdir='', autosave=True)
+savedir = '_examplepictures/'
+import os
+if not os.path.exists(savedir):
+    os.mkdir(savedir)
+
+plotter = pp.plotting.plottercls(dr, outdir=savedir, autosave=True)
 fa = pp.analyzer.FieldAnalyzer(dr)
 
 from postpic.analyzer import ParticleAnalyzer as PA
