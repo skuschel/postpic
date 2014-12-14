@@ -47,7 +47,8 @@ class MatplotlibPlotter(object):
                    'alpha': ((0, 1, 1), (0.5, 0, 0), (1, 1, 1))}
     symmap = LinearSegmentedColormap('EField', efieldcdict, 1024)
 
-    def __init__(self, reader, outdir='./', autosave=False, project=None):
+    def __init__(self, reader, outdir='./', autosave=False, project=None, ext='png'):
+        self._ext = ext
         self.autosave = autosave
         self.reader = reader
         self.outdir = outdir
@@ -61,7 +62,9 @@ class MatplotlibPlotter(object):
     def project(self):
         return self._project if self._project else ''
 
-    def savename(self, key, ext='.png'):
+    def savename(self, key, ext=None):
+        if not ext:
+            ext = self._ext
         name = self.project + '_' + self.reader.name + \
             '_' + str(len(self._savenamesused)) + '_' + key
         name = name.replace('/', '_').replace(' ', '')
@@ -73,7 +76,7 @@ class MatplotlibPlotter(object):
             name = nametmp % i
         self._savenamesused.append(name)
         # print name
-        return name + ext
+        return name + '.' + ext
 
     def lastsavename(self):
         '''
