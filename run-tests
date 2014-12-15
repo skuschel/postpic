@@ -15,7 +15,11 @@ exitonfailure () {
 }
 
 # run actual tests
-nosetests
+if command -v nosetests2; then
+    nosetests2
+else
+    nosetests
+fi
 exitonfailure $?
 
 pep8 postpic --statistics --count --show-source --ignore=W391,E123,E226,E24 --max-line-length=99
