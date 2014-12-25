@@ -6,3 +6,5 @@
 build/
 dist/
 doc/_build
+
+*.png
