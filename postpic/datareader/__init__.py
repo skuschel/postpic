@@ -314,13 +314,18 @@ def chooseCode(code):
     Args:
       code : string
         Possible options are:
-          - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
           - "DUMMY": dummy class creating fake data.
+          - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
+          - "VSIM": .hdf5 files written by VSim.
     '''
     if code in ['EPOCH', 'epoch', 'EPOCH1D', 'EPOCH2D', 'EPOCH3D']:
         from epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
+    elif code in ['VSim', 'VSIM', 'vsim']:
+        from vsimhdf5 import Hdf5reader, VSimReader
+        setdumpreadercls(Hdf5reader)
+        setsimreadercls(VSimReader)
     elif code in ['DUMMY', 'dummy']:
         from dummy import Dummyreader, Dummysim
         setdumpreadercls(Dummyreader)

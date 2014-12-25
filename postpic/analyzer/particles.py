@@ -37,9 +37,12 @@ class _SingleSpeciesAnalyzer(object):
     def __init__(self, dumpreader, species):
         self.species = species
         self._dumpreader = dumpreader
-        self._idfy = identifyspecies(species)
-        self._mass = self._idfy['mass']  # SI
-        self._charge = self._idfy['charge']  # SI
+        self._mass = dumpreader.getSpecies(species, 'mass')
+        self._charge = dumpreader.getSpecies(species, 'charge')
+        if self._mass is None or self._charge is None:
+            self._idfy = identifyspecies(species)
+            self._mass = self._idfy['mass']  # SI
+            self._charge = self._idfy['charge']  # SI
         self.compresslog = []
         self._compressboollist = None
         self._cache = {}
@@ -55,8 +58,8 @@ class _SingleSpeciesAnalyzer(object):
         else:
             ret = self._dumpreader.getSpecies(self.species, key)
             if ret is not None:
-                ret = np.asfarray(ret, dtype='float64')
-                if self._compressboollist is not None:
+                ret = np.float64(ret)
+                if not isinstance(ret, float) and self._compressboollist is not None:
                     ret = ret[self._compressboollist]  # avoid executing this line too often.
                     self._cache[key] = ret
                     # if memomry is low, caching could be skipped entirely.
@@ -119,17 +122,30 @@ class _SingleSpeciesAnalyzer(object):
     # --- Only very basic functions
 
     def __len__(self):  # = number of particles
-        w = self['weight']
-        if w is None:
-            ret = 0
-        else:
-            ret = len(w)
+        # find a valid dataset to count number of paricles
+        if self._compressboollist is not None:
+            return len(self._compressboollist)
+        for key in ['weight', 'x', 'px', 'y', 'py', 'z', 'pz']:
+            data = self[key]
+            try:
+                # len(3) will yield a TypeError, len([3]) returns 1
+                ret = len(data)
+                break
+            except(TypeError):
+                pass
         return ret
 
 # --- These functions are for practical use. Return None if not dumped.
 
     def weight(self):  # np.float64(np.array([4.3])) == 4.3 may cause error
-        return self['weight']
+        w = self['weight']
+        # on constant weight, self['weight'] may return a single scalar,
+        # which is converted to float by __getitem__
+        if isinstance(w, float):
+            ret = np.repeat(w, len(self))
+        else:
+            ret = w
+        return ret
 
     def mass(self):  # SI
         return np.repeat(self._mass, len(self))
