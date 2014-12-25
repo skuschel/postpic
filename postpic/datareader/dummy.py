@@ -114,7 +114,7 @@ class Dummyreader(Dumpreader_ifc):
                  2: [(-2, 10, 300), (-5, 5, 400)],
                  3: [(-2, 10, 100), (-5, 5, 80), (-4, 4, 60)]}
         if axid >= self.simdimensions():
-            raise IndexError('axis ' + str(axis) + ' not present.')
+            raise KeyError('axis ' + str(axis) + ' not present.')
         args = grids[self.simdimensions()][axid]
         ret = np.linspace(*args)
         return ret

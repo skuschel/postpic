@@ -190,20 +190,21 @@ class ParticleAnalyzer(object):
         self._species = None  # trivial name if set
         self._compresslog = []
         self.simdimensions = dumpreader.simdimensions()
-        self.X.__func__.extent = dumpreader.extent('x')
-        self.X.__func__.gridpoints = dumpreader.gridpoints('x')
-        self.X_um.__func__.extent = dumpreader.extent('x') * 1e6
-        self.X_um.__func__.gridpoints = dumpreader.gridpoints('x')
-        if self.simdimensions > 1:
+        try:
+            self.X.__func__.extent = dumpreader.extent('x')
+            self.X.__func__.gridpoints = dumpreader.gridpoints('x')
+            self.X_um.__func__.extent = dumpreader.extent('x') * 1e6
+            self.X_um.__func__.gridpoints = dumpreader.gridpoints('x')
             self.Y.__func__.extent = dumpreader.extent('y')
             self.Y.__func__.gridpoints = dumpreader.gridpoints('y')
             self.Y_um.__func__.extent = dumpreader.extent('y') * 1e6
             self.Y_um.__func__.gridpoints = dumpreader.gridpoints('y')
-        if self.simdimensions > 2:
             self.Z.__func__.extent = dumpreader.extent('z')
             self.Z.__func__.gridpoints = dumpreader.gridpoints('z')
             self.Z_um.__func__.extent = dumpreader.extent('z') * 1e6
             self.Z_um.__func__.gridpoints = dumpreader.gridpoints('z')
+        except(KeyError):
+            pass
         self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
