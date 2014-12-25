@@ -92,11 +92,12 @@ class Sdfreader(Dumpreader_ifc):
         return self['Grid/Grid/' + axsuffix]
 
     def listSpecies(self):
-        ret = []
+        ret = set()
         for key in self.keys():
-            match = re.match('Particles/Px/(\w+)', key)
+            match = re.match('Particles/\w+/(\w+(/\w+)?)', key)
             if match:
-                ret = np.append(ret, match.group(1))
+                ret.add(match.group(1))
+        ret = list(ret)
         ret.sort()
         return ret
 

@@ -122,7 +122,7 @@ class SpeciesIdentifier(PhysicalConstants):
         ejected_c6b, tracer_proton, protonb
         """
         ret = {'tracer': False, 'ejected': False, 'name': species}
-        s = species.replace('/', '')
+        s = species.replace('/', '_')
 
         # Regex for parsing ion species name.
         # See docsting for valid examples
