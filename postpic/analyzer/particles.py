@@ -37,9 +37,10 @@ class _SingleSpeciesAnalyzer(object):
     def __init__(self, dumpreader, species):
         self.species = species
         self._dumpreader = dumpreader
-        self._mass = dumpreader.getSpecies(species, 'mass')
-        self._charge = dumpreader.getSpecies(species, 'charge')
-        if self._mass is None or self._charge is None:
+        try:
+            self._mass = dumpreader.getSpecies(species, 'mass')
+            self._charge = dumpreader.getSpecies(species, 'charge')
+        except(KeyError):
             self._idfy = identifyspecies(species)
             self._mass = self._idfy['mass']  # SI
             self._charge = self._idfy['charge']  # SI
@@ -57,13 +58,12 @@ class _SingleSpeciesAnalyzer(object):
             ret = self._cache[key]
         else:
             ret = self._dumpreader.getSpecies(self.species, key)
-            if ret is not None:
-                ret = np.float64(ret)
-                if not isinstance(ret, float) and self._compressboollist is not None:
-                    ret = ret[self._compressboollist]  # avoid executing this line too often.
-                    self._cache[key] = ret
-                    # if memomry is low, caching could be skipped entirely.
-                    # See commit message for benchmark.
+            ret = np.float64(ret)
+            if not isinstance(ret, float) and self._compressboollist is not None:
+                ret = ret[self._compressboollist]  # avoid executing this line too often.
+                self._cache[key] = ret
+                # if memomry is low, caching could be skipped entirely.
+                # See commit message for benchmark.
         return ret
 
     def compress(self, condition, name='unknown condition'):

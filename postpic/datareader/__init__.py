@@ -29,8 +29,8 @@ initialized with a dumpidentifier. This dumpidentifier can be almost anything,
 but in the easiest case this is the filepath pointing to a single file
 containing every information about this simulation dump. With this information
 the dumpreader must be able to read all data regarding this dump (which is a
-lot: X, Y, Z, Px, Py, Py, weight for all particle species, electric and
-magnetic fields on grid, the grid itself, mabe particle ids,...)
+lot: X, Y, Z, Px, Py, Py, weight, mass, charge, ID,.. for all particle species,
+electric and magnetic fields on grid, the grid itself, mabe particle ids,...)
 
 The Simulationreader
 --------------------
@@ -63,6 +63,20 @@ class Dumpreader_ifc(object):
     the data of a dump. In the easiest case this is just the filename of
     the dump holding all data of that timestep
     (for example .sdf file for EPOCH, .hdf5 for some other code).
+
+    The dumpreader should provide all necessary informations in a unified interface
+    but at the same time it should not restrict the user to these properties of there
+    dump only. The recommended implementation is shown here (EPOCH and VSim reader
+    work like this):
+    All (!) data, that is saved in a single dump should be accessible via the
+    self.__getitem__(key) method. Together with the self.keys() method, this will ensure,
+    that every dumpreader works as a dictionary and every dump attribute is accessible
+    via this dictionary.
+
+    All other functions, which provide a unified interface should just point to the
+    right key. If some attribute wasnt dumped a KeyError must be thrown. This allows
+    classes which are using the reader to just exit if a needed property wasnt dumped
+    or to catch the KeyError and proceed by actively ignoring it.
 
     It is highly recommended to also override the __str__ function.
 
@@ -123,6 +137,17 @@ class Dumpreader_ifc(object):
 
     @abc.abstractmethod
     def getSpecies(self, species, attrib):
+        '''
+        This function gives access to any of the particle properties in
+        .._const.attribidentify
+        This method can behave in the following ways:
+        1) Return a list of scalar properties for each particle of this species
+        2) Return a single float (i.e. `1.2`, NOT `[1.2]`) to show that
+           every particle of this species has the same scalar value to thisdimmax
+           property assigned. This might be quite often used for charge or mass
+           that are defined per species.
+        3) Raise a KeyError if the requested property or species wasn dumped.
+        '''
         pass
 
     @property

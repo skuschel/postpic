@@ -20,9 +20,9 @@ class TestDumpReader(unittest.TestCase):
         self.assertEqual(self.sr3d[20].simdimensions(), 3)
 
     def test_general(self):
-        self.assertEqual(self.dr1d.getSpecies('electron', 1), None)
-        self.assertEqual(self.dr1d.getSpecies('electron', 2), None)
-        self.assertEqual(self.dr2d.getSpecies('electron', 2), None)
+        self.assertRaises(KeyError, self.dr1d.getSpecies, 'electron', 1)
+        self.assertRaises(KeyError, self.dr1d.getSpecies, 'electron', 2)
+        self.assertRaises(KeyError, self.dr2d.getSpecies, 'electron', 2)
         self.assertEqual(len(self.dr3d.getSpecies('electron', 1)), 10000)
         self.assertEqual(len(self.sr3d), 11377)
         pz = self.sr3d[7777].getSpecies('electron', 'pz')

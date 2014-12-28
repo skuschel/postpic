@@ -141,7 +141,8 @@ class Dummyreader(Dumpreader_ifc):
         elif attribid == 9:  # weights
             ret = np.repeat(1, len(self._xdata))
         else:
-            ret = None
+            raise KeyError('Attrib "' + str(attrib) + '" of species "' +
+                           str(species) + '" not present')
         return ret
 
     def __str__(self):
