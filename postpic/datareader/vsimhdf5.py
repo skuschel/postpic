@@ -119,24 +119,19 @@ class Hdf5reader(Dumpreader_ifc):
         Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID) of
         this particle species.
         Valid Scalar attributes are (mass, charge).
-        returning None means that this particle property wasnt dumped.
-        Note that this is different from returning an empty list!
         '''
         # x, y, z, px, py, pz same as in sdf. weigt and ID not included.
         attrib = _const.attribidentify[attrib]
-        try:
-            attrib = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 9: 'numPtclsInMacro',
-                      11: 'mass', 12: 'charge'}[attrib]
-            if isinstance(attrib, int):
-                ret = np.float64(self[species])[:, attrib]
-                # VSim dumps gamma*v = p/m0, so multiply by mass if px, pz or pz requested
-                if attrib > 2:
-                    ret = ret * self.getSpecies(species, 'mass')
-                return ret
-            else:
-                return np.float64(self[species].attrs[attrib])
-        except(KeyError):
-            return None
+        attrib = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 9: 'numPtclsInMacro',
+                  11: 'mass', 12: 'charge'}[attrib]
+        if isinstance(attrib, int):
+            ret = np.float64(self[species])[:, attrib]
+            # VSim dumps gamma*v = p/m0, so multiply by mass if px, pz or pz requested
+            if attrib > 2:
+                ret = ret * self.getSpecies(species, 'mass')
+            return ret
+        else:
+            return np.float64(self[species].attrs[attrib])
 
     def getderived(self):
         '''

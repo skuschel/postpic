@@ -32,38 +32,59 @@ identifyspecies = analyzer.SpeciesIdentifier.identifyspecies
 class _SingleSpeciesAnalyzer(object):
     """
     used by the ParticleAnalyzer class only.
+    The _SingleSpeciesAnalyzer will return atomic particle properties
+    (see list below) as given by the dumpreader. Each property can thus
+    return
+    1) a list (one value for each particle)
+    2) a siingle scalar value if this property is equal for the entire
+    species (as usual for 'mass' or 'charge').
+    3) raise a KeyError on request if the property wasnt dumped.
     """
+    # List of atomic particle properties. Those will be requested from the dumpreader
+    # All other particle properties will be calculated from these.
+    _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID']
 
     def __init__(self, dumpreader, species):
         self.species = species
         self._dumpreader = dumpreader
-        self._mass = dumpreader.getSpecies(species, 'mass')
-        self._charge = dumpreader.getSpecies(species, 'charge')
-        if self._mass is None or self._charge is None:
-            self._idfy = identifyspecies(species)
-            self._mass = self._idfy['mass']  # SI
-            self._charge = self._idfy['charge']  # SI
-        self.compresslog = []
-        self._compressboollist = None
-        self._cache = {}
-        # Variables will be read and added to cache when needed.
+        self.uncompress()
+        # Variables will be read and added to self._cache when needed.
 
-    def __getitem__(self, key):
+        # create a method for every _atomicprops item.
+        def makefunc(_self, key):
+            def ret(_self):
+                return _self._readatomic(key)
+            return ret
+        for key in self._atomicprops:
+            setattr(_SingleSpeciesAnalyzer, key, makefunc(self, key))
+
+    def _readatomic(self, key):
         '''
-        Reads a key property, thus one out of
-        weight, x, y, z, px, py, pz, ID
+        Reads an atomic property, thus one out of
+        weight, x, y, z, px, py, pz, mass, charge, ID
+        (self._atomicprops)
         '''
         if key in self._cache:
             ret = self._cache[key]
         else:
-            ret = self._dumpreader.getSpecies(self.species, key)
-            if ret is not None:
-                ret = np.float64(ret)
-                if not isinstance(ret, float) and self._compressboollist is not None:
-                    ret = ret[self._compressboollist]  # avoid executing this line too often.
-                    self._cache[key] = ret
-                    # if memomry is low, caching could be skipped entirely.
-                    # See commit message for benchmark.
+            if key in ['mass', 'charge']:
+                try:
+                    ret = self._dumpreader.getSpecies(self.species, key)
+                except(KeyError):
+                    # in the special case of mass or charge try to deduce mass or charge
+                    # from the species name.
+                    self._idfy = identifyspecies(self.species)
+                    ret = self._idfy[key]
+            else:
+                ret = self._dumpreader.getSpecies(self.species, key)
+            ret = np.float64(ret)
+            if isinstance(ret, float):  # cache single scalars always
+                self._cache[key] = ret
+            if isinstance(ret, np.ndarray) and self._compressboollist is not None:
+                ret = ret[self._compressboollist]  # avoid executing this line too often.
+                self._cache[key] = ret
+                # if memomry is low, caching could be skipped entirely.
+                # See commit message for benchmark.
         return ret
 
     def compress(self, condition, name='unknown condition'):
@@ -96,7 +117,8 @@ class _SingleSpeciesAnalyzer(object):
             else:
                 self._compressboollist[self._compressboollist] = condition
             for key in self._cache:
-                self._cache[key] = self._cache[key][condition]
+                if isinstance(self._cache[key], np.ndarray):
+                    self._cache[key] = self._cache[key][condition]
             self.compresslog = np.append(self.compresslog, name)
         else:
             # Case 2:
@@ -125,63 +147,64 @@ class _SingleSpeciesAnalyzer(object):
         # find a valid dataset to count number of paricles
         if self._compressboollist is not None:
             return len(self._compressboollist)
-        for key in ['weight', 'x', 'px', 'y', 'py', 'z', 'pz']:
-            data = self[key]
+        for key in self._atomicprops:
             try:
                 # len(3) will yield a TypeError, len([3]) returns 1
-                ret = len(data)
+                ret = len(self._readatomic(key))
                 break
-            except(TypeError):
+            except(TypeError, KeyError):
                 pass
         return ret
 
-# --- These functions are for practical use. Return None if not dumped.
+    # calculate new per particle properties from the atomic properties.
+    # the following functions can be computed more efficiently here
+    # than in the ParticleAnalyzer.
+    # (example: if mass is constant for the entire species, it doesnt
+    # have to be repeated using np.repeat before the calculation)
 
-    def weight(self):  # np.float64(np.array([4.3])) == 4.3 may cause error
-        w = self['weight']
-        # on constant weight, self['weight'] may return a single scalar,
-        # which is converted to float by __getitem__
-        if isinstance(w, float):
-            ret = np.repeat(w, len(self))
-        else:
-            ret = w
-        return ret
+    def gamma(self):
+        return np.sqrt(1 +
+                       (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
+                       / (self.mass() * pc.c) ** 2)
 
-    def mass(self):  # SI
-        return np.repeat(self._mass, len(self))
+    def mass_u(self):
+        return self.mass() / pc.mass_u
 
-    def charge(self):  # SI
-        return np.repeat(self._charge, len(self))
+    def charge_e(self):
+        return self.charge() / pc.qe
 
-    def Px(self):
-        return self['px']
+    def Eruhe(self):
+        return self.mass() * pc.c ** 2
 
-    def Py(self):
-        return self['py']
+    def Ekin(self):
+        return (self.gamma() - 1) * self.Eruhe()
 
-    def Pz(self):
-        return self['pz']
+    def Ekin_MeV(self):
+        return self.Ekin() / pc.qe / 1e6
 
-    def X(self):
-        return self['x']
+    def Ekin_MeV_amu(self):
+        return self.Ekin_MeV() / self.mass_u()
 
-    def Y(self):
-        return self['y']
+    def Ekin_MeV_qm(self):
+        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
 
-    def Z(self):
-        return self['z']
+    def Ekin_keV(self):
+        return self.Ekin() / pc.qe / 1e3
 
-    def ID(self):
-        ret = self['ID']
-        if ret is not None:
-            ret = np.array(ret, dtype=int)
-        return ret
+    def Ekin_keV_amu(self):
+        return self.Ekin_keV() / self.mass_u()
+
+    def Ekin_keV_qm(self):
+        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
 
 
 class ParticleAnalyzer(object):
     """
     The ParticleAnalyzer class. Different ParticleAnalyzer can be
     added together to create a combined collection.
+
+    The ParticleAnalyzer will return a list of values for every
+    particle property.
     """
 
     def __init__(self, dumpreader, *speciess):
@@ -318,49 +341,7 @@ class ParticleAnalyzer(object):
                 self._ssas.append(copy.copy(ssa))
         return self
 
-    # --- only point BASIC functions to SingleSpeciesAnalyzer
-
-    def _funcabbilden(self, func):
-        ret = np.array([])
-        for ssa in self._ssas:
-            a = getattr(ssa, func)()
-            if a is None:
-                # This particle property is not dumped in the
-                # current SingleSpeciesAnalyzer
-                continue
-            if len(a) > 0:
-                ret = np.append(ret, a)
-        return ret
-
-    def _weight(self):
-        return self._funcabbilden('weight')
-
-    def _mass(self):  # SI
-        return self._funcabbilden('mass')
-
-    def _charge(self):  # SI
-        return self._funcabbilden('charge')
-
-    def _Px(self):
-        return self._funcabbilden('Px')
-
-    def _Py(self):
-        return self._funcabbilden('Py')
-
-    def _Pz(self):
-        return self._funcabbilden('Pz')
-
-    def _X(self):
-        return self._funcabbilden('X')
-
-    def _Y(self):
-        return self._funcabbilden('Y')
-
-    def _Z(self):
-        return self._funcabbilden('Z')
-
-    def ID(self):
-        return self._funcabbilden('ID')
+    # --- compress related functions ---
 
     def compress(self, condition, name='unknown condition'):
         i = 0
@@ -384,16 +365,6 @@ class ParticleAnalyzer(object):
         self._compresslog = []
         for s in self._ssas:
             s.uncompress()
-        # self.__init__(self.data, *self._speciess)
-
-    def _mass_u(self):
-        return self._mass() / pc.mass_u
-
-    def _charge_e(self):
-        return self._charge() / pc.qe
-
-    def _Eruhe(self):
-        return self._mass() * pc.c ** 2
 
     def getcompresslog(self):
         ret = {'all': self._compresslog}
@@ -401,60 +372,103 @@ class ParticleAnalyzer(object):
             ret.update({ssa.species: ssa.compresslog})
         return ret
 
+    # --- map functions to SingleSpeciesAnalyzer
+
+    def _map2ssa(self, func):
+        '''
+        maps a function to the SingleSpeciesAnalyzers. If the SingleSpeciesAnalyzer
+        returns a single scalar, it will be repeated using np.repeat to ensure
+        that a list will always be returned.
+        '''
+        ret = np.array([])
+        for ssa in self._ssas:
+            a = getattr(ssa, func)()
+            if isinstance(a, float):
+                a = np.repeat(a, len(ssa))
+            ret = np.append(ret, a)
+        return ret
+
     # --- "A scalar for every particle"-functions.
 
     def weight(self):
-        return self._weight()
+        return self._map2ssa('weight')
     weight.name = 'Particle weight'
-    weight.unit = ''
+    weight.unit = 'npartpermacro'
+
+    def ID(self):
+        ret = self._map2ssa('ID')
+        return np.array(ret, type=int)
+
+    def mass(self):  # SI
+        return self._map2ssa('mass')
+    mass.unit = 'kg'
+    mass.name = 'm'
+
+    def mass_u(self):
+        return self._mass2ssa('mass_u')
+    mass_u.unit = 'u'
+    mass_u.name = 'm'
+
+    def charge(self):  # SI
+        return self._map2ssa('charge')
+    charge.unit = 'C'
+    charge.name = 'q'
+
+    def charge_e(self):
+        return self._map2ssa('charge_e')
+    charge.unit = 'qe'
+    charge.name = 'q'
+
+    def Eruhe(self):
+        return self._map2ssa('Eruhe')
 
     def Px(self):
-        return self._Px()
+        return self._map2ssa('Px')
     Px.unit = ''
     Px.name = 'Px'
 
     def Py(self):
-        return self._Py()
+        return self._map2ssa('Py')
     Py.unit = ''
     Py.name = 'Py'
 
     def Pz(self):
-        return self._Pz()
+        return self._map2ssa('Pz')
     Pz.unit = ''
     Pz.name = 'Pz'
 
     def P(self):
-        return np.sqrt(self._Px() ** 2 + self._Py() ** 2 + self._Pz() ** 2)
+        return np.sqrt(self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
     P.unit = ''
     P.name = 'P'
 
     def X(self):
-        return self._X()
+        return self._map2ssa('X')
     X.unit = 'm'
     X.name = 'X'
 
     def X_um(self):
-        return self._X() * 1e6
+        return self.X() * 1e6
     X_um.unit = '$\mu m$'
     X_um.name = 'X'
 
     def Y(self):
-        return self._Y()
+        return self._map2ssa('Y')
     Y.unit = 'm'
     Y.name = 'Y'
 
     def Y_um(self):
-        return self._Y() * 1e6
+        return self.Y() * 1e6
     Y_um.unit = '$\mu m$'
     Y_um.name = 'Y'
 
     def Z(self):
-        return self._Z()
+        return self._map2ssa('Z')
     Z.unit = 'm'
     Z.name = 'Z'
 
     def Z_um(self):
-        return self._Z() * 1e6
+        return self.Z() * 1e6
     Z_um.unit = '$\mu m$'
     Z_um.name = 'Z'
 
@@ -469,79 +483,77 @@ class ParticleAnalyzer(object):
     V.name = 'V'
 
     def gamma(self):
-        return np.sqrt(1 +
-                       (self._Px() ** 2 + self._Py() ** 2 + self._Pz() ** 2)
-                       / (self._mass() * pc.c) ** 2)
+        return self._map2ssa('gamma')
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
 
     def Ekin(self):
-        return (self.gamma() - 1) * self._Eruhe()
+        return self._map2ssa('Ekin')
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
 
     def Ekin_MeV(self):
-        return self.Ekin() / pc.qe / 1e6
+        return self._map2ssa('Ekin_MeV')
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
 
     def Ekin_MeV_amu(self):
-        return self.Ekin_MeV() / self._mass_u()
+        return self._map2ssa('Ekin_MeV_amu')
     Ekin_MeV_amu.unit = 'MeV / amu'
     Ekin_MeV_amu.name = 'Ekin / amu'
 
     def Ekin_MeV_qm(self):
-        return self.Ekin_MeV() * self._charge_e() / self._mass_u()
+        return self._map2ssa('Ekin_MeV_qm')
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
 
     def Ekin_keV(self):
-        return self.Ekin() / pc.qe / 1e3
+        return self._map2ssa('Ekin_keV')
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
 
     def Ekin_keV_amu(self):
-        return self.Ekin_keV() / self._mass_u()
+        return self._map2ssa('Ekin_keV_amu')
     Ekin_keV_amu.unit = 'keV / amu'
     Ekin_keV_amu.name = 'Ekin / amu'
 
     def Ekin_keV_qm(self):
-        return self.Ekin_MeV() * self._charge_e() / self._mass_u()
+        return self._map2ssa('Ekin_keV_qm')
     Ekin_keV_qm.unit = 'keV*q/m'
     Ekin_keV_qm.name = 'Ekin * q/m'
 
     def angle_xy(self):
-        return np.arctan2(self._Py(), self._Px())
+        return np.arctan2(self.Py(), self.Px())
     angle_xy.unit = 'rad'
     angle_xy.name = 'anglexy'
 
     def angle_yz(self):
-        return np.arctan2(self._Pz(), self._Py())
+        return np.arctan2(self.Pz(), self.Py())
     angle_yz.unit = 'rad'
     angle_yz.name = 'angleyz'
 
     def angle_zx(self):
-        return np.arctan2(self._Px(), self._Pz())
+        return np.arctan2(self.Px(), self.Pz())
     angle_zx.unit = 'rad'
     angle_zx.name = 'anglezx'
 
     def angle_yx(self):
-        return np.arctan2(self._Px(), self._Py())
+        return np.arctan2(self.Px(), self.Py())
     angle_yx.unit = 'rad'
     angle_yx.name = 'angleyx'
 
     def angle_zy(self):
-        return np.arctan2(self._Py(), self._Pz())
+        return np.arctan2(self.Py(), self.Pz())
     angle_zy.unit = 'rad'
     angle_zy.name = 'anglezy'
 
     def angle_xz(self):
-        return np.arctan2(self._Pz(), self._Px())
+        return np.arctan2(self.Pz(), self.Px())
     angle_xz.unit = 'rad'
     angle_xz.name = 'anglexz'
 
     def angle_xaxis(self):
-        return np.arctan2(np.sqrt(self._Py()**2 + self._Pz()**2), self.Px())
+        return np.arctan2(np.sqrt(self.Py()**2 + self.Pz()**2), self.Px())
     angle_xaxis.unit = 'rad'
     angle_xaxis.name = 'angle_xaxis'
 
