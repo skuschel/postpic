@@ -160,7 +160,42 @@ class _SingleSpeciesAnalyzer(object):
     # the following functions can be computed more efficiently here
     # than in the ParticleAnalyzer.
     # (example: if mass is constant for the entire species, it doesnt
-    # have to be expanded using np.repeat before the calculation)
+    # have to be repeated using np.repeat before the calculation)
+
+    def gamma(self):
+        return np.sqrt(1 +
+                       (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
+                       / (self.mass() * pc.c) ** 2)
+
+    def mass_u(self):
+        return self.mass() / pc.mass_u
+
+    def charge_e(self):
+        return self.charge() / pc.qe
+
+    def Eruhe(self):
+        return self.mass() * pc.c ** 2
+
+    def Ekin(self):
+        return (self.gamma() - 1) * self.Eruhe()
+
+    def Ekin_MeV(self):
+        return self.Ekin() / pc.qe / 1e6
+
+    def Ekin_MeV_amu(self):
+        return self.Ekin_MeV() / self.mass_u()
+
+    def Ekin_MeV_qm(self):
+        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
+
+    def Ekin_keV(self):
+        return self.Ekin() / pc.qe / 1e3
+
+    def Ekin_keV_amu(self):
+        return self.Ekin_keV() / self.mass_u()
+
+    def Ekin_keV_qm(self):
+        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
 
 
 class ParticleAnalyzer(object):
@@ -340,6 +375,11 @@ class ParticleAnalyzer(object):
     # --- map functions to SingleSpeciesAnalyzer
 
     def _map2ssa(self, func):
+        '''
+        maps a function to the SingleSpeciesAnalyzers. If the SingleSpeciesAnalyzer
+        returns a single scalar, it will be repeated using np.repeat to ensure
+        that a list will always be returned.
+        '''
         ret = np.array([])
         for ssa in self._ssas:
             a = getattr(ssa, func)()
@@ -365,7 +405,7 @@ class ParticleAnalyzer(object):
     mass.name = 'm'
 
     def mass_u(self):
-        return self.mass() / pc.mass_u
+        return self._mass2ssa('mass_u')
     mass_u.unit = 'u'
     mass_u.name = 'm'
 
@@ -375,12 +415,12 @@ class ParticleAnalyzer(object):
     charge.name = 'q'
 
     def charge_e(self):
-        return self.charge() / pc.qe
+        return self._map2ssa('charge_e')
     charge.unit = 'qe'
     charge.name = 'q'
 
     def Eruhe(self):
-        return self.mass() * pc.c ** 2
+        return self._map2ssa('Eruhe')
 
     def Px(self):
         return self._map2ssa('Px')
@@ -443,44 +483,42 @@ class ParticleAnalyzer(object):
     V.name = 'V'
 
     def gamma(self):
-        return np.sqrt(1 +
-                       (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
-                       / (self.mass() * pc.c) ** 2)
+        return self._map2ssa('gamma')
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
 
     def Ekin(self):
-        return (self.gamma() - 1) * self.Eruhe()
+        return self._map2ssa('Ekin')
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
 
     def Ekin_MeV(self):
-        return self.Ekin() / pc.qe / 1e6
+        return self._map2ssa('Ekin_MeV')
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
 
     def Ekin_MeV_amu(self):
-        return self.Ekin_MeV() / self.mass_u()
+        return self._map2ssa('Ekin_MeV_amu')
     Ekin_MeV_amu.unit = 'MeV / amu'
     Ekin_MeV_amu.name = 'Ekin / amu'
 
     def Ekin_MeV_qm(self):
-        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
+        return self._map2ssa('Ekin_MeV_qm')
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
 
     def Ekin_keV(self):
-        return self.Ekin() / pc.qe / 1e3
+        return self._map2ssa('Ekin_keV')
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
 
     def Ekin_keV_amu(self):
-        return self.Ekin_keV() / self.mass_u()
+        return self._map2ssa('Ekin_keV_amu')
     Ekin_keV_amu.unit = 'keV / amu'
     Ekin_keV_amu.name = 'Ekin / amu'
 
     def Ekin_keV_qm(self):
-        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
+        return self._map2ssa('Ekin_keV_qm')
     Ekin_keV_qm.unit = 'keV*q/m'
     Ekin_keV_qm.name = 'Ekin * q/m'
 
