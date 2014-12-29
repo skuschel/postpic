@@ -405,7 +405,7 @@ class ParticleAnalyzer(object):
     mass.name = 'm'
 
     def mass_u(self):
-        return self._mass2ssa('mass_u')
+        return self._map2ssa('mass_u')
     mass_u.unit = 'u'
     mass_u.name = 'm'
 
