@@ -47,12 +47,18 @@ class MatplotlibPlotter(object):
                    'alpha': ((0, 1, 1), (0.5, 0, 0), (1, 1, 1))}
     symmap = LinearSegmentedColormap('EField', efieldcdict, 1024)
 
-    def __init__(self, reader, outdir='./', autosave=False, project=None, ext='png'):
+    def __init__(self, reader, outdir='./', autosave=False, project=None,
+                 ext='png', size_inches=(9, 7), dpi=160, facecolor=(1, 1, 1, 0.01),
+                 transparent=False):
         self._ext = ext
         self.autosave = autosave
         self.reader = reader
         self.outdir = outdir
         self._project = project
+        self.size_inches = size_inches
+        self.dpi = dpi
+        self.facecolor = facecolor
+        self.transparent = transparent
         self._savenamesused = []
 
     def __len__(self):
@@ -89,11 +95,10 @@ class MatplotlibPlotter(object):
             return self._savenamesused[-1]
         return
 
-    def savefig(self, fig, key, dpi=160, facecolor=(1, 1, 1, 0.01)):
-        fig.set_size_inches(9, 7)
+    def savefig(self, fig, key):
         savename = self.savename(key)
-        fig.savefig(savename, dpi=dpi, facecolor=facecolor,
-                    transparent=True)
+        fig.savefig(savename, dpi=self.dpi, facecolor=self.facecolor,
+                    transparent=self.transparent)
         return
 
     @staticmethod
@@ -320,6 +325,7 @@ class MatplotlibPlotter(object):
         self._plotfinalize(fig)
         self.annotate(fig, project=self.project)
         self.annotate(ax, infostring=str([f.infostring for f in fields]))
+        fig.set_size_inches(*self.size_inches)
         if self.autosave:
             self.savefig(fig, name)
             plt.close(fig)
@@ -339,6 +345,7 @@ class MatplotlibPlotter(object):
         self._plotfinalize(fig)
         self.annotate(fig, project=self.project)
         self.annotate(ax, infostring=field.infostring)
+        fig.set_size_inches(*self.size_inches)
         if self.autosave:
             self.savefig(fig, name if name else field.name)
             plt.close(fig)
@@ -368,6 +375,7 @@ class MatplotlibPlotter(object):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         plt.figtext(0.5, 0.5, 'No data available.', ha='center')
+        fig.set_size_inches(*self.size_inches)
         if self.autosave:
             self.savefig(fig, key)
             plt.close(fig)
