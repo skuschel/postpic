@@ -1,14 +1,30 @@
 #!/bin/bash
+#
+# This file is part of postpic.
+#
+# postpic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# postpic is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with postpic. If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright Stephan Kuschel, 2014-2015
 
-# This script is a wrapper around the run-tests script.
+# This script is a wrapper around the run-tests.py script.
 # It is highly recommended to link it as the git pre-commit hook via:
 
 # ln -s ../../pre-commit .git/hooks/pre-commit
 
-# The difference to the run-tests script is that this script stashes
+# The difference to the run-tests.py script is that this script stashes
 # unstaged changes before testing (see below). Thus only the changeset to be
 # commited will be tested. No worries, "git commit -a" will still work ;)
-# Stephan Kuschel, 2014
 
 # Stash unstaged changes if and only if(!) necessary (=possible):
 # if you dont check that you might uninentionally apply an older stash,
@@ -18,12 +34,12 @@
 # there were no changes, that could be stashed.
 if git diff-index --quiet HEAD --; then
     #echo "pre-commit hook without stashing"
-    ./run-tests
+    ./run-tests.py
     exitcode=$?
 else
     #echo "pre-commit hook with stashing"
     git stash -q --keep-index
-    ./run-tests
+    ./run-tests.py
     exitcode=$?
     git stash pop -q
 fi

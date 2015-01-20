@@ -34,13 +34,13 @@ The typical workflow should be:
 
   `git pull --rebase upstream master`
   
-  0. Make sure all tests are running smoothly (the `run-tests` script also involves pep8 style verification!)
+  0. Make sure all tests are running smoothly (the `run-tests.py` script also involves pep8 style verification!)
   0. push to your fork and create a [pull request](https://help.github.com/articles/using-pull-requests/) to merge your changes into the codebase.
 
 ## Coding and general remaks
 
-  *  Make sure, that the `run-tests` script exits without error on EVERY commit. To do so, it is HIGHLY RECOMMENDED to add the `pre-commit` script as the git pre-commit hook. For instructions see [pre-commit](../master/pre-commit).
-  * The Coding style is according to slightly simplified pep8 rules. This is included in the `run-tests` script. If that script runs without error, you should be good to <del>go</del> commit.
+  *  Make sure, that the `run-tests.py` script exits without error on EVERY commit. To do so, it is HIGHLY RECOMMENDED to add the `pre-commit` script as the git pre-commit hook. For instructions see [pre-commit](../master/pre-commit).
+  * The Coding style is according to slightly simplified pep8 rules. This is included in the `run-tests.py` script. If that script runs without error, you should be good to <del>go</del> commit.
   * If your implemented feature works as expected you can send the pull request to the master branch. Additional branches should be used only if there are unfinished or experimental features.
   * Add the GPLv3+ licence notice on top of every new file. If you add a new file you are free to add your name as a author. This will let other people know that you are in charge if there is any trouble with the code. This is only useful if the file you provide adds functionality like a new datareader. Thats why the `__init__.py` files typically do not have a name written. In doubt, the git revision history will always show who added which line.
 

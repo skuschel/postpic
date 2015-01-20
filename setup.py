@@ -24,7 +24,7 @@ setup(name='postpic',
       description='The open source particle-in-cell post processor.',
       url='http://github.com/skuschel/postpic',
       packages=['postpic'],
-      licence='GPLv3+',
+      license='GPLv3+',
       install_requires=['matplotlib', 'numpy>=1.7', 'scipy'],
       classifiers=[
           'Development Status :: 3 - Alpha',
