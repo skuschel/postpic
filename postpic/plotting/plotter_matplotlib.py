@@ -303,11 +303,11 @@ class MatplotlibPlotter(object):
         if ylim is not None:
             ax.set_ylim(ylim)
         if lineoutx:
-            self._addxlineout(ax, field.matrix.T, field.extent,
-                              log10=log10plot)
+            MatplotlibPlotter._addxlineout(ax, field.matrix.T, field.extent,
+                                           log10=log10plot)
         if lineouty:
-            self._addylineout(ax, field.matrix.T, field.extent,
-                              log10=log10plot)
+            MatplotlibPlotter._addylineout(ax, field.matrix.T, field.extent,
+                                           log10=log10plot)
         MatplotlibPlotter.addaxislabels(ax, field)
         MatplotlibPlotter.annotate_fromfield(ax, field)
         return

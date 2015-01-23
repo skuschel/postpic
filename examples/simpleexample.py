@@ -58,7 +58,7 @@ if True:
 
         # use optargsh to force lower resolution
         # plot number density
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh=optargsh))  # plot 6
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh=optargsh), lineoutx=True, lineouty=True)  # plot 6
         # plot phase space
         plotter.plotField(pa.createField(PA.X, PA.P, optargsh=optargsh))  # plot 7
 
