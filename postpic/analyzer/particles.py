@@ -557,6 +557,26 @@ class ParticleAnalyzer(object):
     angle_xaxis.unit = 'rad'
     angle_xaxis.name = 'angle_xaxis'
 
+    # ---- Functions for measuring particle collection related values
+
+    def mean(self, func, weights=1.0):
+        '''
+        the mean of a value given by the function func. The particle weight
+        of the individual particles will be included in the calculation.
+        An additional weight can be given as well.
+        '''
+        w = self.weight() * weights
+        return np.average(func(self), weights=w)
+
+    def var(self, func, weights=1.0):
+        '''
+        variance
+        '''
+        w = self.weight() * weights
+        data = func(self)
+        m = np.average(data, weights=w)
+        return np.average((data - m)**2, weights=w)
+
     # ---- Functions to create a Histogram. ---
 
     def createHistgram1d(self, scalarfx, optargsh={'bins': 300},
