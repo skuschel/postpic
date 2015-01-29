@@ -25,6 +25,7 @@ from . import Dumpreader_ifc
 from . import Simulationreader_ifc
 import numpy as np
 from .. import _const
+from ..analyzer.analyzer import PhysicalConstants
 
 
 class Dummyreader(Dumpreader_ifc):
@@ -42,6 +43,7 @@ class Dummyreader(Dumpreader_ifc):
         super(self.__class__, self).__init__(dumpid, **kwargs)
         self._dimensions = dimensions
         # initialize fake data
+        np.random.seed(0)
         self._xdata = np.random.normal(size=dumpid)
         if dimensions > 1:
             self._ydata = np.random.normal(size=dumpid)
@@ -131,13 +133,11 @@ class Dummyreader(Dumpreader_ifc):
         elif attribid == 2 and self.simdimensions() > 2:  # z
             ret = self._zdata
         elif attribid == 3:  # px
-            ret = self._xdata ** 2
+            ret = np.roll(self._xdata, 1) ** 2 * (PhysicalConstants.me * PhysicalConstants.c)
         elif attribid == 4:  # py
-            ret = self._ydata ** 2 if self.simdimensions() > 1 \
-                else np.repeat(0, len(self._xdata))
+            ret = np.roll(self._ydata, 1) * (PhysicalConstants.me * PhysicalConstants.c)
         elif attribid == 5:  # pz
-            ret = self._ydata * self._xdata if self.simdimensions() > 1 \
-                else np.repeat(0, len(self._xdata))
+            ret = np.roll(self._xdata, 3) * (PhysicalConstants.me * PhysicalConstants.c)
         elif attribid == 9:  # weights
             ret = np.repeat(1, len(self._xdata))
         else:

@@ -61,10 +61,12 @@ if True:
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh=optargsh), lineoutx=True, lineouty=True)  # plot 6
         # plot phase space
         plotter.plotField(pa.createField(PA.X, PA.P, optargsh=optargsh))  # plot 7
+        plotter.plotField(pa.createField(PA.X, PA.gamma, optargsh=optargsh))  # plot 8
+        plotter.plotField(pa.createField(PA.X, PA.beta, optargsh=optargsh))  # plot 9
 
         # same with high resolution
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': [1000,1000]}))  # plot 8
-        plotter.plotField(pa.createField(PA.X, PA.P, optargsh={'bins': [1000,1000]}))  # plot 9
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': [1000,1000]}))  # plot 10
+        plotter.plotField(pa.createField(PA.X, PA.P, optargsh={'bins': [1000,1000]}))  # plot 11
 
         # advanced: postpic has already defined a lot of particle scalars as Px, Py, Pz, P, X, Y, Z, gamma, beta, Ekin, Ekin_MeV, Ekin_MeV_amu, ... but if needed you can also define your own particle scalar on the fly.
         # In case its regularly used it should be added to postpic. If you dont know how, just let us know about your own useful particle scalar by email or adding an issue at
@@ -82,6 +84,6 @@ if True:
         r.unit='m'
         r.name='r'
         # use the plotter with the particle scalars defined above.
-        plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))  # plot 10
+        plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))  # plot 12
 
 

@@ -28,7 +28,7 @@ class TestDumpReader(unittest.TestCase):
         pz = self.sr3d[7777].getSpecies('electron', 'pz')
         self.assertEqual(len(pz), 7777)
         pz = self.dr1d.getSpecies('electron', 'pz')
-        self.assertEqual(np.sum(pz), 0)
+        self.assertAlmostEqual(np.sum(pz), 0)
 
 if __name__ == '__main__':
     unittest.main()
