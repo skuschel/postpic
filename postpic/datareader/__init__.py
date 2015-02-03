@@ -48,11 +48,12 @@ import collections
 import numpy as np
 from .. import _const
 from .. import datahandling as dh
+from ..analyzer import FieldAnalyzer
 
 # --- Interface ---
 
 
-class Dumpreader_ifc(object):
+class Dumpreader_ifc(FieldAnalyzer):
     '''
     Interface class for reading a single dump. A dump contains informations
     about the  simulation at a single timestep (Usually E- and B-Fields on
@@ -88,6 +89,7 @@ class Dumpreader_ifc(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, dumpidentifier, name=None):
+        super(Dumpreader_ifc, self).__init__(self)
         self.dumpidentifier = dumpidentifier
         self._name = name
 

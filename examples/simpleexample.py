@@ -24,9 +24,6 @@ if not os.path.exists(savedir):
 # project name will be prepended to all output names
 plotter = pp.plotting.plottercls(dr, outdir=savedir, autosave=True, project='simpleexample')
 
-# create the field analyzer to access field data (E and B fields) easily
-fa = pp.analyzer.FieldAnalyzer(dr)
-
 # we will need a refrence to the ParticleAnalyzer quite often
 from postpic.analyzer import ParticleAnalyzer as PA
 
@@ -35,10 +32,10 @@ pas = [PA(dr, s) for s in dr.listSpecies()]
 
 if True:
     # Plot Data from the FieldAnalyzer fa. This is very simple: every line creates one plot
-    plotter.plotField(fa.Ex())  # plot 0
-    plotter.plotField(fa.Ey())  # plot 1
-    plotter.plotField(fa.Ez())  # plot 2
-    plotter.plotField(fa.energydensityEM())  # plot 3
+    plotter.plotField(dr.Ex())  # plot 0
+    plotter.plotField(dr.Ey())  # plot 1
+    plotter.plotField(dr.Ez())  # plot 2
+    plotter.plotField(dr.energydensityEM())  # plot 3
 
     # Using the ParticleAnalyzer requires an additional step:
     # 1) The ParticleAnalyzer.createField method will be used to create a Field object
