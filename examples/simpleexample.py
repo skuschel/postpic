@@ -11,9 +11,9 @@ import matplotlib; matplotlib.use('Agg')
 
 
 # choose the dummy reader. This reader will create fake data for testing.
-pp.datareader.chooseCode('dummy')
+pp.chooseCode('dummy')
 
-dr = pp.datareader.readDump(3e5)  # Dummyreader takes a float as argument, not a string.
+dr = pp.readDump(3e5)  # Dummyreader takes a float as argument, not a string.
 # set and create directory for pictures.
 savedir = '_examplepictures/'
 import os
@@ -25,7 +25,7 @@ if not os.path.exists(savedir):
 plotter = pp.plotting.plottercls(dr, outdir=savedir, autosave=True, project='simpleexample')
 
 # we will need a refrence to the ParticleAnalyzer quite often
-from postpic.analyzer import ParticleAnalyzer as PA
+from postpic import ParticleAnalyzer as PA
 
 # create ParticleAnalyzer for every particle species that exists.
 pas = [PA(dr, s) for s in dr.listSpecies()]
