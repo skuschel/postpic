@@ -29,6 +29,13 @@ import plotting
 
 __all__ = ['datareader', 'analyzer', 'plotting']
 
+# high level functions
+from analyzer import ParticleAnalyzer, identifyspecies
+__all__ += ['ParticleAnalyzer', 'identifyspecies']
+
+from datareader import chooseCode, readDump, readSim
+__all__ += ['chooseCode', 'readDump', 'readSim']
+
 # read version from installed metadata
 from pkg_resources import get_distribution, DistributionNotFound
 try:

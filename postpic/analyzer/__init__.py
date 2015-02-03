@@ -18,9 +18,11 @@
 Analyzer package provides Classes and functions for analyzing
 Particle and Field Data.
 """
-
 from analyzer import *
 from particles import ParticleAnalyzer
 from fields import FieldAnalyzer
+
+__all__ = ['ParticleAnalyzer', 'FieldAnalyzer', 'identifyspecies']
+__all__ += analyzer.__all__
 
 identifyspecies = analyzer.SpeciesIdentifier.identifyspecies
