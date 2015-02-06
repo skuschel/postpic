@@ -93,7 +93,8 @@ class Axis(object):
         if len(self._grid_node) < 2:
             ret = None
         else:
-            return [self._grid_node[0], self._grid_node[-1]]
+            ret = [self._grid_node[0], self._grid_node[-1]]
+        return ret
 
     @property
     def label(self):
@@ -366,10 +367,10 @@ class Field(object):
         if self.dimensions == 1:
             data = np.asarray(self.matrix)
             x = np.linspace(self.extent[0], self.extent[1], len(data))
-            np.savetxt(dateiname, np.transpose([x, data]), delimiter=' ')
+            np.savetxt(filename, np.transpose([x, data]), delimiter=' ')
         elif self.dimensions == 2:
             export = np.asarray(self.matrix)
-            np.savetxt(dateiname, export)
+            np.savetxt(filename, export)
         else:
             raise Exception('Not Implemented')
         return

@@ -90,6 +90,18 @@ class TestField(unittest.TestCase):
         for i in xrange(len(field.axes)):
             self.assertEqual(len(field.axes[i]), field.matrix.shape[i])
 
+    def test_extent(self):
+        self.assertListEqual(list(self.f0d.extent), [])
+        self.assertListEqual(list(self.f1d.extent), [0, 1])
+        self.f1d.extent = [3.3, 5.5]
+        self.assertListEqual(list(self.f1d.extent), [3.3, 5.5])
+        self.assertListEqual(list(self.f2d.extent), [0, 1, 0, 1])
+        self.f2d.extent = [3.3, 5.5, 7.7, 9.9]
+        self.assertListEqual(list(self.f2d.extent), [3.3, 5.5, 7.7, 9.9])
+        self.assertListEqual(list(self.f3d.extent), [0, 1, 0, 1, 0, 1])
+        self.f3d.extent = [3.3, 5.5, 7.7, 9.9, 11.1, 13.3]
+        self.assertListEqual(list(self.f3d.extent), [3.3, 5.5, 7.7, 9.9, 11.1,13.3])
+
     def test_dimensions(self):
         self.assertEqual(self.fempty.dimensions, -1)
         self.assertEqual(self.f0d.dimensions, 0)
