@@ -19,11 +19,11 @@
 Field related routines.
 """
 
-__all__ = ['FieldAnalyzer']
-
 import numpy as np
 from analyzer import PhysicalConstants as pc
 from ..datahandling import *
+
+__all__ = ['FieldAnalyzer']
 
 
 class FieldAnalyzer(object):

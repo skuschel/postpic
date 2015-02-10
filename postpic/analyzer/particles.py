@@ -19,14 +19,14 @@
 Particle related routines.
 """
 
-__all__ = ['ParticleAnalyzer']
-
 import numpy as np
 from analyzer import PhysicalConstants as pc
 import analyzer
 from ..datahandling import *
 
 identifyspecies = analyzer.SpeciesIdentifier.identifyspecies
+
+__all__ = ['ParticleAnalyzer', 'identifyspecies']
 
 
 class _SingleSpeciesAnalyzer(object):

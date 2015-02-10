@@ -26,18 +26,16 @@ The open source particle-in-cell post processor.
 import datareader
 import analyzer
 import plotting
+from pkg_resources import get_distribution, DistributionNotFound
+from analyzer import ParticleAnalyzer, identifyspecies
+from datareader import chooseCode, readDump, readSim
 
 __all__ = ['datareader', 'analyzer', 'plotting']
-
 # high level functions
-from analyzer import ParticleAnalyzer, identifyspecies
 __all__ += ['ParticleAnalyzer', 'identifyspecies']
-
-from datareader import chooseCode, readDump, readSim
 __all__ += ['chooseCode', 'readDump', 'readSim']
 
 # read version from installed metadata
-from pkg_resources import get_distribution, DistributionNotFound
 try:
     import os.path
     _dist = get_distribution('postpic')
