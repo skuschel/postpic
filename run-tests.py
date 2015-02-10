@@ -24,6 +24,7 @@
 # THIS FILE MUST RUN WITHOUT ERROR ON EVERY COMMIT!
 
 import os
+import subprocess
 
 
 def exitonfailure(exitstatus, cmd=None):
@@ -49,7 +50,7 @@ def main():
     for cmd in cmds:
         print('=====  running next command =====')
         print(cmd)
-        exitonfailure(os.system(cmd), cmd=cmd)
+        exitonfailure(subprocess.call(cmd, shell=True), cmd=cmd)
 
 
 if __name__ == '__main__':
