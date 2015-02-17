@@ -577,6 +577,25 @@ class ParticleAnalyzer(object):
         m = np.average(data, weights=w)
         return np.average((data - m)**2, weights=w)
 
+    def quantile(self, func, q, weights=1.0):
+        '''
+        The qth-quantile of the distribution.
+        '''
+        if q < 0 or q > 1:
+            raise ValueError('Quantile q ({:}) must be in range [0, 1]'.format(q))
+        w = self.weight() * weights
+        data = func(self)
+        sortidx = np.argsort(data)
+        wcs = np.cumsum(w[sortidx])
+        idx = np.searchsorted(wcs, wcs[-1]*np.array(q))
+        return data[sortidx[idx]]
+
+    def median(self, func, weights=1.0):
+        '''
+        The median
+        '''
+        return self.quantile(func, 0.5, weights=weights)
+
     # ---- Functions to create a Histogram. ---
 
     def createHistgram1d(self, scalarfx, optargsh={'bins': 300},
