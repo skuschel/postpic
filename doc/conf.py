@@ -34,7 +34,7 @@ class Mock(MagicMock):
         return Mock()
 
 MOCK_MODULES = ['numpy', 'matplotlib.colors', 'matplotlib.pyplot', 'matplotlib',
-                'scipy', 'scipy.ndimage',
+                'scipy', 'scipy.ndimage', 'h5py',
                 'scipy.ndimage.interpolation', 'matplotlib.ticker']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 

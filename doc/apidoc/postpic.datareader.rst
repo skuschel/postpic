@@ -20,6 +20,14 @@ postpic.datareader.epochsdf module
     :undoc-members:
     :show-inheritance:
 
+postpic.datareader.vsimhdf5 module
+----------------------------------
+
+.. automodule:: postpic.datareader.vsimhdf5
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
