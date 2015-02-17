@@ -164,8 +164,8 @@ class _SingleSpeciesAnalyzer(object):
 
     def gamma(self):
         return np.sqrt(1 +
-                       (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
-                       / (self.mass() * pc.c) ** 2)
+                       (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2) /
+                       (self.mass() * pc.c) ** 2)
 
     def mass_u(self):
         return self.mass() / pc.mass_u

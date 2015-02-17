@@ -143,10 +143,10 @@ class FieldAnalyzer(object):
     # --- spezielle Funktionen
 
     def energydensityE(self, **kwargs):
-        ret = Field(0.5 * pc.epsilon0
-                    * (self._Ex(**kwargs) ** 2
-                       + self._Ey(**kwargs) ** 2
-                       + self._Ez(**kwargs) ** 2))
+        ret = Field(0.5 * pc.epsilon0 *
+                    (self._Ex(**kwargs) ** 2 +
+                     self._Ey(**kwargs) ** 2 +
+                     self._Ez(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Electric-Field'
         ret.shortname = 'E'
@@ -154,10 +154,10 @@ class FieldAnalyzer(object):
         return ret
 
     def energydensityM(self, **kwargs):
-        ret = Field(0.5 / pc.mu0
-                    * (self._Bx(**kwargs) ** 2
-                       + self._By(**kwargs) ** 2
-                       + self._Bz(**kwargs) ** 2))
+        ret = Field(0.5 / pc.mu0 *
+                    (self._Bx(**kwargs) ** 2 +
+                     self._By(**kwargs) ** 2 +
+                     self._Bz(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Magnetic-Field'
         ret.shortname = 'M'
@@ -165,14 +165,14 @@ class FieldAnalyzer(object):
         return ret
 
     def energydensityEM(self, **kwargs):
-        ret = Field(0.5 * pc.epsilon0
-                    * (self._Ex(**kwargs) ** 2
-                       + self._Ey(**kwargs) ** 2
-                       + self._Ez(**kwargs) ** 2)
-                    + 0.5 / pc.mu0
-                    * (self._Bx(**kwargs) ** 2
-                       + self._By(**kwargs) ** 2
-                       + self._Bz(**kwargs) ** 2))
+        ret = Field(0.5 * pc.epsilon0 *
+                    (self._Ex(**kwargs) ** 2 +
+                     self._Ey(**kwargs) ** 2 +
+                     self._Ez(**kwargs) ** 2) +
+                    0.5 / pc.mu0 *
+                    (self._Bx(**kwargs) ** 2 +
+                     self._By(**kwargs) ** 2 +
+                     self._Bz(**kwargs) ** 2))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density EM-Field'
         ret.shortname = 'EM'

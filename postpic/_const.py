@@ -55,10 +55,10 @@ def cutout(m, oldextent, newextent):
     s = ()
     for dim in range(dims):
         i = 2 * dim
-        thisdimmin = round((newextent[i] - oldextent[i])
-                           / (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-        thisdimmax = round((newextent[i + 1] - oldextent[i])
-                           / (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
+        thisdimmin = round((newextent[i] - oldextent[i]) /
+                           (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
+        thisdimmax = round((newextent[i + 1] - oldextent[i]) /
+                           (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
         s = np.append(s, slice(thisdimmin, thisdimmax))
     if len(s) == 1:
         s = s[0]
