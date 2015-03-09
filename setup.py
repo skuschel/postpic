@@ -18,7 +18,7 @@
 from setuptools import setup
 
 setup(name='postpic',
-      version='0.0.1',
+      version='0.1.1',
       author='Stephan Kuschel',
       author_email='stephan.kuschel@gmail.de',
       description='The open source particle-in-cell post processor.',
