@@ -34,7 +34,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
             order = 0 returns a normal histogram.
             order = 1 uses top hat particle shape.
     '''    
-    cdef np.ndarray[np.double_t, ndim=1] ret = np.zeros(bins, dtype=np.double);
+    cdef np.ndarray[np.double_t, ndim=1] ret = np.zeros(bins, dtype=np.double)
     cdef double min, max
     if range is None:
         min = np.min(data)

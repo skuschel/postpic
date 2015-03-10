@@ -19,7 +19,8 @@ virtualenv:
 # command to install dependencies
 install:
   - sudo apt-get update -qq
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-matplotlib python-scipy python-cython; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-matplotlib python-scipy cython gcc; fi
+  - cython --version
   - pip install -r pip-requirements.txt
 
 # run tests
