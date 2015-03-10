@@ -598,9 +598,12 @@ class ParticleAnalyzer(object):
 
     # ---- Functions to create a Histogram. ---
 
-    def createHistgram1d(self, scalarfx, optargsh={'bins': 300},
+    def createHistgram1d(self, scalarfx, optargsh={},
                          simextent=False, simgrid=False, rangex=None,
                          weights=lambda x: 1):
+        optargshdefs = {'bins': 300, 'order': 1}
+        optargshdefs.update(optargsh)
+        optargsh = optargshdefs
         if simgrid:
             simextent = True
         xdata = scalarfx(self)
@@ -616,8 +619,16 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'] = scalarfx.gridpoints
         w = self.weight() * weights(self)
-        h, edges = np.histogram(xdata, weights=w,
-                                range=rangex, **optargsh)
+        try:
+            from .. import cythonfunctions as cyf
+            h, edges = cyf.histogram(xdata, weights=w,
+                                     range=rangex, **optargsh)
+        except ImportError:
+            import warnings
+            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
+            optargsh.pop('order')
+            h, edges = np.histogram(xdata, weights=w,
+                                    range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
 

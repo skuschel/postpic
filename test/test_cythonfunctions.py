@@ -31,7 +31,7 @@ class TestCythonfunctions(unittest.TestCase):
     def test_histogram(self):
         # in this special case, cf.histogram and np.histogram must yield equal results
         # check hist and edges
-        cfh, cfe = cf.histogram(self.data,bins=20, range=(0,1))
+        cfh, cfe = cf.histogram(self.data, bins=20, range=(0,1), order=0)
         nph, npe = np.histogram(self.data, bins=20, range=(0,1))
         self.assertListEqual(list(nph), list(cfh))
         self.assertListEqual(list(npe), list(cfe))
@@ -39,14 +39,14 @@ class TestCythonfunctions(unittest.TestCase):
     def test_histogramw(self):
         # in this special case, cf.histogram and np.histogram must yield equal results
         # check hist and edges
-        cfh, cfe = cf.histogram(self.data,bins=100, range=(0,1), weights=self.weights)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0,1), order=0, weights=self.weights)
         nph, npe = np.histogram(self.data, bins=100, range=(0,1), weights=self.weights)
         diff = np.abs(cfh - nph)
         self.assertAlmostEqual(np.sum(diff), 0)
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo1(self):
-        cfh, cfe = cf.histogram(self.data,bins=100, range=(-0.1,1.1), order=1)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(-0.1,1.1), order=1)
         nph, npe = np.histogram(self.data, bins=100, range=(-0.1,1.1))
         # just check that no mass is lost
         diff = np.sum(cfh) - np.sum(nph)
@@ -54,7 +54,7 @@ class TestCythonfunctions(unittest.TestCase):
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo1w(self):
-        cfh, cfe = cf.histogram(self.data,bins=100, range=(-0.1,1.1), order=1, weights=self.weights)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(-0.1,1.1), order=1, weights=self.weights)
         nph, npe = np.histogram(self.data, bins=100, range=(-0.1,1.1), weights=self.weights)
         # just check that no mass is lost
         diff = np.sum(cfh) - np.sum(nph)

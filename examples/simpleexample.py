@@ -83,4 +83,8 @@ if True:
         # use the plotter with the particle scalars defined above.
         plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))  # plot 12
 
+        # show what particle shapes can do
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 0}), ylim=(3e0, 2e5))
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 1}), ylim=(3e0, 2e5)) 
+
 
