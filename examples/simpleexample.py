@@ -1,4 +1,22 @@
 #!/usr/bin/env python2
+#
+# This file is part of postpic.
+#
+# postpic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# postpic is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with postpic. If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright Stephan Kuschel 2015
+#
 
 import numpy as np
 import postpic as pp
@@ -82,9 +100,5 @@ if True:
         r.name='r'
         # use the plotter with the particle scalars defined above.
         plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))  # plot 12
-
-        # show what particle shapes can do
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 0}), ylim=(3e0, 2e5))
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 1}), ylim=(3e0, 2e5)) 
 
 
