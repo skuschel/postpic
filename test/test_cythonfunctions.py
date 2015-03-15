@@ -22,7 +22,7 @@ import unittest
 import postpic.cythonfunctions as cf
 import numpy as np
 
-class TestCythonfunctions(unittest.TestCase):
+class TestHistogram(unittest.TestCase):
 
     def setUp(self):
         self.data = np.random.random(1e3)
@@ -60,6 +60,38 @@ class TestCythonfunctions(unittest.TestCase):
         diff = np.sum(cfh) - np.sum(nph)
         self.assertAlmostEqual(diff, 0)
         self.assertListEqual(list(npe), list(cfe))
+
+
+class TestHistogram2d(unittest.TestCase):
+
+    def setUp(self):
+        self.datax = np.random.random(1e3)
+        self.datay = 2 * np.random.random(1e3)
+        self.weights = np.random.random(1e3)
+
+    def test_histogram2d(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay,
+                                         bins=(20,30), range=((0,1), (0,2)), order=0)
+        nph, npex, npey = np.histogram2d(self.datax, self.datay,
+                                          bins=(20, 30), range=((0,1), (0,2)))
+        self.assertAlmostEqual(0.0, np.sum(np.abs(nph - cfh)))
+        self.assertListEqual(list(npex), list(cfex))
+        self.assertListEqual(list(npey), list(cfey))
+
+    def test_histogram2dw(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay, weights=self.weights,
+                                         bins=(20, 30), range=((0,1), (0,2)), order=0)
+        nph, npex, npey = np.histogram2d(self.datax, self.datay, weights=self.weights,
+                                         bins=(20, 30), range=((0,1), (0,2)))
+        self.assertAlmostEqual(0.0, np.sum(np.abs(nph - cfh)))
+        self.assertListEqual(list(npex), list(cfex))
+        self.assertListEqual(list(npey), list(cfey))
+
+
 
 if __name__ == '__main__':
     unittest.main()
