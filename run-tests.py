@@ -39,6 +39,8 @@ def exitonfailure(exitstatus, cmd=None):
 
 
 def main():
+    # make sure .pyx sources are up to date and compiled
+    subprocess.call('python2 setup.py build_ext --inplace', shell=True)
     # run nose tests
     import nose
     ex = nose.run()  # returns True on success
@@ -50,7 +52,7 @@ def main():
             os.path.join('examples', 'particleshapedemo.py')]
     for cmd in cmds:
         print('=====  running next command =====')
-        print(cmd)
+        print('$ ' + cmd)
         exitonfailure(subprocess.call(cmd, shell=True), cmd=cmd)
 
 
