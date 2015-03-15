@@ -26,7 +26,6 @@ The open source particle-in-cell post processor.
 import datareader
 import analyzer
 import plotting
-from pkg_resources import get_distribution, DistributionNotFound
 from analyzer import ParticleAnalyzer, identifyspecies
 from datareader import chooseCode, readDump, readSim
 
@@ -35,33 +34,37 @@ __all__ = ['datareader', 'analyzer', 'plotting']
 __all__ += ['ParticleAnalyzer', 'identifyspecies']
 __all__ += ['chooseCode', 'readDump', 'readSim']
 
-# read version from installed metadata
-try:
-    import os.path
-    _dist = get_distribution('postpic')
-    # Normalize case for Windows systems
-    dist_loc = os.path.normcase(_dist.location)
-    here = os.path.normcase(__file__)
-    if not here.startswith(os.path.join(dist_loc, 'postpic')):
-        # not installed, but there is another version that *is*
-        raise DistributionNotFound
-except DistributionNotFound:
-    __version__ = 'Please install this project with setup.py'
-else:
-    __version__ = _dist.version
 
-# add Git description for __version__ if present
-try:
-    import subprocess as sub
-    import os.path
-    cwd = os.path.dirname(__file__)
-    p = sub.Popen(['git', 'describe', '--always'], stdout=sub.PIPE,
-                  stderr=sub.PIPE, cwd=cwd)
-    out, err = p.communicate()
-    if not p.returncode:  # git exited without error
-        __version__ += '_g' + out
-except OSError:
-    # 'git' command not found
-    pass
+def _createversionstring():
+    from pkg_resources import get_distribution, DistributionNotFound
+    # read version from installed metadata
+    try:
+        import os.path
+        _dist = get_distribution('postpic')
+        # Normalize case for Windows systems
+        dist_loc = os.path.normcase(_dist.location)
+        here = os.path.normcase(__file__)
+        if not here.startswith(os.path.join(dist_loc, 'postpic')):
+            # not installed, but there is another version that *is*
+            raise DistributionNotFound
+    except DistributionNotFound:
+        __version__ = 'Please install this project with setup.py'
+    else:
+        __version__ = _dist.version
 
+    # add Git description for __version__ if present
+    try:
+        import subprocess as sub
+        import os.path
+        cwd = os.path.dirname(__file__)
+        p = sub.Popen(['git', 'describe', '--always'], stdout=sub.PIPE,
+                      stderr=sub.PIPE, cwd=cwd)
+        out, err = p.communicate()
+        if not p.returncode:  # git exited without error
+            __version__ += '_' + out
+    except OSError:
+        # 'git' command not found
+        pass
+    return __version__
 
+__version__ = _createversionstring()
