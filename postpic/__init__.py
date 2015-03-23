@@ -57,7 +57,7 @@ def _createversionstring():
         import subprocess as sub
         import os.path
         cwd = os.path.dirname(__file__)
-        p = sub.Popen(['git', 'describe', '--always'], stdout=sub.PIPE,
+        p = sub.Popen(['git', 'describe', '--always', '--dirty'], stdout=sub.PIPE,
                       stderr=sub.PIPE, cwd=cwd)
         out, err = p.communicate()
         if not p.returncode:  # git exited without error

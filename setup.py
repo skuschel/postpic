@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='postpic',
       version='0.1.1',
@@ -23,7 +23,7 @@ setup(name='postpic',
       author_email='stephan.kuschel@gmail.de',
       description='The open source particle-in-cell post processor.',
       url='http://github.com/skuschel/postpic',
-      packages=['postpic'],
+      packages=find_packages(include=['postpic*']),
       license='GPLv3+',
       install_requires=['matplotlib', 'numpy>=1.7', 'scipy'],
       classifiers=[
