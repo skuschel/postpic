@@ -366,7 +366,7 @@ class MatplotlibPlotter(object):
         elif field.dimensions == 1:
             ret = self.plotFields1d(field, **kwargs)
         elif field.dimensions == 2:
-            ret = self.plotField2d(field, **kwargs)
+            ret = self.plotField2d(field, name,  **kwargs)
         else:
             raise Exception('3D not implemented')
         return ret
