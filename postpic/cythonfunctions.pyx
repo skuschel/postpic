@@ -33,8 +33,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
             sets the order of the particle shapes.
             order = 0 returns a normal histogram.
             order = 1 uses top hat particle shape.
-    '''    
-    cdef np.ndarray[np.double_t, ndim=1] ret = np.zeros(bins, dtype=np.double)
+    '''
     cdef double min, max
     if range is None:
         min = np.min(data)
@@ -45,10 +44,14 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
     bin_edges = np.linspace(min, max, bins+1)
     cdef int n = len(data)
     cdef double tmp = 1.0 / (max - min) * bins
+    cdef np.ndarray[np.double_t, ndim=1] ret
+    cdef int shape_supp
     cdef double x
     cdef int xr
     if order == 0:
         # normal Histogram
+        shape_supp = 0
+        ret = np.zeros(bins, dtype=np.double)
         for i in xrange(n):
             x = (data[i] - min) * tmp;
             if x > 0.0 and x < bins:
@@ -58,19 +61,20 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
                     ret[<int>x] += weights[i]
     elif order == 1:
         # Particle shape is spline of order 1 = TopHat
+        shape_supp = 1
+        # use shape_supp ghost cells on both sides of the domain
+        ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
         for i in xrange(n):
             x = (data[i] - min) * tmp;
             xr = <int>(x + 0.5);
-            if (xr >= 0.0 and xr < bins):
+            if (xr >= 0.0 and xr < bins + shape_supp):
                 if weights is None:
-                    ret[xr] += (0.5 + x - xr) * 1.0
-                    if (xr > 1.0):
-                        ret[xr - 1] += (0.5 - x + xr) * 1.0
+                    ret[xr + shape_supp]     += (0.5 + x - xr) * 1.0
+                    ret[xr + shape_supp - 1] += (0.5 - x + xr) * 1.0
                 else:
-                    ret[xr] += (0.5 + x - xr) * weights[i]
-                    if (xr > 1.0):
-                        ret[xr - 1] += (0.5 - x + xr) * weights[i]
-    return ret, bin_edges
+                    ret[xr + shape_supp]     += (0.5 + x - xr) * weights[i]
+                    ret[xr + shape_supp - 1] += (0.5 - x + xr) * weights[i]
+    return ret[shape_supp:shape_supp + bins], bin_edges
 
 
 def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, ndim=1] datay,

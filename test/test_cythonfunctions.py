@@ -46,19 +46,21 @@ class TestHistogram(unittest.TestCase):
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo1(self):
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(-0.1,1.1), order=1)
-        nph, npe = np.histogram(self.data, bins=100, range=(-0.1,1.1))
-        # just check that no mass is lost
-        diff = np.sum(cfh) - np.sum(nph)
-        self.assertAlmostEqual(diff, 0)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), order=1)
+        nph, npe = np.histogram(self.data, bins=100, range=(0.0,1.0))
+        # just check that no mass is lost (cfh.base includes ghost cells)
+        totalmass = len(self.data)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+        self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo1w(self):
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(-0.1,1.1), order=1, weights=self.weights)
-        nph, npe = np.histogram(self.data, bins=100, range=(-0.1,1.1), weights=self.weights)
-        # just check that no mass is lost
-        diff = np.sum(cfh) - np.sum(nph)
-        self.assertAlmostEqual(diff, 0)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), order=1, weights=self.weights)
+        nph, npe = np.histogram(self.data, bins=100, range=(0.0,1.0), weights=self.weights)
+        # just check that no mass is lost (cfh.base includes ghost cells)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+        self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
         self.assertListEqual(list(npe), list(cfe))
 
 
