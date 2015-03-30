@@ -17,6 +17,7 @@
 #
 from setuptools import setup
 from Cython.Build import cythonize
+import numpy
 
 setup(name='postpic',
       version='0.1.1',
@@ -26,6 +27,7 @@ setup(name='postpic',
       url='http://github.com/skuschel/postpic',
       packages=['postpic'],
       ext_modules = cythonize("postpic/cythonfunctions.pyx"),
+      include_dirs = [numpy.get_include()],
       license='GPLv3+',
       install_requires=['matplotlib', 'numpy>=1.7', 'scipy', 'cython'],
       classifiers=[
