@@ -49,7 +49,8 @@ def main():
     cmds = ['pep8 postpic --statistics --count --show-source '
             '--ignore=W391,E123,E226,E24 --max-line-length=99',
             os.path.join('examples', 'simpleexample.py'),
-            os.path.join('examples', 'particleshapedemo.py')]
+            os.path.join('examples', 'particleshapedemo.py'),
+            os.path.join('examples', 'time_cythonfunctions.py')]
     for cmd in cmds:
         print('=====  running next command =====')
         print('$ ' + cmd)
