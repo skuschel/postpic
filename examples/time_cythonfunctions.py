@@ -74,5 +74,7 @@ time2D(datax,datay, bins, None, 0, tn)
 time2D(datax, datay, bins, weights, 0, tnw)
 time2D(datax,datay, bins, None, 1, tn)
 time2D(datax, datay, bins, weights, 1, tnw)
+time2D(datax,datay, bins, None, 2, tn)
+time2D(datax, datay, bins, weights, 2, tnw)
 
 

@@ -110,8 +110,10 @@ if True:
         # 1 particle per cell
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'order': 0}, title='1ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'order': 1}, title='1ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'order': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
         # 3 particles per cell
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 0}, title='3ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 1}, title='3ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 2}, title='3ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
