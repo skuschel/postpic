@@ -95,7 +95,9 @@ class TestHistogram2d(unittest.TestCase):
                                          bins=(20,30), range=((0,1), (0,2)), order=0)
         nph, npex, npey = np.histogram2d(self.datax, self.datay,
                                           bins=(20, 30), range=((0,1), (0,2)))
-        self.assertAlmostEqual(0.0, np.sum(np.abs(nph - cfh)))
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+        self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
         self.assertListEqual(list(npex), list(cfex))
         self.assertListEqual(list(npey), list(cfey))
 
@@ -106,10 +108,37 @@ class TestHistogram2d(unittest.TestCase):
                                          bins=(20, 30), range=((0,1), (0,2)), order=0)
         nph, npex, npey = np.histogram2d(self.datax, self.datay, weights=self.weights,
                                          bins=(20, 30), range=((0,1), (0,2)))
-        self.assertAlmostEqual(0.0, np.sum(np.abs(nph - cfh)))
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+        self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
         self.assertListEqual(list(npex), list(cfex))
         self.assertListEqual(list(npey), list(cfey))
 
+    def test_histogram2do1(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay,
+                                         bins=(20,30), range=((0,1), (0,2)), order=1)
+        nph, npex, npey = np.histogram2d(self.datax, self.datay,
+                                          bins=(20, 30), range=((0,1), (0,2)))
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+        self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
+        self.assertListEqual(list(npex), list(cfex))
+        self.assertListEqual(list(npey), list(cfey))
+
+    def test_histogram2do1w(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay, weights=self.weights,
+                                         bins=(20, 30), range=((0,1), (0,2)), order=1)
+        nph, npex, npey = np.histogram2d(self.datax, self.datay, weights=self.weights,
+                                         bins=(20, 30), range=((0,1), (0,2)))
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+        self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
+        self.assertListEqual(list(npex), list(cfex))
+        self.assertListEqual(list(npey), list(cfey))
 
 
 if __name__ == '__main__':

@@ -43,7 +43,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
         max = range[1]
     bin_edges = np.linspace(min, max, bins+1)
     cdef int n = len(data)
-    cdef double tmp = 1.0 / (max - min) * bins
+    cdef double dx = 1.0 / (max - min) * bins
     cdef np.ndarray[np.double_t, ndim=1] ret
     cdef int shape_supp
     cdef double x
@@ -54,7 +54,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
         shape_supp = 0
         ret = np.zeros(bins, dtype=np.double)
         for i in xrange(n):
-            x = (data[i] - min) * tmp;
+            x = (data[i] - min) * dx;
             if x > 0.0 and x < bins:
                 if weights is None:
                     ret[<int>x] += 1.0
@@ -66,7 +66,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
         # use shape_supp ghost cells on both sides of the domain
         ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
         for i in xrange(n):
-            x = (data[i] - min) * tmp;
+            x = (data[i] - min) * dx;
             xr = <int>(x + 0.5);
             if (xr >= 0.0 and xr <= bins):
                 if weights is None:
@@ -76,12 +76,12 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
                     ret[xr + shape_supp]     += (0.5 + x - xr) * weights[i]
                     ret[xr + shape_supp - 1] += (0.5 - x + xr) * weights[i]
     elif order == 2:
-        # Particle shape is spline of order 1 = TopHat
+        # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain
         ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
         for i in xrange(n):
-            x = (data[i] - min) * tmp;
+            x = (data[i] - min) * dx;
             xr = <int>x;
             xd = x - xr
             if (xr >= 0.0 and xr <= bins):
@@ -110,7 +110,6 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef int n = len(datax)
     if n != len(datay):
             raise ValueError('datax and datay must be of equal length')
-    cdef np.ndarray[np.double_t, ndim=2] ret = np.zeros(bins, dtype=np.double)
     cdef double xmin, xmax, ymin, ymax
     if range is None:
         xmin = np.min(datax)
@@ -126,24 +125,55 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef int ybins = bins[1]
     xedges = np.linspace(xmin, xmax, xbins+1)
     yedges = np.linspace(ymin, ymax, ybins+1)
-    cdef double xtmp = 1.0 / (xmax - xmin) * xbins
-    cdef double ytmp = 1.0 / (ymax - ymin) * ybins
-    cdef double x
-    cdef double y
+    cdef double dx = 1.0 / (xmax - xmin) * xbins
+    cdef double dy = 1.0 / (ymax - ymin) * ybins
+    cdef np.ndarray[np.double_t, ndim=2] ret
+    cdef int shape_supp
+    cdef double x, y
+    cdef int xr, yr
+    cdef double wx[2]
+    cdef double wy[2]
+
     if order == 0:
         # normal Histogram
+        shape_supp = 0
+        ret = np.zeros(bins, dtype=np.double)
         for i in xrange(n):
-            x = (datax[i] - xmin) * xtmp
-            y = (datay[i] - ymin) * ytmp
+            x = (datax[i] - xmin) * dx
+            y = (datay[i] - ymin) * dy
             if x > 0.0 and y > 0.0 and x < xbins and y < ybins:
                 if weights is None:
                     ret[<int>x, <int>y] += 1.0
                 else:
                     ret[<int>x, <int>y] += weights[i]
     elif order == 1:
-        pass
+        # Particle shape is spline of order 1 = TopHat
+        shape_supp = 1
+        # use shape_supp ghost cells on both sides of the domain
+        resshape = [b + 2 * shape_supp for b in bins]
+        ret = np.zeros(resshape, dtype=np.double)
+        for i in xrange(n):
+            x = (datax[i] - xmin) * dx;
+            y = (datay[i] - ymin) * dy;
+            xr = <int>(x + 0.5);
+            yr = <int>(y + 0.5);
+            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
+                wx[0] = (0.5 - x + xr)
+                wx[1] = (0.5 + x - xr)
+                wy[0] = (0.5 - y + yr)
+                wy[1] = (0.5 + y - yr)
+                if weights is None:
+                    ret[xr + shape_supp - 1, yr + shape_supp - 1] += wx[0] * wy[0]
+                    ret[xr + shape_supp - 1, yr + shape_supp - 0] += wx[0] * wy[1]
+                    ret[xr + shape_supp - 0, yr + shape_supp - 1] += wx[1] * wy[0]
+                    ret[xr + shape_supp - 0, yr + shape_supp - 0] += wx[1] * wy[1]
+                else:
+                    ret[xr + shape_supp - 1, yr + shape_supp - 1] += wx[0] * wy[0] * weights[i]
+                    ret[xr + shape_supp - 1, yr + shape_supp - 0] += wx[0] * wy[1] * weights[i]
+                    ret[xr + shape_supp - 0, yr + shape_supp - 1] += wx[1] * wy[0] * weights[i]
+                    ret[xr + shape_supp - 0, yr + shape_supp - 0] += wx[1] * wy[1] * weights[i]
 
-    return ret, xedges, yedges
+    return ret[shape_supp:shape_supp + xbins, shape_supp:shape_supp + ybins], xedges, yedges
 
 
 

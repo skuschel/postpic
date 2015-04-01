@@ -680,9 +680,18 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfy, 'gridpoints'):
                 optargsh['bins'][1] = scalarfy.gridpoints
         w = self.weight() * weights(self)  # Particle Size * additional weights
-        h, xedges, yedges = np.histogram2d(xdata, ydata,
-                                           weights=w, range=[rangex, rangey],
-                                           **optargsh)
+        try:
+            from .. import cythonfunctions as cyf
+            h, xedges, yedges = cyf.histogram2d(xdata, ydata,
+                                                weights=w, range=[rangex, rangey],
+                                                **optargsh)
+        except ImportError:
+            import warnings
+            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
+            optargsh.pop('order')
+            h, xedges, yedges = np.histogram2d(xdata, ydata,
+                                               weights=w, range=[rangex, rangey],
+                                               **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
         return h, xedges, yedges
 
