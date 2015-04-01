@@ -46,6 +46,8 @@ time1D(data, bins, None, 0, tn)
 time1D(data, bins, weights, 0, tnw)
 time1D(data, bins, None, 1, tn)
 time1D(data, bins, weights, 1, tnw)
+time1D(data, bins, None, 2, tn)
+time1D(data, bins, weights, 2, tnw)
 
 # --- 2D
 

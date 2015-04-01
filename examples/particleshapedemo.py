@@ -67,6 +67,7 @@ def particleshapedemo(order):
     fig.suptitle('ParticleShapeOrder: {:s}'.format(str(order)))
     ax = fig.add_subplot(111)
     ax.plot(x,y)
+    ax.set_ylim((0,1))
     ax.set_xticks(x, minor=True)
     ax.grid(which='minor')
     for ix in ptclpos:
@@ -77,6 +78,7 @@ def particleshapedemo(order):
 if True:
     particleshapedemo(0)
     particleshapedemo(1)
+    particleshapedemo(2)
 
 # --- 1D ---
 if True:
@@ -86,14 +88,17 @@ if True:
         # 1 particle per cell
         plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'order': 0}, title='1ppc_order0', rangex=(0,1)), **plotargs)
         plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'order': 1}, title='1ppc_order1', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'order': 2}, title='1ppc_order2', rangex=(0,1)), **plotargs)
 
         # 3 particles per cell
         plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 0}, title='3ppc_order0', rangex=(0,1)), **plotargs)
         plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 1}, title='3ppc_order1', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 2}, title='3ppc_order2', rangex=(0,1)), **plotargs)
 
         # 10 particles per cell
         plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'order': 0}, title='10ppc_order0', rangex=(0,1)), **plotargs)
         plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'order': 1}, title='10ppc_order1', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'order': 2}, title='10ppc_order2', rangex=(0,1)), **plotargs)
 
 
 
