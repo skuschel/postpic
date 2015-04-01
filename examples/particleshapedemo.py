@@ -55,6 +55,28 @@ from postpic import ParticleAnalyzer as PA
 # create ParticleAnalyzer for every particle species that exists.
 pas = [PA(dr, s) for s in dr.listSpecies()]
 
+# --- 1D visualization of particle contributions ---
+
+def particleshapedemo(order):
+    import postpic.cythonfunctions as cf
+    import matplotlib.pyplot as plt
+    ptclpos = np.array([4.5, 9.75, 15.0, 20.25])
+    y, edges = cf.histogram(ptclpos, bins=25, range=(0,25), order=order)
+    x = np.convolve(edges, [0.5, 0.5], mode='valid')
+    fig = plt.figure()
+    fig.suptitle('ParticleShapeOrder: {:s}'.format(str(order)))
+    ax = fig.add_subplot(111)
+    ax.plot(x,y)
+    ax.set_xticks(x, minor=True)
+    ax.grid(which='minor')
+    for ix in ptclpos:
+        ax.axvline(x=ix, color='y')
+    fig.savefig(savedir + 'particleshapedemo{:s}.png'.format(str(order)), dpi=160)
+    plt.close(fig)
+
+if True:
+    particleshapedemo(0)
+    particleshapedemo(1)
 
 # --- 1D ---
 if True:
