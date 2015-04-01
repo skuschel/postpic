@@ -24,6 +24,8 @@ import numpy as np
 cimport numpy as np
 
 
+@cython.boundscheck(False)  # disable array boundscheck
+@cython.wraparound(False)  # disable negative array indices
 def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
            np.ndarray[np.double_t, ndim=1] weights=None, int order=0):
     '''
@@ -96,6 +98,8 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
     return ret[shape_supp:shape_supp + bins], bin_edges
 
 
+@cython.boundscheck(False)  # disable array boundscheck
+@cython.wraparound(False)  # disable negative array indices
 def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, ndim=1] datay,
                 np.ndarray[np.double_t, ndim=1] weights=None,
                 range=None, bins=(20, 20), int order=0):
