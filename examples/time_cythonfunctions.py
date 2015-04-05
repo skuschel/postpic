@@ -78,3 +78,32 @@ time2D(datax,datay, bins, None, 2, tn)
 time2D(datax, datay, bins, weights, 2, tnw)
 
 
+# --- 3D
+
+def time3D(datax, datay, dataz, bins, weights, order, tn):
+    t = timeit.Timer(lambda: cf.histogram3d(datax, datay, dataz, range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, order=order))
+    tc = t.timeit(number=5)/5.0
+    ws = '       ' if weights is None else 'weights'
+    print '3D, {:d} order, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(order, ws, tc, tn/tc)
+
+bins = (200,300,400)
+npart = 1e6
+print '=== Histogram 3D bins: {:6s}, npart: {:.1e} ==='.format(bins, npart)
+datax = np.random.rand(npart)
+datay = np.random.rand(npart)
+dataz = np.random.rand(npart)
+weights = np.random.random(npart)
+# time numpy function
+t = timeit.Timer(lambda: np.histogramdd((datax, datay, dataz), range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=None))
+tn = t.timeit(number=1)/1.0
+t = timeit.Timer(lambda: np.histogramdd((datax, datay, dataz), range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=weights))
+tnw = t.timeit(number=1)/1.0
+print 'numpy        : {:0.2e} sec'.format(tn)
+print 'numpy weights: {:0.2e} sec'.format(tnw)
+time3D(datax, datay, dataz, bins, None, 0, tn)
+time3D(datax, datay, dataz, bins, weights, 0, tnw)
+time3D(datax, datay, dataz, bins, None, 1, tn)
+time3D(datax, datay, dataz, bins, weights, 1, tnw)
+time3D(datax, datay, dataz, bins, None, 2, tn)
+time3D(datax, datay, dataz, bins, weights, 2, tnw)
+

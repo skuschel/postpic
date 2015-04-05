@@ -166,5 +166,63 @@ class TestHistogram2d(unittest.TestCase):
         self.assertListEqual(list(npex), list(cfex))
         self.assertListEqual(list(npey), list(cfey))
 
+
+class TestHistogram3d(unittest.TestCase):
+
+    def setUp(self):
+        self.datax = np.random.random(1e3)
+        self.datay = 2 * np.random.random(1e3)
+        self.dataz = 3 * np.random.random(1e3)
+        self.weights = np.random.random(1e3)
+
+    def test_histogram3d(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram3d(self.datax, self.datay, self.dataz,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=0)
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram3dw(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=0)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+
+    def test_histogram3do1(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram3d(self.datax, self.datay, self.dataz,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=1)
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram3do1w(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=1)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram3do2(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram3d(self.datax, self.datay, self.dataz,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=2)
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram3do2w(self):
+        # in this special case, cf.histogram2d and np.histogram2d must yield equal results
+        # check hist and edges
+        cfh, cfex, cfey = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=2)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
 if __name__ == '__main__':
     unittest.main()
