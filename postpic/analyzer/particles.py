@@ -601,7 +601,7 @@ class ParticleAnalyzer(object):
     def createHistgram1d(self, scalarfx, optargsh={},
                          simextent=False, simgrid=False, rangex=None,
                          weights=lambda x: 1):
-        optargshdefs = {'bins': 300, 'shape': 2}
+        optargshdefs = {'bins': 300, 'shape': 0}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
@@ -626,7 +626,7 @@ class ParticleAnalyzer(object):
         except ImportError:
             import warnings
             warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
-            optargsh.pop('order')
+            optargsh.pop('shape')
             h, edges = np.histogram(xdata, weights=w,
                                     range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
@@ -656,9 +656,9 @@ class ParticleAnalyzer(object):
             "ParticleAnalyzer.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
-        # optargshdefs = {'bins': [500, 500], 'shape': 2}
-        # optargshdefs.update(optargsh)
-        # optargsh = optargshdefs
+        optargshdefs = {'bins': [500, 500], 'shape': 0}
+        optargshdefs.update(optargsh)
+        optargsh = optargshdefs
         if simgrid:
             simextent = True
         xdata = scalarfx(self)
@@ -691,7 +691,7 @@ class ParticleAnalyzer(object):
         except ImportError:
             import warnings
             warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
-            optargsh.pop('order')
+            optargsh.pop('shape')
             h, xedges, yedges = np.histogram2d(xdata, ydata,
                                                weights=w, range=[rangex, rangey],
                                                **optargsh)
@@ -699,7 +699,7 @@ class ParticleAnalyzer(object):
         return h, xedges, yedges
 
     def createHistgram3d(self, scalarfx, scalarfy, scalarfz,
-                         optargsh={'bins': [100, 100, 100]}, simextent=False,
+                         optargsh={}, simextent=False,
                          simgrid=False, rangex=None, rangey=None, rangez=None,
                          weights=lambda x: 1):
         """
@@ -724,6 +724,9 @@ class ParticleAnalyzer(object):
             "ParticleAnalyzer.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
+        optargshdefs = {'bins': [200, 200, 200], 'shape': 0}
+        optargshdefs.update(optargsh)
+        optargsh = optargshdefs
         if simgrid:
             simextent = True
         xdata = scalarfx(self)
@@ -763,7 +766,7 @@ class ParticleAnalyzer(object):
         except ImportError:
             import warnings
             warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
-            optargsh.pop('order')
+            optargsh.pop('shape')
             h, (xe, ye, ze) = np.histogramdd((xdata, ydata, zdata),
                                              weights=w, range=[rangex, rangey, rangez],
                                              **optargsh)
