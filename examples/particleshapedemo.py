@@ -117,3 +117,12 @@ if True:
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 1}, title='3ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
         plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 2}, title='3ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
+
+# --- 3D ---
+if True:
+    dr = pp.readDump(300*30, seed=None, randfunc=np.random.random, dimensions=3)
+    pa = PA(dr, dr.listSpecies()[0])
+    # just try to create the field. not plotting routines yet
+    f = pa.createField(PA.X, PA.Y, PA.Z, optargsh={'bins': (30,30,10), 'order': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1), rangez=(0,1))
+
+

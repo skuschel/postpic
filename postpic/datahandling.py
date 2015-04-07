@@ -172,7 +172,7 @@ class Field(object):
             self._addaxis((0, 1), name='y')
         if zedges is not None:
             self._addaxisnodes(zedges, name='z')
-        if self.dimensions > 2:
+        elif self.dimensions > 2:
             self._addaxis((0, 1), name='z')
 
     def _addaxisobj(self, axisobj):

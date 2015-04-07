@@ -347,6 +347,6 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                             for zs in xrange(3):
                                 ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
 
-    return ret[shape_supp:shape_supp + xbins, shape_supp:shape_supp + ybins], xedges, yedges
+    return ret[shape_supp:shape_supp+xbins, shape_supp:shape_supp+ybins, shape_supp:shape_supp+zbins], xedges, yedges, zedges
 
 
