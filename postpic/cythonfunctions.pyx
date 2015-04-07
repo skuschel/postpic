@@ -23,18 +23,24 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
+shapes = [
+    [0, 'NGP'],
+    [1, 'tophat'],
+    [2, 'triangle']
+]
 
 @cython.boundscheck(False)  # disable array boundscheck
 @cython.wraparound(False)  # disable negative array indices
 def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
-           np.ndarray[np.double_t, ndim=1] weights=None, int order=0):
+           np.ndarray[np.double_t, ndim=1] weights=None, shape=0):
     '''
     Mimics numpy.histogram.
     Additional Arguments:
-        - order = 0:
+        - shape = 0:
             sets the order of the particle shapes.
-            order = 0 returns a normal histogram.
-            order = 1 uses top hat particle shape.
+            shape = 0 returns a normal histogram.
+            shape = 1 uses top hat particle shape.
+            shape = 2 uses triangle particle shape.
     '''
     cdef double min, max
     if range is None:
@@ -51,7 +57,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
     cdef double x
     cdef int xr
     cdef double xd
-    if order == 0:
+    if shape in shapes[0]:
         # normal Histogram
         shape_supp = 0
         ret = np.zeros(bins, dtype=np.double)
@@ -62,7 +68,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
                     ret[<int>x] += 1.0
                 else:
                     ret[<int>x] += weights[i]
-    elif order == 1:
+    elif shape in shapes[1]:
         # Particle shape is spline of order 1 = TopHat
         shape_supp = 1
         # use shape_supp ghost cells on both sides of the domain
@@ -77,7 +83,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
                 else:
                     ret[xr + shape_supp]     += (0.5 + x - xr) * weights[i]
                     ret[xr + shape_supp - 1] += (0.5 - x + xr) * weights[i]
-    elif order == 2:
+    elif shape in shapes[2]:
         # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain
@@ -102,14 +108,15 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
 @cython.wraparound(False)  # disable negative array indices
 def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, ndim=1] datay,
                 np.ndarray[np.double_t, ndim=1] weights=None,
-                range=None, bins=(20, 20), int order=0):
+                range=None, bins=(20, 20), shape=0):
     '''
     Mimics numpy.histogram2d.
     Additional Arguments:
-        - order = 0:
+        - shape = 0:
             sets the order of the particle shapes.
-            order = 0 returns a normal histogram.
-            order = 1 uses top hat particle shape.
+            shape = 0 returns a normal histogram.
+            shape = 1 uses top hat particle shape.
+            shape = 2 uses triangle particle shape.
     '''
     cdef int n = len(datax)
     if n != len(datay):
@@ -138,7 +145,7 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef double wx[3]
     cdef double wy[3]
 
-    if order == 0:
+    if shape in shapes[0]:
         # normal Histogram
         shape_supp = 0
         ret = np.zeros(bins, dtype=np.double)
@@ -150,7 +157,7 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                     ret[<int>x, <int>y] += 1.0
                 else:
                     ret[<int>x, <int>y] += weights[i]
-    elif order == 1:
+    elif shape in shapes[1]:
         # Particle shape is spline of order 1 = TopHat
         shape_supp = 1
         # use shape_supp ghost cells on both sides of the domain
@@ -176,7 +183,7 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                     ret[xr + shape_supp - 1, yr + shape_supp - 0] += wx[0] * wy[1] * weights[i]
                     ret[xr + shape_supp - 0, yr + shape_supp - 1] += wx[1] * wy[0] * weights[i]
                     ret[xr + shape_supp - 0, yr + shape_supp - 0] += wx[1] * wy[1] * weights[i]
-    elif order == 2:
+    elif shape in shapes[2]:
         # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain
@@ -216,7 +223,7 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
 def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, ndim=1] datay,
                 np.ndarray[np.double_t, ndim=1] dataz,
                 np.ndarray[np.double_t, ndim=1] weights=None,
-                range=None, bins=(20, 20), int order=0):
+                range=None, bins=(20, 20), shape=0):
     '''
     Additional Arguments:
         - order = 0:
@@ -261,7 +268,7 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef double wy[3]
     cdef double wz[3]
 
-    if order == 0:
+    if shape in shapes[0]:
         # normal Histogram
         shape_supp = 0
         ret = np.zeros(bins, dtype=np.double)
@@ -274,7 +281,7 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                     ret[<int>x, <int>y, <int>z] += 1.0
                 else:
                     ret[<int>x, <int>y, <int>z] += weights[i]
-    elif order == 1:
+    elif shape in shapes[1]:
         # Particle shape is spline of order 1 = TopHat
         shape_supp = 1
         # use shape_supp ghost cells on both sides of the domain
@@ -307,7 +314,7 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                         for ys in xrange(2):
                             for zs in xrange(2):
                                 ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
-    elif order == 2:
+    elif shape in shapes[2]:
         # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain

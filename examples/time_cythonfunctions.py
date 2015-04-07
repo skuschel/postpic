@@ -24,11 +24,11 @@ import postpic.cythonfunctions as cf
 
 # --- 1D
 
-def time1D(data, bins, weights, order, tn):
-    t = timeit.Timer(lambda: cf.histogram(data, range=(0.001,0.999), bins=bins, weights=weights, order=order))
+def time1D(data, bins, weights, shape, tn):
+    t = timeit.Timer(lambda: cf.histogram(data, range=(0.001,0.999), bins=bins, weights=weights, shape=shape))
     tc = t.timeit(number=5)/5.0
     ws = '       ' if weights is None else 'weights'
-    print '1D, {:d} order, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(order, ws, tc, tn/tc)
+    print '1D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc)
 
 bins = 1000
 npart = 1e6
@@ -51,14 +51,14 @@ time1D(data, bins, weights, 2, tnw)
 
 # --- 2D
 
-def time2D(datax, datay, bins, weights, order, tn):
-    t = timeit.Timer(lambda: cf.histogram2d(datax, datay, range=((0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, order=order))
-    tc = t.timeit(number=5)/5.0
+def time2D(datax, datay, bins, weights, shape, tn):
+    t = timeit.Timer(lambda: cf.histogram2d(datax, datay, range=((0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, shape=shape))
+    tc = t.timeit(number=3)/3.0
     ws = '       ' if weights is None else 'weights'
-    print '2D, {:d} order, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(order, ws, tc, tn/tc)
+    print '2D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc)
 
 bins = (1000,700)
-npart = 2e6
+npart = 1e6
 print '=== Histogram 2D bins: {:6s}, npart: {:.1e} ==='.format(bins, npart)
 datax = np.random.rand(npart)
 datay = np.random.rand(npart)
@@ -80,13 +80,13 @@ time2D(datax, datay, bins, weights, 2, tnw)
 
 # --- 3D
 
-def time3D(datax, datay, dataz, bins, weights, order, tn):
-    t = timeit.Timer(lambda: cf.histogram3d(datax, datay, dataz, range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, order=order))
-    tc = t.timeit(number=5)/5.0
+def time3D(datax, datay, dataz, bins, weights, shape, tn):
+    t = timeit.Timer(lambda: cf.histogram3d(datax, datay, dataz, range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, shape=shape))
+    tc = t.timeit(number=1)/1.0
     ws = '       ' if weights is None else 'weights'
-    print '3D, {:d} order, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(order, ws, tc, tn/tc)
+    print '3D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc)
 
-bins = (200,300,400)
+bins = (200,250,300)  # 15e6 Cells
 npart = 1e6
 print '=== Histogram 3D bins: {:6s}, npart: {:.1e} ==='.format(bins, npart)
 datax = np.random.rand(npart)

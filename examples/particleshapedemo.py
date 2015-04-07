@@ -57,14 +57,14 @@ pas = [PA(dr, s) for s in dr.listSpecies()]
 
 # --- 1D visualization of particle contributions ---
 
-def particleshapedemo(order):
+def particleshapedemo(shape):
     import postpic.cythonfunctions as cf
     import matplotlib.pyplot as plt
     ptclpos = np.array([4.5, 9.75, 15.0, 20.25])
-    y, edges = cf.histogram(ptclpos, bins=25, range=(0,25), order=order)
+    y, edges = cf.histogram(ptclpos, bins=25, range=(0,25), shape=shape)
     x = np.convolve(edges, [0.5, 0.5], mode='valid')
     fig = plt.figure()
-    fig.suptitle('ParticleShapeOrder: {:s}'.format(str(order)))
+    fig.suptitle('ParticleShape: {:s}'.format(str(shape)))
     ax = fig.add_subplot(111)
     ax.plot(x,y)
     ax.set_ylim((0,1))
@@ -72,7 +72,7 @@ def particleshapedemo(order):
     ax.grid(which='minor')
     for ix in ptclpos:
         ax.axvline(x=ix, color='y')
-    fig.savefig(savedir + 'particleshapedemo{:s}.png'.format(str(order)), dpi=160)
+    fig.savefig(savedir + 'particleshapedemo{:s}.png'.format(str(shape)), dpi=160)
     plt.close(fig)
 
 if True:
@@ -86,19 +86,19 @@ if True:
         plotargs = {'ylim': (0,1600), 'log10plot': False}
 
         # 1 particle per cell
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'order': 0}, title='1ppc_order0', rangex=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'order': 1}, title='1ppc_order1', rangex=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'order': 2}, title='1ppc_order2', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'shape': 0}, title='1ppc_order0', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'shape': 1}, title='1ppc_order1', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 300, 'shape': 2}, title='1ppc_order2', rangex=(0,1)), **plotargs)
 
         # 3 particles per cell
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 0}, title='3ppc_order0', rangex=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 1}, title='3ppc_order1', rangex=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'order': 2}, title='3ppc_order2', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'shape': 0}, title='3ppc_order0', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'shape': 1}, title='3ppc_order1', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 100, 'shape': 2}, title='3ppc_order2', rangex=(0,1)), **plotargs)
 
         # 10 particles per cell
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'order': 0}, title='10ppc_order0', rangex=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'order': 1}, title='10ppc_order1', rangex=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'order': 2}, title='10ppc_order2', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'shape': 0}, title='10ppc_order0', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'shape': 1}, title='10ppc_order1', rangex=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, optargsh={'bins': 30, 'shape': 2}, title='10ppc_order2', rangex=(0,1)), **plotargs)
 
 
 # --- 2D ---
@@ -108,14 +108,14 @@ if True:
         plotargs = {'clim': (0,3e4), 'log10plot': False}
 
         # 1 particle per cell
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'order': 0}, title='1ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'order': 1}, title='1ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'order': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'shape': 0}, title='1ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'shape': 1}, title='1ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (300,30), 'shape': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
         # 3 particles per cell
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 0}, title='3ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 1}, title='3ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
-        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'order': 2}, title='3ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'shape': 0}, title='3ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'shape': 1}, title='3ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
+        plotter.plotField(pa.createField(PA.X, PA.Y, optargsh={'bins': (100,10), 'shape': 2}, title='3ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
 
 # --- 3D ---
@@ -123,6 +123,6 @@ if True:
     dr = pp.readDump(300*30, seed=None, randfunc=np.random.random, dimensions=3)
     pa = PA(dr, dr.listSpecies()[0])
     # just try to create the field. not plotting routines yet
-    f = pa.createField(PA.X, PA.Y, PA.Z, optargsh={'bins': (30,30,10), 'order': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1), rangez=(0,1))
+    f = pa.createField(PA.X, PA.Y, PA.Z, optargsh={'bins': (30,30,10), 'shape': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1), rangez=(0,1))
 
 

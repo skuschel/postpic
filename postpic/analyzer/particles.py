@@ -601,7 +601,7 @@ class ParticleAnalyzer(object):
     def createHistgram1d(self, scalarfx, optargsh={},
                          simextent=False, simgrid=False, rangex=None,
                          weights=lambda x: 1):
-        optargshdefs = {'bins': 300, 'order': 1}
+        optargshdefs = {'bins': 300, 'shape': 2}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
@@ -633,7 +633,7 @@ class ParticleAnalyzer(object):
         return h, edges
 
     def createHistgram2d(self, scalarfx, scalarfy,
-                         optargsh={'bins': [500, 500]}, simextent=False,
+                         optargsh={}, simextent=False,
                          simgrid=False, rangex=None, rangey=None,
                          weights=lambda x: 1):
         """
@@ -656,6 +656,9 @@ class ParticleAnalyzer(object):
             "ParticleAnalyzer.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
+        # optargshdefs = {'bins': [500, 500], 'shape': 2}
+        # optargshdefs.update(optargsh)
+        # optargsh = optargshdefs
         if simgrid:
             simextent = True
         xdata = scalarfx(self)

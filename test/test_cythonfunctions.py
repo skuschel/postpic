@@ -31,7 +31,7 @@ class TestHistogram(unittest.TestCase):
     def test_histogram(self):
         # in this special case, cf.histogram and np.histogram must yield equal results
         # check hist and edges
-        cfh, cfe = cf.histogram(self.data, bins=20, range=(0,1), order=0)
+        cfh, cfe = cf.histogram(self.data, bins=20, range=(0,1), shape=0)
         nph, npe = np.histogram(self.data, bins=20, range=(0,1))
         self.assertListEqual(list(nph), list(cfh))
         self.assertListEqual(list(npe), list(cfe))
@@ -39,14 +39,14 @@ class TestHistogram(unittest.TestCase):
     def test_histogramw(self):
         # in this special case, cf.histogram and np.histogram must yield equal results
         # check hist and edges
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(0,1), order=0, weights=self.weights)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0,1), shape=0, weights=self.weights)
         nph, npe = np.histogram(self.data, bins=100, range=(0,1), weights=self.weights)
         diff = np.abs(cfh - nph)
         self.assertAlmostEqual(np.sum(diff), 0)
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo1(self):
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), order=1)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), shape=1)
         nph, npe = np.histogram(self.data, bins=100, range=(0.0,1.0))
         # just check that no mass is lost (cfh.base includes ghost cells)
         totalmass = len(self.data)
@@ -55,7 +55,7 @@ class TestHistogram(unittest.TestCase):
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo1w(self):
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), order=1, weights=self.weights)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), shape=1, weights=self.weights)
         nph, npe = np.histogram(self.data, bins=100, range=(0.0,1.0), weights=self.weights)
         # just check that no mass is lost (cfh.base includes ghost cells)
         totalmass = np.sum(self.weights)
@@ -64,7 +64,7 @@ class TestHistogram(unittest.TestCase):
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo2(self):
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), order=2)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), shape=2)
         nph, npe = np.histogram(self.data, bins=100, range=(0.0,1.0))
         # just check that no mass is lost (cfh.base includes ghost cells)
         totalmass = len(self.data)
@@ -73,7 +73,7 @@ class TestHistogram(unittest.TestCase):
         self.assertListEqual(list(npe), list(cfe))
 
     def test_histogramo2w(self):
-        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), order=2, weights=self.weights)
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), shape=2, weights=self.weights)
         nph, npe = np.histogram(self.data, bins=100, range=(0.0,1.0), weights=self.weights)
         # just check that no mass is lost (cfh.base includes ghost cells)
         totalmass = np.sum(self.weights)
@@ -92,7 +92,7 @@ class TestHistogram2d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay,
-                                         bins=(20,30), range=((0,1), (0,2)), order=0)
+                                         bins=(20,30), range=((0,1), (0,2)), shape=0)
         nph, npex, npey = np.histogram2d(self.datax, self.datay,
                                           bins=(20, 30), range=((0,1), (0,2)))
         totalmass = len(self.datax)
@@ -105,7 +105,7 @@ class TestHistogram2d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay, weights=self.weights,
-                                         bins=(20, 30), range=((0,1), (0,2)), order=0)
+                                         bins=(20, 30), range=((0,1), (0,2)), shape=0)
         nph, npex, npey = np.histogram2d(self.datax, self.datay, weights=self.weights,
                                          bins=(20, 30), range=((0,1), (0,2)))
         totalmass = np.sum(self.weights)
@@ -118,7 +118,7 @@ class TestHistogram2d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay,
-                                         bins=(20,30), range=((0,1), (0,2)), order=1)
+                                         bins=(20,30), range=((0,1), (0,2)), shape=1)
         nph, npex, npey = np.histogram2d(self.datax, self.datay,
                                           bins=(20, 30), range=((0,1), (0,2)))
         totalmass = len(self.datax)
@@ -131,7 +131,7 @@ class TestHistogram2d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay, weights=self.weights,
-                                         bins=(20, 30), range=((0,1), (0,2)), order=1)
+                                         bins=(20, 30), range=((0,1), (0,2)), shape=1)
         nph, npex, npey = np.histogram2d(self.datax, self.datay, weights=self.weights,
                                          bins=(20, 30), range=((0,1), (0,2)))
         totalmass = np.sum(self.weights)
@@ -144,7 +144,7 @@ class TestHistogram2d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay,
-                                         bins=(20,30), range=((0,1), (0,2)), order=2)
+                                         bins=(20,30), range=((0,1), (0,2)), shape=2)
         nph, npex, npey = np.histogram2d(self.datax, self.datay,
                                           bins=(20, 30), range=((0,1), (0,2)))
         totalmass = len(self.datax)
@@ -157,7 +157,7 @@ class TestHistogram2d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay, weights=self.weights,
-                                         bins=(20, 30), range=((0,1), (0,2)), order=2)
+                                         bins=(20, 30), range=((0,1), (0,2)), shape=2)
         nph, npex, npey = np.histogram2d(self.datax, self.datay, weights=self.weights,
                                          bins=(20, 30), range=((0,1), (0,2)))
         totalmass = np.sum(self.weights)
@@ -179,7 +179,7 @@ class TestHistogram3d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz,
-                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=0)
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=0)
         totalmass = len(self.datax)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
@@ -187,7 +187,7 @@ class TestHistogram3d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
-                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=0)
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=0)
         totalmass = np.sum(self.weights)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
@@ -196,7 +196,7 @@ class TestHistogram3d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz,
-                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=1)
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=1)
         totalmass = len(self.datax)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
@@ -204,7 +204,7 @@ class TestHistogram3d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
-                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=1)
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=1)
         totalmass = np.sum(self.weights)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
@@ -212,7 +212,7 @@ class TestHistogram3d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz,
-                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=2)
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=2)
         totalmass = len(self.datax)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
@@ -220,7 +220,7 @@ class TestHistogram3d(unittest.TestCase):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
-                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), order=2)
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=2)
         totalmass = np.sum(self.weights)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
