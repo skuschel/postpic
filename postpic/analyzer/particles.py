@@ -598,9 +598,12 @@ class ParticleAnalyzer(object):
 
     # ---- Functions to create a Histogram. ---
 
-    def createHistgram1d(self, scalarfx, optargsh={'bins': 300},
+    def createHistgram1d(self, scalarfx, optargsh={},
                          simextent=False, simgrid=False, rangex=None,
                          weights=lambda x: 1):
+        optargshdefs = {'bins': 300, 'shape': 0}
+        optargshdefs.update(optargsh)
+        optargsh = optargshdefs
         if simgrid:
             simextent = True
         xdata = scalarfx(self)
@@ -616,13 +619,21 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'] = scalarfx.gridpoints
         w = self.weight() * weights(self)
-        h, edges = np.histogram(xdata, weights=w,
-                                range=rangex, **optargsh)
+        try:
+            from .. import cythonfunctions as cyf
+            h, edges = cyf.histogram(xdata, weights=w,
+                                     range=rangex, **optargsh)
+        except ImportError:
+            import warnings
+            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
+            optargsh.pop('shape')
+            h, edges = np.histogram(xdata, weights=w,
+                                    range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
 
     def createHistgram2d(self, scalarfx, scalarfy,
-                         optargsh={'bins': [500, 500]}, simextent=False,
+                         optargsh={}, simextent=False,
                          simgrid=False, rangex=None, rangey=None,
                          weights=lambda x: 1):
         """
@@ -645,6 +656,9 @@ class ParticleAnalyzer(object):
             "ParticleAnalyzer.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
+        optargshdefs = {'bins': [500, 500], 'shape': 0}
+        optargshdefs.update(optargsh)
+        optargsh = optargshdefs
         if simgrid:
             simextent = True
         xdata = scalarfx(self)
@@ -669,11 +683,95 @@ class ParticleAnalyzer(object):
             if hasattr(scalarfy, 'gridpoints'):
                 optargsh['bins'][1] = scalarfy.gridpoints
         w = self.weight() * weights(self)  # Particle Size * additional weights
-        h, xedges, yedges = np.histogram2d(xdata, ydata,
-                                           weights=w, range=[rangex, rangey],
-                                           **optargsh)
+        try:
+            from .. import cythonfunctions as cyf
+            h, xedges, yedges = cyf.histogram2d(xdata, ydata,
+                                                weights=w, range=[rangex, rangey],
+                                                **optargsh)
+        except ImportError:
+            import warnings
+            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
+            optargsh.pop('shape')
+            h, xedges, yedges = np.histogram2d(xdata, ydata,
+                                               weights=w, range=[rangex, rangey],
+                                               **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
         return h, xedges, yedges
+
+    def createHistgram3d(self, scalarfx, scalarfy, scalarfz,
+                         optargsh={}, simextent=False,
+                         simgrid=False, rangex=None, rangey=None, rangez=None,
+                         weights=lambda x: 1):
+        """
+        Creates an 3d Histogram.
+
+        Attributes
+        ----------
+        scalarfx : function
+            returns a list of scalar values for the x axis.
+        scalarfy : function
+            returns a list of scalar values for the y axis.
+        scalarfz : function
+            returns a list of scalar values for the z axis.
+        simgrid : boolean, optional
+            enforces the same grid as used in the simulation.
+            Implies simextent=True. Defaults to False.
+        simextent : boolean, optional
+            enforces, that the axis show the same extent as used in the
+            simulation. Defaults to False.
+        weights : function, optional
+            applies additional weights to the macroparticles, for example
+            "ParticleAnalyzer.Ekin_MeV"".
+            Defaults to "lambda x:1".
+        """
+        optargshdefs = {'bins': [200, 200, 200], 'shape': 0}
+        optargshdefs.update(optargsh)
+        optargsh = optargshdefs
+        if simgrid:
+            simextent = True
+        xdata = scalarfx(self)
+        ydata = scalarfy(self)
+        zdata = scalarfz(self)
+        if len(xdata) == 0:
+            return [[]], [0, 1], [1], [1]
+        # TODO: Falls rangex oder rangy gegeben ist,
+        # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
+        # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
+        if rangex is None:
+            rangex = [np.min(xdata), np.max(xdata)]
+        if rangey is None:
+            rangey = [np.min(ydata), np.max(ydata)]
+        if rangez is None:
+            rangez = [np.min(zdata), np.max(zdata)]
+        if simextent:
+            if hasattr(scalarfx, 'extent'):
+                rangex = scalarfx.extent
+            if hasattr(scalarfy, 'extent'):
+                rangey = scalarfy.extent
+            if hasattr(scalarfz, 'extent'):
+                rangez = scalarfz.extent
+        if simgrid:
+            if hasattr(scalarfx, 'gridpoints'):
+                optargsh['bins'][0] = scalarfx.gridpoints
+            if hasattr(scalarfy, 'gridpoints'):
+                optargsh['bins'][1] = scalarfy.gridpoints
+            if hasattr(scalarfz, 'gridpoints'):
+                optargsh['bins'][1] = scalarfz.gridpoints
+        w = self.weight() * weights(self)  # Particle Size * additional weights
+        try:
+            from .. import cythonfunctions as cyf
+            h, xe, ye, ze = cyf.histogram3d(xdata, ydata, zdata,
+                                            weights=w, range=[rangex, rangey, rangez],
+                                            **optargsh)
+        except ImportError:
+            import warnings
+            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
+            optargsh.pop('shape')
+            h, (xe, ye, ze) = np.histogramdd((xdata, ydata, zdata),
+                                             weights=w, range=[rangex, rangey, rangez],
+                                             **optargsh)
+        h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
+        return h, xe, ye, ze
 
     def createHistgramField1d(self, scalarfx, name='distfn', title=None,
                               **kwargs):
@@ -748,6 +846,49 @@ class ParticleAnalyzer(object):
         ret.infos = self.getcompresslog()['all']
         return ret
 
+    def createHistgramField3d(self, scalarfx, scalarfy, scalarfz, name='distfn',
+                              title=None, **kwargs):
+        """
+        Creates an 3d Histogram enclosed in a Field object.
+
+        Attributes
+        ----------
+        scalarfx : function
+            returns a list of scalar values for the x axis.
+        scalarfy : function
+            returns a list of scalar values for the y axis.
+        scalarfz : function
+            returns a list of scalar values for the z axis.
+        name : string, optional
+            addes a name. usually used for generating savenames.
+            Defaults to "distfn".
+        title: string, options
+            overrides the title. Autocreated if title==None.
+            Defaults to None.
+        **kwargs
+            given to createHistgram2d.
+        """
+        if 'weights' in kwargs:
+            name = kwargs['weights'].name
+        h, xedges, yedges, zedges = self.createHistgram3d(scalarfx, scalarfy, scalarfz, **kwargs)
+        ret = Field(h, xedges, yedges, zedges)
+        ret.axes[0].grid_node = xedges
+        ret.axes[1].grid_node = yedges
+        ret.axes[2].grid_node = yedges
+        ret.name = name + self.species
+        ret.label = self.species
+        if title:
+            ret.name = title
+        ret.axes[0].unit = scalarfx.unit
+        ret.axes[0].name = scalarfx.name
+        ret.axes[1].unit = scalarfy.unit
+        ret.axes[1].name = scalarfy.name
+        ret.axes[2].unit = scalarfz.unit
+        ret.axes[2].name = scalarfz.name
+        ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
+        ret.infos = self.getcompresslog()['all']
+        return ret
+
     def createField(self, *scalarf, **kwargs):
         """
         Creates an n-d Histogram enclosed in a Field object.
@@ -768,7 +909,9 @@ class ParticleAnalyzer(object):
             return self.createHistgramField1d(*scalarf, **kwargs)
         elif len(scalarf) == 2:
             return self.createHistgramField2d(*scalarf, **kwargs)
+        elif len(scalarf) == 3:
+            return self.createHistgramField3d(*scalarf, **kwargs)
         else:
-            raise Exception('only 1d or 2d field creation implemented yet.')
+            raise Exception('only 1d, 2d and 3d field creation implemented yet.')
 
 

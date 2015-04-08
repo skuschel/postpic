@@ -39,16 +39,17 @@ class Dummyreader(Dumpreader_ifc):
         will pretend to have dumpid many particles).
     '''
 
-    def __init__(self, dumpid, dimensions=2, **kwargs):
+    def __init__(self, dumpid, dimensions=2, randfunc=np.random.normal, seed=0, **kwargs):
         super(self.__class__, self).__init__(dumpid, **kwargs)
         self._dimensions = dimensions
         # initialize fake data
-        np.random.seed(0)
-        self._xdata = np.random.normal(size=dumpid)
+        if seed is not None:
+            np.random.seed(seed)
+        self._xdata = randfunc(size=dumpid)
         if dimensions > 1:
-            self._ydata = np.random.normal(size=dumpid)
+            self._ydata = randfunc(size=dumpid)
         if dimensions > 2:
-            self._zdata = np.random.normal(size=dumpid)
+            self._zdata = randfunc(size=dumpid)
 
     def keys(self):
         pass
