@@ -14,18 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014
+# Copyright Stephan Kuschel 2014, 2015
 '''
-.. _EPOCH: http://ccpforge.cse.rl.ac.uk/gf/project/epoch/
+.. _EPOCH: https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch
+.. _SDF: https://github.com/keithbennett/SDF
 
-Reader for SDF File format written by the EPOCH_ Code.
+Reader for SDF_ File format written by the EPOCH_ Code.
 
 Dependecies:
   - sdf: The actual python reader for the .sdf file format written in C.
     It is part of the EPOCH_ code base and needs to be
     compiled and installed from there.
 
-Stephan Kuschel 2014
+Written by Stephan Kuschel 2014, 2015
 '''
 
 from . import Dumpreader_ifc
@@ -40,7 +41,8 @@ __all__ = ['Sdfreader', 'Visitreader']
 class Sdfreader(Dumpreader_ifc):
     '''
     The Reader implementation for Data written by the EPOCH_ Code
-    in .sdf format.
+    in .sdf format. Written for SDF v2.2.0 or higher.
+    SDF_ can be obtained without EPOCH_ from SDF_.
 
     Args:
       sdffile : String
@@ -51,9 +53,15 @@ class Sdfreader(Dumpreader_ifc):
         super(self.__class__, self).__init__(sdffile, **kwargs)
         import os.path
         import sdf
+        try:
+            sdfversion = sdf.__version__
+        except(AttributeError):
+            sdfversion = '0.0.0'
+        if sdfversion < '2.2.0':
+            raise ImportError('Upgrade sdf package to 2.2.0 or higher.')
         if not os.path.isfile(sdffile):
             raise IOError('File "' + str(sdffile) + '" doesnt exist.')
-        self._data = sdf.SDF(sdffile).read()
+        self._data = sdf.read(sdffile, dict=True)
 
     def keys(self):
         return self._data.keys()
@@ -75,7 +83,7 @@ class Sdfreader(Dumpreader_ifc):
         key = key1 + key2
         if average:
             key = key1 + '_average' + key2
-        return self[key]
+        return self[key].data
 
     def dataE(self, axis, **kwargs):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
@@ -88,8 +96,10 @@ class Sdfreader(Dumpreader_ifc):
                                            axsuffix, **kwargs))
 
     def grid(self, axis):
-        axsuffix = {0: 'X', 1: 'Y', 2: 'Z'}[_const.axesidentify[axis]]
-        return self['Grid/Grid/' + axsuffix]
+        try:
+            return self['Grid/Grid_mid'].data[_const.axesidentify[axis]]
+        except(IndexError):
+            raise KeyError
 
     def listSpecies(self):
         ret = set()
@@ -109,15 +119,15 @@ class Sdfreader(Dumpreader_ifc):
         Note that this is different from returning an empty list!
         """
         attribid = _const.attribidentify[attrib]
-        options = {9: lambda s: 'Particles/Weight/' + s,
-                   0: lambda s: 'Grid/Particles/' + s + '/X',
-                   1: lambda s: 'Grid/Particles/' + s + '/Y',
-                   2: lambda s: 'Grid/Particles/' + s + '/Z',
-                   3: lambda s: 'Particles/Px/' + s,
-                   4: lambda s: 'Particles/Py/' + s,
-                   5: lambda s: 'Particles/Pz/' + s,
-                   10: lambda s: 'Particles/ID/' + s}
-        ret = np.float64(self[options[attribid](species)])
+        options = {9: lambda s: self['Particles/Weight/' + s].data,
+                   0: lambda s: self['Grid/Particles/' + s].data[0],
+                   1: lambda s: self['Grid/Particles/' + s].data[1],
+                   2: lambda s: self['Grid/Particles/' + s].data[2],
+                   3: lambda s: self['Particles/Px/' + s].data,
+                   4: lambda s: self['Particles/Py/' + s].data,
+                   5: lambda s: self['Particles/Pz/' + s].data,
+                   10: lambda s: self['Particles/ID/' + s].data}
+        ret = np.float64(options[attribid](species))
         return ret
 
     def getderived(self):
