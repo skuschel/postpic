@@ -362,7 +362,7 @@ class MatplotlibPlotter(object):
         if field is None:
             ret = self._skipplot('none')
         elif field.dimensions <= 0:
-            ret = self._skipplot(field.name)
+            ret = self._skipplot(name if name else field.name)
         elif field.dimensions == 1:
             ret = self.plotFields1d(field, **kwargs)
         elif field.dimensions == 2:
