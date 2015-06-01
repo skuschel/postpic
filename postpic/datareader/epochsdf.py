@@ -69,6 +69,9 @@ class Sdfreader(Dumpreader_ifc):
     def __getitem__(self, key):
         return self._data[key]
 
+    def getdata(self, key):
+        return self[key].data
+
     def timestep(self):
         return self['Header']['step']
 
