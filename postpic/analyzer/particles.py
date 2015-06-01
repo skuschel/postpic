@@ -145,6 +145,8 @@ class _SingleSpeciesAnalyzer(object):
 
     def __len__(self):  # = number of particles
         # find a valid dataset to count number of paricles
+        # return 0 if no valid dataset can be found
+        ret = 0
         if self._compressboollist is not None:
             return np.count_nonzero(self._compressboollist)
         for key in self._atomicprops:

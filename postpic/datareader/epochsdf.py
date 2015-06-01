@@ -130,7 +130,10 @@ class Sdfreader(Dumpreader_ifc):
                    4: lambda s: self['Particles/Py/' + s].data,
                    5: lambda s: self['Particles/Pz/' + s].data,
                    10: lambda s: self['Particles/ID/' + s].data}
-        ret = np.float64(options[attribid](species))
+        try:
+            ret = np.float64(options[attribid](species))
+        except(IndexError):
+            raise KeyError
         return ret
 
     def getderived(self):
