@@ -602,13 +602,19 @@ class ParticleAnalyzer(object):
 
     def createHistgram1d(self, scalarfx, optargsh={},
                          simextent=False, simgrid=False, rangex=None,
-                         weights=lambda x: 1):
+                         weights=lambda x: 1, force=False):
         optargshdefs = {'bins': 300, 'shape': 0}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
             simextent = True
-        xdata = scalarfx(self)
+        if force:
+            try:
+                xdata = scalarfx(self)
+            except (KeyError):
+                xdata = []  # Return empty histogram
+        else:
+            xdata = scalarfx(self)
         # In case there are no particles
         if len(xdata) == 0:
             return [], []
@@ -637,7 +643,7 @@ class ParticleAnalyzer(object):
     def createHistgram2d(self, scalarfx, scalarfy,
                          optargsh={}, simextent=False,
                          simgrid=False, rangex=None, rangey=None,
-                         weights=lambda x: 1):
+                         weights=lambda x: 1, force=False):
         """
         Creates an 2d Histogram.
 
@@ -663,8 +669,15 @@ class ParticleAnalyzer(object):
         optargsh = optargshdefs
         if simgrid:
             simextent = True
-        xdata = scalarfx(self)
-        ydata = scalarfy(self)
+        if force:
+            try:
+                xdata = scalarfx(self)
+                ydata = scalarfy(self)
+            except (KeyError):
+                xdata = []  # Return empty histogram
+        else:
+            xdata = scalarfx(self)
+            ydata = scalarfy(self)
         if len(xdata) == 0:
             return [[]], [0, 1], [1]
         # TODO: Falls rangex oder rangy gegeben ist,
@@ -703,7 +716,7 @@ class ParticleAnalyzer(object):
     def createHistgram3d(self, scalarfx, scalarfy, scalarfz,
                          optargsh={}, simextent=False,
                          simgrid=False, rangex=None, rangey=None, rangez=None,
-                         weights=lambda x: 1):
+                         weights=lambda x: 1, force=False):
         """
         Creates an 3d Histogram.
 
@@ -731,9 +744,17 @@ class ParticleAnalyzer(object):
         optargsh = optargshdefs
         if simgrid:
             simextent = True
-        xdata = scalarfx(self)
-        ydata = scalarfy(self)
-        zdata = scalarfz(self)
+        if force:
+            try:
+                xdata = scalarfx(self)
+                ydata = scalarfy(self)
+                zdata = scalarfz(self)
+            except (KeyError):
+                xdata = []  # Return empty histogram
+        else:
+            xdata = scalarfx(self)
+            ydata = scalarfy(self)
+            zdata = scalarfz(self)
         if len(xdata) == 0:
             return [[]], [0, 1], [1], [1]
         # TODO: Falls rangex oder rangy gegeben ist,
