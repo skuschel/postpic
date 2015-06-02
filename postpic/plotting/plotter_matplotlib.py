@@ -320,7 +320,7 @@ class MatplotlibPlotter(object):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1)
-        name = kwargs.pop('name') if 'name' in kwargs else fields[0].name
+        name = kwargs.pop('name', fields[0].name)
         MatplotlibPlotter.addFields1d(ax, *fields, **kwargs)
         self._plotfinalize(fig)
         self.annotate(fig, project=self.project)
@@ -364,6 +364,8 @@ class MatplotlibPlotter(object):
         elif field.dimensions <= 0:
             ret = self._skipplot(name if name else field.name)
         elif field.dimensions == 1:
+            if name:
+                kwargs.update({'name': name})
             ret = self.plotFields1d(field, **kwargs)
         elif field.dimensions == 2:
             ret = self.plotField2d(field, name,  **kwargs)
