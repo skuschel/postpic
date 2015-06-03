@@ -49,9 +49,13 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
     else:
         min = range[0]
         max = range[1]
+    # ensure max != min
+    if np.abs(max-min) < 1e-100:
+        max += 1e-100
+        min -= 1e-100
     bin_edges = np.linspace(min, max, bins+1)
     cdef int n = len(data)
-    cdef double dx = 1.0 / (max - min) * bins
+    cdef double dx = 1.0 / (max - min) * bins  # actually: 1/dx
     cdef np.ndarray[np.double_t, ndim=1] ret
     cdef int shape_supp
     cdef double x
@@ -132,12 +136,19 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
         xmax = range[0][1]
         ymin = range[1][0]
         ymax = range[1][1]
+    # ensure max != min
+    if np.abs(xmax-xmin) < 1e-100:
+        xmax += 1e-100
+        xmin -= 1e-100
+    if np.abs(ymax-ymin) < 1e-100:
+        ymax += 1e-100
+        ymin -= 1e-100
     cdef int xbins = bins[0]
     cdef int ybins = bins[1]
     xedges = np.linspace(xmin, xmax, xbins+1)
     yedges = np.linspace(ymin, ymax, ybins+1)
-    cdef double dx = 1.0 / (xmax - xmin) * xbins
-    cdef double dy = 1.0 / (ymax - ymin) * ybins
+    cdef double dx = 1.0 / (xmax - xmin) * xbins  # actually: 1/dx
+    cdef double dy = 1.0 / (ymax - ymin) * ybins  # actually: 1/dy
     cdef np.ndarray[np.double_t, ndim=2] ret
     cdef int shape_supp, xs, ys, xoffset, yoffset
     cdef double x, y, xd, yd
@@ -251,15 +262,25 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
         ymax = range[1][1]
         zmin = range[2][0]
         zmax = range[2][1]
+    # ensure max != min
+    if np.abs(xmax-xmin) < 1e-100:
+        xmax += 1e-100
+        xmin -= 1e-100
+    if np.abs(ymax-ymin) < 1e-100:
+        ymax += 1e-100
+        ymin -= 1e-100
+    if np.abs(zmax-zmin) < 1e-100:
+        zmax += 1e-100
+        zmin -= 1e-100
     cdef int xbins = bins[0]
     cdef int ybins = bins[1]
     cdef int zbins = bins[2]
     xedges = np.linspace(xmin, xmax, xbins+1)
     yedges = np.linspace(ymin, ymax, ybins+1)
     zedges = np.linspace(zmin, zmax, zbins+1)
-    cdef double dx = 1.0 / (xmax - xmin) * xbins
-    cdef double dy = 1.0 / (ymax - ymin) * ybins
-    cdef double dz = 1.0 / (zmax - zmin) * zbins
+    cdef double dx = 1.0 / (xmax - xmin) * xbins  # actually: 1/dx
+    cdef double dy = 1.0 / (ymax - ymin) * ybins  # actually: 1/dy
+    cdef double dz = 1.0 / (zmax - zmin) * zbins  # actually: 1/dz
     cdef np.ndarray[np.double_t, ndim=3] ret
     cdef int shape_supp, xs, ys, zs, xoffset, yoffset, zoffset
     cdef double x, y, z, xd, yd, zd

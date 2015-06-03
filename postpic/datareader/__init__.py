@@ -106,6 +106,9 @@ class Dumpreader_ifc(FieldAnalyzer):
     def __getitem__(self, key):
         pass
 
+    def getdata(self, key):
+        return self[key]
+
     # --- General Information ---
     @abc.abstractmethod
     def timestep(self):

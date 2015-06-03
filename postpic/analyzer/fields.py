@@ -82,7 +82,7 @@ class FieldAnalyzer(object):
 
     # General interface for everything
     def createfieldfromkey(self, key):
-        ret = Field(self._returnfunc(self.dumpreader[key]))
+        ret = Field(self._returnfunc(self.dumpreader.getdata(key)))
         ret.name = key
         self.setspacialtofield(ret)
         return ret
