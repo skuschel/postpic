@@ -20,16 +20,18 @@ from Cython.Build import cythonize
 import numpy
 
 setup(name='postpic',
-      version='0.1.1',
+      version='0.1.2',
       author='Stephan Kuschel',
       author_email='stephan.kuschel@gmail.de',
       description='The open source particle-in-cell post processor.',
-      url='http://github.com/skuschel/postpic',
+      url='https://github.com/skuschel/postpic',
       packages=find_packages(include=['postpic*']),
       ext_modules = cythonize("postpic/cythonfunctions.pyx"),
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
       install_requires=['matplotlib', 'numpy>=1.7', 'scipy', 'cython'],
+      keywords = ['PIC', 'particle-in-cell', 'plasma', 'physics', 'plasma physics',
+                  'laser', 'laser plasma', 'particle acceleration'],
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Intended Audience :: Science/Research',
