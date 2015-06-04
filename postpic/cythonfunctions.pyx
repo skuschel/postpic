@@ -42,20 +42,21 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
             shape = 1 uses top hat particle shape.
             shape = 2 uses triangle particle shape.
     '''
-    cdef double min, max
+    cdef double xmin, xmax
     if range is None:
-        min = np.min(data)
-        max = np.max(data)
+        xmin = np.min(data)
+        xmax = np.max(data)
     else:
-        min = range[0]
-        max = range[1]
+        xmin = range[0]
+        xmax = range[1]
     # ensure max != min
-    if np.abs(max-min) < 1e-100:
-        max += 1e-100
-        min -= 1e-100
-    bin_edges = np.linspace(min, max, bins+1)
+    sx = np.spacing(xmax)
+    if np.abs(xmax-xmin) < sx:
+        xmax += sx
+        xmin -= sx
+    bin_edges = np.linspace(xmin, xmax, bins+1)
     cdef int n = len(data)
-    cdef double dx = 1.0 / (max - min) * bins  # actually: 1/dx
+    cdef double dx = 1.0 / (xmax - xmin) * bins  # actually: 1/dx
     cdef np.ndarray[np.double_t, ndim=1] ret
     cdef int shape_supp
     cdef double x
@@ -66,7 +67,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
         shape_supp = 0
         ret = np.zeros(bins, dtype=np.double)
         for i in xrange(n):
-            x = (data[i] - min) * dx;
+            x = (data[i] - xmin) * dx;
             if x > 0.0 and x < bins:
                 if weights is None:
                     ret[<int>x] += 1.0
@@ -78,7 +79,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
         # use shape_supp ghost cells on both sides of the domain
         ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
         for i in xrange(n):
-            x = (data[i] - min) * dx;
+            x = (data[i] - xmin) * dx;
             xr = <int>(x + 0.5);
             if (xr >= 0.0 and xr <= bins):
                 if weights is None:
@@ -93,7 +94,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
         # use shape_supp ghost cells on both sides of the domain
         ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
         for i in xrange(n):
-            x = (data[i] - min) * dx;
+            x = (data[i] - xmin) * dx;
             xr = <int>x;
             xd = x - xr
             if (xr >= 0.0 and xr <= bins):
@@ -137,12 +138,14 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
         ymin = range[1][0]
         ymax = range[1][1]
     # ensure max != min
-    if np.abs(xmax-xmin) < 1e-100:
-        xmax += 1e-100
-        xmin -= 1e-100
-    if np.abs(ymax-ymin) < 1e-100:
-        ymax += 1e-100
-        ymin -= 1e-100
+    sx = np.spacing(xmax)
+    if np.abs(xmax-xmin) < sx:
+        xmax += sx
+        xmin -= sx
+    sy = np.spacing(ymax)
+    if np.abs(ymax-ymin) < sy:
+        ymax += sy
+        ymin -= sy
     cdef int xbins = bins[0]
     cdef int ybins = bins[1]
     xedges = np.linspace(xmin, xmax, xbins+1)
@@ -263,15 +266,18 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
         zmin = range[2][0]
         zmax = range[2][1]
     # ensure max != min
-    if np.abs(xmax-xmin) < 1e-100:
-        xmax += 1e-100
-        xmin -= 1e-100
-    if np.abs(ymax-ymin) < 1e-100:
-        ymax += 1e-100
-        ymin -= 1e-100
-    if np.abs(zmax-zmin) < 1e-100:
-        zmax += 1e-100
-        zmin -= 1e-100
+    sx = np.spacing(xmax)
+    if np.abs(xmax-xmin) < sx:
+        xmax += sx
+        xmin -= sx
+    sy = np.spacing(ymax)
+    if np.abs(ymax-ymin) < sy:
+        ymax += sy
+        ymin -= sy
+    sz = np.spacing(zmax)
+    if np.abs(zmax-zmin) < sz:
+        zmax += sz
+        zmin -= sz
     cdef int xbins = bins[0]
     cdef int ybins = bins[1]
     cdef int zbins = bins[2]
