@@ -1,7 +1,7 @@
 postpic
 =======
 [![Build Status](https://travis-ci.org/skuschel/postpic.svg?branch=master)](https://travis-ci.org/skuschel/postpic)
-[![version](https://pypip.in/version/postpic/badge.svg)](https://pypi.python.org/pypi/postpic/)
+[![PyPI version](https://badge.fury.io/py/postpic.png)](http://badge.fury.io/py/postpic)
 [![Documentation Status](https://readthedocs.org/projects/postpic/badge/?version=latest)](https://readthedocs.org/projects/postpic/?badge=latest)
 
 postpic is a open-source post processor for Particle-in-cell (PIC) simulations written in python.  If you are doing PIC Simulations (likely for you PhD in physics...) you need tools to provide proper post-processing to create nice graphics from many GB of raw simulation output data -- regardless of what simulation code you are using.
