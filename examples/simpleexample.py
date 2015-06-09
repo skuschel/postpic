@@ -101,4 +101,13 @@ if True:
         # use the plotter with the particle scalars defined above.
         plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))  # plot 12
 
+        # choose particles by their properies
+        def cf(ms):
+            return ms.X() > 0.0  # only use particles with x > 0.0
+        cf.name = 'x>0'
+        pa.compressfn(cf)
+        # plot 13, compare with plot 10
+        plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': [1000,1000]}))
+        # plot 14, compare with plot 12
+        plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))
 

@@ -115,7 +115,7 @@ class MatplotlibPlotter(object):
         if ul2:
             fig.text(0.03, 0.93, ul2, horizontalalignment='left')
         if center:
-            fig.text(0.5, 0.87, mid, horizontalalignment='center')
+            fig.text(0.5, 0.87, center, horizontalalignment='center')
 
     @staticmethod
     def settext_ax(ax, title=None, ur=None, ur2=None, ul=None, ul2=None,
@@ -131,7 +131,7 @@ class MatplotlibPlotter(object):
         if ul:
             ax.text(0.01, 0.97, ul, horizontalalignment='left', transform=ax.transAxes)
         if center:
-            ax.text(0.5, 0.87, mid, horizontalalignment='center', transform=ax.transAxes)
+            ax.text(0.5, 0.87, center, horizontalalignment='center', transform=ax.transAxes)
 
     @staticmethod
     def annotate(figorax, title=None, time=None, step=None, project=None, dump=None,
@@ -150,7 +150,7 @@ class MatplotlibPlotter(object):
         ul = project
         ul2 = dump
         ur2 = infostring
-        center = None if infos != [] or infos != [''] else infos
+        center = None if infos == [] or infos == [''] else infos
         import matplotlib
         func = MatplotlibPlotter.settext_ax if isinstance(figorax, matplotlib.axes.Axes) \
             else MatplotlibPlotter.settext_fig

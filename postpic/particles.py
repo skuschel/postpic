@@ -349,7 +349,7 @@ class MultiSpecies(object):
         i = 0
         for ssa in self._ssas:  # condition is list of booleans
             if condition.dtype == np.dtype('bool'):
-                n = ssa.weight().shape[0]
+                n = len(ssa)
                 ssa.compress(condition[i:i + n], name=name)
                 i += n
             else:  # condition is list of particle IDs
