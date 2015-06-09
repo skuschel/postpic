@@ -33,7 +33,7 @@ from . import Dumpreader_ifc
 from . import Simulationreader_ifc
 import numpy as np
 import re
-from .. import _const
+from .. import helper
 
 __all__ = ['Sdfreader', 'Visitreader']
 
@@ -89,18 +89,18 @@ class Sdfreader(Dumpreader_ifc):
         return self[key].data
 
     def dataE(self, axis, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
+        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
         return np.float64(self._returnkey2('Electric Field', '/E' +
                                            axsuffix, **kwargs))
 
     def dataB(self, axis, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
+        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
         return np.float64(self._returnkey2('Magnetic Field', '/B' +
                                            axsuffix, **kwargs))
 
     def grid(self, axis):
         try:
-            return self['Grid/Grid_mid'].data[_const.axesidentify[axis]]
+            return self['Grid/Grid_mid'].data[helper.axesidentify[axis]]
         except(IndexError):
             raise KeyError
 
@@ -121,7 +121,7 @@ class Sdfreader(Dumpreader_ifc):
         returning None means that this particle property wasnt dumped.
         Note that this is different from returning an empty list!
         """
-        attribid = _const.attribidentify[attrib]
+        attribid = helper.attribidentify[attrib]
         options = {9: lambda s: self['Particles/Weight/' + s].data,
                    0: lambda s: self['Grid/Particles/' + s].data[0],
                    1: lambda s: self['Grid/Particles/' + s].data[1],

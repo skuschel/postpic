@@ -20,7 +20,7 @@ Field related routines.
 """
 
 import numpy as np
-from .._const import PhysicalConstants as pc
+from ..helper import PhysicalConstants as pc
 from ..datahandling import *
 
 __all__ = ['FieldAnalyzer']

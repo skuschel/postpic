@@ -24,8 +24,8 @@ Stephan Kuschel 2014
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc
 import numpy as np
-from .. import _const
-from .._const import PhysicalConstants
+from .. import helper
+from ..helper import PhysicalConstants
 
 
 class Dummyreader(Dumpreader_ifc):
@@ -67,7 +67,7 @@ class Dummyreader(Dumpreader_ifc):
         return self._dimensions
 
     def dataE(self, axis):
-        axid = _const.axesidentify[axis]
+        axid = helper.axesidentify[axis]
 
         def _Ex(x, y, z):
             ret = np.sin(np.pi * self.timestep() *
@@ -112,7 +112,7 @@ class Dummyreader(Dumpreader_ifc):
 
         Thus only regular grids are supported currently.
         '''
-        axid = _const.axesidentify[axis]
+        axid = helper.axesidentify[axis]
         grids = {1: [(-2, 10, 600)],
                  2: [(-2, 10, 300), (-5, 5, 400)],
                  3: [(-2, 10, 100), (-5, 5, 80), (-4, 4, 60)]}
@@ -126,7 +126,7 @@ class Dummyreader(Dumpreader_ifc):
         return ['electron']
 
     def getSpecies(self, species, attrib):
-        attribid = _const.attribidentify[attrib]
+        attribid = helper.attribidentify[attrib]
         if attribid == 0:  # x
             ret = self._xdata
         elif attribid == 1 and self.simdimensions() > 1:  # y

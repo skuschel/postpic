@@ -22,8 +22,8 @@
 
 The open source particle-in-cell post processor.
 """
-import _const
-from _const import PhysicalConstants, SpeciesIdentifier
+import helper
+from helper import PhysicalConstants, SpeciesIdentifier
 import analyzer
 from analyzer import ParticleAnalyzer
 import datareader

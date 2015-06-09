@@ -19,7 +19,7 @@
 import abc
 import collections
 import numpy as np
-from .. import _const
+from .. import helper
 from .. import datahandling as dh
 from ..analyzer import FieldAnalyzer
 
@@ -114,7 +114,7 @@ class Dumpreader_ifc(FieldAnalyzer):
     def getSpecies(self, species, attrib):
         '''
         This function gives access to any of the particle properties in
-        .._const.attribidentify
+        ..helper.attribidentify
         This method can behave in the following ways:
         1) Return a list of scalar properties for each particle of this species
         2) Return a single float (i.e. `1.2`, NOT `[1.2]`) to show that
@@ -151,7 +151,7 @@ class Dumpreader_ifc(FieldAnalyzer):
 
         Returns: an Axis object for a given axis.
         '''
-        name = {0: 'x', 1: 'y', 2: 'z'}[_const.axesidentify[axis]]
+        name = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
         ret = dh.Axis(name=name, unit='m')
         ret.grid = self.grid(axis)
         return ret

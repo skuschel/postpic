@@ -20,8 +20,8 @@ Particle related routines.
 """
 
 import numpy as np
-from .._const import PhysicalConstants as pc
-from .._const import SpeciesIdentifier
+from ..helper import PhysicalConstants as pc
+from ..helper import SpeciesIdentifier
 from ..datahandling import *
 
 identifyspecies = SpeciesIdentifier.identifyspecies
