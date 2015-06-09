@@ -20,19 +20,19 @@ Particle related routines.
 """
 
 import numpy as np
-from ..helper import PhysicalConstants as pc
-from ..helper import SpeciesIdentifier
-from ..datahandling import *
+from .helper import PhysicalConstants as pc
+from .helper import SpeciesIdentifier
+from .datahandling import *
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
-__all__ = ['ParticleAnalyzer', 'identifyspecies']
+__all__ = ['MultiSpecies', 'identifyspecies']
 
 
-class _SingleSpeciesAnalyzer(object):
+class _SingleSpecies(object):
     """
-    used by the ParticleAnalyzer class only.
-    The _SingleSpeciesAnalyzer will return atomic particle properties
+    used by the MultiSpecies class only.
+    The _SingleSpecies will return atomic particle properties
     (see list below) as given by the dumpreader. Each property can thus
     return
     1) a list (one value for each particle)
@@ -56,7 +56,7 @@ class _SingleSpeciesAnalyzer(object):
                 return _self._readatomic(key)
             return ret
         for key in self._atomicprops:
-            setattr(_SingleSpeciesAnalyzer, key, makefunc(self, key))
+            setattr(_SingleSpecies, key, makefunc(self, key))
 
     def _readatomic(self, key):
         '''
@@ -160,7 +160,7 @@ class _SingleSpeciesAnalyzer(object):
 
     # calculate new per particle properties from the atomic properties.
     # the following functions can be computed more efficiently here
-    # than in the ParticleAnalyzer.
+    # than in the MultiSpecies class
     # (example: if mass is constant for the entire species, it doesnt
     # have to be repeated using np.repeat before the calculation)
 
@@ -200,17 +200,17 @@ class _SingleSpeciesAnalyzer(object):
         return self.Ekin_MeV() * self.charge_e() / self.mass_u()
 
 
-class ParticleAnalyzer(object):
+class MultiSpecies(object):
     """
-    The ParticleAnalyzer class. Different ParticleAnalyzer can be
+    The MultiSpecies class. Different MultiSpecies can be
     added together to create a combined collection.
 
-    The ParticleAnalyzer will return a list of values for every
+    The MultiSpecies class will return a list of values for every
     particle property.
     """
 
     def __init__(self, dumpreader, *speciess):
-        # create 'empty' ParticleAnalyzer
+        # create 'empty' MultiSpecies
         self._ssas = []
         self._species = None  # trivial name if set
         self._compresslog = []
@@ -238,7 +238,7 @@ class ParticleAnalyzer(object):
             self.add(dumpreader, s)
 
     def __str__(self):
-        return '<ParticleAnalyzer including ' + str(self.species) \
+        return '<MultiSpecies including ' + str(self.species) \
             + '(' + str(len(self)) + ')>'
 
     @property
@@ -294,7 +294,7 @@ class ParticleAnalyzer(object):
 
     def add(self, dumpreader, species):
         '''
-        adds species to this analyzer.
+        adds a species to this MultiSpecies.
 
         Attributes
         ----------
@@ -317,7 +317,7 @@ class ParticleAnalyzer(object):
             for s in toadd:
                 self.add(dumpreader, s)
         else:
-            self._ssas.append(_SingleSpeciesAnalyzer(dumpreader, species))
+            self._ssas.append(_SingleSpecies(dumpreader, species))
         return
 
     # --- Operator overloading
@@ -329,7 +329,7 @@ class ParticleAnalyzer(object):
 
     def __iadd__(self, other):  # self += other
         '''
-        adding ParticleAnalyzers should give the feeling as if you were adding
+        adding MultiSpecies should give the feeling as if you were adding
         their particle lists. Thats why there is no append function.
         Compare those outputs (numpy.array handles that differently!):
         a=[1,2,3]; a.append([4,5]); print a
@@ -628,7 +628,7 @@ class ParticleAnalyzer(object):
                 optargsh['bins'] = scalarfx.gridpoints
         w = self.weight() * weights(self)
         try:
-            from .. import cythonfunctions as cyf
+            from . import cythonfunctions as cyf
             h, edges = cyf.histogram(xdata, weights=w,
                                      range=rangex, **optargsh)
         except ImportError:
@@ -661,7 +661,7 @@ class ParticleAnalyzer(object):
             simulation. Defaults to False.
         weights : function, optional
             applies additional weights to the macroparticles, for example
-            "ParticleAnalyzer.Ekin_MeV"".
+            "MultiSpecies.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
         optargshdefs = {'bins': [500, 500], 'shape': 0}
@@ -699,7 +699,7 @@ class ParticleAnalyzer(object):
                 optargsh['bins'][1] = scalarfy.gridpoints
         w = self.weight() * weights(self)  # Particle Size * additional weights
         try:
-            from .. import cythonfunctions as cyf
+            from . import cythonfunctions as cyf
             h, xedges, yedges = cyf.histogram2d(xdata, ydata,
                                                 weights=w, range=[rangex, rangey],
                                                 **optargsh)
@@ -736,7 +736,7 @@ class ParticleAnalyzer(object):
             simulation. Defaults to False.
         weights : function, optional
             applies additional weights to the macroparticles, for example
-            "ParticleAnalyzer.Ekin_MeV"".
+            "MultiSpecies.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
         optargshdefs = {'bins': [200, 200, 200], 'shape': 0}
@@ -782,7 +782,7 @@ class ParticleAnalyzer(object):
                 optargsh['bins'][1] = scalarfz.gridpoints
         w = self.weight() * weights(self)  # Particle Size * additional weights
         try:
-            from .. import cythonfunctions as cyf
+            from . import cythonfunctions as cyf
             h, xe, ye, ze = cyf.histogram3d(xdata, ydata, zdata,
                                             weights=w, range=[rangex, rangey, rangez],
                                             **optargsh)

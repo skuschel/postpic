@@ -21,7 +21,7 @@ import collections
 import numpy as np
 from .. import helper
 from .. import datahandling as dh
-from ..analyzer import FieldAnalyzer
+from .._field_calc import FieldAnalyzer
 
 __all__ = ['Dumpreader_ifc', 'Simulationreader_ifc']
 
