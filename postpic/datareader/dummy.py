@@ -25,7 +25,7 @@ from . import Dumpreader_ifc
 from . import Simulationreader_ifc
 import numpy as np
 from .. import _const
-from ..analyzer.analyzer import PhysicalConstants
+from .._const import PhysicalConstants
 
 
 class Dummyreader(Dumpreader_ifc):

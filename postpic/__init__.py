@@ -22,14 +22,18 @@
 
 The open source particle-in-cell post processor.
 """
-
-import datareader
+import _const
+from _const import PhysicalConstants, SpeciesIdentifier
 import analyzer
+from analyzer import ParticleAnalyzer
+import datareader
 import plotting
-from analyzer import ParticleAnalyzer, identifyspecies
 from datareader import chooseCode, readDump, readSim
 
-__all__ = ['datareader', 'analyzer', 'plotting']
+
+identifyspecies = SpeciesIdentifier.identifyspecies
+__all__ = ['PhysicalConstants', 'identifyspecies']
+__all__ += ['datareader', 'analyzer', 'plotting']
 # high level functions
 __all__ += ['ParticleAnalyzer', 'identifyspecies']
 __all__ += ['chooseCode', 'readDump', 'readSim']

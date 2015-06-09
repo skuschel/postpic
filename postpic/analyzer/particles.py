@@ -20,11 +20,11 @@ Particle related routines.
 """
 
 import numpy as np
-from analyzer import PhysicalConstants as pc
-import analyzer
+from .._const import PhysicalConstants as pc
+from .._const import SpeciesIdentifier
 from ..datahandling import *
 
-identifyspecies = analyzer.SpeciesIdentifier.identifyspecies
+identifyspecies = SpeciesIdentifier.identifyspecies
 
 __all__ = ['ParticleAnalyzer', 'identifyspecies']
 
