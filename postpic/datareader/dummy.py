@@ -42,6 +42,8 @@ class Dummyreader(Dumpreader_ifc):
     def __init__(self, dumpid, dimensions=2, randfunc=np.random.normal, seed=0, **kwargs):
         super(self.__class__, self).__init__(dumpid, **kwargs)
         self._dimensions = dimensions
+        self._seed = seed
+        self._randfunc = randfunc
         # initialize fake data
         if seed is not None:
             np.random.seed(seed)
@@ -56,6 +58,13 @@ class Dummyreader(Dumpreader_ifc):
 
     def __getitem__(self, key):
         pass
+
+    def __eq__(self, other):
+        ret = super(self.__class__, self).__eq__(other)
+        return ret \
+            and self._randfunc == other._randfunc \
+            and self._seed == other._seed \
+            and self._dimensions == other._dimensions
 
     def timestep(self):
         return self.dumpidentifier

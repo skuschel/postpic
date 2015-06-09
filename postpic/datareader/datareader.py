@@ -141,6 +141,12 @@ class Dumpreader_ifc(FieldAnalyzer):
         return '<Dumpreader initialized with "' \
                + str(self.dumpidentifier) + '">'
 
+    def __eq__(self, other):
+        """
+        two dumpreader are equal, if they represent the same dump.
+        """
+        return self.dumpidentifier == other.dumpidentifier
+
     # Higher Level Functions for usability
 
     def getaxis(self, axis):
