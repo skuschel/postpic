@@ -41,7 +41,7 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 
 import numpy as np
 import copy
-from . import _const
+from . import helper
 
 __all__ = ['Field', 'Axis']
 
@@ -208,7 +208,7 @@ class Field(object):
         replaces the current axisobject for axis axis by the
         new axisobj axisobj.
         '''
-        axid = _const.axesidentify[axis]
+        axid = helper.axesidentify[axis]
         if not len(axisobj) == self.matrix.shape[axid]:
             raise ValueError('Axis object has {:3n} grid points, whereas '
                              'the data matrix has {:3n} on axis {:1n}'
@@ -289,7 +289,7 @@ class Field(object):
         be ignored. (that means, the extent will change by the size of
         the last grid cell)
         '''
-        axis = _const.axesidentify[axis]
+        axis = helper.axesidentify[axis]
         self.axes[axis].half_resolution()
         n = self.matrix.ndim
         s = [slice(None), ] * n
@@ -323,7 +323,7 @@ class Field(object):
             return
         assert self.dimensions * 2 == len(newextent), \
             'size of newextent doesnt match self.dimensions * 2'
-        self.matrix = _const.cutout(self.matrix, self.extent, newextent)
+        self.matrix = helper.cutout(self.matrix, self.extent, newextent)
         for i in xrange(len(self.axes)):
             self.axes[i].cutout(newextent[2 * i:2 * i + 2])
         return
@@ -352,7 +352,7 @@ class Field(object):
             shape = (1000, maxpt_r)
 
         extent[0:2] = extent[0:2] - angleoffset
-        ret.matrix = _const.transfromxy2polar(self.matrix, self.extent,
+        ret.matrix = helper.transfromxy2polar(self.matrix, self.extent,
                                               np.roll(extent, 2), shape).T
         extent[0:2] = extent[0:2] + angleoffset
 

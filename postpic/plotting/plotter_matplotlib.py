@@ -393,13 +393,11 @@ class MatplotlibPlotter(object):
         '''
         plots all fields dumped.
         '''
-        from .. import analyzer
         try:
             derived = dumpreader.getderived()
         except AttributeError:
             return
-        fa = analyzer.FieldAnalyzer(dumpreader)
-        fields = fa.createfieldsfromkeys(*derived)
+        fields = dumpreader.createfieldsfromkeys(*derived)
         for f in fields:
             self.plotField(f)
         return

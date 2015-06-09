@@ -25,7 +25,7 @@ Georg Wittig, Stephan Kuschel 2014
 '''
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc
-from .. import _const
+from .. import helper
 
 
 import h5py
@@ -82,7 +82,7 @@ class Hdf5reader(Dumpreader_ifc):
 
     def dataE(self, axis, **kwargs):
         # x, y, z, px, py, pz same as in sdf. weigt and ID not included.
-        axis = _const.axesidentify[axis]
+        axis = helper.axesidentify[axis]
         try:
             return np.float64(self["ElecMultiField"][..., axis])
         except:
@@ -90,7 +90,7 @@ class Hdf5reader(Dumpreader_ifc):
 
     def dataB(self, axis, **kwargs):
         # x, y, z, px, py, pz same as in sdf. wweigt and ID not included.
-        axis = _const.axesidentify[axis]
+        axis = helper.axesidentify[axis]
         try:
             return np.float64(self["MagMultiField"][..., axis])
         except:
@@ -99,7 +99,7 @@ class Hdf5reader(Dumpreader_ifc):
     def grid(self, axis):
         ''' returns the array of the positions of all cells on axis = axis.  '''
         # x, y, z, px, py, pz same as in sdf. weigt and ID not included.
-        axis = _const.axesidentify[axis]
+        axis = helper.axesidentify[axis]
         temp = self["compGridGlobal"]
         return np.linspace(temp.attrs["vsLowerBounds"][axis],
                            temp.attrs["vsUpperBounds"][axis], temp.attrs["vsNumCells"][axis])
@@ -121,7 +121,7 @@ class Hdf5reader(Dumpreader_ifc):
         Valid Scalar attributes are (mass, charge).
         '''
         # x, y, z, px, py, pz same as in sdf. weigt and ID not included.
-        attrib = _const.attribidentify[attrib]
+        attrib = helper.attribidentify[attrib]
         attrib = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 9: 'numPtclsInMacro',
                   11: 'mass', 12: 'charge'}[attrib]
         if isinstance(attrib, int):

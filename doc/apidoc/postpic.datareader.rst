@@ -4,6 +4,14 @@ postpic.datareader package
 Submodules
 ----------
 
+postpic.datareader.datareader module
+------------------------------------
+
+.. automodule:: postpic.datareader.datareader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 postpic.datareader.dummy module
 -------------------------------
 

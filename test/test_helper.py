@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import unittest
-import postpic.analyzer as pa
+import postpic as pp
 
 class TestSpeciesIdentifier(unittest.TestCase):
     
@@ -9,7 +9,7 @@ class TestSpeciesIdentifier(unittest.TestCase):
         pass
 
     def checke(self, data, m, c, eject, tracer, ision):
-        pc = pa.PhysicalConstants
+        pc = pp.PhysicalConstants
         self.assertEqual(data['mass'], m * pc.me)
         self.assertEqual(data['charge'], c * pc.qe)
         self.assertEqual(data['ejected'], eject)
@@ -20,7 +20,7 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checke(data, 1836.2 * m, c, eject, tracer, ision)
 
     def test_identifyspecies_ion(self):
-        idfy = pa.identifyspecies
+        idfy = pp.identifyspecies
         self.checkion(idfy('proton'), 1, 1, False, False, True)
         self.checkion(idfy('H1'), 1, 1, False, False, True)
         self.checkion(idfy('tracer_O3'), 16, 3, False, True, True)
@@ -32,7 +32,7 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checkion(idfy('tracer_blahh_Au27x'), 197, 27, False, True, True)
 
     def test_identifyspecies_electron(self):
-        idfy = pa.identifyspecies
+        idfy = pp.identifyspecies
         self.checke(idfy('Elektron'), 1, -1, False, False, False)
         self.checke(idfy('Elektronx'), 1, -1, False, False, False)
         self.checke(idfy('Elektron2'), 1, -1, False, False, False)
@@ -46,7 +46,7 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checke(idfy('Electrons'), 1, -1, False, False, False)
 
     def test_identifyspecies_praefix(self):
-        x = pa.identifyspecies('a_b_c_xxx_tracer_h_w_33_He5_O3x2')
+        x = pp.identifyspecies('a_b_c_xxx_tracer_h_w_33_He5_O3x2')
         self.assertEqual(x['a'], True)
         self.assertEqual(x['b'], True)
         self.assertEqual(x['c'], True)
@@ -58,7 +58,7 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checkion(x, 16,3, False, True, True)
 
     def test_identifyspecies_extendedsyntax(self):
-        idfy = pa.identifyspecies
+        idfy = pp.identifyspecies
         self.checkion(idfy('H'), 1, 0, False, False, True)
         self.checkion(idfy('HPlus'), 1, 1, False, False, True)
         self.checkion(idfy('H1Plus'), 1, 1, False, False, True)
@@ -73,7 +73,7 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checke(idfy('HePlusPluselectrons'), 1, -1, False, False, False)
 
     def test_falsefriends(self):
-        idfy = pa.identifyspecies
+        idfy = pp.identifyspecies
         # careful: the last one is an uncharged ion
         self.checke(idfy('HElectron'), 1, -1, False, False, False)
         self.checke(idfy('HeElectron'), 1, -1, False, False, False)
