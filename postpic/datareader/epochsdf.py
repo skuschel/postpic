@@ -100,7 +100,9 @@ class Sdfreader(Dumpreader_ifc):
 
     def grid(self, axis):
         try:
-            return self['Grid/Grid_mid'].data[helper.axesidentify[axis]]
+            ret = self['Grid/Grid'].data[helper.axesidentify[axis]]
+            ret = np.convolve(ret, np.array([0.5, 0.5]), mode='valid')
+            return ret
         except(IndexError):
             raise KeyError
 
