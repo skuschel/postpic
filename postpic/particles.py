@@ -22,6 +22,7 @@ Particle related routines.
 import numpy as np
 from .helper import PhysicalConstants as pc
 from .helper import SpeciesIdentifier
+from .helper import histogramdd
 from .datahandling import *
 
 identifyspecies = SpeciesIdentifier.identifyspecies
@@ -631,16 +632,8 @@ class MultiSpecies(object):
         if rangex is None:
             rangex = [np.min(xdata), np.max(xdata)]
         w = self.weight() * weights(self)
-        try:
-            from . import cythonfunctions as cyf
-            h, edges = cyf.histogram(xdata, weights=w,
-                                     range=rangex, **optargsh)
-        except ImportError:
-            import warnings
-            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
-            optargsh.pop('shape')
-            h, edges = np.histogram(xdata, weights=w,
-                                    range=rangex, **optargsh)
+        h, edges = histogramdd((xdata,), weights=w,
+                               range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
 
@@ -711,18 +704,9 @@ class MultiSpecies(object):
         if rangey is None:
             rangey = [np.min(ydata), np.max(ydata)]
         w = self.weight() * weights(self)  # Particle Size * additional weights
-        try:
-            from . import cythonfunctions as cyf
-            h, xedges, yedges = cyf.histogram2d(xdata, ydata,
-                                                weights=w, range=[rangex, rangey],
-                                                **optargsh)
-        except ImportError:
-            import warnings
-            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
-            optargsh.pop('shape')
-            h, xedges, yedges = np.histogram2d(xdata, ydata,
-                                               weights=w, range=[rangex, rangey],
-                                               **optargsh)
+        h, xedges, yedges = histogramdd((xdata, ydata),
+                                        weights=w, range=[rangex, rangey],
+                                        **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
         return h, xedges, yedges
 
@@ -807,18 +791,9 @@ class MultiSpecies(object):
         if rangez is None:
             rangez = [np.min(zdata), np.max(zdata)]
         w = self.weight() * weights(self)  # Particle Size * additional weights
-        try:
-            from . import cythonfunctions as cyf
-            h, xe, ye, ze = cyf.histogram3d(xdata, ydata, zdata,
-                                            weights=w, range=[rangex, rangey, rangez],
-                                            **optargsh)
-        except ImportError:
-            import warnings
-            warnings.warn('cython libs could not be imported. Falling back to "numpy.histogram".')
-            optargsh.pop('shape')
-            h, (xe, ye, ze) = np.histogramdd((xdata, ydata, zdata),
-                                             weights=w, range=[rangex, rangey, rangez],
-                                             **optargsh)
+        h, xe, ye, ze = histogramdd((xdata, ydata, zdata),
+                                    weights=w, range=[rangex, rangey, rangez],
+                                    **optargsh)
         h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
         return h, xe, ye, ze
 

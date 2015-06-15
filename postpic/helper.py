@@ -20,6 +20,13 @@ Some global constants that are used in the code.
 """
 import numpy as np
 import re
+import warnings
+try:
+    import cythonfunctions as cyf
+except(ImportError):
+    warnings.warn('cython libs could not be imported. This alters the performance'
+                  'of postpic drastically. Falling back to numpy functions.')
+    cyf = None
 
 
 axesidentify = {'X': 0, 'x': 0, 0: 0,
@@ -289,6 +296,38 @@ def transfromxy2polar(matrixxy, extentxy,
     return ret
 
 
+def histogramdd(data, **kwargs):
+    '''
+    automatically chooses the histogram function to be used.
+    `data` must be a tuple. Its length determines the
+    dimensions of the histogram returned.
+    '''
+    if len(data) > 3:
+        raise ValueError('{} is larger than the max number of dimensions '
+                         'allowed (3)'.format(len(data)))
+    if cyf is None:
+        shape = kwargs.pop('shape', 0)
+        if shape != 0:
+            warnings.warn('shape {} not available without cython.'.format(shape))
+        if len(data) == 1:
+            h, xedges = np.histogram(data[0], **kwargs)
+            return h, xedges
+        if len(data) == 2:
+            h, xedges, yedges = np.histogram2d(data[0], data[1], **kwargs)
+            return h, xedges, yedges
+        if len(data) == 3:
+            h, (xe, ye, ze) = np.histogramdd(data, **kwargs)
+            return h, xe, ye, ze
+    else:
+        if len(data) == 1:
+            h, xedges = cyf.histogram(data[0], **kwargs)
+            return h, xedges
+        if len(data) == 2:
+            h, xedges, yedges = cyf.histogram2d(data[0], data[1], **kwargs)
+            return h, xedges, yedges
+        if len(data) == 3:
+            h, xe, ye, ze = cyf.histogram3d(data[0], data[1], data[2], **kwargs)
+            return h, xe, ye, ze
 
 
 
