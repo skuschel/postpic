@@ -615,17 +615,21 @@ class MultiSpecies(object):
                 xdata = []  # Return empty histogram
         else:
             xdata = scalarfx(self)
-        # In case there are no particles
-        if len(xdata) == 0:
-            return [], []
-        if rangex is None:
-            rangex = [np.min(xdata), np.max(xdata)]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
         if simgrid:
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'] = scalarfx.gridpoints
+        if len(xdata) == 0:
+            h = np.zeros(optargsh['bins'])
+            if rangex is not None:
+                xedges = np.linspace(rangex[0], rangex[1], optargsh['bins'] + 1)
+            else:
+                xedges = np.linspace(0, 1, optargsh['bins'] + 1)
+            return h, xedges  # empty histogram: h == 0 everywhere
+        if rangex is None:
+            rangex = [np.min(xdata), np.max(xdata)]
         w = self.weight() * weights(self)
         try:
             from . import cythonfunctions as cyf
@@ -678,15 +682,9 @@ class MultiSpecies(object):
         else:
             xdata = scalarfx(self)
             ydata = scalarfy(self)
-        if len(xdata) == 0:
-            return [[]], [0, 1], [1]
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
-        if rangex is None:
-            rangex = [np.min(xdata), np.max(xdata)]
-        if rangey is None:
-            rangey = [np.min(ydata), np.max(ydata)]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -697,6 +695,21 @@ class MultiSpecies(object):
                 optargsh['bins'][0] = scalarfx.gridpoints
             if hasattr(scalarfy, 'gridpoints'):
                 optargsh['bins'][1] = scalarfy.gridpoints
+        if len(xdata) == 0:
+            h = np.zeros(optargsh['bins'])
+            if rangex is not None:
+                xedges = np.linspace(rangex[0], rangex[1], optargsh['bins'][0] + 1)
+            else:
+                xedges = np.linspace(0, 1, optargsh['bins'][0] + 1)
+            if rangey is not None:
+                yedges = np.linspace(rangey[0], rangey[1], optargsh['bins'][1] + 1)
+            else:
+                yedges = np.linspace(0, 1, optargsh['bins'][1] + 1)
+            return h, xedges, yedges  # empty histogram: h == 0 everywhere
+        if rangex is None:
+            rangex = [np.min(xdata), np.max(xdata)]
+        if rangey is None:
+            rangey = [np.min(ydata), np.max(ydata)]
         w = self.weight() * weights(self)  # Particle Size * additional weights
         try:
             from . import cythonfunctions as cyf
@@ -755,17 +768,9 @@ class MultiSpecies(object):
             xdata = scalarfx(self)
             ydata = scalarfy(self)
             zdata = scalarfz(self)
-        if len(xdata) == 0:
-            return [[]], [0, 1], [1], [1]
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
-        if rangex is None:
-            rangex = [np.min(xdata), np.max(xdata)]
-        if rangey is None:
-            rangey = [np.min(ydata), np.max(ydata)]
-        if rangez is None:
-            rangez = [np.min(zdata), np.max(zdata)]
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -780,6 +785,27 @@ class MultiSpecies(object):
                 optargsh['bins'][1] = scalarfy.gridpoints
             if hasattr(scalarfz, 'gridpoints'):
                 optargsh['bins'][1] = scalarfz.gridpoints
+        if len(xdata) == 0:
+            h = np.zeros(optargsh['bins'])
+            if rangex is not None:
+                xedges = np.linspace(rangex[0], rangex[1], optargsh['bins'][0] + 1)
+            else:
+                xedges = np.linspace(0, 1, optargsh['bins'][0] + 1)
+            if rangey is not None:
+                yedges = np.linspace(rangey[0], rangey[1], optargsh['bins'][1] + 1)
+            else:
+                yedges = np.linspace(0, 1, optargsh['bins'][1] + 1)
+            if rangez is not None:
+                zedges = np.linspace(rangez[0], rangez[1], optargsh['bins'][2] + 1)
+            else:
+                zedges = np.linspace(0, 1, optargsh['bins'][2] + 1)
+            return h, xedges, yedges, zedges  # empty histogram: h == 0 everywhere
+        if rangex is None:
+            rangex = [np.min(xdata), np.max(xdata)]
+        if rangey is None:
+            rangey = [np.min(ydata), np.max(ydata)]
+        if rangez is None:
+            rangez = [np.min(zdata), np.max(zdata)]
         w = self.weight() * weights(self)  # Particle Size * additional weights
         try:
             from . import cythonfunctions as cyf
