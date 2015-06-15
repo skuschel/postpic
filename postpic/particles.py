@@ -215,7 +215,6 @@ class MultiSpecies(object):
         self._ssas = []
         self._species = None  # trivial name if set
         self._compresslog = []
-        self.simdimensions = dumpreader.simdimensions()
         try:
             self.X.__func__.extent = dumpreader.extent('x')
             self.X.__func__.gridpoints = dumpreader.gridpoints('x')
@@ -927,8 +926,6 @@ class MultiSpecies(object):
         **kwargs
             given to createHistgram1d or createHistgram2d.
         """
-        if self.simdimensions is None:
-            return None
         if len(scalarf) == 1:
             return self.createHistgramField1d(*scalarf, **kwargs)
         elif len(scalarf) == 2:

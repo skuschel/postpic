@@ -48,9 +48,9 @@ class FieldAnalyzer(object):
         add spacial field information to the given field object.
         '''
         field.setaxisobj('x', self.dumpreader.getaxis('x'))
-        if self.dumpreader.simdimensions() > 1:
+        if field.dimensions > 1:
             field.setaxisobj('y', self.dumpreader.getaxis('y'))
-        if self.dumpreader.simdimensions() > 2:
+        if field.dimensions > 2:
             field.setaxisobj('z', self.dumpreader.getaxis('z'))
 
     # --- Return functions for basic data layer

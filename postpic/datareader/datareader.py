@@ -88,10 +88,6 @@ class Dumpreader_ifc(FieldAnalyzer):
     def time(self):
         pass
 
-    @abc.abstractmethod
-    def simdimensions(self):
-        pass
-
     # --- Data on Grid ---
     @abc.abstractmethod
     def dataE(self, axis):
