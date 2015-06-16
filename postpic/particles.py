@@ -20,6 +20,7 @@ Particle related routines.
 """
 
 import numpy as np
+import copy
 from .helper import PhysicalConstants as pc
 from .helper import SpeciesIdentifier
 from .helper import histogramdd
