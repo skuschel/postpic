@@ -84,6 +84,10 @@ class Sdfreader(Dumpreader_ifc):
         grid = self[key].grid
         return float(grid.extents[axid + len(grid.dims)] - grid.extents[axid]) / grid.dims[axid]
 
+    def gridpoints(self, key, axis):
+        axid = helper.axesidentify[axis]
+        return self[key].dims[axid]
+
 # --- Level 2 methods ---
 
     def timestep(self):

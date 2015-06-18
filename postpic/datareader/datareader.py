@@ -126,7 +126,7 @@ class Dumpreader_ifc(FieldAnalyzer):
         method due to performance reasons.
         '''
         warnings.warn('Method "gridpoints(self, key, axis)" is not overridden in datareader. '
-                      'This is probably highly inefficient.')
+                      'This is may alter performance.')
         return self.data(key).shape[helper.axesidentify[axis]]
 
     def gridnode(self, key, axis):
