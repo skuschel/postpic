@@ -75,7 +75,13 @@ class Dummyreader(Dumpreader_ifc):
     def simdimensions(self):
         return self._dimensions
 
-    def dataE(self, axis):
+    def gridoffset(self, key, axis):
+        raise Exception('Not Implemented')
+
+    def gridspacing(self, key, axis):
+        raise Exception('Not Implemented')
+
+    def data(self, axis):
         axid = helper.axesidentify[axis]
 
         def _Ex(x, y, z):
@@ -97,21 +103,44 @@ class Dummyreader(Dumpreader_ifc):
                 1: _Ey,
                 2: _Ez}
         if self.simdimensions() == 1:
-            ret = fkts[axid](self.grid('x'), 0, 0)
+            ret = fkts[axid](self.grid(None, 'x'), 0, 0)
         elif self.simdimensions() == 2:
-            xx, yy = np.meshgrid(self.grid('x'), self.grid('y'), indexing='ij')
+            xx, yy = np.meshgrid(self.grid(None, 'x'), self.grid(None, 'y'), indexing='ij')
             ret = fkts[axid](xx, yy, 0)
         elif self.simdimensions() == 3:
-            xx, yy, zz = np.meshgrid(self.grid('x'),
-                                     self.grid('y'),
-                                     self.grid('z'), indexing='ij')
+            xx, yy, zz = np.meshgrid(self.grid(None, 'x'),
+                                     self.grid(None, 'y'),
+                                     self.grid(None, 'z'), indexing='ij')
             ret = fkts[axid](xx, yy, zz)
         return ret
 
-    def dataB(self, axis):
-        return 10 * self.dataE(axis)
+    def _keyE(self, component):
+        return component
 
-    def grid(self, axis):
+    def _keyB(self, component):
+        return component
+
+    def gridnode(self, key, axis):
+        '''
+        Args:
+          axis : string or int
+            the axisidentifier
+
+        Returns: list of grid points of the axis specified.
+
+        Thus only regular grids are supported currently.
+        '''
+        axid = helper.axesidentify[axis]
+        grids = {1: [(-2, 10, 601)],
+                 2: [(-2, 10, 301), (-5, 5, 401)],
+                 3: [(-2, 10, 101), (-5, 5, 81), (-4, 4, 61)]}
+        if axid >= self.simdimensions():
+            raise KeyError('axis ' + str(axis) + ' not present.')
+        args = grids[self.simdimensions()][axid]
+        ret = np.linspace(*args)
+        return ret
+
+    def grid(self, key, axis):
         '''
         Args:
           axis : string or int

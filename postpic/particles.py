@@ -217,19 +217,19 @@ class MultiSpecies(object):
         self._species = None  # trivial name if set
         self._compresslog = []
         try:
-            self.X.__func__.extent = dumpreader.extent('x')
-            self.X.__func__.gridpoints = dumpreader.gridpoints('x')
-            self.X_um.__func__.extent = dumpreader.extent('x') * 1e6
-            self.X_um.__func__.gridpoints = dumpreader.gridpoints('x')
-            self.Y.__func__.extent = dumpreader.extent('y')
-            self.Y.__func__.gridpoints = dumpreader.gridpoints('y')
-            self.Y_um.__func__.extent = dumpreader.extent('y') * 1e6
-            self.Y_um.__func__.gridpoints = dumpreader.gridpoints('y')
-            self.Z.__func__.extent = dumpreader.extent('z')
-            self.Z.__func__.gridpoints = dumpreader.gridpoints('z')
-            self.Z_um.__func__.extent = dumpreader.extent('z') * 1e6
-            self.Z_um.__func__.gridpoints = dumpreader.gridpoints('z')
-        except(KeyError):
+            self.X.__func__.extent = dumpreader.simextent('x')
+            self.X.__func__.gridpoints = dumpreader.simgridpoints('x')
+            self.X_um.__func__.extent = dumpreader.simextent('x') * 1e6
+            self.X_um.__func__.gridpoints = dumpreader.simgridpoints('x')
+            self.Y.__func__.extent = dumpreader.simextent('y')
+            self.Y.__func__.gridpoints = dumpreader.simgridpoints('y')
+            self.Y_um.__func__.extent = dumpreader.simextent('y') * 1e6
+            self.Y_um.__func__.gridpoints = dumpreader.simgridpoints('y')
+            self.Z.__func__.extent = dumpreader.simextent('z')
+            self.Z.__func__.gridpoints = dumpreader.simgridpoints('z')
+            self.Z_um.__func__.extent = dumpreader.simextent('z') * 1e6
+            self.Z_um.__func__.gridpoints = dumpreader.simgridpoints('z')
+        except(KeyError, IndexError):
             pass
         self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
         self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])

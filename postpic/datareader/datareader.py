@@ -18,9 +18,9 @@
 
 import abc
 import collections
+import warnings
 import numpy as np
 from .. import helper
-from .. import datahandling as dh
 from .._field_calc import FieldAnalyzer
 
 __all__ = ['Dumpreader_ifc', 'Simulationreader_ifc']
@@ -47,12 +47,25 @@ class Dumpreader_ifc(FieldAnalyzer):
     that every dumpreader works as a dictionary and every dump attribute is accessible
     via this dictionary.
 
-    All other functions, which provide a unified interface should just point to the
-    right key. If some attribute wasnt dumped a KeyError must be thrown. This allows
+    Hirachy of methods
+    ------------------
+    * Level 0:
+    __getitem__ and keys(self) are level 0 methods, meaning it must be possible to access
+    everthing with those methods.
+
+    * Level 1:
+    provide direct data access by forwarding the requests to the corresponding Level 0
+    or Level 1 methods.
+
+    * Level 2:
+    provide user access to the data by forwarding the request to Level 1 or Level 2 methods,
+    but NOT to Level 0 methods.
+
+    If some attribute wasnt dumped a KeyError must be thrown. This allows
     classes which are using the reader to just exit if a needed property wasnt dumped
     or to catch the KeyError and proceed by actively ignoring it.
 
-    It is highly recommended to also override the __str__ function.
+    It is highly recommended to also override the functions __str__ and gridpoints.
 
     Args:
       dumpidentifier : variable type
@@ -66,6 +79,8 @@ class Dumpreader_ifc(FieldAnalyzer):
         self.dumpidentifier = dumpidentifier
         self._name = name
 
+# --- Level 0 methods ---
+
     @abc.abstractmethod
     def keys(self):
         '''
@@ -77,7 +92,55 @@ class Dumpreader_ifc(FieldAnalyzer):
 
     @abc.abstractmethod
     def __getitem__(self, key):
+        '''
+        access to everything. May return hd5 objects corresponding to the "key".
+        '''
         pass
+
+# --- Level 1 methods ---
+
+    @abc.abstractmethod
+    def data(self, key):
+        '''
+        access to every raw data. needs to return numpy arrays corresponding to the "key".
+        '''
+        pass
+
+    @abc.abstractmethod
+    def gridoffset(self, key, axis):
+        '''
+        offset of the beginning of the first cell of the grid.
+        '''
+        pass
+
+    @abc.abstractmethod
+    def gridspacing(self, key, axis):
+        '''
+        size of one grid cell in the direction "axis".
+        '''
+        pass
+
+    def gridpoints(self, key, axis):
+        '''
+        Number of grid points along "axis". It is highly recommended to override this
+        method due to performance reasons.
+        '''
+        warnings.warn('Method "gridpoints(self, key, axis)" is not overridden in datareader. '
+                      'This is probably highly inefficient.')
+        return self.data(key).shape[helper.axesidentify[axis]]
+
+    def gridnode(self, key, axis):
+        '''
+        The grid nodes along "axis". Grid nodes include the beginning and the end of the grid.
+        Example: If the grid has 20 grid points, it has 21 grid nodes or grid edges.
+        '''
+        offset = self.gridoffset(key, axis)
+        n = self.gridpoints(key, axis)
+        return np.linspace(offset,
+                           offset + self.gridspacing(key, axis) * n,
+                           n + 1)
+
+# --- Level 2 methods ---
 
     # --- General Information ---
     @abc.abstractmethod
@@ -89,17 +152,62 @@ class Dumpreader_ifc(FieldAnalyzer):
         pass
 
     # --- Data on Grid ---
+    # _key[E,B] methods are ONLY used inside the datareader class
     @abc.abstractmethod
-    def dataE(self, axis):
+    def _keyE(self, component, **kwargs):
+        '''
+        The key where the E field component can be found.
+        '''
         pass
 
     @abc.abstractmethod
-    def dataB(self, axis):
+    def _keyB(self, component, **kwargs):
+        '''
+        The key where the B field component can be found.
+        '''
         pass
 
-    @abc.abstractmethod
-    def grid(self, axis):
-        pass
+    # if you need to customize more, just skip _key[E,B] methods and
+    # override the following 4 methods to have full control.
+    def dataE(self, component, **kwargs):
+        return np.float64(self.data(self._keyE(component, **kwargs)))
+
+    def gridkeyE(self, component, **kwargs):
+        return self._keyE(component, **kwargs)
+
+    def dataB(self, component, **kwargs):
+        return np.float64(self.data(self._keyB(component, **kwargs)))
+
+    def gridkeyB(self, component, **kwargs):
+        return self._keyB(component, **kwargs)
+
+    def simgridkeys(self):
+        '''
+        returns a list of keys that can be tried one after another to determine the grid,
+        that the actual simulations was running on.
+        '''
+        return []
+
+    def simgridpoints(self, axis):
+        for key in self.simgridkeys():
+            try:
+                return self.gridpoints(key, axis)
+            except(KeyError):
+                pass
+        raise KeyError
+
+    def simextent(self, axis):
+        '''
+        returns the extent of the actual simulation window
+        '''
+        for key in self.simgridkeys():
+            try:
+                offset = self.gridoffset(key, axis)
+                n = self.gridpoints(key, axis)
+                return np.array([offset, offset + self.gridspacing(key, axis) * n])
+            except(KeyError):
+                pass
+        raise KeyError
 
     # --- Particle Data ---
     @abc.abstractmethod
@@ -142,53 +250,6 @@ class Dumpreader_ifc(FieldAnalyzer):
         two dumpreader are equal, if they represent the same dump.
         """
         return self.dumpidentifier == other.dumpidentifier
-
-    # Higher Level Functions for usability
-
-    def getaxis(self, axis):
-        '''
-        Args:
-          axis : string or int
-            the axisidentifier
-
-        Returns: an Axis object for a given axis.
-        '''
-        name = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
-        ret = dh.Axis(name=name, unit='m')
-        ret.grid = self.grid(axis)
-        return ret
-
-    def extent(self, axis):
-        '''
-        Args:
-          axis : string or int
-            the axisidentifier
-
-        Returns: the extent of the simulation for a given axis.
-        '''
-        ax = self.getaxis(axis)
-        return np.array(ax.extent)
-
-    def gridpoints(self, axis):
-        '''
-        Args:
-          axis : string or int
-            the axisidentifier
-
-        Returns: the number of grid points along a given axis.
-        '''
-        return len(self.grid(axis))
-
-    def getspacialresolution(self, axis):
-        '''
-        Args:
-          axis : string or int
-            the axisidentifier
-
-        Returns: the spacial grid resolution along a given axis.
-        '''
-        extent = self.extent(axis)
-        return (extent[1] - extent[0]) / float(self.gridpoints(axis))
 
 
 class Simulationreader_ifc(collections.Sequence):
