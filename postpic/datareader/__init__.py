@@ -104,7 +104,7 @@ def chooseCode(code):
           - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
           - "VSIM": .hdf5 files written by VSim.
     '''
-    if code.lower in ['epoch', 'epoch1d', 'epoch2d', 'epoch3d']:
+    if code.lower() in ['epoch', 'epoch1d', 'epoch2d', 'epoch3d']:
         from epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
