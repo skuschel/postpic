@@ -560,6 +560,25 @@ class MultiSpecies(object):
     angle_xaxis.unit = 'rad'
     angle_xaxis.name = 'angle_xaxis'
 
+    def r_xy(self):
+        return np.sqrt(self.X()**2 + self.Y()**2)
+    r_xy.unit = 'm'
+    r_xy.name = 'r_xy'
+
+    def r_yz(self):
+        return np.sqrt(self.Y()**2 + self.Z()**2)
+    r_yz.unit = 'm'
+    r_yz.name = 'r_yz'
+
+    def r_zx(self):
+        return np.sqrt(self.Z()**2 + self.X()**2)
+    r_zx.unit = 'm'
+    r_zx.name = 'r_zx'
+
+    def r_xyz(self):
+        return np.sqrt(self.X()**2 + self.Y()**2 + self.Z()**2)
+    r_xyz.unit = 'm'
+    r_xyz.name = 'r_xyz'
     # ---- Functions for measuring particle collection related values
 
     def mean(self, func, weights=1.0):
