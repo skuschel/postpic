@@ -21,6 +21,7 @@ Field related routines.
 
 import numpy as np
 from .helper import PhysicalConstants as pc
+import helper
 from .datahandling import *
 
 __all__ = ['FieldAnalyzer']
@@ -41,51 +42,65 @@ class FieldAnalyzer(object):
     '''
 
     def __init__(self, dumpreader):
-        self.dumpreader = dumpreader
+        self._dumpreader = dumpreader
 
-    def setspacialtofield(self, field):
+    # General interface for everything
+    def _createfieldfromdata(self, data, gridkey):
+        ret = Field(np.float64(data))
+        self.setgridtofield(ret, gridkey)
+        return ret
+
+    def createfieldfromkey(self, key, gridkey=None):
+        '''
+        This method creates a Field object from the data identified by "key".
+        The Grid is also inferred from that key unless an alternate "gridkey"
+        is provided.
+        '''
+        if gridkey is None:
+            gridkey = key
+        ret = self._createfieldfromdata(self._dumpreader.data(key), gridkey)
+        ret.name = key
+        return ret
+
+    def getaxisobj(self, gridkey, axis):
+        '''
+        returns an Axis object for the "axis" and the grid defined by "gridkey".
+        '''
+        name = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
+        ax = Axis(name=name, unit='m')
+        ax.grid_node = self._dumpreader.gridnode(gridkey, axis)
+        return ax
+
+    def setgridtofield(self, field, gridkey):
         '''
         add spacial field information to the given field object.
         '''
-        field.setaxisobj('x', self.dumpreader.getaxis('x'))
+        field.setaxisobj('x', self.getaxisobj(gridkey, 'x'))
         if field.dimensions > 1:
-            field.setaxisobj('y', self.dumpreader.getaxis('y'))
+            field.setaxisobj('y', self.getaxisobj(gridkey, 'y'))
         if field.dimensions > 2:
-            field.setaxisobj('z', self.dumpreader.getaxis('z'))
-
-    # --- Return functions for basic data layer
-    @staticmethod
-    def _returnfunc(data):
-        return np.float64(data)
-
-    # -- basic --
-    # **kwargs is not used up to now
-    def _Ex(self, **kwargs):
-        return self._returnfunc(self.dumpreader.dataE('x', **kwargs))
-
-    def _Ey(self, **kwargs):
-        return self._returnfunc(self.dumpreader.dataE('y', **kwargs))
-
-    def _Ez(self, **kwargs):
-        return self._returnfunc(self.dumpreader.dataE('z', **kwargs))
-
-    def _Bx(self, **kwargs):
-        return self._returnfunc(self.dumpreader.dataB('x', **kwargs))
-
-    def _By(self, **kwargs):
-        return self._returnfunc(self.dumpreader.dataB('y', **kwargs))
-
-    def _Bz(self, **kwargs):
-        return self._returnfunc(self.dumpreader.dataB('z', **kwargs))
+            field.setaxisobj('z', self.getaxisobj(gridkey, 'z'))
 
     # --- Always return an object of Field type
+    # just to shortcut
 
-    # General interface for everything
-    def createfieldfromkey(self, key):
-        ret = Field(self._returnfunc(self.dumpreader.getdata(key)))
-        ret.name = key
-        self.setspacialtofield(ret)
-        return ret
+    def _Ex(self, **kwargs):
+        return np.float64(self._dumpreader.dataE('x', **kwargs))
+
+    def _Ey(self, **kwargs):
+        return np.float64(self._dumpreader.dataE('y', **kwargs))
+
+    def _Ez(self, **kwargs):
+        return np.float64(self._dumpreader.dataE('z', **kwargs))
+
+    def _Bx(self, **kwargs):
+        return np.float64(self._dumpreader.dataB('x', **kwargs))
+
+    def _By(self, **kwargs):
+        return np.float64(self._dumpreader.dataB('y', **kwargs))
+
+    def _Bz(self, **kwargs):
+        return np.float64(self._dumpreader.dataB('z', **kwargs))
 
     def createfieldsfromkeys(self, *keys):
         for key in keys:
@@ -93,89 +108,89 @@ class FieldAnalyzer(object):
 
     # most common fields listed here nicely
     def Ex(self, **kwargs):
-        ret = Field(self._Ex(**kwargs))
+        ret = self._createfieldfromdata(self._Ex(**kwargs),
+                                        self._dumpreader.gridkeyE('x', **kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ex'
         ret.shortname = 'Ex'
-        self.setspacialtofield(ret)
         return ret
 
     def Ey(self, **kwargs):
-        ret = Field(self._Ey(**kwargs))
+        ret = self._createfieldfromdata(self._Ey(**kwargs),
+                                        self._dumpreader.gridkeyE('y', **kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ey'
         ret.shortname = 'Ey'
-        self.setspacialtofield(ret)
         return ret
 
     def Ez(self, **kwargs):
-        ret = Field(self._Ez(**kwargs))
+        ret = self._createfieldfromdata(self._Ez(**kwargs),
+                                        self._dumpreader.gridkeyE('z', **kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ez'
         ret.shortname = 'Ez'
-        self.setspacialtofield(ret)
         return ret
 
     def Bx(self, **kwargs):
-        ret = Field(self._Bx(**kwargs))
+        ret = self._createfieldfromdata(self._Bx(**kwargs),
+                                        self._dumpreader.gridkeyB('x', **kwargs))
         ret.unit = 'T'
         ret.name = 'Bx'
         ret.shortname = 'Bx'
-        self.setspacialtofield(ret)
         return ret
 
     def By(self, **kwargs):
-        ret = Field(self._By(**kwargs))
+        ret = self._createfieldfromdata(self._By(**kwargs),
+                                        self._dumpreader.gridkeyB('y', **kwargs))
         ret.unit = 'T'
         ret.name = 'By'
         ret.shortname = 'By'
-        self.setspacialtofield(ret)
         return ret
 
     def Bz(self, **kwargs):
-        ret = Field(self._Bz(**kwargs))
+        ret = self._createfieldfromdata(self._Bz(**kwargs),
+                                        self._dumpreader.gridkeyB('y', **kwargs))
         ret.unit = 'T'
         ret.name = 'Bz'
         ret.shortname = 'Bz'
-        self.setspacialtofield(ret)
         return ret
 
     # --- spezielle Funktionen
 
     def energydensityE(self, **kwargs):
-        ret = Field(0.5 * pc.epsilon0 *
-                    (self._Ex(**kwargs) ** 2 +
-                     self._Ey(**kwargs) ** 2 +
-                     self._Ez(**kwargs) ** 2))
+        ret = self._createfieldfromdata(0.5 * pc.epsilon0 *
+                                        (self._Ex(**kwargs) ** 2 +
+                                         self._Ey(**kwargs) ** 2 +
+                                         self._Ez(**kwargs) ** 2),
+                                        self._dumpreader.gridkeyE('x', **kwargs))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Electric-Field'
         ret.shortname = 'E'
-        self.setspacialtofield(ret)
         return ret
 
     def energydensityM(self, **kwargs):
-        ret = Field(0.5 / pc.mu0 *
-                    (self._Bx(**kwargs) ** 2 +
-                     self._By(**kwargs) ** 2 +
-                     self._Bz(**kwargs) ** 2))
+        ret = self._createfieldfromdata(0.5 / pc.mu0 *
+                                        (self._Bx(**kwargs) ** 2 +
+                                         self._By(**kwargs) ** 2 +
+                                         self._Bz(**kwargs) ** 2),
+                                        self._dumpreader.gridkeyB('x', **kwargs))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Magnetic-Field'
         ret.shortname = 'M'
-        self.setspacialtofield(ret)
         return ret
 
     def energydensityEM(self, **kwargs):
-        ret = Field(0.5 * pc.epsilon0 *
-                    (self._Ex(**kwargs) ** 2 +
-                     self._Ey(**kwargs) ** 2 +
-                     self._Ez(**kwargs) ** 2) +
-                    0.5 / pc.mu0 *
-                    (self._Bx(**kwargs) ** 2 +
-                     self._By(**kwargs) ** 2 +
-                     self._Bz(**kwargs) ** 2))
+        ret = self._createfieldfromdata(0.5 * pc.epsilon0 *
+                                        (self._Ex(**kwargs) ** 2 +
+                                         self._Ey(**kwargs) ** 2 +
+                                         self._Ez(**kwargs) ** 2) +
+                                        0.5 / pc.mu0 *
+                                        (self._Bx(**kwargs) ** 2 +
+                                         self._By(**kwargs) ** 2 +
+                                         self._Bz(**kwargs) ** 2),
+                                        self._dumpreader.gridkeyE('x', **kwargs))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density EM-Field'
         ret.shortname = 'EM'
-        self.setspacialtofield(ret)
         return ret
 

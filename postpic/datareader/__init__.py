@@ -104,15 +104,18 @@ def chooseCode(code):
           - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
           - "VSIM": .hdf5 files written by VSim.
     '''
-    if code in ['EPOCH', 'epoch', 'EPOCH1D', 'EPOCH2D', 'EPOCH3D']:
+    if code.lower in ['epoch', 'epoch1d', 'epoch2d', 'epoch3d']:
         from epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
-    elif code in ['VSim', 'VSIM', 'vsim']:
+    elif code.lower() in ['vsim']:
+        raise Exception('VSim reader requires update due to the interface change in '
+                        'https://github.com/skuschel/postpic/commit/'
+                        'c3d5b9d7afda3b3b0ebf57cd3199567a5a494803')
         from vsimhdf5 import Hdf5reader, VSimReader
         setdumpreadercls(Hdf5reader)
         setsimreadercls(VSimReader)
-    elif code in ['DUMMY', 'dummy']:
+    elif code.lower() in ['dummy']:
         from dummy import Dummyreader, Dummysim
         setdumpreadercls(Dummyreader)
         setsimreadercls(Dummysim)

@@ -63,14 +63,32 @@ class Sdfreader(Dumpreader_ifc):
             raise IOError('File "' + str(sdffile) + '" doesnt exist.')
         self._data = sdf.read(sdffile, dict=True)
 
+# --- Level 0 methods ---
+
     def keys(self):
         return self._data.keys()
 
     def __getitem__(self, key):
         return self._data[key]
 
-    def getdata(self, key):
+# --- Level 1 methods ---
+
+    def data(self, key):
         return self[key].data
+
+    def gridoffset(self, key, axis):
+        return self[key].grid.extents[helper.axesidentify[axis]]
+
+    def gridspacing(self, key, axis):
+        axid = helper.axesidentify[axis]
+        grid = self[key].grid
+        return float(grid.extents[axid + len(grid.dims)] - grid.extents[axid]) / grid.dims[axid]
+
+    def gridpoints(self, key, axis):
+        axid = helper.axesidentify[axis]
+        return self[key].dims[axid]
+
+# --- Level 2 methods ---
 
     def timestep(self):
         return self['Header']['step']
@@ -82,29 +100,27 @@ class Sdfreader(Dumpreader_ifc):
         return float(re.match('Epoch(\d)d',
                      self['Header']['code_name']).group(1))
 
-    def _returnkey2(self, key1, key2, average=False):
+    def _returnkey2(self, key1, key2, average=False, subset=''):
         key = key1 + key2
         if average:
             key = key1 + '_average' + key2
-        return self[key].data
+        if subset:
+            key = key + '/Reduced_' + subset
+        return key
 
-    def dataE(self, axis, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
-        return np.float64(self._returnkey2('Electric Field', '/E' +
-                                           axsuffix, **kwargs))
+    def _keyE(self, component, **kwargs):
+        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
+        return self._returnkey2('Electric Field', '/E' +
+                                axsuffix, **kwargs)
 
-    def dataB(self, axis, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
-        return np.float64(self._returnkey2('Magnetic Field', '/B' +
-                                           axsuffix, **kwargs))
+    def _keyB(self, component, **kwargs):
+        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
+        return self._returnkey2('Magnetic Field', '/B' +
+                                axsuffix, **kwargs)
 
-    def grid(self, axis):
-        try:
-            ret = self['Grid/Grid'].data[helper.axesidentify[axis]]
-            ret = np.convolve(ret, np.array([0.5, 0.5]), mode='valid')
-            return ret
-        except(IndexError):
-            raise KeyError
+    def simgridkeys(self):
+        return ['Electric Field/Ex', 'Electric Field/Ey', 'Electric Field/Ez',
+                'Magnetic Field/Bx', 'Magnetic Field/By', 'Magnetic Field/Bz']
 
     def listSpecies(self):
         ret = set()
