@@ -157,6 +157,12 @@ class Dumpreader_ifc(FieldAnalyzer):
     def _keyE(self, component, **kwargs):
         '''
         The key where the E field component can be found.
+        kwargs will be forwarded and can be used here to specify that alternate
+        keys will be used instead. For example you might have dumped a default Ex
+        field (no kwargs), but also another one with low resolution (lowres=2)
+        and another one with low resolution and averaged over some laser periods
+        (lowres=3, average=100).
+        The naming of those kwargs is reader specific.
         '''
         pass
 
@@ -164,6 +170,7 @@ class Dumpreader_ifc(FieldAnalyzer):
     def _keyB(self, component, **kwargs):
         '''
         The key where the B field component can be found.
+        see _keyE for a description of kwargs.
         '''
         pass
 
