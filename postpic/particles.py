@@ -127,12 +127,13 @@ class _SingleSpecies(object):
             # condition is list of particle IDs to use
             condition = np.array(condition, dtype='int')
             # same as
-            # bools = np.array([idx in condition for idx in self._ID])
+            # bools = np.array([idx in condition for idx in self.ID()])
             # but benchmarked to be 1500 times faster :)
             condition.sort()
-            idx = np.searchsorted(condition, self._ID)
+            ids = self.ID()
+            idx = np.searchsorted(condition, ids)
             idx[idx == len(condition)] = 0
-            bools = condition[idx] == self._ID
+            bools = condition[idx] == ids
             self.compress(bools, name=name)
 
     def uncompress(self):
@@ -400,7 +401,7 @@ class MultiSpecies(object):
 
     def ID(self):
         ret = self._map2ssa('ID')
-        return np.array(ret, type=int)
+        return np.array(ret, dtype=int)
 
     def mass(self):  # SI
         return self._map2ssa('mass')
