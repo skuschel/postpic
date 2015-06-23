@@ -27,7 +27,7 @@ In short:
 
   0. [Fork](https://help.github.com/articles/fork-a-repo) the PostPic repo to your own GitHub account.
   0. Clone from your fork to your local computer.
-  0. Create a branch whose name tells what you do. Something like `codexy-reader` or `fixwhaever`,... is a good choice. Do NOT call it `issue42`. Git history should be clearly readable without external information. If its somehow unspecific in the worst case call it `dev` or even commit onto your `master` branch.
+  0. Create a branch whose name tells what you do. Something like `codexy-reader` or `fixwhatever`,... is a good choice. Do NOT call it `issue42`. Git history should be clearly readable without external information. If its somehow unspecific in the worst case call it `dev` or even commit onto your `master` branch.
   0. Implement a new feature/bugfix/documentation/whatever commit to your local repository. It is highly recommended that the new features will have test cases.
   0. KEEP YOUR FORK UP TO DATE! Your fork is yours, only. So you have to update it to whatever happens in the main repository. To do so add the main repository as a second remote with
   
@@ -37,8 +37,8 @@ In short:
 
   `git pull --rebase upstream master`
   
-  0. Make sure all tests are running smoothly (the `run-tests.py` script also involves pep8 style verification!) Veryfy this before EVERY commit!
-  0. push to your fork and create a [pull request](https://help.github.com/articles/using-pull-requests/) EARLY! Even if your feature or fix is not yet ready, create the pull request and start it with `WIP:` or `[WIP]` (work-in-progress) to show its not yet ready to merge in. But the pull request will 
+  0. Make sure all tests are running smoothly (the `run-tests.py` script also involves pep8 style verification!) Run `run-tests.py` before EVERY commit!
+  0. push to your fork and create a [pull request](https://help.github.com/articles/using-pull-requests/) EARLY! Even if your feature or fix is not yet finished, create the pull request and start it with `WIP:` or `[WIP]` (work-in-progress) to show its not yet ready to merge in. But the pull request will 
     * trigger travis.ci to run the tests whenever you push
     * show other people what you work on
     * ensure early feedback on your work
