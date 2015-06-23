@@ -26,24 +26,23 @@
 # unstaged changes before testing (see below). Thus only the changeset to be
 # commited will be tested. No worries, "git commit -a" will still work ;)
 
-# Stash unstaged changes if and only if(!) necessary (=possible):
-# if you dont check that you might uninentionally apply an older stash,
-# because this if statement just makes sure, that there are changed to
-# be stashed on executing "git staph -q --keep-index". Otherwise it coud
-# happen, that git stash is executed, but no stash is created, because
-# there were no changes, that could be stashed.
+# Stash unstaged changes if and only if possible:
+# Its important to skip the stashing if there are no changes detected!
+# Otherwise 'git stash -q --keep-index' will not create a stash.
+# Later 'git stash apply --index -q' would then unintentionally apply
+# an older stash.
+
 if git diff-index --quiet HEAD --; then
-    #echo "pre-commit hook without stashing"
-    ./run-tests.py
-    exitcode=$?
+    # this happens for example on git commit --amend
+    echo "No changes detected. Skipping tests..."
+    sleep 1
+    exitcode=0
 else
-    #echo "pre-commit hook with stashing"
     git stash -q --keep-index
     ./run-tests.py
     exitcode=$?
-    git stash pop -q
+    git reset --hard -q && git stash apply --index -q && git stash drop -q
 fi
-
 
 exit $exitcode
 
