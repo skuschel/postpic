@@ -23,11 +23,15 @@ import re
 import warnings
 try:
     import cythonfunctions as cyf
+    particleshapes = cyf.shapes
 except(ImportError):
     warnings.warn('cython libs could not be imported. This alters the performance'
                   'of postpic drastically. Falling back to numpy functions.')
     cyf = None
+    particleshapes = [0]
 
+# Default values for histogramdd function
+histogramdd_defs = {'shape': 2}
 
 axesidentify = {'X': 0, 'x': 0, 0: 0,
                 'Y': 1, 'y': 1, 1: 1,
@@ -302,6 +306,7 @@ def histogramdd(data, **kwargs):
     `data` must be a tuple. Its length determines the
     dimensions of the histogram returned.
     '''
+    [kwargs.setdefault(k, i) for (k, i) in histogramdd_defs.iteritems()]
     if len(data) > 3:
         raise ValueError('{} is larger than the max number of dimensions '
                          'allowed (3)'.format(len(data)))
@@ -320,13 +325,16 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
     else:
         if len(data) == 1:
-            h, xedges = cyf.histogram(data[0], **kwargs)
+            h, xedges = cyf.histogram(np.float64(data[0]), **kwargs)
             return h, xedges
         if len(data) == 2:
-            h, xedges, yedges = cyf.histogram2d(data[0], data[1], **kwargs)
+            h, xedges, yedges = cyf.histogram2d(np.float64(data[0]),
+                                                np.float64(data[1]), **kwargs)
             return h, xedges, yedges
         if len(data) == 3:
-            h, xe, ye, ze = cyf.histogram3d(data[0], data[1], data[2], **kwargs)
+            h, xe, ye, ze = cyf.histogram3d(np.float64(data[0]),
+                                            np.float64(data[1]),
+                                            np.float64(data[2]), **kwargs)
             return h, xe, ye, ze
 
 
