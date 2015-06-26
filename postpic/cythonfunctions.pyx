@@ -237,7 +237,7 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
 def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, ndim=1] datay,
                 np.ndarray[np.double_t, ndim=1] dataz,
                 np.ndarray[np.double_t, ndim=1] weights=None,
-                range=None, bins=(20, 20), shape=0):
+                range=None, bins=(20, 20, 20), shape=0):
     '''
     Additional Arguments:
         - order = 0:
