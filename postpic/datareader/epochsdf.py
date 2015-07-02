@@ -63,6 +63,9 @@ class Sdfreader(Dumpreader_ifc):
             raise IOError('File "' + str(sdffile) + '" doesnt exist.')
         self._data = sdf.read(sdffile, dict=True)
 
+    def __del__(self):
+        del self._data
+
 # --- Level 0 methods ---
 
     def keys(self):

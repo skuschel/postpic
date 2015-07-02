@@ -75,7 +75,7 @@ class Dumpreader_ifc(FieldAnalyzer):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, dumpidentifier, name=None):
-        super(Dumpreader_ifc, self).__init__(self)
+        super(Dumpreader_ifc, self).__init__()
         self.dumpidentifier = dumpidentifier
         self._name = name
 

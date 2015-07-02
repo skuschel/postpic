@@ -33,6 +33,9 @@ class FieldAnalyzer(object):
     ready to be plotted. This should provide an object to make it easy
     to plot data, that is already dumped.
 
+    Since the postpic.datareader.Dumpreader_ifc is derived from this class,
+    all methods here are automatically available to all dumpreaders.
+
     Simple calucations (like calculating the energy density) are
     performed here as well but might move to another class in the future.
 
@@ -41,8 +44,8 @@ class FieldAnalyzer(object):
     field transforming it into another.
     '''
 
-    def __init__(self, dumpreader):
-        self._dumpreader = dumpreader
+    def __init__(self):
+        pass
 
     # General interface for everything
     def _createfieldfromdata(self, data, gridkey):
@@ -58,7 +61,7 @@ class FieldAnalyzer(object):
         '''
         if gridkey is None:
             gridkey = key
-        ret = self._createfieldfromdata(self._dumpreader.data(key), gridkey)
+        ret = self._createfieldfromdata(self.data(key), gridkey)
         ret.name = key
         return ret
 
@@ -68,7 +71,7 @@ class FieldAnalyzer(object):
         '''
         name = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
         ax = Axis(name=name, unit='m')
-        ax.grid_node = self._dumpreader.gridnode(gridkey, axis)
+        ax.grid_node = self.gridnode(gridkey, axis)
         return ax
 
     def setgridtofield(self, field, gridkey):
@@ -85,22 +88,22 @@ class FieldAnalyzer(object):
     # just to shortcut
 
     def _Ex(self, **kwargs):
-        return np.float64(self._dumpreader.dataE('x', **kwargs))
+        return np.float64(self.dataE('x', **kwargs))
 
     def _Ey(self, **kwargs):
-        return np.float64(self._dumpreader.dataE('y', **kwargs))
+        return np.float64(self.dataE('y', **kwargs))
 
     def _Ez(self, **kwargs):
-        return np.float64(self._dumpreader.dataE('z', **kwargs))
+        return np.float64(self.dataE('z', **kwargs))
 
     def _Bx(self, **kwargs):
-        return np.float64(self._dumpreader.dataB('x', **kwargs))
+        return np.float64(self.dataB('x', **kwargs))
 
     def _By(self, **kwargs):
-        return np.float64(self._dumpreader.dataB('y', **kwargs))
+        return np.float64(self.dataB('y', **kwargs))
 
     def _Bz(self, **kwargs):
-        return np.float64(self._dumpreader.dataB('z', **kwargs))
+        return np.float64(self.dataB('z', **kwargs))
 
     def createfieldsfromkeys(self, *keys):
         for key in keys:
@@ -109,7 +112,7 @@ class FieldAnalyzer(object):
     # most common fields listed here nicely
     def Ex(self, **kwargs):
         ret = self._createfieldfromdata(self._Ex(**kwargs),
-                                        self._dumpreader.gridkeyE('x', **kwargs))
+                                        self.gridkeyE('x', **kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ex'
         ret.shortname = 'Ex'
@@ -117,7 +120,7 @@ class FieldAnalyzer(object):
 
     def Ey(self, **kwargs):
         ret = self._createfieldfromdata(self._Ey(**kwargs),
-                                        self._dumpreader.gridkeyE('y', **kwargs))
+                                        self.gridkeyE('y', **kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ey'
         ret.shortname = 'Ey'
@@ -125,7 +128,7 @@ class FieldAnalyzer(object):
 
     def Ez(self, **kwargs):
         ret = self._createfieldfromdata(self._Ez(**kwargs),
-                                        self._dumpreader.gridkeyE('z', **kwargs))
+                                        self.gridkeyE('z', **kwargs))
         ret.unit = 'V/m'
         ret.name = 'Ez'
         ret.shortname = 'Ez'
@@ -133,7 +136,7 @@ class FieldAnalyzer(object):
 
     def Bx(self, **kwargs):
         ret = self._createfieldfromdata(self._Bx(**kwargs),
-                                        self._dumpreader.gridkeyB('x', **kwargs))
+                                        self.gridkeyB('x', **kwargs))
         ret.unit = 'T'
         ret.name = 'Bx'
         ret.shortname = 'Bx'
@@ -141,7 +144,7 @@ class FieldAnalyzer(object):
 
     def By(self, **kwargs):
         ret = self._createfieldfromdata(self._By(**kwargs),
-                                        self._dumpreader.gridkeyB('y', **kwargs))
+                                        self.gridkeyB('y', **kwargs))
         ret.unit = 'T'
         ret.name = 'By'
         ret.shortname = 'By'
@@ -149,7 +152,7 @@ class FieldAnalyzer(object):
 
     def Bz(self, **kwargs):
         ret = self._createfieldfromdata(self._Bz(**kwargs),
-                                        self._dumpreader.gridkeyB('y', **kwargs))
+                                        self.gridkeyB('y', **kwargs))
         ret.unit = 'T'
         ret.name = 'Bz'
         ret.shortname = 'Bz'
@@ -162,7 +165,7 @@ class FieldAnalyzer(object):
                                         (self._Ex(**kwargs) ** 2 +
                                          self._Ey(**kwargs) ** 2 +
                                          self._Ez(**kwargs) ** 2),
-                                        self._dumpreader.gridkeyE('x', **kwargs))
+                                        self.gridkeyE('x', **kwargs))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Electric-Field'
         ret.shortname = 'E'
@@ -173,7 +176,7 @@ class FieldAnalyzer(object):
                                         (self._Bx(**kwargs) ** 2 +
                                          self._By(**kwargs) ** 2 +
                                          self._Bz(**kwargs) ** 2),
-                                        self._dumpreader.gridkeyB('x', **kwargs))
+                                        self.gridkeyB('x', **kwargs))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density Magnetic-Field'
         ret.shortname = 'M'
@@ -188,7 +191,7 @@ class FieldAnalyzer(object):
                                         (self._Bx(**kwargs) ** 2 +
                                          self._By(**kwargs) ** 2 +
                                          self._Bz(**kwargs) ** 2),
-                                        self._dumpreader.gridkeyE('x', **kwargs))
+                                        self.gridkeyE('x', **kwargs))
         ret.unit = 'J/m^3'
         ret.name = 'Energy Density EM-Field'
         ret.shortname = 'EM'
