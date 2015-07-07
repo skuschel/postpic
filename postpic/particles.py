@@ -44,7 +44,7 @@ class _SingleSpecies(object):
     """
     # List of atomic particle properties. Those will be requested from the dumpreader
     # All other particle properties will be calculated from these.
-    _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID']
+    _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID', 'time']
 
     def __init__(self, dumpreader, species):
         self.species = species
@@ -69,7 +69,9 @@ class _SingleSpecies(object):
         if key in self._cache:
             ret = self._cache[key]
         else:
-            if key in ['mass', 'charge']:
+            if key in ['time']:
+                ret = self._dumpreader.time()
+            elif key in ['mass', 'charge']:
                 try:
                     ret = self._dumpreader.getSpecies(self.species, key)
                 except(KeyError):
@@ -393,6 +395,11 @@ class MultiSpecies(object):
         return ret
 
     # --- "A scalar for every particle"-functions.
+
+    def time(self):
+        return self._map2ssa('time')
+    time.name = 'time'
+    time.unit = 's'
 
     def weight(self):
         return self._map2ssa('weight')
