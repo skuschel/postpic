@@ -306,7 +306,7 @@ def histogramdd(data, **kwargs):
     `data` must be a tuple. Its length determines the
     dimensions of the histogram returned.
     '''
-    [kwargs.setdefault(k, i) for (k, i) in histogramdd_defs.iteritems()]
+    [kwargs.setdefault(k, i) for (k, i) in histogramdd_defs.items()]
     if len(data) > 3:
         raise ValueError('{} is larger than the max number of dimensions '
                          'allowed (3)'.format(len(data)))

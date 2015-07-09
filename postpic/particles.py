@@ -631,7 +631,7 @@ class MultiSpecies(object):
     def createHistgram1d(self, scalarfx, optargsh={},
                          simextent=False, simgrid=False, rangex=None,
                          weights=lambda x: 1, force=False):
-        optargshdefs = {'bins': 300, 'shape': 0}
+        optargshdefs = {'bins': 300}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
@@ -688,7 +688,7 @@ class MultiSpecies(object):
             "MultiSpecies.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
-        optargshdefs = {'bins': [500, 500], 'shape': 0}
+        optargshdefs = {'bins': [500, 500]}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
@@ -763,7 +763,7 @@ class MultiSpecies(object):
             "MultiSpecies.Ekin_MeV"".
             Defaults to "lambda x:1".
         """
-        optargshdefs = {'bins': [200, 200, 200], 'shape': 0}
+        optargshdefs = {'bins': [200, 200, 200]}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
