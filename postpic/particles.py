@@ -28,7 +28,7 @@ from .datahandling import *
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
-__all__ = ['MultiSpecies', 'identifyspecies']
+__all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory']
 
 
 class _SingleSpecies(object):
@@ -963,4 +963,97 @@ class MultiSpecies(object):
         else:
             raise Exception('only 1d, 2d and 3d field creation implemented yet.')
 
+
+class ParticleHistory(object):
+    '''
+    Represents a list of particles including their history that can be found in
+    all the dumps defined
+    by the simulation reader sr.
+
+    Parameters
+    ----------
+    sr : a collection of datareader to use. Usually a Simulationreader object
+    speciess : a species name or a list of species names. Those particles can be included
+               into the history.
+    ids : list of ids to use (default: None). If this is None all particles in speciess will
+          be tracked. If a list of ids is given, these ids will be serached in speciess only.
+    '''
+
+    def __init__(self, sr, speciess, ids=None):
+        # the simulation reader (collection of dumpreader)
+        self.sr = sr
+        # list of species names to search in for the particle id
+        self.speciess = [speciess] if type(speciess) is str else speciess
+        self.ids = self._findids(ids)  # List of integers
+        # lookup dict used by collect
+        self._updatelookupdict()
+
+    def _updatelookupdict(self):
+        self._id2i = {self.ids[i]: i for i in xrange(len(self.ids))}
+
+    def _findids(self, ids):
+        '''
+        looks through all the dumps and identifies which ids are really present.
+
+        if ids=None, all IDs present in self.species will be added.
+        '''
+        idsfound = set()
+        ids = None if ids is None else np.array(ids)
+        for dr in self.sr:
+            ms = MultiSpecies(dr, *self.speciess)
+            if ids is not None:
+                ms.compress(ids)
+            idsfound |= set(ms.ID())
+            del ms
+        return np.array(list(idsfound), dtype=np.int)
+
+    def __len__(self):
+        # counts the number of particles present
+        return len(self.ids)
+
+    def _collectfromdump(self, dr, scalarf):
+        '''
+        dr - the dumpreader
+        scalarf - a function that returns scalar values when applied to a dumpreader
+
+        Returns:
+           list of ids, list of scalarvalues
+        '''
+        ms = MultiSpecies(dr, *self.speciess)
+        ms.compress(self.ids)
+        scalars = scalarf(ms)
+        ids = ms.ID()
+        del ms
+        return ids, scalars
+
+    def skip(self, n):
+        '''
+        takes only everth (n+1)-th particle
+        '''
+        self.ids = self.ids[::n+1]
+        self._updatelookupdict()
+
+    def collect(self, scalarf):
+        '''
+        Collects the given particle property for all particles for all times.
+
+        Parameters:
+        -----------
+        scalarf: the scalarfunction defining the particle property
+
+        Returns:
+        --------
+        numpy.ndarray holding the different particles in the same order as the list of ids.
+        every array element holds the history for a single particle.
+        '''
+        import collections
+        ret = [collections.deque() for i in xrange(len(self.ids))]
+        for dr in self.sr:
+            ids, scalars = self._collectfromdump(dr, scalarf)
+            for k in xrange(len(ids)):
+                i = self._id2i[ids[k]]
+                ret[i].append(scalars[k])
+        # convert to numpy array
+        ret = np.array(map(lambda d: np.array(d), ret))
+        return ret
 

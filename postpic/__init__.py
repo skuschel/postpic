@@ -24,18 +24,16 @@ The open source particle-in-cell post processor.
 """
 import helper
 from datahandling import *
-from helper import PhysicalConstants, SpeciesIdentifier
-from particles import MultiSpecies
+from helper import PhysicalConstants
+from particles import *
 import datareader
 from datareader import chooseCode, readDump, readSim
 import plotting
 
-identifyspecies = SpeciesIdentifier.identifyspecies
-
 __all__ = ['helper']
 __all__ += datahandling.__all__
-__all__ += ['PhysicalConstants', 'identifyspecies']
-__all__ += ['MultiSpecies']
+__all__ += ['PhysicalConstants']
+__all__ += particles.__all__
 __all__ += ['datareader', 'plotting']
 # high level functions
 __all__ += ['chooseCode', 'readDump', 'readSim']
