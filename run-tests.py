@@ -43,11 +43,12 @@ def run_autopep8(args):
             print('upgrade to autopep8 >= 1.2 (installed: {:})'.format(str(autopep8.__version__)))
             exit(1)
         autopep8mode = '--in-place' if args.autopep8 == 'fix' else '--diff'
-        cmd = 'autopep8 -r postpic --ignore-local-config ' + autopep8mode + ' ' \
-              '--ignore=W391,E123,E226,E24 --max-line-length=99'
+        argv = ['autopep8', '-r', 'postpic', '--ignore-local-config', autopep8mode, \
+                '--ignore=W391,E123,E226,E24' ,'--max-line-length=99']
         print('===== running autopep8 =====')
-        print('$ ' + cmd)
-        subprocess.call(cmd, shell=True)
+        print('autopep8 version: ' + autopep8.__version__)
+        print('$ ' + ' '.join(argv))
+        autopep8.main(argv)
 
 def run_alltests():
     '''
