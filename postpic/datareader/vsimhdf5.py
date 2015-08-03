@@ -40,6 +40,7 @@ class Hdf5reader(Dumpreader_ifc):
     The Reader implementation for HDF5 Data written by the VSim Code.
     as argument h5file can be any *.h5 file of the dump of consideration.
     '''
+
     def __init__(self, h5file, **kwargs):
         '''
         Initializes the Hdf5reader for a specific h5file.

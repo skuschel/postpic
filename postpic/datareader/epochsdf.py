@@ -101,7 +101,7 @@ class Sdfreader(Dumpreader_ifc):
 
     def simdimensions(self):
         return float(re.match('Epoch(\d)d',
-                     self['Header']['code_name']).group(1))
+                              self['Header']['code_name']).group(1))
 
     def _returnkey2(self, key1, key2, average=False, subset=''):
         key = key1 + key2
@@ -192,7 +192,7 @@ class Visitreader(Simulationreader_ifc):
             relpath = os.path.dirname(visitfile)
             for line in f:
                 self._dumpfiles.append(os.path.join(relpath,
-                                       line.replace('\n', '')))
+                                                    line.replace('\n', '')))
 
     def __len__(self):
         return len(self._dumpfiles)

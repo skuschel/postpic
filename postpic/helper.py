@@ -285,7 +285,7 @@ def transfromxy2polar(matrixxy, extentxy,
         actually maps indizes of polar matrix to indices of kartesian matrix
         '''
         ret = polar2xy(index2koord((float(i), float(j)),
-                       extentpolar, shapepolar))
+                                   extentpolar, shapepolar))
         ret = koord2index(ret, extentxy, shapexy)
         return ret
 
