@@ -87,7 +87,7 @@ class TestField(unittest.TestCase):
         general consistancy check. must never fail.
         '''
         self.assertEqual(field.dimensions, len(field.axes))
-        for i in xrange(len(field.axes)):
+        for i in range(len(field.axes)):
             self.assertEqual(len(field.axes[i]), field.matrix.shape[i])
 
     def test_extent(self):

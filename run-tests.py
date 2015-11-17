@@ -55,7 +55,7 @@ def run_alltests():
     runs all tests on postpic. This function has to exit without error on every commit!
     '''
     # make sure .pyx sources are up to date and compiled
-    subprocess.call(os.path.join('.', 'setup.py build_ext --inplace'), shell=True)
+    subprocess.call(os.path.join('.', 'setup.py develop --user'), shell=True)
     # run nose tests
     import nose
     ex = nose.run()  # returns True on success

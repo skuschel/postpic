@@ -18,6 +18,7 @@
 '''
 This file adds some has some runtime critical funtions implemented in cython.
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
 cimport cython
 
 import numpy as np

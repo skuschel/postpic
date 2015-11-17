@@ -20,6 +20,7 @@ Dummy reader for creating fake simulation Data for testing purposes.
 
 Stephan Kuschel 2014
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc

@@ -23,6 +23,8 @@ Dependecies:
 h5py  The Python actual reader for hdf5 file format.
 Georg Wittig, Stephan Kuschel 2014
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc
 from .. import helper
@@ -163,8 +165,8 @@ class VSimReader(Simulationreader_ifc):
         # only use dumps with time > 0
         h5s = [h5py.File(f) for f in self._filelist]
         boollist = [h5['time'].attrs['vsTime'] > 0 for h5 in h5s]
-        self._filelist = [self._filelist[i] for i in xrange(len(self._filelist)) if boollist[i]]
-        h5s = [h5s[i] for i in xrange(len(h5s)) if boollist[i]]
+        self._filelist = [self._filelist[i] for i in range(len(self._filelist)) if boollist[i]]
+        h5s = [h5s[i] for i in range(len(h5s)) if boollist[i]]
         # find all possible timesteps
         self._steplist = [h5['time'].attrs['vsStep'] for h5 in h5s]
         self._stepsdumped = list(set(self._steplist))

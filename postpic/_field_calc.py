@@ -18,10 +18,11 @@
 """
 Field related routines.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 from .helper import PhysicalConstants as pc
-import helper
+from . import helper
 from .datahandling import *
 
 __all__ = ['FieldAnalyzer']

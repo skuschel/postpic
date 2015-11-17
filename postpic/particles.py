@@ -18,6 +18,7 @@
 """
 Particle related routines.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 import copy
@@ -989,7 +990,7 @@ class ParticleHistory(object):
         self._updatelookupdict()
 
     def _updatelookupdict(self):
-        self._id2i = {self.ids[i]: i for i in xrange(len(self.ids))}
+        self._id2i = {self.ids[i]: i for i in range(len(self.ids))}
 
     def _findids(self, ids):
         '''
@@ -1047,13 +1048,13 @@ class ParticleHistory(object):
         every array element holds the history for a single particle.
         '''
         import collections
-        ret = [collections.deque() for i in xrange(len(self.ids))]
+        ret = [collections.deque() for i in range(len(self.ids))]
         for dr in self.sr:
             ids, scalars = self._collectfromdump(dr, scalarf)
-            for k in xrange(len(ids)):
+            for k in range(len(ids)):
                 i = self._id2i[ids[k]]
                 ret[i].append(scalars[k])
         # convert to numpy array
-        ret = np.array(map(lambda d: np.array(d), ret))
+        ret = np.array([np.array(d) for d in ret])
         return ret
 

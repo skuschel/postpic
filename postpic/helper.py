@@ -18,11 +18,13 @@
 """
 Some global constants that are used in the code.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import numpy as np
 import re
 import warnings
 try:
-    import cythonfunctions as cyf
+    from . import cythonfunctions as cyf
     particleshapes = cyf.shapes
 except(ImportError):
     warnings.warn('cython libs could not be imported. This alters the performance'
@@ -267,23 +269,27 @@ def transfromxy2polar(matrixxy, extentxy,
     from scipy.ndimage.interpolation import geometric_transform
     import numpy as np
 
-    def polar2xy((r, phi)):
+    def polar2xy(rphi):
+        (r, phi) = rphi
         x = r * np.cos(phi)
         y = r * np.sin(phi)
         return (x, y)
 
-    def koord2index((q1, q2), extent, shape):
+    def koord2index(q1q2, extent, shape):
+        (q1, q2) = q1q2
         return ((q1 - extent[0]) / (extent[1] - extent[0]) * shape[0],
                 (q2 - extent[2]) / (extent[3] - extent[2]) * shape[1])
 
-    def index2koord((i, j), extent, shape):
+    def index2koord(ij, extent, shape):
+        (i, j) = ij
         return (extent[0] + i / shape[0] * (extent[1] - extent[0]),
                 extent[2] + j / shape[1] * (extent[3] - extent[2]))
 
-    def mappingxy2polar((i, j), extentxy, shapexy, extentpolar, shapepolar):
+    def mappingxy2polar(ij, extentxy, shapexy, extentpolar, shapepolar):
         '''
         actually maps indizes of polar matrix to indices of kartesian matrix
         '''
+        (i, j) = ij
         ret = polar2xy(index2koord((float(i), float(j)),
                                    extentpolar, shapepolar))
         ret = koord2index(ret, extentxy, shapexy)
@@ -306,7 +312,7 @@ def histogramdd(data, **kwargs):
     `data` must be a tuple. Its length determines the
     dimensions of the histogram returned.
     '''
-    [kwargs.setdefault(k, i) for (k, i) in histogramdd_defs.items()]
+    [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
     if len(data) > 3:
         raise ValueError('{} is larger than the max number of dimensions '
                          'allowed (3)'.format(len(data)))
