@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # This file is part of postpic.
 #
@@ -59,7 +59,7 @@ def time2D(datax, datay, bins, weights, shape, tn):
 
 bins = (1000,700)
 npart = 1e6
-print('=== Histogram 2D bins: {:6s}, npart: {:.1e} ==='.format(bins, npart))
+print('=== Histogram 2D bins: {:6s}, npart: {:.1e} ==='.format(str(bins), npart))
 datax = np.random.rand(npart)
 datay = np.random.rand(npart)
 weights = np.random.random(npart)
@@ -88,7 +88,7 @@ def time3D(datax, datay, dataz, bins, weights, shape, tn):
 
 bins = (200,250,300)  # 15e6 Cells
 npart = 1e6
-print('=== Histogram 3D bins: {:6s}, npart: {:.1e} ==='.format(bins, npart))
+print('=== Histogram 3D bins: {:6s}, npart: {:.1e} ==='.format(str(bins), npart))
 datax = np.random.rand(npart)
 datay = np.random.rand(npart)
 dataz = np.random.rand(npart)
