@@ -38,6 +38,7 @@ but N+1 'grid_nodes' as depicted here:
 o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 |                   |   extent
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 import copy
@@ -275,7 +276,7 @@ class Field(object):
         '''
         assert self.dimensions * 2 == len(newextent), \
             'size of newextent doesnt match self.dimensions * 2'
-        for i in xrange(len(self.axes)):
+        for i in range(len(self.axes)):
             self.axes[i].setextent(newextent[2 * i:2 * i + 2],
                                    self.matrix.shape[i])
         return
@@ -308,7 +309,7 @@ class Field(object):
         Reduces the Grid to a maximum length of maxlen per dimension
         by just executing half_resolution as often as necessary.
         '''
-        for i in xrange(len(self.axes)):
+        for i in range(len(self.axes)):
             if len(self.axes[i]) > maxlen:
                 self.half_resolution(i)
                 self.autoreduce(maxlen=maxlen)
@@ -324,7 +325,7 @@ class Field(object):
         assert self.dimensions * 2 == len(newextent), \
             'size of newextent doesnt match self.dimensions * 2'
         self.matrix = helper.cutout(self.matrix, self.extent, newextent)
-        for i in xrange(len(self.axes)):
+        for i in range(len(self.axes)):
             self.axes[i].cutout(newextent[2 * i:2 * i + 2])
         return
 
@@ -434,7 +435,7 @@ class Field(object):
         return ret
 
     # self /= other: normalization
-    def __idiv__(self, other):
+    def __itruediv__(self, other):
         if isinstance(other, Field):
             self.matrix /= other.matrix
             self.name = self.name + ' / ' + other.name
@@ -442,11 +443,13 @@ class Field(object):
             self.matrix /= other
         return self
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         ret = copy.deepcopy(self)
         ret /= other
         return ret
 
-
+    # python 2
+    __idiv__ = __itruediv__
+    __div__ = __truediv__
 
 

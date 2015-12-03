@@ -18,6 +18,7 @@
 '''
 This file adds some has some runtime critical funtions implemented in cython.
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
 cimport cython
 
 import numpy as np
@@ -321,7 +322,7 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
             xr = <int>(x + 0.5);
             yr = <int>(y + 0.5);
             zr = <int>(z + 0.5);
-            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins and z >= 0 and zr <= bins):
+            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins and z >= 0 and zr <= zbins):
                 wx[0] = (0.5 - x + xr)
                 wx[1] = (0.5 + x - xr)
                 wy[0] = (0.5 - y + yr)

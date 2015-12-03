@@ -19,6 +19,7 @@ This package provides the MatplotlibPlotter Class.
 
 This Class can be used to plot Field Objects using the matplotlib interface.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 
@@ -143,7 +144,7 @@ class MatplotlibPlotter(object):
             else:
                 ur = str(time)
         if step:
-            if isinstance(step, (int, long, float)):
+            if isinstance(step, (int, float)):
                 ur += ', step: {:6.0f}'.format(step)
             else:
                 ur += ' ' + str(step)
@@ -265,10 +266,11 @@ class MatplotlibPlotter(object):
         return ax
 
     @staticmethod
-    def addField2d((fig, ax), field, log10plot=True, interpolation='none',
+    def addField2d(figax, field, log10plot=True, interpolation='none',
                    contourlevels=np.array([]), saveandclose=True, xlim=None,
                    ylim=None, clim=None,
                    savecsv=False, lineoutx=False, lineouty=False):
+        (fig, ax) = figax
         assert field.dimensions == 2, 'Field needs to be 2 dimensional'
         ax.xaxis.set_major_formatter(MatplotlibPlotter.axesformatterx)
         ax.yaxis.set_major_formatter(MatplotlibPlotter.axesformattery)
@@ -279,7 +281,7 @@ class MatplotlibPlotter(object):
                           aspect='auto', extent=field.extent, cmap='jet',
                           interpolation=interpolation)
             else:
-                print 'using pcolormesh, this is experimental.'
+                print('using pcolormesh, this is experimental.')
                 x, y = field.grid()
                 ax.pcolormesh(x, y, np.log10(field.matrix.T), cmap='jet')
             fig.colorbar(ax.images[0], format='%3.1f')
@@ -382,7 +384,7 @@ class MatplotlibPlotter(object):
             self.savefig(fig, key)
             plt.close(fig)
             fig = None
-        print 'Skipped Plot.'
+        print('Skipped Plot.')
         return fig
 
     def plotFields(self, *fields, **kwargs):

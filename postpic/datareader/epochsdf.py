@@ -28,6 +28,7 @@ Dependecies:
 
 Written by Stephan Kuschel 2014, 2015
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc
@@ -69,7 +70,7 @@ class Sdfreader(Dumpreader_ifc):
 # --- Level 0 methods ---
 
     def keys(self):
-        return self._data.keys()
+        return list(self._data.keys())
 
     def __getitem__(self, key):
         return self._data[key]
@@ -127,7 +128,7 @@ class Sdfreader(Dumpreader_ifc):
 
     def listSpecies(self):
         ret = set()
-        for key in self.keys():
+        for key in list(self.keys()):
             match = re.match('Particles/\w+/(\w+(/\w+)?)', key)
             if match:
                 ret.add(match.group(1))
@@ -162,7 +163,7 @@ class Sdfreader(Dumpreader_ifc):
         Returns all Keys starting with "Derived/".
         '''
         ret = []
-        for key in self._data.keys():
+        for key in list(self._data.keys()):
             r = re.match('Derived/[\w/ ]*', key)
             if r:
                 ret.append(r.group(0))

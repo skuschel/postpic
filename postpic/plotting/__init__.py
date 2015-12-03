@@ -17,15 +17,16 @@
 '''
 The plot subpackage should provide an interface to various plot backends.
 '''
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 plottercls = None
 
 
 def use(plotcls):
     global plottercls
-    if isinstance(plotcls, str):
+    if isinstance(plotcls, type('')):
         if plotcls in ['matplotlib', 'plotter_matplotlib']:
-            import plotter_matplotlib
+            from . import plotter_matplotlib
             plottercls = plotter_matplotlib.MatplotlibPlotter
         else:
             raise NameError('unknown type {:s}'.format(plotcls))

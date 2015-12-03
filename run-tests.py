@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # This file is part of postpic.
 #
@@ -50,22 +50,20 @@ def run_autopep8(args):
         print('$ ' + ' '.join(argv))
         autopep8.main(argv)
 
-def run_alltests():
+def run_alltests(python='python'):
     '''
     runs all tests on postpic. This function has to exit without error on every commit!
     '''
+    python += ' '
     # make sure .pyx sources are up to date and compiled
-    subprocess.call(os.path.join('.', 'setup.py build_ext --inplace'), shell=True)
-    # run nose tests
-    import nose
-    ex = nose.run()  # returns True on success
-    exitonfailure(not ex, cmd='nosetests')
+    subprocess.call(python + os.path.join('.', 'setup.py develop --user'), shell=True)
 
-    cmds = ['pep8 postpic --statistics --count --show-source '
+    cmds = [python + '-m nose',
+            python + '-m pep8 postpic --statistics --count --show-source '
             '--ignore=W391,E123,E226,E24 --max-line-length=99',
-            os.path.join('examples', 'simpleexample.py'),
-            os.path.join('examples', 'particleshapedemo.py'),
-            os.path.join('examples', 'time_cythonfunctions.py')]
+            python + os.path.join('examples', 'simpleexample.py'),
+            python + os.path.join('examples', 'particleshapedemo.py'),
+            python + os.path.join('examples', 'time_cythonfunctions.py')]
     for cmd in cmds:
         print('=====  running next command =====')
         print('$ ' + cmd)
@@ -84,13 +82,19 @@ def main():
         Use "--autopep8" to preview changes. To apply them, use
         "--autopep8 fix"
         ''')
+    pyversiongroup = parser.add_mutually_exclusive_group(required=False)
+    pyversiongroup.add_argument('-2', action='store_const', dest='pycmd', const='python2',
+                                help='Prefix all subcommands with "python2"',
+                                default='python')
+    pyversiongroup.add_argument('-3', action='store_const', dest='pycmd', const='python3',
+                                help='Prefix all subcommands with "python3"')
     args = parser.parse_args()
 
     if args.autopep8 != '':
         run_autopep8(args)
         exit()
 
-    run_alltests()
+    run_alltests(args.pycmd)
 
 if __name__ == '__main__':
     main()

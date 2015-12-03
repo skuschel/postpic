@@ -15,6 +15,8 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stephan Kuschel 2015
+from __future__ import absolute_import, division, print_function, unicode_literals
+from future.utils import with_metaclass
 
 import abc
 import collections
@@ -26,7 +28,7 @@ from .._field_calc import FieldAnalyzer
 __all__ = ['Dumpreader_ifc', 'Simulationreader_ifc']
 
 
-class Dumpreader_ifc(FieldAnalyzer):
+class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
     '''
     Interface class for reading a single dump. A dump contains informations
     about the  simulation at a single timestep (Usually E- and B-Fields on
@@ -72,7 +74,6 @@ class Dumpreader_ifc(FieldAnalyzer):
         whatever identifies the dump. It is recommended to use a String
         here pointing to a file.
     '''
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, dumpidentifier, name=None):
         super(Dumpreader_ifc, self).__init__()
@@ -285,7 +286,7 @@ class Simulationreader_ifc(collections.Sequence):
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         elif isinstance(key, int):
             if key < 0:  # Handle negative indices
                 key += len(self)

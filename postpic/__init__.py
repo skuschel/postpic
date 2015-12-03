@@ -22,13 +22,16 @@
 
 The open source particle-in-cell post processor.
 """
-import helper
-from datahandling import *
-from helper import PhysicalConstants
-from particles import *
-import datareader
-from datareader import chooseCode, readDump, readSim
-import plotting
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+from . import helper
+from . import datahandling
+from .datahandling import *
+from .helper import PhysicalConstants
+from .particles import *
+from . import datareader
+from .datareader import chooseCode, readDump, readSim
+from . import plotting
 
 __all__ = ['helper']
 __all__ += datahandling.__all__
@@ -65,7 +68,7 @@ def _createversionstring():
                       stderr=sub.PIPE, cwd=cwd)
         out, err = p.communicate()
         if not p.returncode:  # git exited without error
-            __version__ += '_' + out
+            __version__ += '_' + str(out)
     except OSError:
         # 'git' command not found
         pass

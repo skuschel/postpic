@@ -3,4 +3,4 @@
 mock
 pep8
 nose
--e .
+cython>=0.18

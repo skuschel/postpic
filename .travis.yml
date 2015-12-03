@@ -2,26 +2,39 @@
 # http://lint.travis-ci.org/
 
 language: python
+sudo: false
 
 python:
   - "2.7"
+  - "3.4"
+  - "3.5"
 
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+
+# Install conda
 before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/miniconda2/bin:$PATH
+  - conda update --yes conda
+
+install:
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose pandas statsmodels cython
+  - pip install -r pip-requirements.txt
+  - pip install -e .
+  - python setup.py install
+
+before_script:
   - uname -a
   - free -m
   - df -h
   - ulimit -a
   - python -V
-
-virtualenv:
-  system_site_packages: true
-
-# command to install dependencies
-install:
-  - sudo apt-get update -qq
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-matplotlib python-scipy cython gcc; fi
   - cython --version
-  - pip install -r pip-requirements.txt
 
 # run tests
 script:
