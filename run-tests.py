@@ -86,11 +86,13 @@ def main():
         "--autopep8 fix"
         ''')
     pyversiongroup = parser.add_mutually_exclusive_group(required=False)
+    pyversiongroup.add_argument('--pycmd', default='python',
+                                help='use "PYCMD" as python interpreter for all subcommands. '
+                                + 'default: "python"')
     pyversiongroup.add_argument('-2', action='store_const', dest='pycmd', const='python2',
-                                help='Prefix all subcommands with "python2"',
-                                default='python')
+                                help='same as "--pycmd python2"')
     pyversiongroup.add_argument('-3', action='store_const', dest='pycmd', const='python3',
-                                help='Prefix all subcommands with "python3"')
+                                help='same as "--pycmd python3"')
     args = parser.parse_args()
 
     if args.autopep8 != '':
