@@ -24,17 +24,22 @@
 # THIS FILE MUST RUN WITHOUT ERROR ON EVERY COMMIT!
 
 import os
-import subprocess
 
 
-def exitonfailure(exitstatus, cmd=None):
+def runcmd(cmd):
+    '''
+    run command cmd and exit if it fails.
+    '''
+    import subprocess
+    print('=====  running next command =====')
+    print('$ ' + cmd)
+    exitstatus = subprocess.call(cmd, shell=True)
     if exitstatus == 0:
         print('OK')
     else:
         print('run-tests.py failed. aborting.')
-        if cmd is not None:
-            print('The failing command was:')
-            print(cmd)
+        print('The failing command was:')
+        print(cmd)
         exit(exitstatus)
 
 def run_autopep8(args):
@@ -56,7 +61,7 @@ def run_alltests(python='python'):
     '''
     python += ' '
     # make sure .pyx sources are up to date and compiled
-    subprocess.call(python + os.path.join('.', 'setup.py develop --user'), shell=True)
+    runcmd(python + 'setup.py develop --user')
 
     cmds = [python + '-m nose',
             python + '-m pep8 postpic --statistics --count --show-source '
@@ -65,9 +70,7 @@ def run_alltests(python='python'):
             python + os.path.join('examples', 'particleshapedemo.py'),
             python + os.path.join('examples', 'time_cythonfunctions.py')]
     for cmd in cmds:
-        print('=====  running next command =====')
-        print('$ ' + cmd)
-        exitonfailure(subprocess.call(cmd, shell=True), cmd=cmd)
+        runcmd(cmd)
 
 def main():
     import argparse
