@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel 2014, 2015
+# Copyright Stephan Kuschel 2016
 '''
 .. _openPMD: https://github.com/openPMD/openPMD-standard
 

@@ -84,6 +84,11 @@ if True:
     # 2) Plot the Field object
     optargsh={'bins': [200,50]}
     for pa in pas:
+        # Remark on 2D or 3D Simulation:
+        # the data fields for the plots in the following section are build by postpic
+        # only from the particle data. The following plots would just the same,
+        # if we would use the data of a 3D Simulation instead.
+
         # create a Field object nd holding the number density
         nd = pa.createField(MS.Z, MS.X, optargsh=optargsh,simextent=False)
         # plot the Field object nd
