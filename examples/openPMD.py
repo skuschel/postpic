@@ -40,7 +40,7 @@ download('https://github.com/openPMD/openPMD-example-datasets/'
 
 import tarfile
 tar = tarfile.open('examples/_openPMDdata/example-2d.tar.gz')
-tar.extract('example-2d/hdf5/data00000300.h5', 'examples/_openPMDdata')
+tar.extractall('examples/_openPMDdata')
 
 
 # now that files are downloaded and extracted, start data evaluation
@@ -101,4 +101,15 @@ if True:
         plotter.plotField(pa.createField(MS.Z, MS.P, optargsh=optargsh))  # plot 7
         plotter.plotField(pa.createField(MS.Z, MS.gamma, optargsh=optargsh))  # plot 8
         plotter.plotField(pa.createField(MS.Z, MS.beta, optargsh=optargsh))  # plot 9
+
+
+if True:
+    # instead of reading a single dump read a collection of dumps using the simulationreader
+    sr = pp.readSim('examples/_openPMDdata/example-2d/hdf5/*.h5')
+    # now you can iterate over the dumps written
+    for dr in sr:
+        print('Simulation time of current dump t = {:.2e} s'.format(dr.time()))
+        # watch the time series
+        plotter.plotField(dr.Ez())
+
 

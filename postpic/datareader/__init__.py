@@ -110,9 +110,9 @@ def chooseCode(code):
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
     elif code.lower() in ['openpmd', 'openpmdh5']:
-        from .openPMDh5 import OpenPMDreader, OpenPMDseries
+        from .openPMDh5 import OpenPMDreader, FileSeries
         setdumpreadercls(OpenPMDreader)
-        setsimreadercls(OpenPMDseries)
+        setsimreadercls(FileSeries)
     elif code.lower() in ['vsim']:
         raise Exception('VSim reader requires update due to the interface change in '
                         'https://github.com/skuschel/postpic/commit/'

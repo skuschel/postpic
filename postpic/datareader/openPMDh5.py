@@ -33,7 +33,7 @@ import numpy as np
 import re
 from .. import helper
 
-__all__ = ['OpenPMDreader', 'OpenPMDseries']
+__all__ = ['OpenPMDreader', 'FileSeries']
 
 
 class OpenPMDreader(Dumpreader_ifc):
@@ -158,26 +158,28 @@ class OpenPMDreader(Dumpreader_ifc):
         return '<OpenPMDh5reader at "' + str(self.dumpidentifier) + '">'
 
 
-class OpenPMDseries(Simulationreader_ifc):
+class FileSeries(Simulationreader_ifc):
     '''
     Reads a time series of dumps from a given directory.
+    The simidentifier is expanded using glob in order to
+    find matching files.
     '''
-    pass
 
+    def __init__(self, simidentifier, dumpreadercls=OpenPMDreader, **kwargs):
+        super(self.__class__, self).__init__(simidentifier, **kwargs)
+        self.dumpreadercls = dumpreadercls
+        import glob
+        self._dumpfiles = glob.glob(simidentifier)
+        self._dumpfiles.sort()
 
+    def getDumpreader(self, n):
+        return self.dumpreadercls(self._dumpfiles[n])
 
+    def __len__(self):
+        return len(self._dumpfiles)
 
-
-
-
-
-
-
-
-
-
-
-
+    def __str__(self):
+        return '<FileSeries at "' + self.simidentifier + '">'
 
 
 
