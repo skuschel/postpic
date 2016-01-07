@@ -43,7 +43,7 @@ class OpenPMDreader(Dumpreader_ifc):
 
     Args:
       h5file : String
-        A String containing the relative Path to the .sdf file.
+        A String containing the relative Path to the .h5 file.
     '''
 
     def __init__(self, h5file, **kwargs):
@@ -71,12 +71,18 @@ class OpenPMDreader(Dumpreader_ifc):
 # --- Level 1 methods ---
 
     def data(self, key):
+        '''
+        should work with any key, that contains data, thus on every hdf5.Dataset,
+        but not on hdf5.Group. Will extract the data, convert it to SI and return it
+        as a numpy array. Constant records will be detected and converted to
+        a numpy array containing a single value only.
+        '''
         record = self[key]
         if ("value" in record.attrs.keys()):
-            # scalar data
+            # constant data (a single int or float)
             ret = record.attrs['value'] * record.attrs['unitSI']
         else:
-            # vector data
+            # array data
             ret = record.value * record.attrs['unitSI']
         return np.float64(ret)
 
@@ -120,7 +126,7 @@ class OpenPMDreader(Dumpreader_ifc):
 
     def getSpecies(self, species, attrib):
         """
-        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID, mass, charge) of
+        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of
         this particle species.
         """
         attribid = helper.attribidentify[attrib]
@@ -173,6 +179,10 @@ class FileSeries(Simulationreader_ifc):
         self._dumpfiles.sort()
 
     def getDumpreader(self, n):
+        '''
+        Do not use this method. It will be called by __getitem__.
+        Use __getitem__ instead.
+        '''
         return self.dumpreadercls(self._dumpfiles[n])
 
     def __len__(self):

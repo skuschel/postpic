@@ -106,10 +106,11 @@ if True:
 if True:
     # instead of reading a single dump read a collection of dumps using the simulationreader
     sr = pp.readSim('examples/_openPMDdata/example-2d/hdf5/*.h5')
-    # now you can iterate over the dumps written
+    print('There are {:} dumps in this simulationreader object:'.format(len(sr)))
+    # now you can iterate over the dumps written easily
     for dr in sr:
         print('Simulation time of current dump t = {:.2e} s'.format(dr.time()))
-        # watch the time series
+        # there are the frames of a movie:
         plotter.plotField(dr.Ez())
 
 
