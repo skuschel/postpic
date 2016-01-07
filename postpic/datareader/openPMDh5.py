@@ -178,7 +178,7 @@ class FileSeries(Simulationreader_ifc):
         self._dumpfiles = glob.glob(simidentifier)
         self._dumpfiles.sort()
 
-    def getDumpreader(self, n):
+    def _getDumpreader(self, n):
         '''
         Do not use this method. It will be called by __getitem__.
         Use __getitem__ instead.

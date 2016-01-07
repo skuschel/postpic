@@ -201,7 +201,7 @@ class Dummysim(Simulationreader_ifc):
     def __len__(self):
         return self.simidentifier
 
-    def getDumpreader(self, index):
+    def _getDumpreader(self, index):
         if index < len(self):
             return Dummyreader(index, dimensions=self._dimensions)
         else:

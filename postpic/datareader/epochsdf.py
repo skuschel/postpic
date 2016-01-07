@@ -198,7 +198,7 @@ class Visitreader(Simulationreader_ifc):
     def __len__(self):
         return len(self._dumpfiles)
 
-    def getDumpreader(self, index):
+    def _getDumpreader(self, index):
         return self.dumpreadercls(self._dumpfiles[index])
 
     def __str__(self):
