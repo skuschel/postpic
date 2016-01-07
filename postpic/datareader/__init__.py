@@ -102,12 +102,17 @@ def chooseCode(code):
         Possible options are:
           - "DUMMY": dummy class creating fake data.
           - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
+          - "openPMD": .h5 files written in openPMD Standard
           - "VSIM": .hdf5 files written by VSim.
     '''
     if code.lower() in ['epoch', 'epoch1d', 'epoch2d', 'epoch3d']:
         from .epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
+    elif code.lower() in ['openpmd', 'openpmdh5']:
+        from .openPMDh5 import OpenPMDreader, FileSeries
+        setdumpreadercls(OpenPMDreader)
+        setsimreadercls(FileSeries)
     elif code.lower() in ['vsim']:
         raise Exception('VSim reader requires update due to the interface change in '
                         'https://github.com/skuschel/postpic/commit/'

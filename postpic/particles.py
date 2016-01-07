@@ -311,11 +311,11 @@ class MultiSpecies(object):
                 noejected
                 all
         '''
-        keys = {'ions': lambda s: identifyspecies(s)['ision'],
-                'nonions': lambda s: not identifyspecies(s)['ision'],
-                'ejected': lambda s: identifyspecies(s)['ejected'],
-                'noejected': lambda s: not identifyspecies(s)['ejected'],
-                'all': lambda s: True}
+        keys = {'_ions': lambda s: identifyspecies(s)['ision'],
+                '_nonions': lambda s: not identifyspecies(s)['ision'],
+                '_ejected': lambda s: identifyspecies(s)['ejected'],
+                '_noejected': lambda s: not identifyspecies(s)['ejected'],
+                '_all': lambda s: True}
         if species in keys:
             ls = dumpreader.listSpecies()
             toadd = [s for s in ls if keys[species](s)]

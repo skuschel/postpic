@@ -1,3 +1,5 @@
+examples/_openPMDdata
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -66,7 +68,6 @@ target/
 *.png
 
 # there might be ipython notebooks
-*.ipynb
 .ipynb_checkpoints
 
 # if using spyder for development

@@ -30,7 +30,7 @@ setup(name='postpic',
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
       setup_requires=['cython>=0.18'],
-      install_requires=['matplotlib', 'numpy>=1.7', 'scipy', 'future'],
+      install_requires=['matplotlib', 'numpy>=1.7', 'scipy', 'future', 'urllib3', 'h5py'],
       keywords = ['PIC', 'particle-in-cell', 'plasma', 'physics', 'plasma physics',
                   'laser', 'laser plasma', 'particle acceleration'],
       classifiers=[
