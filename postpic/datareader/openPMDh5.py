@@ -102,9 +102,6 @@ class OpenPMDreader(Dumpreader_ifc):
     def time(self):
         return np.float64(self.attrs['time'] * self.attrs['timeUnitSI'])
 
-    def simdimensions(self):
-        return 0  # should be removed in the future anyways
-
     def _keyE(self, component, **kwargs):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
         return 'fields/E/' + axsuffix
