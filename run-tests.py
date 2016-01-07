@@ -68,7 +68,8 @@ def run_alltests(python='python'):
             '--ignore=W391,E123,E226,E24 --max-line-length=99',
             python + os.path.join('examples', 'simpleexample.py'),
             python + os.path.join('examples', 'particleshapedemo.py'),
-            python + os.path.join('examples', 'time_cythonfunctions.py')]
+            python + os.path.join('examples', 'time_cythonfunctions.py'),
+            python + os.path.join('examples', 'openPMD.py')]
     for cmd in cmds:
         runcmd(cmd)
 
