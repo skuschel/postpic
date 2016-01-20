@@ -78,7 +78,7 @@ class OpenPMDreader(Dumpreader_ifc):
         a numpy array containing a single value only.
         '''
         record = self[key]
-        if ("value" in record.attrs.keys()):
+        if "value" in record.attrs:
             # constant data (a single int or float)
             ret = record.attrs['value'] * record.attrs['unitSI']
         else:
