@@ -119,5 +119,16 @@ def main():
             plotter.plotField(dr.Ez())
 
 if __name__=='__main__':
+    # the openPMD reader needs h5py to be installed.
+    # in case its not skip the tests
+    try:
+        import h5py
+    except ImportError as ie:
+        print('dependency missing: ' + str(ie))
+        print('SKIPPING examples/openPMD.py')
+        exit(0)
+    # beeing here means, that h5py is available.
+    # any other exception should still cause the execution to fail!
     main()
+
 
