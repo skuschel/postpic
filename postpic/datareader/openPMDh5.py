@@ -78,13 +78,13 @@ class OpenPMDreader(Dumpreader_ifc):
         a numpy array containing a single value only.
         '''
         record = self[key]
-        if ("value" in record.attrs.keys()):
+        if "value" in record.attrs:
             # constant data (a single int or float)
-            ret = record.attrs['value'] * record.attrs['unitSI']
+            ret = np.float64(record.attrs['value']) * record.attrs['unitSI']
         else:
             # array data
-            ret = record.value * record.attrs['unitSI']
-        return np.float64(ret)
+            ret = np.float64(record.value) * record.attrs['unitSI']
+        return ret
 
     def gridoffset(self, key, axis):
         axid = helper.axesidentify[axis]
@@ -178,7 +178,7 @@ class FileSeries(Simulationreader_ifc):
         self._dumpfiles = glob.glob(simidentifier)
         self._dumpfiles.sort()
 
-    def getDumpreader(self, n):
+    def _getDumpreader(self, n):
         '''
         Do not use this method. It will be called by __getitem__.
         Use __getitem__ instead.
