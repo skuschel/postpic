@@ -208,22 +208,21 @@ class Field(object):
     def _fft(self, k0, axes=None):
         '''
         applies the fast fourier transform (FFT) to the field object and returns a new
-        transformed field. Currently, only 2D fields are supported. Both axes are 
+        transformed field. All axes are
         transformed, but the axis gives by axes is shifted in such a way, that
         the 0 component is in the middle. The frequencies are given in terms
         of k0, which has to be defined by the user.
         '''
         if k0 is None:
             raise ValueError('No k0 specified.')
-        if not (self.dimensions == 2):
-            raise ValueError('This function is only available for 2D fields.')
-        rfftaxes = np.roll((0, 1), axes)
+        rfftaxes = np.roll(np.arange(self.dimensions), axes)
         ret = copy.deepcopy(self)
-        ret.matrix = 0.5 * pc.epsilon0 * abs(np.fft.fftshift(np.fft.rfft2(self.matrix,
-                                                                    axes=rfftaxes), axes=axes))**2
+        ret.matrix = 0.5 * pc.epsilon0 * abs(
+            np.fft.fftshift(np.fft.rfftn(self.matrix, axes=rfftaxes),
+                            axes=axes))**2
         ret.unit = '?'
         ret.name = 'FFT of {0}'.format(self.name)
-        # Assuming all axes are spatial (x, y, z) coordinates. 
+        # Assuming all axes are spatial (x, y, z) coordinates.
         # This might not be true for all cases, further checks are needed
         for axid in rfftaxes:
             ax = ret.axes[axid]
@@ -241,7 +240,7 @@ class Field(object):
             else:
                 raise ValueError('Specified axis is not linear.')
         return ret
-        
+
     def fft(self, k0=1, axes=1):
         return self._fft(k0, axes)
 
