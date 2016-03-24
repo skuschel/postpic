@@ -30,7 +30,10 @@ setup(name='postpic',
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
       setup_requires=['cython>=0.18'],
-      install_requires=['matplotlib', 'numpy>=1.7', 'scipy', 'future', 'urllib3', 'h5py'],
+      install_requires=['matplotlib', 'numpy>=1.7', 'scipy', 'future', 'urllib3'],
+      extras_require = {
+        'h5 reader for openPMD support':  ['h5py'],
+        'sdf support for EPOCH reader':  ['sdf']},
       keywords = ['PIC', 'particle-in-cell', 'plasma', 'physics', 'plasma physics',
                   'laser', 'laser plasma', 'particle acceleration'],
       classifiers=[
