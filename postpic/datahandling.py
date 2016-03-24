@@ -205,23 +205,30 @@ class Field(object):
         ax.setextent(extent, matrixpts)
         self._addaxisobj(ax)
 
-    def _fft(self, k0, axes=None):
+    def _fft(self, **kwargs):
         '''
-        applies the fast fourier transform (FFT) to the field object and returns a new
-        transformed field. All axes are
-        transformed, but the axis gives by axes is shifted in such a way, that
+        applies the fast fourier transform (FFT) to the field object. It accepts
+        the same arguments as numpy.fft.rfftn().
+        '''
+        self.matrix = np.fft.rfftn(self.matrix, **kwargs)
+        return self
+
+    def spectrum(self, k0=1, axes=None):
+        '''
+        calculates the spectrum by applying the fast fourier transform (FFT)
+        to the field object and returns a new transformed field. All axes are
+        transformed, but the axis given by axes is shifted in such a way, that
         the 0 component is in the middle. The frequencies are given in terms
         of k0, which has to be defined by the user.
         '''
-        if k0 is None:
-            raise ValueError('No k0 specified.')
         rfftaxes = np.roll(np.arange(self.dimensions), axes)
         ret = copy.deepcopy(self)
+        ret._fft(axes=rfftaxes)
         ret.matrix = 0.5 * pc.epsilon0 * abs(
-            np.fft.fftshift(np.fft.rfftn(self.matrix, axes=rfftaxes),
+            np.fft.fftshift(ret.matrix,
                             axes=axes))**2
-        ret.unit = '?'
-        ret.name = 'FFT of {0}'.format(self.name)
+        ret.unit = ''
+        ret.name = 'Spectrum of {0}'.format(self.name)
         # Assuming all axes are spatial (x, y, z) coordinates.
         # This might not be true for all cases, further checks are needed
         for axid in rfftaxes:
@@ -231,7 +238,7 @@ class Field(object):
                 ax.name = r'$k_{0} / k_0$'.format(ax.name)
                 ax.unit = ''
                 dx = ax.grid_node[1]-ax.grid_node[0]
-                freq = np.fft.rfftfreq(len(ax.grid_node), dx)
+                freq = np.fft.rfftfreq(len(ax.grid_node), dx) / k0
                 if axid == axes:
                     freq_extent = np.array([-freq[-1]/2., freq[-1]/2.])
                 else:
@@ -241,8 +248,12 @@ class Field(object):
                 raise ValueError('Specified axis is not linear.')
         return ret
 
-    def fft(self, k0=1, axes=1):
-        return self._fft(k0, axes)
+    def fft(self, **kwargs):
+        '''
+        applies the fast fourier transform (FFT) to the field object. It accepts
+        the same arguments as numpy.fft.rfftn().
+        '''
+        return self._fft(**kwargs)
 
     def setaxisobj(self, axis, axisobj):
         '''
