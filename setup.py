@@ -20,7 +20,7 @@ from Cython.Build import cythonize
 import numpy
 
 setup(name='postpic',
-      version='0.1.2',
+      version='0.2.0',
       author='Stephan Kuschel',
       author_email='stephan.kuschel@gmail.de',
       description='The open source particle-in-cell post processor.',
