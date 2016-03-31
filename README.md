@@ -17,6 +17,7 @@ Additionally postpic can plot and label your plot automatically. This makes it e
 
 Usage
 -----
+postpic can be used with python2 and python3. However the usage of python3 is recommended.
 postpic is available in the python package index [pypi](https://pypi.python.org/pypi/postpic/), thus it can be directly installed by using the python package manager pip:
 
 `pip install postpic`
@@ -25,13 +26,13 @@ pip will download and install the latest release from [pypi](https://pypi.python
 
 Alternativeley you can download the latest version from github and run
 
-`python2 setup.py install --user`
+`python setup.py install --user`
 
 to install postpic in your local home folder. After that you should be able to import it into any python session using `import postpic`.
 
 If you are changing the postpic codebase it is probably best to link the current folder. This can be done by
 
-`python2 setup.py develop --user`
+`python setup.py develop --user`
 
 However, postpic's main functions should work but there is still much work to do and lots of documentation missing. If postpic awakened your interest you are welcome to contribute. Even if your programming skills are limited there are various ways how to contribute and adopt postpic for your particular research. Read [CONTRIBUTING.md](../master/CONTRIBUTING.md).
 
