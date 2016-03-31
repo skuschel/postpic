@@ -138,10 +138,9 @@ class Sdfreader(Dumpreader_ifc):
 
     def getSpecies(self, species, attrib):
         """
-        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID) of
+        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of
         this particle species.
-        returning None means that this particle property wasnt dumped.
-        Note that this is different from returning an empty list!
+        raises KeyError if the requested species or property wasnt dumped.
         """
         attribid = helper.attribidentify[attrib]
         options = {9: lambda s: self['Particles/Weight/' + s].data,
@@ -151,7 +150,9 @@ class Sdfreader(Dumpreader_ifc):
                    3: lambda s: self['Particles/Px/' + s].data,
                    4: lambda s: self['Particles/Py/' + s].data,
                    5: lambda s: self['Particles/Pz/' + s].data,
-                   10: lambda s: self['Particles/ID/' + s].data}
+                   10: lambda s: self['Particles/ID/' + s].data,
+                   11: lambda s: self['Particles/Mass/' + s].data,
+                   12: lambda s: self['Particles/Charge/' + s].data}
         try:
             ret = np.float64(options[attribid](species))
         except(IndexError):
