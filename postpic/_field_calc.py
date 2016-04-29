@@ -153,7 +153,7 @@ class FieldAnalyzer(object):
 
     def Bz(self, **kwargs):
         ret = self._createfieldfromdata(self._Bz(**kwargs),
-                                        self.gridkeyB('y', **kwargs))
+                                        self.gridkeyB('z', **kwargs))
         ret.unit = 'T'
         ret.name = 'Bz'
         ret.shortname = 'Bz'
