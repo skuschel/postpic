@@ -2,3 +2,5 @@ include *.md
 include LICENSE
 include CONTRIBUTING.md
 include postpic/*.pyx
+include _version.txt
+include postpic/_version.txt

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+# Copyright (C) 2016 Stephan Kuschel
 #
 # This file is part of postpic.
 #
@@ -18,9 +20,16 @@
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
 import numpy
+import os
+
+
+import _postpic_version
+_, version = _postpic_version.getversion_setup()
+
 
 setup(name='postpic',
-      version='0.2.2',
+      version=version,
+      include_package_data = True,
       author='Stephan Kuschel',
       author_email='stephan.kuschel@gmail.de',
       description='The open source particle-in-cell post processor.',
