@@ -24,6 +24,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 __version__ = 'v0.2.2'
 
+try:
+    FileNotFoundError  # python3
+except(NameError):
+    FileNotFoundError = IOError  # python2
+
 
 def _gitversion():
     '''
