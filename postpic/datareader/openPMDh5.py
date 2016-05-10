@@ -88,12 +88,18 @@ class OpenPMDreader(Dumpreader_ifc):
 
     def gridoffset(self, key, axis):
         axid = helper.axesidentify[axis]
-        attrs = self[key].parent.attrs
+        if "gridUnitSI" in self[key].attrs:
+            attrs = self[key].attrs
+        else:
+            attrs = self[key].parent.attrs
         return attrs['gridGlobalOffset'][axid] * attrs['gridUnitSI']
 
     def gridspacing(self, key, axis):
         axid = helper.axesidentify[axis]
-        attrs = self[key].parent.attrs
+        if "gridUnitSI" in self[key].attrs:
+            attrs = self[key].attrs
+        else:
+            attrs = self[key].parent.attrs
         return attrs['gridSpacing'][axid] * attrs['gridUnitSI']
 
     def gridpoints(self, key, axis):
