@@ -63,7 +63,7 @@ def main():
 
     # initialze the plotter object.
     # project name will be prepended to all output names
-    plotter = pp.plotting.plottercls(dr, outdir=savedir, autosave=True, project='OpenPMD')
+    plotter = pp.plotting.plottercls(dr, outdir=savedir, autosave=True, project='openPMD')
 
     # we will need a refrence to the MultiSpecies quite often
     from postpic import MultiSpecies as MS
@@ -77,6 +77,9 @@ def main():
         plotter.plotField(dr.Ey())  # plot 1
         plotter.plotField(dr.Ez())  # plot 2
         plotter.plotField(dr.energydensityEM())  # plot 3
+
+        # plot additional, derived fields if available in `dr.getderived()`
+        #plotter.plotField(dr.createfieldfromkey("fields/e_chargeDensity"))
 
         # Using the MultiSpecies requires an additional step:
         # 1) The MultiSpecies.createField method will be used to create a Field object
@@ -93,19 +96,26 @@ def main():
             nd = pa.createField(MS.Z, MS.X, optargsh=optargsh,simextent=False)
             # plot the Field object nd
             plotter.plotField(nd, name='NumberDensity')   # plot 4
+
+            # create a Field object nd holding the charge density
+            qd = pa.createField(MS.Z, MS.X, weights=MS.charge,
+                                optargsh=optargsh, simextent=False)
+            # plot the Field object qd
+            plotter.plotField(qd, name='ChargeDensity')   # plot 5
+
             # more advanced: create a field holding the total kinetic energy on grid
             ekin = pa.createField(MS.Z, MS.X, weights=MS.Ekin_MeV, optargsh=optargsh, simextent=False)
             # The Field objectes can be used for calculations. Here we use this to
             # calculate the average kinetic energy on grid and plot
-            plotter.plotField(ekin / nd, name='Avg Kin Energy (MeV)')  # plot 5
+            plotter.plotField(ekin / nd, name='Avg Kin Energy (MeV)')  # plot 6
 
             # use optargsh to force lower resolution
             # plot number density
-            plotter.plotField(pa.createField(MS.Z, MS.X, optargsh=optargsh), lineoutx=True, lineouty=True)  # plot 6
+            plotter.plotField(pa.createField(MS.Z, MS.X, optargsh=optargsh), lineoutx=True, lineouty=True)  # plot 7
             # plot phase space
-            plotter.plotField(pa.createField(MS.Z, MS.P, optargsh=optargsh))  # plot 7
-            plotter.plotField(pa.createField(MS.Z, MS.gamma, optargsh=optargsh))  # plot 8
-            plotter.plotField(pa.createField(MS.Z, MS.beta, optargsh=optargsh))  # plot 9
+            plotter.plotField(pa.createField(MS.Z, MS.P, optargsh=optargsh))  # plot 8
+            plotter.plotField(pa.createField(MS.Z, MS.gamma, optargsh=optargsh))  # plot 9
+            plotter.plotField(pa.createField(MS.Z, MS.beta, optargsh=optargsh))  # plot 10
 
 
     if True:
