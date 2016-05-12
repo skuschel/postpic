@@ -990,6 +990,11 @@ class ParticleHistory(object):
         self._updatelookupdict()
 
     def _updatelookupdict(self):
+        '''
+        updates `self._id2i`.
+        `self._id2i` is a dictionary mapping from a particle ID
+        to the array index of that particle.
+        '''
         self._id2i = {self.ids[i]: i for i in range(len(self.ids))}
 
     def _findids(self, ids):
@@ -1012,19 +1017,21 @@ class ParticleHistory(object):
         # counts the number of particles present
         return len(self.ids)
 
-    def _collectfromdump(self, dr, scalarf):
+    def _collectfromdump(self, dr, scalarfs):
         '''
         dr - the dumpreader
-        scalarf - a function that returns scalar values when applied to a dumpreader
+        scalarfs - a list of functions which return scalar values when applied to a dumpreader
 
         Returns:
-           list of ids, list of scalarvalues
+           list of ids, [list scalar values, list of scalar values, ... ]
         '''
         ms = MultiSpecies(dr, *self.speciess)
         ms.compress(self.ids)
-        scalars = scalarf(ms)
+        scalars = np.zeros((len(scalarfs), len(ms)))
+        for i in range(len(scalarfs)):
+            scalars[i, :] = scalarfs[i](ms)
         ids = ms.ID()
-        del ms
+        del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
     def skip(self, n):
@@ -1034,27 +1041,29 @@ class ParticleHistory(object):
         self.ids = self.ids[::n+1]
         self._updatelookupdict()
 
-    def collect(self, scalarf):
+    def collect(self, *scalarfs):
         '''
-        Collects the given particle property for all particles for all times.
+        Collects the given particle properties for all particles for all times.
 
         Parameters:
         -----------
-        scalarf: the scalarfunction defining the particle property
+        *scalarfs: the scalarfunction(s) defining the particle property
 
         Returns:
         --------
-        numpy.ndarray holding the different particles in the same order as the list of ids.
+        numpy.ndarray holding the different particles in the same order as the list of `self.ids`,
+        meaning the particle on position `particle_idx` has the ID `self.ids[particle_idx]`.
         every array element holds the history for a single particle.
+        Indexorder of returned array: [particle_idx][scalarf_idx, collection_idx]
         '''
-        import collections
-        ret = [collections.deque() for i in range(len(self.ids))]
+        particlelist = [list() for _ in range(len(self.ids))]
         for dr in self.sr:
-            ids, scalars = self._collectfromdump(dr, scalarf)
+            ids, scalars = self._collectfromdump(dr, scalarfs)
             for k in range(len(ids)):
                 i = self._id2i[ids[k]]
-                ret[i].append(scalars[k])
-        # convert to numpy array
-        ret = np.array([np.array(d) for d in ret])
+                particlelist[i].append(scalars[:, k])
+        ret = [np.array(p).T for p in particlelist]
         return ret
+
+
 
