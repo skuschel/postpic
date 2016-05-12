@@ -985,7 +985,10 @@ class ParticleHistory(object):
         self.sr = sr
         # list of species names to search in for the particle id
         self.speciess = [speciess] if type(speciess) is str else speciess
-        self.ids = self._findids(ids)  # List of integers
+        if ids is None:
+            self.ids = self._findids()  # List of integers
+        else:
+            self.ids = np.array(ids, dtype=np.int)
         # lookup dict used by collect
         self._updatelookupdict()
 
@@ -997,18 +1000,13 @@ class ParticleHistory(object):
         '''
         self._id2i = {self.ids[i]: i for i in range(len(self.ids))}
 
-    def _findids(self, ids):
+    def _findids(self):
         '''
-        looks through all the dumps and identifies which ids are really present.
-
-        if ids=None, all IDs present in self.species will be added.
+        finds which ids are prensent in all dumps and the speciess specified.
         '''
         idsfound = set()
-        ids = None if ids is None else np.array(ids)
         for dr in self.sr:
             ms = MultiSpecies(dr, *self.speciess)
-            if ids is not None:
-                ms.compress(ids)
             idsfound |= set(ms.ID())
             del ms
         return np.array(list(idsfound), dtype=np.int)
