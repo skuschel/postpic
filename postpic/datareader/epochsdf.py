@@ -122,9 +122,23 @@ class Sdfreader(Dumpreader_ifc):
         return self._returnkey2('Magnetic Field', '/B' +
                                 axsuffix, **kwargs)
 
-    def simgridkeys(self):
-        return ['Electric Field/Ex', 'Electric Field/Ey', 'Electric Field/Ez',
-                'Magnetic Field/Bx', 'Magnetic Field/By', 'Magnetic Field/Bz']
+    def simextent(self, axis):
+        '''
+        Returns the extent of the actual simulation window.
+        '''
+        m = self['Grid/Grid']
+        extents = m.extents
+        dims = len(m.dims)
+        axid = helper.axesidentify[axis]
+        return np.array([extents[axid], extents[axid + dims]])
+
+    def simgridpoints(self, axis):
+        '''
+        Returns the number of grid points of the actual simulation.
+        '''
+        mesh = self['Grid/Grid']
+        axid = helper.axesidentify[axis]
+        return mesh.dims[axid]
 
     def listSpecies(self):
         ret = set()
