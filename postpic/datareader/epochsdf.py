@@ -205,9 +205,9 @@ class Visitreader(Simulationreader_ifc):
             raise IOError('File "' + str(visitfile) + '" doesnt exist.')
         self._dumpfiles = []
         with open(visitfile) as f:
-            relpath = os.path.dirname(visitfile)
+            path = os.path.dirname(os.path.abspath(visitfile))
             for line in f:
-                self._dumpfiles.append(os.path.join(relpath,
+                self._dumpfiles.append(os.path.join(path,
                                                     line.replace('\n', '')))
 
     def __len__(self):
