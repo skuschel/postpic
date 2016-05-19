@@ -168,7 +168,7 @@ class Sdfreader(Dumpreader_ifc):
                    11: lambda s: self['Particles/Mass/' + s].data,
                    12: lambda s: self['Particles/Charge/' + s].data}
         try:
-            ret = np.float64(options[attribid](species))
+            ret = options[attribid](species)
         except(IndexError):
             raise KeyError
         return ret

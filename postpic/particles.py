@@ -87,7 +87,7 @@ class _SingleSpecies(object):
         else:
             ret = self._dumpreader.getSpecies(self.species, key)
         # now that we have got the data, check if compress was used and/or maybe cache value
-        ret = np.float64(ret)
+        ret = np.int64(ret) if key == 'ID' else np.float64(ret)
         if isinstance(ret, float):  # cache single scalars always
             self._cache[key] = ret
         if isinstance(ret, np.ndarray) and self._compressboollist is not None:
@@ -115,7 +115,8 @@ class _SingleSpecies(object):
         condition can be a list of arbitraty length, so only the particles
         with the ids listed here are kept.
         """
-        if np.array(condition).dtype is np.dtype('bool'):
+        condition = np.asarray(condition)
+        if condition.dtype is np.dtype('bool'):
             # Case 1:
             # condition is list of boolean values specifying particles to use
             assert len(self) == len(condition), \
@@ -133,7 +134,7 @@ class _SingleSpecies(object):
         else:
             # Case 2:
             # condition is list of particle IDs to use
-            condition = np.array(condition, dtype='int')
+            condition = np.asarray(condition, dtype='int')
             # same as
             # bools = np.array([idx in condition for idx in self.ID()])
             # but benchmarked to be 1500 times faster :)
@@ -429,8 +430,7 @@ class MultiSpecies(object):
     weight.unit = 'npartpermacro'
 
     def ID(self):
-        ret = self._map2ssa('ID')
-        return np.array(ret, dtype=int)
+        return self._map2ssa('ID')
 
     def mass(self):  # SI
         return self._map2ssa('mass')
@@ -639,7 +639,7 @@ class MultiSpecies(object):
         data = func(self)
         sortidx = np.argsort(data)
         wcs = np.cumsum(w[sortidx])
-        idx = np.searchsorted(wcs, wcs[-1]*np.array(q))
+        idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
         return data[sortidx[idx]]
 
     def median(self, func, weights=1.0):
@@ -1009,7 +1009,7 @@ class ParticleHistory(object):
         if ids is None:
             self.ids = self._findids()  # List of integers
         else:
-            self.ids = np.array(ids, dtype=np.int)
+            self.ids = np.asarray(ids, dtype=np.int)
         # lookup dict used by collect
         self._updatelookupdict()
 
@@ -1030,7 +1030,7 @@ class ParticleHistory(object):
             ms = MultiSpecies(dr, *self.speciess)
             idsfound |= set(ms.ID())
             del ms
-        return np.array(list(idsfound), dtype=np.int)
+        return np.asarray(list(idsfound), dtype=np.int)
 
     def __len__(self):
         # counts the number of particles present
@@ -1081,7 +1081,7 @@ class ParticleHistory(object):
             for k in range(len(ids)):
                 i = self._id2i[ids[k]]
                 particlelist[i].append(scalars[:, k])
-        ret = [np.array(p).T for p in particlelist]
+        ret = [np.asarray(p).T for p in particlelist]
         return ret
 
 
