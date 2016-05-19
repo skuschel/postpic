@@ -72,28 +72,29 @@ class _SingleSpecies(object):
         (self._atomicprops)
         '''
         if key in self._cache:
-            ret = self._cache[key]
-        else:
-            if key in ['time']:
-                ret = self._dumpreader.time()
-            elif key in ['mass', 'charge']:
-                try:
-                    ret = self._dumpreader.getSpecies(self.species, key)
-                except(KeyError):
-                    # in the special case of mass or charge try to deduce mass or charge
-                    # from the species name.
-                    self._idfy = identifyspecies(self.species)
-                    ret = self._idfy[key]
-            else:
+            return self._cache[key]
+        # if not cached, try to to find it
+        if key in ['time']:
+            ret = self._dumpreader.time()
+        elif key in ['mass', 'charge']:
+            try:
                 ret = self._dumpreader.getSpecies(self.species, key)
-            ret = np.float64(ret)
-            if isinstance(ret, float):  # cache single scalars always
-                self._cache[key] = ret
-            if isinstance(ret, np.ndarray) and self._compressboollist is not None:
-                ret = ret[self._compressboollist]  # avoid executing this line too often.
-                self._cache[key] = ret
-                # if memomry is low, caching could be skipped entirely.
-                # See commit message for benchmark.
+            except(KeyError):
+                # in the special case of mass or charge try to deduce mass or charge
+                # from the species name.
+                self._idfy = identifyspecies(self.species)
+                ret = self._idfy[key]
+        else:
+            ret = self._dumpreader.getSpecies(self.species, key)
+        # now that we have got the data, check if compress was used and/or maybe cache value
+        ret = np.float64(ret)
+        if isinstance(ret, float):  # cache single scalars always
+            self._cache[key] = ret
+        if isinstance(ret, np.ndarray) and self._compressboollist is not None:
+            ret = ret[self._compressboollist]  # avoid executing this line too often.
+            self._cache[key] = ret
+            # if memomry is low, caching could be skipped entirely.
+            # See commit message for benchmark.
         return ret
 
     def compress(self, condition, name='unknown condition'):
