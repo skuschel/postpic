@@ -404,17 +404,17 @@ class MultiSpecies(object):
 
     def _map2ssa(self, func):
         '''
-        maps a function to the SingleSpeciesAnalyzers. If the SingleSpeciesAnalyzer
+        maps a function to the SingleSpecies. If the SingleSpecies
         returns a single scalar, it will be repeated using np.repeat to ensure
         that a list will always be returned.
         '''
-        ret = np.array([])
-        for ssa in self._ssas:
+        def ssadata(ssa, func):
             a = getattr(ssa, func)()
             if isinstance(a, float):
                 a = np.repeat(a, len(ssa))
-            ret = np.append(ret, a)
-        return ret
+            return a
+        data = (ssadata(ssa, func) for ssa in self._ssas)
+        return np.hstack(data)
 
     # --- "A scalar for every particle"-functions.
 
