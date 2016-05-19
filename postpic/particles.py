@@ -48,6 +48,10 @@ class _SingleSpecies(object):
     _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID', 'time']
 
     def __init__(self, dumpreader, species):
+        if species not in dumpreader.listSpecies():
+            # A better way would be to test if len(self) == 0,
+            # but that may require heavy IO
+            raise(KeyError('species "{:}" does not exist in {:}'.format(species, dumpreader)))
         self.species = species
         self._dumpreader = dumpreader
         self.uncompress()
@@ -211,11 +215,16 @@ class MultiSpecies(object):
     The MultiSpecies class. Different MultiSpecies can be
     added together to create a combined collection.
 
+    **kwargs
+    --------
+    ignore_missing_species = False
+        set to true to ignore missing species.
+
     The MultiSpecies class will return a list of values for every
     particle property.
     """
 
-    def __init__(self, dumpreader, *speciess):
+    def __init__(self, dumpreader, *speciess, **kwargs):
         # create 'empty' MultiSpecies
         self._ssas = []
         self._species = None  # trivial name if set
@@ -240,7 +249,7 @@ class MultiSpecies(object):
         self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
         # add particle species one by one
         for s in speciess:
-            self.add(dumpreader, s)
+            self.add(dumpreader, s, **kwargs)
 
     def __str__(self):
         return '<MultiSpecies including ' + str(self.species) \
@@ -297,7 +306,7 @@ class MultiSpecies(object):
         '''
         return [ssa.species for ssa in self._ssas]
 
-    def add(self, dumpreader, species):
+    def add(self, dumpreader, species, ignore_missing_species=False):
         '''
         adds a species to this MultiSpecies.
 
@@ -310,6 +319,11 @@ class MultiSpecies(object):
                 ejected
                 noejected
                 all
+
+        Optional arguments
+        --------
+        ignore_missing_species = False
+            set to True to ignore if the species is missing.
         '''
         keys = {'_ions': lambda s: identifyspecies(s)['ision'],
                 '_nonions': lambda s: not identifyspecies(s)['ision'],
@@ -322,7 +336,13 @@ class MultiSpecies(object):
             for s in toadd:
                 self.add(dumpreader, s)
         else:
-            self._ssas.append(_SingleSpecies(dumpreader, species))
+            if ignore_missing_species:
+                try:
+                    self._ssas.append(_SingleSpecies(dumpreader, species))
+                except(KeyError):
+                    pass
+            else:
+                self._ssas.append(_SingleSpecies(dumpreader, species))
         return
 
     # --- Operator overloading
