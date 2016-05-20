@@ -48,6 +48,10 @@ class _SingleSpecies(object):
     _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID', 'time']
 
     def __init__(self, dumpreader, species):
+        if species not in dumpreader.listSpecies():
+            # A better way would be to test if len(self) == 0,
+            # but that may require heavy IO
+            raise(KeyError('species "{:}" does not exist in {:}'.format(species, dumpreader)))
         self.species = species
         self._dumpreader = dumpreader
         self.uncompress()
@@ -61,6 +65,11 @@ class _SingleSpecies(object):
         for key in self._atomicprops:
             setattr(_SingleSpecies, key, makefunc(self, key))
 
+    def __str__(self):
+        return '<_SingleSpecies ' + str(self.species) \
+            + ' at ' + str(self._dumpreader) \
+            + '(' + str(len(self)) + ')>'
+
     def _readatomic(self, key):
         '''
         Reads an atomic property, thus one out of
@@ -68,28 +77,29 @@ class _SingleSpecies(object):
         (self._atomicprops)
         '''
         if key in self._cache:
-            ret = self._cache[key]
-        else:
-            if key in ['time']:
-                ret = self._dumpreader.time()
-            elif key in ['mass', 'charge']:
-                try:
-                    ret = self._dumpreader.getSpecies(self.species, key)
-                except(KeyError):
-                    # in the special case of mass or charge try to deduce mass or charge
-                    # from the species name.
-                    self._idfy = identifyspecies(self.species)
-                    ret = self._idfy[key]
-            else:
+            return self._cache[key]
+        # if not cached, try to to find it
+        if key in ['time']:
+            ret = self._dumpreader.time()
+        elif key in ['mass', 'charge']:
+            try:
                 ret = self._dumpreader.getSpecies(self.species, key)
-            ret = np.float64(ret)
-            if isinstance(ret, float):  # cache single scalars always
-                self._cache[key] = ret
-            if isinstance(ret, np.ndarray) and self._compressboollist is not None:
-                ret = ret[self._compressboollist]  # avoid executing this line too often.
-                self._cache[key] = ret
-                # if memomry is low, caching could be skipped entirely.
-                # See commit message for benchmark.
+            except(KeyError):
+                # in the special case of mass or charge try to deduce mass or charge
+                # from the species name.
+                self._idfy = identifyspecies(self.species)
+                ret = self._idfy[key]
+        else:
+            ret = self._dumpreader.getSpecies(self.species, key)
+        # now that we have got the data, check if compress was used and/or maybe cache value
+        ret = np.int64(ret) if key == 'ID' else np.float64(ret)
+        if isinstance(ret, float):  # cache single scalars always
+            self._cache[key] = ret
+        if isinstance(ret, np.ndarray) and self._compressboollist is not None:
+            ret = ret[self._compressboollist]  # avoid executing this line too often.
+            self._cache[key] = ret
+            # if memomry is low, caching could be skipped entirely.
+            # See commit message for benchmark.
         return ret
 
     def compress(self, condition, name='unknown condition'):
@@ -110,7 +120,8 @@ class _SingleSpecies(object):
         condition can be a list of arbitraty length, so only the particles
         with the ids listed here are kept.
         """
-        if np.array(condition).dtype is np.dtype('bool'):
+        condition = np.asarray(condition)
+        if condition.dtype is np.dtype('bool'):
             # Case 1:
             # condition is list of boolean values specifying particles to use
             assert len(self) == len(condition), \
@@ -128,7 +139,7 @@ class _SingleSpecies(object):
         else:
             # Case 2:
             # condition is list of particle IDs to use
-            condition = np.array(condition, dtype='int')
+            condition = np.asarray(condition, dtype='int')
             # same as
             # bools = np.array([idx in condition for idx in self.ID()])
             # but benchmarked to be 1500 times faster :)
@@ -211,11 +222,16 @@ class MultiSpecies(object):
     The MultiSpecies class. Different MultiSpecies can be
     added together to create a combined collection.
 
+    **kwargs
+    --------
+    ignore_missing_species = False
+        set to true to ignore missing species.
+
     The MultiSpecies class will return a list of values for every
     particle property.
     """
 
-    def __init__(self, dumpreader, *speciess):
+    def __init__(self, dumpreader, *speciess, **kwargs):
         # create 'empty' MultiSpecies
         self._ssas = []
         self._species = None  # trivial name if set
@@ -240,7 +256,7 @@ class MultiSpecies(object):
         self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
         # add particle species one by one
         for s in speciess:
-            self.add(dumpreader, s)
+            self.add(dumpreader, s, **kwargs)
 
     def __str__(self):
         return '<MultiSpecies including ' + str(self.species) \
@@ -258,6 +274,9 @@ class MultiSpecies(object):
 
     @property
     def nspecies(self):
+        '''
+        Number of species.
+        '''
         return len(self._ssas)
 
     def __len__(self):
@@ -297,7 +316,7 @@ class MultiSpecies(object):
         '''
         return [ssa.species for ssa in self._ssas]
 
-    def add(self, dumpreader, species):
+    def add(self, dumpreader, species, ignore_missing_species=False):
         '''
         adds a species to this MultiSpecies.
 
@@ -310,6 +329,11 @@ class MultiSpecies(object):
                 ejected
                 noejected
                 all
+
+        Optional arguments
+        --------
+        ignore_missing_species = False
+            set to True to ignore if the species is missing.
         '''
         keys = {'_ions': lambda s: identifyspecies(s)['ision'],
                 '_nonions': lambda s: not identifyspecies(s)['ision'],
@@ -322,7 +346,13 @@ class MultiSpecies(object):
             for s in toadd:
                 self.add(dumpreader, s)
         else:
-            self._ssas.append(_SingleSpecies(dumpreader, species))
+            if ignore_missing_species:
+                try:
+                    self._ssas.append(_SingleSpecies(dumpreader, species))
+                except(KeyError):
+                    pass
+            else:
+                self._ssas.append(_SingleSpecies(dumpreader, species))
         return
 
     # --- Operator overloading
@@ -342,15 +372,35 @@ class MultiSpecies(object):
         a=[1,2,3]; a += [4,5]; print a
         [1,2,3,4,5]
         '''
-        # only add ssa with more than 0 particles.
         for ssa in other._ssas:
-            if len(ssa) > 0:
-                self._ssas.append(copy.copy(ssa))
+            self._ssas.append(copy.copy(ssa))
         return self
 
     # --- compress related functions ---
 
     def compress(self, condition, name='unknown condition'):
+        """
+        works like numpy.compress.
+        Additionaly you can specify a name, that gets saved in the compresslog.
+
+        condition has to be one out of:
+        1)
+        condition =  [True, False, True, True, ... , True, False]
+        condition is a list of length N, specifing which particles to keep.
+        Example:
+        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
+        cfintospectrometer.name = '< 30mrad offaxis'
+        pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
+        2)
+        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
+        condition can be a list of arbitraty length, so only the particles
+        with the ids listed here are kept.
+
+        **kwargs
+        --------
+        name -- name the condition. This can later be reviewed by calling 'self.compresslog()'
+        """
+        condition = np.asarray(condition)
         i = 0
         for ssa in self._ssas:  # condition is list of booleans
             if condition.dtype == np.dtype('bool'):
@@ -364,11 +414,21 @@ class MultiSpecies(object):
     # --- user friendly functions
 
     def compressfn(self, conditionf, name='unknown condition'):
+        '''
+        like "compress", but accepts a function.
+
+        **kwargs
+        --------
+        name -- name the condition.
+        '''
         if hasattr(conditionf, 'name'):
             name = conditionf.name
         self.compress(conditionf(self), name=name)
 
     def uncompress(self):
+        '''
+        undo all previous calls of "compress".
+        '''
         self._compresslog = []
         for s in self._ssas:
             s.uncompress()
@@ -383,17 +443,21 @@ class MultiSpecies(object):
 
     def _map2ssa(self, func):
         '''
-        maps a function to the SingleSpeciesAnalyzers. If the SingleSpeciesAnalyzer
+        maps a function to the SingleSpecies. If the SingleSpecies
         returns a single scalar, it will be repeated using np.repeat to ensure
         that a list will always be returned.
         '''
-        ret = np.array([])
-        for ssa in self._ssas:
+        def ssadata(ssa, func):
             a = getattr(ssa, func)()
             if isinstance(a, float):
                 a = np.repeat(a, len(ssa))
-            ret = np.append(ret, a)
-        return ret
+            return a
+        if len(self._ssas) == 0:
+            # Happens, if only missing species were added with
+            # ignore_missing_species = True.
+            return np.array([])
+        data = (ssadata(ssa, func) for ssa in self._ssas)
+        return np.hstack(data)
 
     # --- "A scalar for every particle"-functions.
 
@@ -408,8 +472,7 @@ class MultiSpecies(object):
     weight.unit = 'npartpermacro'
 
     def ID(self):
-        ret = self._map2ssa('ID')
-        return np.array(ret, dtype=int)
+        return self._map2ssa('ID')
 
     def mass(self):  # SI
         return self._map2ssa('mass')
@@ -618,7 +681,7 @@ class MultiSpecies(object):
         data = func(self)
         sortidx = np.argsort(data)
         wcs = np.cumsum(w[sortidx])
-        idx = np.searchsorted(wcs, wcs[-1]*np.array(q))
+        idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
         return data[sortidx[idx]]
 
     def median(self, func, weights=1.0):
@@ -988,7 +1051,7 @@ class ParticleHistory(object):
         if ids is None:
             self.ids = self._findids()  # List of integers
         else:
-            self.ids = np.array(ids, dtype=np.int)
+            self.ids = np.asarray(ids, dtype=np.int)
         # lookup dict used by collect
         self._updatelookupdict()
 
@@ -1006,10 +1069,10 @@ class ParticleHistory(object):
         '''
         idsfound = set()
         for dr in self.sr:
-            ms = MultiSpecies(dr, *self.speciess)
+            ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
             idsfound |= set(ms.ID())
             del ms
-        return np.array(list(idsfound), dtype=np.int)
+        return np.asarray(list(idsfound), dtype=np.int)
 
     def __len__(self):
         # counts the number of particles present
@@ -1023,7 +1086,7 @@ class ParticleHistory(object):
         Returns:
            list of ids, [list scalar values, list of scalar values, ... ]
         '''
-        ms = MultiSpecies(dr, *self.speciess)
+        ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
         ms.compress(self.ids)
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
@@ -1060,7 +1123,7 @@ class ParticleHistory(object):
             for k in range(len(ids)):
                 i = self._id2i[ids[k]]
                 particlelist[i].append(scalars[:, k])
-        ret = [np.array(p).T for p in particlelist]
+        ret = [np.asarray(p).T for p in particlelist]
         return ret
 
 

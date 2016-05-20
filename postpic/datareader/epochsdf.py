@@ -122,9 +122,23 @@ class Sdfreader(Dumpreader_ifc):
         return self._returnkey2('Magnetic Field', '/B' +
                                 axsuffix, **kwargs)
 
-    def simgridkeys(self):
-        return ['Electric Field/Ex', 'Electric Field/Ey', 'Electric Field/Ez',
-                'Magnetic Field/Bx', 'Magnetic Field/By', 'Magnetic Field/Bz']
+    def simextent(self, axis):
+        '''
+        Returns the extent of the actual simulation window.
+        '''
+        m = self['Grid/Grid']
+        extents = m.extents
+        dims = len(m.dims)
+        axid = helper.axesidentify[axis]
+        return np.array([extents[axid], extents[axid + dims]])
+
+    def simgridpoints(self, axis):
+        '''
+        Returns the number of grid points of the actual simulation.
+        '''
+        mesh = self['Grid/Grid']
+        axid = helper.axesidentify[axis]
+        return mesh.dims[axid]
 
     def listSpecies(self):
         ret = set()
@@ -154,7 +168,7 @@ class Sdfreader(Dumpreader_ifc):
                    11: lambda s: self['Particles/Mass/' + s].data,
                    12: lambda s: self['Particles/Charge/' + s].data}
         try:
-            ret = np.float64(options[attribid](species))
+            ret = options[attribid](species)
         except(IndexError):
             raise KeyError
         return ret
@@ -191,9 +205,9 @@ class Visitreader(Simulationreader_ifc):
             raise IOError('File "' + str(visitfile) + '" doesnt exist.')
         self._dumpfiles = []
         with open(visitfile) as f:
-            relpath = os.path.dirname(visitfile)
+            path = os.path.dirname(os.path.abspath(visitfile))
             for line in f:
-                self._dumpfiles.append(os.path.join(relpath,
+                self._dumpfiles.append(os.path.join(path,
                                                     line.replace('\n', '')))
 
     def __len__(self):
