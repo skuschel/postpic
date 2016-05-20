@@ -65,6 +65,11 @@ class _SingleSpecies(object):
         for key in self._atomicprops:
             setattr(_SingleSpecies, key, makefunc(self, key))
 
+    def __str__(self):
+        return '<_SingleSpecies ' + str(self.species) \
+            + ' at ' + str(self._dumpreader) \
+            + '(' + str(len(self)) + ')>'
+
     def _readatomic(self, key):
         '''
         Reads an atomic property, thus one out of
@@ -269,6 +274,9 @@ class MultiSpecies(object):
 
     @property
     def nspecies(self):
+        '''
+        Number of species.
+        '''
         return len(self._ssas)
 
     def __len__(self):
@@ -371,6 +379,28 @@ class MultiSpecies(object):
     # --- compress related functions ---
 
     def compress(self, condition, name='unknown condition'):
+        """
+        works like numpy.compress.
+        Additionaly you can specify a name, that gets saved in the compresslog.
+
+        condition has to be one out of:
+        1)
+        condition =  [True, False, True, True, ... , True, False]
+        condition is a list of length N, specifing which particles to keep.
+        Example:
+        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
+        cfintospectrometer.name = '< 30mrad offaxis'
+        pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
+        2)
+        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
+        condition can be a list of arbitraty length, so only the particles
+        with the ids listed here are kept.
+
+        **kwargs
+        --------
+        name -- name the condition. This can later be reviewed by calling 'self.compresslog()'
+        """
+        condition = np.asarray(condition)
         i = 0
         for ssa in self._ssas:  # condition is list of booleans
             if condition.dtype == np.dtype('bool'):
@@ -384,11 +414,21 @@ class MultiSpecies(object):
     # --- user friendly functions
 
     def compressfn(self, conditionf, name='unknown condition'):
+        '''
+        like "compress", but accepts a function.
+
+        **kwargs
+        --------
+        name -- name the condition.
+        '''
         if hasattr(conditionf, 'name'):
             name = conditionf.name
         self.compress(conditionf(self), name=name)
 
     def uncompress(self):
+        '''
+        undo all previous calls of "compress".
+        '''
         self._compresslog = []
         for s in self._ssas:
             s.uncompress()
