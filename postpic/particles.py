@@ -414,6 +414,10 @@ class MultiSpecies(object):
             if isinstance(a, float):
                 a = np.repeat(a, len(ssa))
             return a
+        if len(self._ssas) == 0:
+            # Happens, if only missing species were added with
+            # ignore_missing_species = True.
+            return np.array([])
         data = (ssadata(ssa, func) for ssa in self._ssas)
         return np.hstack(data)
 
@@ -1027,7 +1031,7 @@ class ParticleHistory(object):
         '''
         idsfound = set()
         for dr in self.sr:
-            ms = MultiSpecies(dr, *self.speciess)
+            ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
             idsfound |= set(ms.ID())
             del ms
         return np.asarray(list(idsfound), dtype=np.int)
@@ -1044,7 +1048,7 @@ class ParticleHistory(object):
         Returns:
            list of ids, [list scalar values, list of scalar values, ... ]
         '''
-        ms = MultiSpecies(dr, *self.speciess)
+        ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
         ms.compress(self.ids)
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
