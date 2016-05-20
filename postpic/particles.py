@@ -364,10 +364,8 @@ class MultiSpecies(object):
         a=[1,2,3]; a += [4,5]; print a
         [1,2,3,4,5]
         '''
-        # only add ssa with more than 0 particles.
         for ssa in other._ssas:
-            if len(ssa) > 0:
-                self._ssas.append(copy.copy(ssa))
+            self._ssas.append(copy.copy(ssa))
         return self
 
     # --- compress related functions ---
