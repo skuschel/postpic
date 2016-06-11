@@ -24,6 +24,8 @@ cimport cython
 import numpy as np
 cimport numpy as np
 
+from cython.parallel import prange, threadid, parallel
+
 shapes = [
     [0, 'NGP'],
     [1, 'tophat'],
@@ -58,56 +60,63 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
     bin_edges = np.linspace(xmin, xmax, bins+1)
     cdef int n = len(data)
     cdef double dx = 1.0 / (xmax - xmin) * bins  # actually: 1/dx
-    cdef np.ndarray[np.double_t, ndim=1] ret
+    cdef np.ndarray[np.double_t, ndim=2] ret
     cdef int shape_supp
     cdef double x
-    cdef int xr
+    cdef int xr, i, thid
     cdef double xd
     if shape in shapes[0]:
         # normal Histogram
         shape_supp = 0
-        ret = np.zeros(bins, dtype=np.double)
-        for i in xrange(n):
-            x = (data[i] - xmin) * dx;
-            if x > 0.0 and x < bins:
-                if weights is None:
-                    ret[<int>x] += 1.0
-                else:
-                    ret[<int>x] += weights[i]
+        ret = np.zeros((2, bins), dtype=np.double)
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (data[i] - xmin) * dx;
+                if x > 0.0 and x < bins:
+                    if weights is None:
+                        ret[thid, <int>x] += 1.0
+                    else:
+                        ret[thid, <int>x] += weights[i]
     elif shape in shapes[1]:
         # Particle shape is spline of order 1 = TopHat
         shape_supp = 1
         # use shape_supp ghost cells on both sides of the domain
-        ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
-        for i in xrange(n):
-            x = (data[i] - xmin) * dx;
-            xr = <int>(x + 0.5);
-            if (xr >= 0.0 and xr <= bins):
-                if weights is None:
-                    ret[xr + shape_supp]     += (0.5 + x - xr) * 1.0
-                    ret[xr + shape_supp - 1] += (0.5 - x + xr) * 1.0
-                else:
-                    ret[xr + shape_supp]     += (0.5 + x - xr) * weights[i]
-                    ret[xr + shape_supp - 1] += (0.5 - x + xr) * weights[i]
+        ret = np.zeros((2, bins + 2 * shape_supp), dtype=np.double)
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (data[i] - xmin) * dx;
+                xr = <int>(x + 0.5);
+                if (xr >= 0.0 and xr <= bins):
+                    if weights is None:
+                        ret[thid, xr + shape_supp]     += (0.5 + x - xr) * 1.0
+                        ret[thid, xr + shape_supp - 1] += (0.5 - x + xr) * 1.0
+                    else:
+                        ret[thid, xr + shape_supp]     += (0.5 + x - xr) * weights[i]
+                        ret[thid, xr + shape_supp - 1] += (0.5 - x + xr) * weights[i]
     elif shape in shapes[2]:
         # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain
-        ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
-        for i in xrange(n):
-            x = (data[i] - xmin) * dx;
-            xr = <int>x;
-            xd = x - xr
-            if (xr >= 0.0 and xr <= bins):
-                if weights is None:
-                    ret[xr + shape_supp - 1] += 0.5 * (1 - xd)**2
-                    ret[xr + shape_supp]     += 0.5 + xd - xd**2
-                    ret[xr + shape_supp + 1] += 0.5 * xd**2
-                else:
-                    ret[xr + shape_supp - 1] += (0.5 * (1 - xd)**2) * weights[i]
-                    ret[xr + shape_supp]     += (0.5 + xd - xd**2) * weights[i]
-                    ret[xr + shape_supp + 1] += (0.5 * xd**2) * weights[i]
-    return ret[shape_supp:shape_supp + bins], bin_edges
+        ret = np.zeros((2, bins + 2 * shape_supp), dtype=np.double)
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (data[i] - xmin) * dx;
+                xr = <int>x;
+                xd = x - xr
+                if (xr >= 0.0 and xr <= bins):
+                    if weights is None:
+                        ret[thid, xr + shape_supp - 1] += 0.5 * (1 - xd)**2
+                        ret[thid, xr + shape_supp]     += 0.5 + xd - xd**2
+                        ret[thid, xr + shape_supp + 1] += 0.5 * xd**2
+                    else:
+                        ret[thid, xr + shape_supp - 1] += (0.5 * (1 - xd)**2) * weights[i]
+                        ret[thid, xr + shape_supp]     += (0.5 + xd - xd**2) * weights[i]
+                        ret[thid, xr + shape_supp + 1] += (0.5 * xd**2) * weights[i]
+    retarr = ret.sum(axis=0)
+    return retarr[shape_supp:shape_supp + bins], bin_edges
 
 
 @cython.boundscheck(False)  # disable array boundscheck
@@ -153,83 +162,89 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     yedges = np.linspace(ymin, ymax, ybins+1)
     cdef double dx = 1.0 / (xmax - xmin) * xbins  # actually: 1/dx
     cdef double dy = 1.0 / (ymax - ymin) * ybins  # actually: 1/dy
-    cdef np.ndarray[np.double_t, ndim=2] ret
+    cdef np.ndarray[np.double_t, ndim=3] ret
     cdef int shape_supp, xs, ys, xoffset, yoffset
     cdef double x, y, xd, yd
-    cdef int xr, yr
-    cdef double wx[3]
-    cdef double wy[3]
+    cdef int xr, yr, i, thid
+    cdef double wx[2][3]
+    cdef double wy[2][3]
 
     if shape in shapes[0]:
         # normal Histogram
         shape_supp = 0
-        ret = np.zeros(bins, dtype=np.double)
-        for i in xrange(n):
-            x = (datax[i] - xmin) * dx
-            y = (datay[i] - ymin) * dy
-            if x > 0.0 and y > 0.0 and x < xbins and y < ybins:
-                if weights is None:
-                    ret[<int>x, <int>y] += 1.0
-                else:
-                    ret[<int>x, <int>y] += weights[i]
+        ret = np.zeros([2] + list(bins), dtype=np.double)
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (datax[i] - xmin) * dx
+                y = (datay[i] - ymin) * dy
+                if x > 0.0 and y > 0.0 and x < xbins and y < ybins:
+                    if weights is None:
+                        ret[thid, <int>x, <int>y] += 1.0
+                    else:
+                        ret[thid, <int>x, <int>y] += weights[i]
     elif shape in shapes[1]:
         # Particle shape is spline of order 1 = TopHat
         shape_supp = 1
         # use shape_supp ghost cells on both sides of the domain
-        resshape = [b + 2 * shape_supp for b in bins]
+        resshape = [2] + [b + 2 * shape_supp for b in bins]
         ret = np.zeros(resshape, dtype=np.double)
-        for i in xrange(n):
-            x = (datax[i] - xmin) * dx;
-            y = (datay[i] - ymin) * dy;
-            xr = <int>(x + 0.5);
-            yr = <int>(y + 0.5);
-            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
-                wx[0] = (0.5 - x + xr)
-                wx[1] = (0.5 + x - xr)
-                wy[0] = (0.5 - y + yr)
-                wy[1] = (0.5 + y - yr)
-                if weights is None:
-                    ret[xr + shape_supp - 1, yr + shape_supp - 1] += wx[0] * wy[0]
-                    ret[xr + shape_supp - 1, yr + shape_supp - 0] += wx[0] * wy[1]
-                    ret[xr + shape_supp - 0, yr + shape_supp - 1] += wx[1] * wy[0]
-                    ret[xr + shape_supp - 0, yr + shape_supp - 0] += wx[1] * wy[1]
-                else:
-                    ret[xr + shape_supp - 1, yr + shape_supp - 1] += wx[0] * wy[0] * weights[i]
-                    ret[xr + shape_supp - 1, yr + shape_supp - 0] += wx[0] * wy[1] * weights[i]
-                    ret[xr + shape_supp - 0, yr + shape_supp - 1] += wx[1] * wy[0] * weights[i]
-                    ret[xr + shape_supp - 0, yr + shape_supp - 0] += wx[1] * wy[1] * weights[i]
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (datax[i] - xmin) * dx;
+                y = (datay[i] - ymin) * dy;
+                xr = <int>(x + 0.5);
+                yr = <int>(y + 0.5);
+                if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
+                    wx[thid][0] = (0.5 - x + xr)
+                    wx[thid][1] = (0.5 + x - xr)
+                    wy[thid][0] = (0.5 - y + yr)
+                    wy[thid][1] = (0.5 + y - yr)
+                    if weights is None:
+                        ret[thid, xr + shape_supp - 1, yr + shape_supp - 1] += wx[thid][0] * wy[thid][0]
+                        ret[thid, xr + shape_supp - 1, yr + shape_supp - 0] += wx[thid][0] * wy[thid][1]
+                        ret[thid, xr + shape_supp - 0, yr + shape_supp - 1] += wx[thid][1] * wy[thid][0]
+                        ret[thid, xr + shape_supp - 0, yr + shape_supp - 0] += wx[thid][1] * wy[thid][1]
+                    else:
+                        ret[thid, xr + shape_supp - 1, yr + shape_supp - 1] += wx[thid][0] * wy[thid][0] * weights[i]
+                        ret[thid, xr + shape_supp - 1, yr + shape_supp - 0] += wx[thid][0] * wy[thid][1] * weights[i]
+                        ret[thid, xr + shape_supp - 0, yr + shape_supp - 1] += wx[thid][1] * wy[thid][0] * weights[i]
+                        ret[thid, xr + shape_supp - 0, yr + shape_supp - 0] += wx[thid][1] * wy[thid][1] * weights[i]
     elif shape in shapes[2]:
         # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain
-        resshape = [b + 2 * shape_supp for b in bins]
+        resshape = [2] + [b + 2 * shape_supp for b in bins]
         ret = np.zeros(resshape, dtype=np.double)
-        for i in xrange(n):
-            x = (datax[i] - xmin) * dx;
-            y = (datay[i] - ymin) * dy;
-            xr = <int>x;
-            yr = <int>y;
-            xd = x - xr;
-            yd = y - yr;
-            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
-                wx[0] = 0.5 * (1 - xd)**2
-                wx[1] = 0.5 + xd - xd**2
-                wx[2] = 0.5 * xd**2
-                wy[0] = 0.5 * (1 - yd)**2
-                wy[1] = 0.5 + yd - yd**2
-                wy[2] = 0.5 * yd**2
-                xoffset = xr + shape_supp - 1
-                yoffset = yr + shape_supp - 1
-                if weights is None:
-                    for xs in xrange(3):
-                        for ys in xrange(3):
-                            ret[xoffset + xs, yoffset + ys] += wx[xs] * wy[ys]
-                else:
-                    for xs in xrange(3):
-                        for ys in xrange(3):
-                            ret[xoffset + xs, yoffset + ys] += wx[xs] * wy[ys] * weights[i]
-
-    return ret[shape_supp:shape_supp + xbins, shape_supp:shape_supp + ybins], xedges, yedges
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (datax[i] - xmin) * dx;
+                y = (datay[i] - ymin) * dy;
+                xr = <int>x;
+                yr = <int>y;
+                xd = x - xr;
+                yd = y - yr;
+                if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
+                    wx[thid][0] = 0.5 * (1 - xd)**2
+                    wx[thid][1] = 0.5 + xd - xd**2
+                    wx[thid][2] = 0.5 * xd**2
+                    wy[thid][0] = 0.5 * (1 - yd)**2
+                    wy[thid][1] = 0.5 + yd - yd**2
+                    wy[thid][2] = 0.5 * yd**2
+                    xoffset = xr + shape_supp - 1
+                    yoffset = yr + shape_supp - 1
+                    if weights is None:
+                        for xs in xrange(3):
+                            for ys in xrange(3):
+                                ret[thid, xoffset + xs, yoffset + ys] += wx[thid][xs] * wy[thid][ys]
+                    else:
+                        for xs in xrange(3):
+                            for ys in xrange(3):
+                                ret[thid, xoffset + xs, yoffset + ys] += wx[thid][xs] * wy[thid][ys] * weights[i]
+    retarr = ret.sum(axis=0)
+    return retarr[shape_supp:shape_supp + xbins, shape_supp:shape_supp + ybins], xedges, yedges
 
 
 
@@ -288,100 +303,107 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef double dx = 1.0 / (xmax - xmin) * xbins  # actually: 1/dx
     cdef double dy = 1.0 / (ymax - ymin) * ybins  # actually: 1/dy
     cdef double dz = 1.0 / (zmax - zmin) * zbins  # actually: 1/dz
-    cdef np.ndarray[np.double_t, ndim=3] ret
+    cdef np.ndarray[np.double_t, ndim=4] ret
     cdef int shape_supp, xs, ys, zs, xoffset, yoffset, zoffset
     cdef double x, y, z, xd, yd, zd
-    cdef int xr, yr, zr
-    cdef double wx[3]
-    cdef double wy[3]
-    cdef double wz[3]
+    cdef int xr, yr, zr, i, thid
+    cdef double wx[2][3]
+    cdef double wy[2][3]
+    cdef double wz[2][3]
 
     if shape in shapes[0]:
         # normal Histogram
         shape_supp = 0
-        ret = np.zeros(bins, dtype=np.double)
-        for i in xrange(n):
-            x = (datax[i] - xmin) * dx
-            y = (datay[i] - ymin) * dy
-            z = (dataz[i] - zmin) * dz
-            if x > 0.0 and y > 0.0 and z > 0.0 and x < xbins and y < ybins and z < zbins:
-                if weights is None:
-                    ret[<int>x, <int>y, <int>z] += 1.0
-                else:
-                    ret[<int>x, <int>y, <int>z] += weights[i]
+        ret = np.zeros([2] + list(bins), dtype=np.double)
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (datax[i] - xmin) * dx
+                y = (datay[i] - ymin) * dy
+                z = (dataz[i] - zmin) * dz
+                if x > 0.0 and y > 0.0 and z > 0.0 and x < xbins and y < ybins and z < zbins:
+                    if weights is None:
+                        ret[thid, <int>x, <int>y, <int>z] += 1.0
+                    else:
+                        ret[thid, <int>x, <int>y, <int>z] += weights[i]
     elif shape in shapes[1]:
         # Particle shape is spline of order 1 = TopHat
         shape_supp = 1
         # use shape_supp ghost cells on both sides of the domain
-        resshape = [b + 2 * shape_supp for b in bins]
+        resshape = [2] + [b + 2 * shape_supp for b in bins]
         ret = np.zeros(resshape, dtype=np.double)
-        for i in xrange(n):
-            x = (datax[i] - xmin) * dx;
-            y = (datay[i] - ymin) * dy;
-            z = (dataz[i] - zmin) * dz;
-            xr = <int>(x + 0.5);
-            yr = <int>(y + 0.5);
-            zr = <int>(z + 0.5);
-            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins and z >= 0 and zr <= zbins):
-                wx[0] = (0.5 - x + xr)
-                wx[1] = (0.5 + x - xr)
-                wy[0] = (0.5 - y + yr)
-                wy[1] = (0.5 + y - yr)
-                wz[0] = (0.5 - z + zr)
-                wz[1] = (0.5 + z - zr)
-                xoffset = xr + shape_supp - 1
-                yoffset = yr + shape_supp - 1
-                zoffset = zr + shape_supp - 1
-                if weights is None:
-                    for xs in xrange(2):
-                        for ys in xrange(2):
-                            for zs in xrange(2):
-                                ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs]
-                else:
-                    for xs in xrange(2):
-                        for ys in xrange(2):
-                            for zs in xrange(2):
-                                ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (datax[i] - xmin) * dx;
+                y = (datay[i] - ymin) * dy;
+                z = (dataz[i] - zmin) * dz;
+                xr = <int>(x + 0.5);
+                yr = <int>(y + 0.5);
+                zr = <int>(z + 0.5);
+                if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins and z >= 0 and zr <= zbins):
+                    wx[thid][0] = (0.5 - x + xr)
+                    wx[thid][1] = (0.5 + x - xr)
+                    wy[thid][0] = (0.5 - y + yr)
+                    wy[thid][1] = (0.5 + y - yr)
+                    wz[thid][0] = (0.5 - z + zr)
+                    wz[thid][1] = (0.5 + z - zr)
+                    xoffset = xr + shape_supp - 1
+                    yoffset = yr + shape_supp - 1
+                    zoffset = zr + shape_supp - 1
+                    if weights is None:
+                        for xs in xrange(2):
+                            for ys in xrange(2):
+                                for zs in xrange(2):
+                                    ret[thid, xoffset+xs, yoffset+ys, zoffset+zs] += wx[thid][xs] * wy[thid][ys] * wz[thid][zs]
+                    else:
+                        for xs in xrange(2):
+                            for ys in xrange(2):
+                                for zs in xrange(2):
+                                    ret[thid, xoffset+xs, yoffset+ys, zoffset+zs] += wx[thid][xs] * wy[thid][ys] * wz[thid][zs] * weights[i]
     elif shape in shapes[2]:
         # Particle shape is spline of order 2 = Triangle
         shape_supp = 2
         # use shape_supp ghost cells on both sides of the domain
-        resshape = [b + 2 * shape_supp for b in bins]
+        resshape = [2] + [b + 2 * shape_supp for b in bins]
         ret = np.zeros(resshape, dtype=np.double)
-        for i in xrange(n):
-            x = (datax[i] - xmin) * dx;
-            y = (datay[i] - ymin) * dy;
-            z = (dataz[i] - zmin) * dz;
-            xr = <int>x;
-            yr = <int>y;
-            zr = <int>z;
-            xd = x - xr;
-            yd = y - yr;
-            zd = z - zr;
-            if (xr >= 0 and y >= 0 and zr >= 0 and xr <= xbins and yr <= ybins and zr <= zbins):
-                wx[0] = 0.5 * (1 - xd)**2
-                wx[1] = 0.5 + xd - xd**2
-                wx[2] = 0.5 * xd**2
-                wy[0] = 0.5 * (1 - yd)**2
-                wy[1] = 0.5 + yd - yd**2
-                wy[2] = 0.5 * yd**2
-                wz[0] = 0.5 * (1 - zd)**2
-                wz[1] = 0.5 + zd - zd**2
-                wz[2] = 0.5 * zd**2
-                xoffset = xr + shape_supp - 1
-                yoffset = yr + shape_supp - 1
-                zoffset = zr + shape_supp - 1
-                if weights is None:
-                    for xs in xrange(3):
-                        for ys in xrange(3):
-                            for zs in xrange(3):
-                                ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs]
-                else:
-                    for xs in xrange(3):
-                        for ys in xrange(3):
-                            for zs in xrange(3):
-                                ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
+        with nogil, parallel(num_threads=2):
+            thid = threadid()
+            for i in prange(n):
+                x = (datax[i] - xmin) * dx;
+                y = (datay[i] - ymin) * dy;
+                z = (dataz[i] - zmin) * dz;
+                xr = <int>x;
+                yr = <int>y;
+                zr = <int>z;
+                xd = x - xr;
+                yd = y - yr;
+                zd = z - zr;
+                if (xr >= 0 and y >= 0 and zr >= 0 and xr <= xbins and yr <= ybins and zr <= zbins):
+                    wx[thid][0] = 0.5 * (1 - xd)**2
+                    wx[thid][1] = 0.5 + xd - xd**2
+                    wx[thid][2] = 0.5 * xd**2
+                    wy[thid][0] = 0.5 * (1 - yd)**2
+                    wy[thid][1] = 0.5 + yd - yd**2
+                    wy[thid][2] = 0.5 * yd**2
+                    wz[thid][0] = 0.5 * (1 - zd)**2
+                    wz[thid][1] = 0.5 + zd - zd**2
+                    wz[thid][2] = 0.5 * zd**2
+                    xoffset = xr + shape_supp - 1
+                    yoffset = yr + shape_supp - 1
+                    zoffset = zr + shape_supp - 1
+                    if weights is None:
+                        for xs in xrange(3):
+                            for ys in xrange(3):
+                                for zs in xrange(3):
+                                    ret[thid, xoffset+xs, yoffset+ys, zoffset+zs] += wx[thid][xs] * wy[thid][ys] * wz[thid][zs]
+                    else:
+                        for xs in xrange(3):
+                            for ys in xrange(3):
+                                for zs in xrange(3):
+                                    ret[thid, xoffset+xs, yoffset+ys, zoffset+zs] += wx[thid][xs] * wy[thid][ys] * wz[thid][zs] * weights[i]
 
-    return ret[shape_supp:shape_supp+xbins, shape_supp:shape_supp+ybins, shape_supp:shape_supp+zbins], xedges, yedges, zedges
+    retarr = ret.sum(axis=0)
+    return retarr[shape_supp:shape_supp+xbins, shape_supp:shape_supp+ybins, shape_supp:shape_supp+zbins], xedges, yedges, zedges
 
 

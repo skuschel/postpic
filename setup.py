@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 import numpy
 import os
@@ -27,6 +27,14 @@ import _postpic_version
 _, version = _postpic_version.getversion_setup()
 
 
+ext_modules=[
+    Extension('postpic.cythonfunctions',
+              ['postpic/cythonfunctions.pyx'],
+              extra_compile_args = ['-O3', '-fopenmp'],
+              extra_link_args=['-fopenmp']
+              ) 
+]
+
 setup(name='postpic',
       version=version,
       include_package_data = True,
@@ -35,7 +43,7 @@ setup(name='postpic',
       description='The open source particle-in-cell post processor.',
       url='https://github.com/skuschel/postpic',
       packages=find_packages(include=['postpic*']),
-      ext_modules = cythonize("postpic/cythonfunctions.pyx"),
+      ext_modules = ext_modules,
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
       setup_requires=['cython>=0.18'],
