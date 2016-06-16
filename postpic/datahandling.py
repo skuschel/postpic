@@ -213,37 +213,44 @@ class Field(object):
         self.matrix = np.fft.rfftn(self.matrix, **kwargs)
         return self
 
-    def spectrum(self, k0=1, axes=None):
+    def spectrum(self, k0=1, shiftaxis=None, transformaxes=None):
         '''
         calculates the spectrum by applying the fast fourier transform (FFT)
-        to the field object and returns a new transformed field. All axes are
-        transformed, but the axis given by axes is shifted in such a way, that
+        to the field object and returns a new transformed field. By default, all axes are
+        transformed. The axis given by shiftaxis is shifted in such a way, that
         the 0 component is in the middle. The frequencies are given in terms
         of k0, which has to be defined by the user.
         '''
-        ret = self.fft(k0, axes)
+
+        if transformaxes is None:
+            if shiftaxis is not None:
+                fftaxes = np.roll(np.arange(self.dimensions), shiftaxis)
+            else:
+                fftaxes = np.arange(self.dimensions)
+        else:
+            fftaxes = transformaxes
+        ret = self.fft(k0, shiftaxis, axes=fftaxes)
         ret.matrix = 0.5 * pc.epsilon0 * abs((ret.matrix))**2
         ret.unit = ''
         ret.name = 'Spectrum of {0}'.format(self.name)
         return ret
 
-    def fft(self, k0=1, shiftaxis=None, **kwargs):
+    def fft(self, k0=1, shiftaxis=None, axes=None, **kwargs):
         '''
         applies the fast fourier transform (FFT) to the field object.
         The axis given by shiftaxis is shifted by np.fft.fftshift().
         If shiftaxis is None, no shift will be applied.
         The frequencies on the axes are normalized by k0.
         '''
-        rfftaxes = np.roll(np.arange(self.dimensions), shiftaxis)
         ret = copy.deepcopy(self)
-        ret._fft(axes=rfftaxes, **kwargs)
+        ret._fft(axes=axes, **kwargs)
         if shiftaxis is not None:
             ret.matrix = np.fft.fftshift(ret.matrix, axes=shiftaxis)
         ret.unit = ''
         ret.name = 'Spectrum of {0}'.format(self.name)
 
         # Set correct axes
-        for axid in rfftaxes:
+        for axid in axes:
             ax = ret.axes[axid]
             # only linear axes can be transformed
             if ax.islinear():
