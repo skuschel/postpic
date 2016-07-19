@@ -63,8 +63,23 @@ def run_alltests(python='python'):
     # make sure .pyx sources are up to date and compiled
     runcmd(python + 'setup.py develop --user')
 
+    # find pep8 or pycodestyle (its successor)
+    pycodestylecmd = None
+    try:
+        import pep8
+        pycodestylecmd = 'pep8'
+    except(ImportError):
+        pass
+    try:
+        import pycodestyle
+        pycodestylecmd = 'pycodestyle'
+    except(ImportError):
+        pass
+    if not pycodestylecmd:
+        raise ImportError('Install pep8 or pycodestyle (its successor)')
+
     cmds = [python + '-m nose',
-            python + '-m pep8 postpic --statistics --count --show-source '
+            python + '-m ' + pycodestylecmd + ' postpic --statistics --count --show-source '
             '--ignore=W391,E123,E226,E24 --max-line-length=99',
             python + os.path.join('examples', 'simpleexample.py'),
             python + os.path.join('examples', 'particleshapedemo.py'),
