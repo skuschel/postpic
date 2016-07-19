@@ -186,6 +186,9 @@ class _SingleSpecies(object):
                        (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2) /
                        (self.mass() * pc.c) ** 2)
 
+    def gamma_m(self):
+        return self.gamma() * self.mass()
+
     def mass_u(self):
         return self.mass() / pc.mass_u
 
@@ -552,10 +555,40 @@ class MultiSpecies(object):
     beta.unit = r'$\beta$'
     beta.name = 'beta'
 
+    def betax(self):
+        return self.Vx() / pc.c
+    betax.unit = r'$\beta$'
+    betax.name = 'betax'
+
+    def betay(self):
+        return self.Vy() / pc.c
+    betay.unit = r'$\beta$'
+    betay.name = 'betay'
+
+    def betaz(self):
+        return self.Vz() / pc.c
+    betaz.unit = r'$\beta$'
+    betaz.name = 'betaz'
+
     def V(self):
         return pc.c * self.beta()
     V.unit = 'm/s'
     V.name = 'V'
+
+    def Vx(self):
+        return self.Px() / self._map2ssa('gamma_m')
+    Vx.unit = 'm/s'
+    Vx.name = 'Vx'
+
+    def Vy(self):
+        return self.Py() / self._map2ssa('gamma_m')
+    Vy.unit = 'm/s'
+    Vy.name = 'Vy'
+
+    def Vz(self):
+        return self.Pz() / self._map2ssa('gamma_m')
+    Vz.unit = 'm/s'
+    Vz.name = 'Vz'
 
     def gamma(self):
         return self._map2ssa('gamma')
