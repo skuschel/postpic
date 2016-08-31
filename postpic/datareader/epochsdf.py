@@ -104,23 +104,19 @@ class Sdfreader(Dumpreader_ifc):
         return float(re.match('Epoch(\d)d',
                               self['Header']['code_name']).group(1))
 
-    def _returnkey2(self, key1, key2, average=False, subset=''):
-        key = key1 + key2
+    def _keyE(self, component, average=False):
+        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
+        ret = 'Electric Field/E' + axsuffix
         if average:
-            key = key1 + '_average' + key2
-        if subset:
-            key = key + '/Reduced_' + subset
-        return key
+            ret += '_averaged'
+        return ret
 
-    def _keyE(self, component, **kwargs):
+    def _keyB(self, component, average=False):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
-        return self._returnkey2('Electric Field', '/E' +
-                                axsuffix, **kwargs)
-
-    def _keyB(self, component, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
-        return self._returnkey2('Magnetic Field', '/B' +
-                                axsuffix, **kwargs)
+        ret = 'Magnetic Field/B' + axsuffix
+        if average:
+            ret += '_averaged'
+        return ret
 
     def simextent(self, axis):
         '''
