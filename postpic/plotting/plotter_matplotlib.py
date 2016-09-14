@@ -294,7 +294,8 @@ class MatplotlibPlotter(object):
                       interpolation=interpolation)
             if clim:
                 ax.images[0].set_clim(clim)
-            MatplotlibPlotter.symmetricclim(ax)
+            else:
+                MatplotlibPlotter.symmetricclim(ax)
             fig.colorbar(ax.images[0], format='%6.0e')
 
         if contourlevels.size != 0:  # Draw contour lines
