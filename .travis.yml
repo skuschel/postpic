@@ -4,26 +4,45 @@
 language: python
 sudo: false
 
-python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
-
 notifications:
   email:
     on_success: change
     on_failure: change
 
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+
+matrix:
+  include:
+    - python: "2.7_with_system_site_packages"
+      addons:
+        apt:
+          packages:
+            - python-numpy
+            - python-scipy
+            - python-matplotlib
+            - python-nose
+            - python-h5py
+            - cython
+      before_install:
+        - pip install -U pip setuptools
+
 # Install conda
 before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi;
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/miniconda2/bin:$PATH
+  - ./miniconda.sh -b -p $HOME/miniconda
+  - export PATH=$HOME/miniconda/bin:$PATH
   - conda update --yes conda
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose cython h5py
 
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose pandas statsmodels cython h5py
   - pip install -r pip-requirements.txt
   - python setup.py install
 
