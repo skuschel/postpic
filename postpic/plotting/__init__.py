@@ -33,5 +33,6 @@ def use(plotcls):
     else:
         plottercls = plotcls
 
+
 # Default
 use('matplotlib')

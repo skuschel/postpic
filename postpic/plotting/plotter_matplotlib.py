@@ -244,11 +244,11 @@ class MatplotlibPlotter(object):
     @staticmethod
     def _addxlineout(ax0, m, extent, log10=False):
         ax = ax0.twinx()
-        l = m.mean(axis=0)
+        lout = m.mean(axis=0)
         if log10:
-            l = np.log10(l)
-        x = np.linspace(extent[0], extent[1], len(l))
-        ax.plot(x, l, 'k', lw=1)
+            lout = np.log10(lout)
+        x = np.linspace(extent[0], extent[1], len(lout))
+        ax.plot(x, lout, 'k', lw=1)
         ax.autoscale(tight=True)
         return ax
 
@@ -256,11 +256,11 @@ class MatplotlibPlotter(object):
     def _addylineout(ax0, m, extent, log10=False):
         ax = ax0.twiny()
         # ax.set_xlim(ax.get_xlim()[::-1])
-        l = m.mean(axis=1)
+        lout = m.mean(axis=1)
         if log10:
-            l = np.log10(l)
-        x = np.linspace(extent[2], extent[3], len(l))
-        ax.plot(l, x, 'k', lw=1)
+            lout = np.log10(lout)
+        x = np.linspace(extent[2], extent[3], len(lout))
+        ax.plot(lout, x, 'k', lw=1)
         ax.autoscale(tight=True)
         # ax.spines['top'].set_position(('axes',0.9))
         return ax
