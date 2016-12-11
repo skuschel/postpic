@@ -182,9 +182,17 @@ class _SingleSpecies(object):
     # have to be repeated using np.repeat before the calculation)
 
     def gamma(self):
-        return np.sqrt(1 +
-                       (self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2) /
-                       (self.mass() * pc.c) ** 2)
+        return self.gamma_m1() + 1
+
+    def gamma_m1(self):
+        '''
+        returns gamma-1 in a numerical stable way, even for
+        gamma-1 very close to zero. It uses the identity
+        gamma - 1 = (p/mc)**2 / (gamma + 1)
+        '''
+        p2 = (self.Px()**2 + self.Py()**2 + self.Pz()**2) / (self.mass() * pc.c)**2
+        # gamma = np.sqrt(1 + p2)
+        return p2 / (np.sqrt(1 + p2) + 1)
 
     def gamma_m(self):
         return self.gamma() * self.mass()
@@ -199,7 +207,7 @@ class _SingleSpecies(object):
         return self.mass() * pc.c ** 2
 
     def Ekin(self):
-        return (self.gamma() - 1) * self.Eruhe()
+        return self.gamma_m1() * self.Eruhe()
 
     def Ekin_MeV(self):
         return self.Ekin() / pc.qe / 1e6
@@ -594,6 +602,11 @@ class MultiSpecies(object):
         return self._map2ssa('gamma')
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
+
+    def gamma_m1(self):
+        return self._map2ssa('gamma_m1')
+    gamma_m1.unit = r'$\gamma - 1$'
+    gamma_m1.name = 'gamma_m1'
 
     def Ekin(self):
         return self._map2ssa('Ekin')
