@@ -25,8 +25,8 @@ import numpy as np
 class TestHistogram(unittest.TestCase):
 
     def setUp(self):
-        self.data = np.random.random(1e5)
-        self.weights = np.random.random(1e5)
+        self.data = np.random.random(int(1e5))
+        self.weights = np.random.random(int(1e5))
 
     def test_histogram(self):
         # in this special case, cf.histogram and np.histogram must yield equal results
@@ -84,9 +84,9 @@ class TestHistogram(unittest.TestCase):
 class TestHistogram2d(unittest.TestCase):
 
     def setUp(self):
-        self.datax = np.random.random(1e3)
-        self.datay = 2 * np.random.random(1e3)
-        self.weights = np.random.random(1e3)
+        self.datax = np.random.random(int(1e3))
+        self.datay = 2 * np.random.random(int(1e3))
+        self.weights = np.random.random(int(1e3))
 
     def test_histogram2d(self):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results
@@ -170,10 +170,10 @@ class TestHistogram2d(unittest.TestCase):
 class TestHistogram3d(unittest.TestCase):
 
     def setUp(self):
-        self.datax = np.random.random(1e3)
-        self.datay = 2 * np.random.random(1e3)
-        self.dataz = 3 * np.random.random(1e3)
-        self.weights = np.random.random(1e3)
+        self.datax = np.random.random(int(1e3))
+        self.datay = 2 * np.random.random(int(1e3))
+        self.dataz = 3 * np.random.random(int(1e3))
+        self.weights = np.random.random(int(1e3))
 
     def test_histogram3d(self):
         # in this special case, cf.histogram2d and np.histogram2d must yield equal results

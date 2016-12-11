@@ -48,11 +48,11 @@ class Dummyreader(Dumpreader_ifc):
         # initialize fake data
         if seed is not None:
             np.random.seed(seed)
-        self._xdata = randfunc(size=dumpid)
+        self._xdata = randfunc(size=int(dumpid))
         if dimensions > 1:
-            self._ydata = randfunc(size=dumpid)
+            self._ydata = randfunc(size=int(dumpid))
         if dimensions > 2:
-            self._zdata = randfunc(size=dumpid)
+            self._zdata = randfunc(size=int(dumpid))
 
     def keys(self):
         pass

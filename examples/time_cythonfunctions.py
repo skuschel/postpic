@@ -32,7 +32,7 @@ def main():
         print('1D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc))
 
     bins = 1000
-    npart = 1e6
+    npart = int(4e6)
     print('=== Histogram 1D bins: {:6d}, npart: {:.1e} ==='.format(bins, npart))
     data = np.random.random(npart)
     weights = np.random.random(npart)
@@ -59,7 +59,7 @@ def main():
         print('2D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc))
 
     bins = (1000,700)
-    npart = 1e6
+    npart = int(4e6)
     print('=== Histogram 2D bins: {:6s}, npart: {:.1e} ==='.format(str(bins), npart))
     datax = np.random.rand(npart)
     datay = np.random.rand(npart)
@@ -88,7 +88,7 @@ def main():
         print('3D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc))
 
     bins = (200,250,300)  # 15e6 Cells
-    npart = 1e6
+    npart = int(4e6)
     print('=== Histogram 3D bins: {:6s}, npart: {:.1e} ==='.format(str(bins), npart))
     datax = np.random.rand(npart)
     datay = np.random.rand(npart)
