@@ -14,7 +14,6 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  - "3.7-dev"
 
 matrix:
   include:
@@ -30,8 +29,6 @@ matrix:
             - cython
       before_install:
         - pip install -U pip setuptools
-  allow_failures:
-    - python: "3.7-dev"
 
 # Install conda
 before_install:
