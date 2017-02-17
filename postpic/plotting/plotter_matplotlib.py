@@ -300,7 +300,7 @@ class MatplotlibPlotter(object):
 
         if contourlevels.size != 0:  # Draw contour lines
             ax.contour(field.matrix.T, contourlevels, hold='on',
-                       extent=field.extent())
+                       extent=field.extent)
         if xlim is not None:
             ax.set_xlim(xlim)
         if ylim is not None:
@@ -404,5 +404,3 @@ class MatplotlibPlotter(object):
         for f in fields:
             self.plotField(f)
         return
-
-
