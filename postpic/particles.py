@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014
+# Stephan Kuschel 2014-2017
 """
 Particle related routines.
 """
@@ -26,6 +26,12 @@ from .helper import PhysicalConstants as pc
 from .helper import SpeciesIdentifier
 from .helper import histogramdd
 from .datahandling import *
+try:
+    import numexpr as ne
+    _evaluate = ne.evaluate
+except(ImportError):
+    print('Install numexpr to improve performance!')
+    _evaluate = eval
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
@@ -45,7 +51,8 @@ class _SingleSpecies(object):
     """
     # List of atomic particle properties. Those will be requested from the dumpreader
     # All other particle properties will be calculated from these.
-    _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID', 'time']
+    _atomicprops = ['weight', 'x', 'y', 'z', 'px', 'py', 'pz', 'mass', 'charge', 'id', 'time']
+    _atomicprops_synonyms = {'w': 'weight', 'm': 'mass', 'q': 'charge', 't': 'time'}
 
     def __init__(self, dumpreader, species):
         if species not in dumpreader.listSpecies():
@@ -175,24 +182,55 @@ class _SingleSpecies(object):
                 pass
         return ret
 
-    # calculate new per particle properties from the atomic properties.
-    # the following functions can be computed more efficiently here
-    # than in the MultiSpecies class
-    # (example: if mass is constant for the entire species, it doesnt
-    # have to be repeated using np.repeat before the calculation)
 
-    def gamma(self):
+    # --- The Interface for particle properties using __call__ ---
+    def __call__(self, *exprs, _vars=None):
+        _vars = dict() if _vars is None else _vars
+        return [self._eval_single_expr(expr, _vars=_vars) for expr in exprs]
+
+    def _eval_single_expr(self, expr, _vars=None):
+        assert isinstance(_vars, dict)
+        c = compile(expr, '<expr>', 'eval')
+        for name in c.co_names:
+            # load each variable needed
+            if name in _vars:
+                # already loaded -> skip
+                continue
+            fullname = self._atomicprops_synonyms.get(name, name)
+            if fullname in _vars:
+                _vars[name] = _vars[fullname]
+                continue
+            try:
+                if fullname in self._atomicprops:
+                    _vars[name] = getattr(self, fullname)()
+                else:
+                    _vars[name] = getattr(self, name)(_vars=_vars)
+            except(AttributeError):
+                pass
+            for source in [np, pc]:
+                try:
+                    _vars[name] = getattr(source, name)
+                except(AttributeError):
+                    pass
+            if name not in _vars:
+                raise KeyError('"{}" not found!'.format(name))
+        return _evaluate(expr, _vars)
+
+
+
+
+    def gamma(self, _vars=None):
         return self.gamma_m1() + 1
 
-    def gamma_m1(self):
+    def gamma_m1(self, _vars=None):
         '''
         returns gamma-1 in a numerical stable way, even for
         gamma-1 very close to zero. It uses the identity
         gamma - 1 = (p/mc)**2 / (gamma + 1)
         '''
-        p2 = (self.Px()**2 + self.Py()**2 + self.Pz()**2) / (self.mass() * pc.c)**2
+        p2 = self('(px**2 + py**2 + pz**2) / (mass * c)**2')
         # gamma = np.sqrt(1 + p2)
-        return p2 / (np.sqrt(1 + p2) + 1)
+        return self('p2 / (sqrt(1 + p2) + 1)', _vars=dict(p2=p2))
 
     def gamma_m(self):
         return self.gamma() * self.mass()
@@ -1171,6 +1209,3 @@ class ParticleHistory(object):
                 particlelist[i].append(scalars[:, k])
         ret = [np.asarray(p).T for p in particlelist]
         return ret
-
-
-
