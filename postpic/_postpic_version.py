@@ -22,7 +22,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 
-__version__ = 'v0.2.2'
+__version__ = 'v0.2.3'
 
 try:
     FileNotFoundError  # python3
@@ -104,5 +104,3 @@ def getversion_package():
             version = __version__
             gitversion = 'unknown'
     return gitversion, version
-
-
