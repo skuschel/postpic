@@ -88,7 +88,7 @@ class Hdf5reader(Dumpreader_ifc):
         axis = helper.axesidentify[axis]
         try:
             return np.float64(self["ElecMultiField"][..., axis])
-        except:
+        except(KeyError):
             return None
 
     def dataB(self, axis, **kwargs):
@@ -96,7 +96,7 @@ class Hdf5reader(Dumpreader_ifc):
         axis = helper.axesidentify[axis]
         try:
             return np.float64(self["MagMultiField"][..., axis])
-        except:
+        except(KeyError):
             return None
 
     def grid(self, axis):
@@ -181,19 +181,3 @@ class VSimReader(Simulationreader_ifc):
 
     def __str__(self):
         return '<VSimReader at "' + str(self.path) + '">'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
