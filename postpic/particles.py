@@ -32,7 +32,6 @@ from .datahandling import *
 try:
     import numexpr as ne
     _evaluate = ne.evaluate
-    raise ImportError()
 except(ImportError):
     warnings.warn('Install numexpr to improve performance!')
 
@@ -641,7 +640,11 @@ class MultiSpecies(object):
         self('x')
         self('sqrt(px**2 + py**2 + pz**2)')
         '''
-        if isinstance(expr, (str, ScalarProperty)):
+        try:
+            bs = basestring  # python2
+        except(NameError):
+            bs = str  # python3
+        if isinstance(expr, (bs, ScalarProperty)):
             return self.__call_expr(expr)
         else:
             return self.__call_func(expr)
