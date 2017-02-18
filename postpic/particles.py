@@ -39,7 +39,7 @@ except(ImportError):
 identifyspecies = SpeciesIdentifier.identifyspecies
 
 __all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory', 'ScalarProperty',
-           'scalars']
+           'particle_scalars']
 
 
 class ScalarProperty(object):
@@ -197,7 +197,22 @@ def _createScalarList():
     return scalars
 
 
-scalars = _createScalarList()
+particle_scalars = _createScalarList()
+
+
+def _findscalarattr(scalarf, attrib, default='unknown'):
+    '''
+    Tries to find the scalarf's attribute attrib like name or unit.
+    returns None if not found
+    '''
+    if hasattr(scalarf, attrib):
+        # scalarf is function or ScalarProperty
+        return getattr(scalarf, attrib)
+    if scalarf in particle_scalars:
+        # scalarf is a string
+        if hasattr(particle_scalars[scalarf], attrib):
+            return getattr(particle_scalars[scalarf], attrib)
+    return default
 
 
 class _SingleSpecies(object):
@@ -356,6 +371,8 @@ class _SingleSpecies(object):
         3. if not found looking for an equally named attribute of scipy.constants
         '''
         _vars = dict() if _vars is None else _vars
+        if isinstance(expr, ScalarProperty):
+            expr = expr.expr
         c = compile(expr, '<expr>', 'eval')
         for name in c.co_names:
             # load each variable needed
@@ -369,8 +386,8 @@ class _SingleSpecies(object):
             if fullname in self._atomicprops:
                 _vars[name] = getattr(self, fullname)()
                 continue
-            if name in scalars:  # the public list of scalar values
-                _vars[name] = self._eval_single_expr(scalars[name].expr, _vars=_vars)
+            if name in particle_scalars:  # the public list of scalar values
+                _vars[name] = self._eval_single_expr(particle_scalars[name].expr, _vars=_vars)
                 continue
             for source in [np, scipy.constants]:
                 try:
@@ -617,9 +634,15 @@ class MultiSpecies(object):
 
         Examples
         --------
-        self('x')  -- equivalent to self.X()
+        self('x')
         self('sqrt(px**2 + py**2 + pz**2)')
         '''
+        if isinstance(expr, (str, ScalarProperty)):
+            return self.__call_expr(expr)
+        else:
+            return self.__call_func(expr)
+
+    def __call_expr(self, expr):
         def ssdata(ss):
             a = ss(expr)
             if a.shape is ():
@@ -631,6 +654,10 @@ class MultiSpecies(object):
             return np.array([])
         data = (ssdata(ss) for ss in self._ssas)
         return np.hstack(data)
+
+    def __call_func(self, func):
+        # hope it does what it should...
+        return func(self)
 
     # --- "A scalar for every particle"-functions.
 
@@ -956,11 +983,11 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = scalarfx(self)
+                xdata = self(scalarfx)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = scalarfx(self)
+            xdata = self(scalarfx)
         if simextent:
             if hasattr(scalarfx, 'extent'):
                 rangex = scalarfx.extent
@@ -976,7 +1003,7 @@ class MultiSpecies(object):
             return h, xedges  # empty histogram: h == 0 everywhere
         if rangex is None:
             rangex = [np.min(xdata), np.max(xdata)]
-        w = self.weight() * weights(self)
+        w = self('weight') * self(weights)
         h, edges = histogramdd((xdata,), weights=w,
                                range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
@@ -1013,21 +1040,19 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = scalarfx(self)
-                ydata = scalarfy(self)
+                xdata = self(scalarfx)
+                ydata = self(scalarfy)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = scalarfx(self)
-            ydata = scalarfy(self)
+            xdata = self(scalarfx)
+            ydata = self(scalarfy)
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            if hasattr(scalarfx, 'extent'):
-                rangex = scalarfx.extent
-            if hasattr(scalarfy, 'extent'):
-                rangey = scalarfy.extent
+            rangex = _findscalarattr(scalarfx, 'extent', None)
+            rangex = _findscalarattr(scalarfy, 'extent', None)
         if simgrid:
             if hasattr(scalarfx, 'gridpoints'):
                 optargsh['bins'][0] = scalarfx.gridpoints
@@ -1048,7 +1073,7 @@ class MultiSpecies(object):
             rangex = [np.min(xdata), np.max(xdata)]
         if rangey is None:
             rangey = [np.min(ydata), np.max(ydata)]
-        w = self.weight() * weights(self)  # Particle Size * additional weights
+        w = self('weight') * self(weights)  # Particle Size * additional weights
         h, xedges, yedges = histogramdd((xdata, ydata),
                                         weights=w, range=[rangex, rangey],
                                         **optargsh)
@@ -1088,15 +1113,15 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = scalarfx(self)
-                ydata = scalarfy(self)
-                zdata = scalarfz(self)
+                xdata = self(scalarfx)
+                ydata = self(scalarfy)
+                zdata = self(scalarfz)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = scalarfx(self)
-            ydata = scalarfy(self)
-            zdata = scalarfz(self)
+            xdata = self(scalarfx)
+            ydata = self(scalarfy)
+            zdata = self(scalarfz)
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
@@ -1135,7 +1160,7 @@ class MultiSpecies(object):
             rangey = [np.min(ydata), np.max(ydata)]
         if rangez is None:
             rangez = [np.min(zdata), np.max(zdata)]
-        w = self.weight() * weights(self)  # Particle Size * additional weights
+        w = self('weight') * self(weights)  # Particle Size * additional weights
         h, xe, ye, ze = histogramdd((xdata, ydata, zdata),
                                     weights=w, range=[rangex, rangey, rangez],
                                     **optargsh)
@@ -1161,7 +1186,7 @@ class MultiSpecies(object):
             given to createHistgram1d.
         """
         if 'weights' in kwargs:
-            name = kwargs['weights'].name
+            name = _findscalarattr(kwargs['weights'], 'name')
         h, edges = self.createHistgram1d(scalarfx, **kwargs)
         ret = Field(h, edges)
         ret.axes[0].grid_node = edges
@@ -1169,10 +1194,8 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        if hasattr(scalarfx, 'unit'):
-            ret.axes[0].unit = scalarfx.unit
-        if hasattr(scalarfx, 'name'):
-            ret.axes[0].name = scalarfx.name
+        ret.axes[0].unit = _findscalarattr(scalarfx, 'unit')
+        ret.axes[0].name = _findscalarattr(scalarfx, 'name')
         ret.infos = self.getcompresslog()['all']
         ret.infostring = self.npart
         return ret
@@ -1198,7 +1221,7 @@ class MultiSpecies(object):
             given to createHistgram2d.
         """
         if 'weights' in kwargs:
-            name = kwargs['weights'].name
+            name = _findscalarattr(kwargs['weights'], 'name')
         h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
         ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
@@ -1207,10 +1230,10 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = scalarfx.unit
-        ret.axes[0].name = scalarfx.name
-        ret.axes[1].unit = scalarfy.unit
-        ret.axes[1].name = scalarfy.name
+        ret.axes[0].unit = _findscalarattr(scalarfx, 'unit')
+        ret.axes[0].name = _findscalarattr(scalarfx, 'name')
+        ret.axes[1].unit = _findscalarattr(scalarfy, 'unit')
+        ret.axes[1].name = _findscalarattr(scalarfy, 'name')
         ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
@@ -1238,7 +1261,7 @@ class MultiSpecies(object):
             given to createHistgram2d.
         """
         if 'weights' in kwargs:
-            name = kwargs['weights'].name
+            name = _findscalarattr(kwargs['weights'], 'name')
         h, xedges, yedges, zedges = self.createHistgram3d(scalarfx, scalarfy, scalarfz, **kwargs)
         ret = Field(h, xedges, yedges, zedges)
         ret.axes[0].grid_node = xedges
@@ -1248,12 +1271,12 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = scalarfx.unit
-        ret.axes[0].name = scalarfx.name
-        ret.axes[1].unit = scalarfy.unit
-        ret.axes[1].name = scalarfy.name
-        ret.axes[2].unit = scalarfz.unit
-        ret.axes[2].name = scalarfz.name
+        ret.axes[0].unit = _findscalarattr(scalarfx, 'unit')
+        ret.axes[0].name = _findscalarattr(scalarfx, 'name')
+        ret.axes[1].unit = _findscalarattr(scalarfy, 'unit')
+        ret.axes[1].name = _findscalarattr(scalarfy, 'name')
+        ret.axes[2].unit = _findscalarattr(scalarfz, 'unit')
+        ret.axes[2].name = _findscalarattr(scalarfz, 'name')
         ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
@@ -1324,7 +1347,7 @@ class ParticleHistory(object):
         idsfound = set()
         for dr in self.sr:
             ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
-            idsfound |= set(ms.ID())
+            idsfound |= set(ms('id'))
             del ms
         return np.asarray(list(idsfound), dtype=np.int)
 
@@ -1344,8 +1367,8 @@ class ParticleHistory(object):
         ms.compress(self.ids)
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
-            scalars[i, :] = scalarfs[i](ms)
-        ids = ms.ID()
+            scalars[i, :] = ms(scalarfs[i])
+        ids = ms('id')
         del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
