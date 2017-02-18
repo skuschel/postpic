@@ -512,7 +512,7 @@ class MultiSpecies(object):
         '''
         def ssdata(ss):
             a = ss(expr)
-            if isinstance(a, float):
+            if a.shape is ():
                 a = np.repeat(a, len(ss))
             return a
         if len(self._ssas) == 0:
@@ -532,7 +532,7 @@ class MultiSpecies(object):
         '''
         def ssadata(ssa, func):
             a = getattr(ssa, func)()
-            if isinstance(a, float):
+            if a.shape is ():
                 a = np.repeat(a, len(ssa))
             return a
         if len(self._ssas) == 0:
