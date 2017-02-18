@@ -279,10 +279,10 @@ class _SingleSpecies(object):
         else:
             ret = self._dumpreader.getSpecies(self.species, key)
         # now that we have got the data, check if compress was used and/or maybe cache value
-        ret = np.int64(ret) if key == 'ID' else np.float64(ret)
-        if isinstance(ret, float):  # cache single scalars always
+        ret = np.int64(ret) if key == 'id' else np.float64(ret)
+        if ret.shape is ():  # cache single scalars always
             self._cache[key] = ret
-        if isinstance(ret, np.ndarray) and self._compressboollist is not None:
+        elif self._compressboollist is not None:
             ret = ret[self._compressboollist]  # avoid executing this line too often.
             self._cache[key] = ret
             # if memomry is low, caching could be skipped entirely.
@@ -320,7 +320,7 @@ class _SingleSpecies(object):
             else:
                 self._compressboollist[self._compressboollist] = condition
             for key in self._cache:
-                if isinstance(self._cache[key], np.ndarray):
+                if self._cache[key].shape is not ():
                     self._cache[key] = self._cache[key][condition]
             self.compresslog = np.append(self.compresslog, name)
         else:
@@ -331,7 +331,7 @@ class _SingleSpecies(object):
             # bools = np.array([idx in condition for idx in self.ID()])
             # but benchmarked to be 1500 times faster :)
             condition.sort()
-            ids = self.ID()
+            ids = self('id')
             idx = np.searchsorted(condition, ids)
             idx[idx == len(condition)] = 0
             bools = condition[idx] == ids
