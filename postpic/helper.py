@@ -23,6 +23,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import re
 import warnings
+import functools
 try:
     from . import cythonfunctions as cyf
     particleshapes = cyf.shapes
@@ -32,6 +33,7 @@ except(ImportError):
     cyf = None
     particleshapes = [0]
 
+warnings.filterwarnings('once', category=DeprecationWarning)
 # Default values for histogramdd function
 histogramdd_defs = {'shape': 2}
 
@@ -46,6 +48,27 @@ attribidentify.update({'PX': 3, 'Px': 3, 'px': 3, 3: 3,
                        'id': 10, 'ID': 10,
                        'mass': 11, 'm': 11, 'Mass': 11,
                        'charge': 12, 'c': 12, 'Charge': 12, 'q': 12})
+
+
+def deprecated(msg):
+    '''
+    Mark functions as deprecated by using this decorator.
+    msg is an additioanl message that will be displayed.
+    '''
+    def _deprecated(func):
+        d = dict(msg=msg, name=func.__name__)
+        if msg is None:
+            s = 'The function {name} is deprecated.'.format(**d)
+        else:
+            # format 2 times, so {name} can be used within msg
+            s = "The function {name} is deprecated. {msg}".format(**d).format(**d)
+
+        @functools.wraps(func)
+        def ret(*args, **kwargs):
+            warnings.warn(s, category=DeprecationWarning)
+            return func(*args, **kwargs)
+        return ret
+    return _deprecated
 
 
 class PhysicalConstants:
@@ -342,6 +365,3 @@ def histogramdd(data, **kwargs):
                                             np.float64(data[1]),
                                             np.float64(data[2]), **kwargs)
             return h, xe, ye, ze
-
-
-

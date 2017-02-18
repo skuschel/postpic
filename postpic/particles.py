@@ -23,10 +23,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import copy
 import collections
+import warnings
 from .helper import PhysicalConstants as pc
 import scipy.constants
-from .helper import SpeciesIdentifier
-from .helper import histogramdd
+from .helper import SpeciesIdentifier, histogramdd
+from .helper import deprecated
 from .datahandling import *
 try:
     import numexpr as ne
@@ -633,227 +634,273 @@ class MultiSpecies(object):
 
     # --- "A scalar for every particle"-functions.
 
+    @deprecated('Use self("{name}") instead.')
     def time(self):
         return self('time')
     time.name = 'time'
     time.unit = 's'
 
+    @deprecated('Use self("{name}") instead.')
     def weight(self):
         return self('weight')
     weight.name = 'Particle weight'
     weight.unit = 'npartpermacro'
 
+    @deprecated('Use self("id") instead.')
     def ID(self):
         return self('id')
 
+    @deprecated('Use self("{name}") instead.')
     def mass(self):  # SI
         return self('mass')
     mass.unit = 'kg'
     mass.name = 'm'
 
+    @deprecated('Use self("{name}") instead.')
     def mass_u(self):
         return self('mass_u')
     mass_u.unit = 'u'
     mass_u.name = 'm'
 
+    @deprecated('Use self("{name}") instead.')
     def charge(self):  # SI
         return self('charge')
     charge.unit = 'C'
     charge.name = 'q'
 
+    @deprecated('Use self("{name}") instead.')
     def charge_e(self):
         return self('charge_e')
     charge.unit = 'qe'
     charge.name = 'q'
 
+    @deprecated('Use self("{name}") instead.')
     def Eruhe(self):
         return self('Eruhe')
 
+    @deprecated('Use self("px") instead.')
     def Px(self):
         return self('px')
     Px.unit = ''
     Px.name = 'Px'
 
+    @deprecated('Use self("py") instead.')
     def Py(self):
         return self('py')
     Py.unit = ''
     Py.name = 'Py'
 
+    @deprecated('Use self("pz") instead.')
     def Pz(self):
         return self('pz')
     Pz.unit = ''
     Pz.name = 'Pz'
 
+    @deprecated('Use self("p") instead.')
     def P(self):
         return self('p')
     P.unit = ''
     P.name = 'P'
 
+    @deprecated('Use self("x") instead.')
     def X(self):
         return self('x')
     X.unit = 'm'
     X.name = 'X'
 
+    @deprecated('Use self("x_um") instead.')
     def X_um(self):
         return self('x_um')
     X_um.unit = '$\mu m$'
     X_um.name = 'X'
 
+    @deprecated('Use self("y") instead.')
     def Y(self):
         return self('y')
     Y.unit = 'm'
     Y.name = 'Y'
 
+    @deprecated('Use self("Y_mu") instead.')
     def Y_um(self):
         return self('y_um')
     Y_um.unit = '$\mu m$'
     Y_um.name = 'Y'
 
+    @deprecated('Use self("z") instead.')
     def Z(self):
         return self('z')
     Z.unit = 'm'
     Z.name = 'Z'
 
+    @deprecated('Use self("z_um") instead.')
     def Z_um(self):
         return self('z_um')
     Z_um.unit = '$\mu m$'
     Z_um.name = 'Z'
 
+    @deprecated('Use self("{name}") instead.')
     def beta(self):
         return self('beta')
     beta.unit = r'$\beta$'
     beta.name = 'beta'
 
+    @deprecated('Use self("{name}") instead.')
     def betax(self):
         return self('betax')
     betax.unit = r'$\beta$'
     betax.name = 'betax'
 
+    @deprecated('Use self("{name}") instead.')
     def betay(self):
         return self('betay')
     betay.unit = r'$\beta$'
     betay.name = 'betay'
 
+    @deprecated('Use self("{name}") instead.')
     def betaz(self):
         return self('betaz')
     betaz.unit = r'$\beta$'
     betaz.name = 'betaz'
 
+    @deprecated('Use self("v") instead.')
     def V(self):
         return self('v')
     V.unit = 'm/s'
     V.name = 'V'
 
+    @deprecated('Use self("vx") instead.')
     def Vx(self):
         return self('vx')
     Vx.unit = 'm/s'
     Vx.name = 'Vx'
 
+    @deprecated('Use self("vy") instead.')
     def Vy(self):
         return self('vy')
     Vy.unit = 'm/s'
     Vy.name = 'Vy'
 
+    @deprecated('Use self("vz") instead.')
     def Vz(self):
         return self('vz')
     Vz.unit = 'm/s'
     Vz.name = 'Vz'
 
+    @deprecated('Use self("{name}") instead.')
     def gamma(self):
         return self('gamma')
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
 
+    @deprecated('Use self("{name}") instead.')
     def gamma_m1(self):
         return self('gamma_m1')
     gamma_m1.unit = r'$\gamma - 1$'
     gamma_m1.name = 'gamma_m1'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin(self):
         return self('Ekin')
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_MeV(self):
         return self('Ekin_MeV')
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_MeV_amu(self):
         return self('Ekin_MeV_amu')
     Ekin_MeV_amu.unit = 'MeV / amu'
     Ekin_MeV_amu.name = 'Ekin / amu'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_MeV_qm(self):
         return self('Ekin_MeV_qm')
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_keV(self):
         return self('Ekin_keV')
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_keV_amu(self):
         return self('Ekin_keV_amu')
     Ekin_keV_amu.unit = 'keV / amu'
     Ekin_keV_amu.name = 'Ekin / amu'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_keV_qm(self):
         return self('Ekin_keV_qm')
     Ekin_keV_qm.unit = 'keV*q/m'
     Ekin_keV_qm.name = 'Ekin * q/m'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_xy(self):
         return self('angle_xy')
     angle_xy.unit = 'rad'
     angle_xy.name = 'anglexy'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_yz(self):
         return self('ange_yz')
     angle_yz.unit = 'rad'
     angle_yz.name = 'angleyz'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_zx(self):
         return self('angle_zx')
     angle_zx.unit = 'rad'
     angle_zx.name = 'anglezx'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_yx(self):
         return self('angle_yx')
     angle_yx.unit = 'rad'
     angle_yx.name = 'angleyx'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_zy(self):
         return self('angle_zy')
     angle_zy.unit = 'rad'
     angle_zy.name = 'anglezy'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_xz(self):
         return self('angle_xz')
     angle_xz.unit = 'rad'
     angle_xz.name = 'anglexz'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_xaxis(self):
         return self('angle_xaxis')
     angle_xaxis.unit = 'rad'
     angle_xaxis.name = 'angle_xaxis'
 
+    @deprecated('Use self("{name}") instead.')
     def r_xy(self):
         return self('r_xy')
     r_xy.unit = 'm'
     r_xy.name = 'r_xy'
 
+    @deprecated('Use self("{name}") instead.')
     def r_yz(self):
         return self('r_yz')
     r_yz.unit = 'm'
     r_yz.name = 'r_yz'
 
+    @deprecated('Use self("{name}") instead.')
     def r_zx(self):
         return self('r_zx')
     r_zx.unit = 'm'
     r_zx.name = 'r_zx'
 
+    @deprecated('Use self("{name}") instead.')
     def r_xyz(self):
         return self('r_xyz')
     r_xyz.unit = 'm'
