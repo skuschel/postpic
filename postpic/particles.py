@@ -934,38 +934,38 @@ class MultiSpecies(object):
     r_xyz.name = 'r_xyz'
     # ---- Functions for measuring particle collection related values
 
-    def mean(self, func, weights=1.0):
+    def mean(self, expr, weights='1'):
         '''
         the mean of a value given by the function func. The particle weight
         of the individual particles will be included in the calculation.
         An additional weight can be given as well.
         '''
-        w = self.weight() * weights
-        return np.average(func(self), weights=w)
+        w = self('weight') * self(weights)
+        return np.average(self(expr), weights=w)
 
-    def var(self, func, weights=1.0):
+    def var(self, expr, weights='1'):
         '''
         variance
         '''
-        w = self.weight() * weights
-        data = func(self)
+        w = self('weight') * self(weights)
+        data = self(expr)
         m = np.average(data, weights=w)
         return np.average((data - m)**2, weights=w)
 
-    def quantile(self, func, q, weights=1.0):
+    def quantile(self, expr, q, weights='1'):
         '''
         The qth-quantile of the distribution.
         '''
         if q < 0 or q > 1:
             raise ValueError('Quantile q ({:}) must be in range [0, 1]'.format(q))
-        w = self.weight() * weights
-        data = func(self)
+        w = self('weight') * self(weights)
+        data = self(expr)
         sortidx = np.argsort(data)
         wcs = np.cumsum(w[sortidx])
         idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
         return data[sortidx[idx]]
 
-    def median(self, func, weights=1.0):
+    def median(self, func, weights='1'):
         '''
         The median
         '''
