@@ -23,6 +23,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import copy
 from .helper import PhysicalConstants as pc
+import scipy.constants
 from .helper import SpeciesIdentifier
 from .helper import histogramdd
 from .datahandling import *
@@ -184,12 +185,17 @@ class _SingleSpecies(object):
 
 
     # --- The Interface for particle properties using __call__ ---
-    def __call__(self, *exprs, _vars=None):
-        _vars = dict() if _vars is None else _vars
-        return [self._eval_single_expr(expr, _vars=_vars) for expr in exprs]
+    def __call__(self, expr, _vars=None):
+        return self._eval_single_expr(expr, _vars=_vars)
 
     def _eval_single_expr(self, expr, _vars=None):
-        assert isinstance(_vars, dict)
+        '''
+        Variable resolution order:
+        1. try to find the value as a defined particle property
+        2. if not found looking for an equally named attribute of numpy
+        3. if not found looking for an equally named attribute of scipy.constants
+        '''
+        _vars = dict() if _vars is None else _vars
         c = compile(expr, '<expr>', 'eval')
         for name in c.co_names:
             # load each variable needed
@@ -205,17 +211,18 @@ class _SingleSpecies(object):
                     _vars[name] = getattr(self, fullname)()
                 else:
                     _vars[name] = getattr(self, name)(_vars=_vars)
+                continue
             except(AttributeError):
                 pass
-            for source in [np, pc]:
+            for source in [np, scipy.constants]:
                 try:
                     _vars[name] = getattr(source, name)
+                    continue
                 except(AttributeError):
                     pass
             if name not in _vars:
                 raise KeyError('"{}" not found!'.format(name))
         return _evaluate(expr, _vars)
-
 
 
 
@@ -488,6 +495,33 @@ class MultiSpecies(object):
             ret.update({ssa.species: ssa.compresslog})
         return ret
 
+    # --- Methods to access particle properties
+
+    def __call__(self, expr):
+        '''
+        Access to particle properties via the expression,
+        which is used to calculate them.
+
+        This is **only** function to actually access the data. Every other function
+        which allows data access must call this one internally!
+
+        Examples
+        --------
+        self('x')  -- equivalent to self.X()
+        self('sqrt(px**2 + py**2 + pz**2)')
+        '''
+        def ssdata(ss):
+            a = ss(expr)
+            if isinstance(a, float):
+                a = np.repeat(a, len(ss))
+            return a
+        if len(self._ssas) == 0:
+            # Happens, if only missing species were added with
+            # ignore_missing_species = True.
+            return np.array([])
+        data = (ssdata(ss) for ss in self._ssas)
+        return np.hstack(data)
+
     # --- map functions to SingleSpeciesAnalyzer
 
     def _map2ssa(self, func):
@@ -547,17 +581,17 @@ class MultiSpecies(object):
         return self._map2ssa('Eruhe')
 
     def Px(self):
-        return self._map2ssa('Px')
+        return self._map2ssa('px')
     Px.unit = ''
     Px.name = 'Px'
 
     def Py(self):
-        return self._map2ssa('Py')
+        return self._map2ssa('py')
     Py.unit = ''
     Py.name = 'Py'
 
     def Pz(self):
-        return self._map2ssa('Pz')
+        return self._map2ssa('pz')
     Pz.unit = ''
     Pz.name = 'Pz'
 
@@ -567,7 +601,7 @@ class MultiSpecies(object):
     P.name = 'P'
 
     def X(self):
-        return self._map2ssa('X')
+        return self._map2ssa('x')
     X.unit = 'm'
     X.name = 'X'
 
@@ -577,7 +611,7 @@ class MultiSpecies(object):
     X_um.name = 'X'
 
     def Y(self):
-        return self._map2ssa('Y')
+        return self._map2ssa('y')
     Y.unit = 'm'
     Y.name = 'Y'
 
@@ -587,7 +621,7 @@ class MultiSpecies(object):
     Y_um.name = 'Y'
 
     def Z(self):
-        return self._map2ssa('Z')
+        return self._map2ssa('z')
     Z.unit = 'm'
     Z.name = 'Z'
 
