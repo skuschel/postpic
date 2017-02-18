@@ -22,6 +22,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import copy
+import collections
 from .helper import PhysicalConstants as pc
 import scipy.constants
 from .helper import SpeciesIdentifier
@@ -36,7 +37,166 @@ except(ImportError):
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
-__all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory']
+__all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory', 'ScalarProperty',
+           'scalars']
+
+
+class ScalarProperty(object):
+
+    def __init__(self, name, expr, unit=None, symbol=None):
+        '''
+        Represents a scalar particle property.
+
+        name - the name the property can be accessed by
+        expr - The expression how to calcualte the value
+        unit - unit of property
+        symbol - symbol used in formulas
+        '''
+        self._name = name
+        self._expr = expr
+        self._unit = unit
+        self._symbol = symbol
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def expr(self):
+        return self._expr
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @property
+    def symbol(self):
+        return self.name if self._symbol is None else self._symbol
+
+    def __iter__(self):
+        for k in ['name', 'expr', 'unit', 'symbol']:
+            yield k, getattr(self, k)
+
+    def __str__(self):
+        formatstring = 'ScalarProperty("{name}", "{expr}", unit="{unit}", symbol="{symbol}")'
+        return formatstring.format(**dict(self))
+
+    __repr__ = __str__
+
+    def __call__(self, ms):
+        '''
+        called on a mulitspecies object returns the values.
+        Therefore this class behaves as if it would be a function.
+        '''
+        if isinstance(ms, MultiSpecies):
+            return ms(self.expr)
+        else:
+            raise TypeError('Dont know what to do with {} !'.format(ms))
+
+
+class _ScalarPropertyList(collections.Mapping):
+
+    def __init__(self):
+        '''
+        only used internally to store the list of known particle
+        properties (scalar particle values). Provides functions to add
+        or remove properties during runtime.
+        '''
+        self._mapping = dict()
+
+    def __getitem__(self, key):
+        return self._mapping[key]
+
+    def __iter__(self):
+        for k in self._mapping:
+            yield k
+
+    def __len__(self):
+        return len(self._mapping)
+
+    def add(self, sp):
+        '''
+        register a new ScalarProperty, such, that
+        this will be identified by its symbol.
+        '''
+        if sp.symbol in self._mapping:
+            raise KeyError('The symbol {} is already known!'.format(sp.symbol))
+        self._mapping.update({sp.symbol: sp})
+
+    def remove(self, symbol):
+        self._mapping.pop(symbol)
+
+
+# ---- List of default scalar particle properties and how to calculate them
+def _createScalarList():
+    # template: ScalarProperty('', '', ''),
+    _scalarprops = [
+        ScalarProperty('time', 'time', 's'),
+        ScalarProperty('time', 'time', 's', symbol='t'),
+        ScalarProperty('weight', 'weight', 'npartpermacro'),
+        ScalarProperty('weight', 'weight', 'npartpermacro', symbol='w'),
+        ScalarProperty('id', 'id', ''),
+        ScalarProperty('mass', 'mass', 'kg'),
+        ScalarProperty('mass', 'mass', 'kg', symbol='m'),
+        ScalarProperty('mass_u', 'mass / atomic_mass', 'amu'),
+        ScalarProperty('mass_u', 'mass / atomic_mass', 'amu', symbol='m_u'),
+        ScalarProperty('charge', 'charge', 'C'),
+        ScalarProperty('charge', 'charge', 'C', symbol='q'),
+        ScalarProperty('charge_e', 'charge / elementary_charge', ''),
+        ScalarProperty('charge_e', 'charge / elementary_charge', '', symbol='q_e'),
+        ScalarProperty('x', 'x', 'm'),
+        ScalarProperty('x_um', 'x * 1e6', r'$\mu$ m'),
+        ScalarProperty('y', 'y', 'm'),
+        ScalarProperty('y_um', 'y * 1e6', r'$\mu$ m'),
+        ScalarProperty('z', 'z', 'm'),
+        ScalarProperty('z_um', 'y * 1e6', r'$\mu$ m'),
+        ScalarProperty('px', 'px', 'kg*m/s'),
+        ScalarProperty('py', 'pz', 'kg*m/s'),
+        ScalarProperty('pz', 'py', 'kg*m/s'),
+        ScalarProperty('p', 'sqrt(px**2 + py**2 + pz**2)', 'kg*m/s'),
+        ScalarProperty('_np2', '(px**2 + py**2 + pz**2)/(mass * c)**2', ''),
+        ScalarProperty('gamma_m1', '_np2 / (sqrt(1 + _np2) + 1)', ''),
+        ScalarProperty('gamma', '_np2 / (sqrt(1 + _np2) + 1) + 1', ''),
+        ScalarProperty('gamma_m', 'gamma * mass', 'kg'),
+        ScalarProperty('v', 'beta * c', 'm/s'),
+        ScalarProperty('vx', 'px / (gamma * mass)', 'm/s'),
+        ScalarProperty('vy', 'py / (gamma * mass)', 'm/s'),
+        ScalarProperty('vz', 'pz / (gamma * mass)', 'm/s'),
+        ScalarProperty('beta', 'sqrt(gamma**2 - 1) / gamma', ''),
+        ScalarProperty('betax', 'vx / c', ''),
+        ScalarProperty('betay', 'vy / c', ''),
+        ScalarProperty('betaz', 'vz / c', ''),
+        ScalarProperty('Eruhe', 'mass * c**2', 'J'),
+        ScalarProperty('Ekin', 'gamma_m1 * mass * c**2', 'J'),
+        ScalarProperty('Ekin_MeV', 'Ekin / elementary_charge / 1e6', 'MeV'),
+        ScalarProperty('Ekin_MeV_amu', 'Ekin / elementary_charge / 1e6 / mass_u', 'MeV/u'),
+        ScalarProperty('Ekin_MeV_qm', 'Ekin / elementary_charge / 1e6 / mass_u * charge_e',
+                       'MeV * q/m'),
+        ScalarProperty('Ekin_keV', 'Ekin / elementary_charge / 1e3', 'keV/u'),
+        ScalarProperty('Ekin_keV_amu', 'Ekin / elementary_charge / 1e3 / mass_u', 'keV/u'),
+        ScalarProperty('Ekin_keV_qm', 'Ekin / elementary_charge / 1e3 / mass_u * charge_e',
+                       'keV * q/m'),
+        ScalarProperty('angle_xy', 'arctan2(py, px)', 'rad'),
+        ScalarProperty('angle_yx', 'arctan2(px, py)', 'rad'),
+        ScalarProperty('angle_yz', 'arctan2(pz, py)', 'rad'),
+        ScalarProperty('angle_zy', 'arctan2(py, pz)', 'rad'),
+        ScalarProperty('angle_zx', 'arctan2(px, pz)', 'rad'),
+        ScalarProperty('angle_xz', 'arctan2(pz, px)', 'rad'),
+        ScalarProperty('angle_xaxis', 'arctan2(sqrt(py**2 + pz**2), px)', 'rad'),
+        ScalarProperty('angle_yaxis', 'arctan2(sqrt(pz**2 + px**2), py)', 'rad'),
+        ScalarProperty('angle_zaxis', 'arctan2(sqrt(px**2 + py**2), pz)', 'rad'),
+        ScalarProperty('r_xy', 'sqrt(x**2 + y**2)', 'm'),
+        ScalarProperty('r_yz', 'sqrt(y**2 + z**2)', 'm'),
+        ScalarProperty('r_zx', 'sqrt(z**2 + x**2)', 'm'),
+        ScalarProperty('r_xyz', 'sqrt(x**2 + y**2 + z**2)', 'm')
+        ]
+    scalars = _ScalarPropertyList()
+    for _s in _scalarprops:
+        scalars.add(_s)
+    return scalars
+
+
+scalars = _createScalarList()
 
 
 class _SingleSpecies(object):
@@ -183,7 +343,6 @@ class _SingleSpecies(object):
                 pass
         return ret
 
-
     # --- The Interface for particle properties using __call__ ---
     def __call__(self, expr, _vars=None):
         return self._eval_single_expr(expr, _vars=_vars)
@@ -206,14 +365,12 @@ class _SingleSpecies(object):
             if fullname in _vars:
                 _vars[name] = _vars[fullname]
                 continue
-            try:
-                if fullname in self._atomicprops:
-                    _vars[name] = getattr(self, fullname)()
-                else:
-                    _vars[name] = getattr(self, name)(_vars=_vars)
+            if fullname in self._atomicprops:
+                _vars[name] = getattr(self, fullname)()
                 continue
-            except(AttributeError):
-                pass
+            if name in scalars:  # the public list of scalar values
+                _vars[name] = self._eval_single_expr(scalars[name].expr, _vars=_vars)
+                continue
             for source in [np, scipy.constants]:
                 try:
                     _vars[name] = getattr(source, name)
@@ -223,54 +380,6 @@ class _SingleSpecies(object):
             if name not in _vars:
                 raise KeyError('"{}" not found!'.format(name))
         return _evaluate(expr, _vars)
-
-
-
-    def gamma(self, _vars=None):
-        return self.gamma_m1() + 1
-
-    def gamma_m1(self, _vars=None):
-        '''
-        returns gamma-1 in a numerical stable way, even for
-        gamma-1 very close to zero. It uses the identity
-        gamma - 1 = (p/mc)**2 / (gamma + 1)
-        '''
-        p2 = self('(px**2 + py**2 + pz**2) / (mass * c)**2')
-        # gamma = np.sqrt(1 + p2)
-        return self('p2 / (sqrt(1 + p2) + 1)', _vars=dict(p2=p2))
-
-    def gamma_m(self):
-        return self.gamma() * self.mass()
-
-    def mass_u(self):
-        return self.mass() / pc.mass_u
-
-    def charge_e(self):
-        return self.charge() / pc.qe
-
-    def Eruhe(self):
-        return self.mass() * pc.c ** 2
-
-    def Ekin(self):
-        return self.gamma_m1() * self.Eruhe()
-
-    def Ekin_MeV(self):
-        return self.Ekin() / pc.qe / 1e6
-
-    def Ekin_MeV_amu(self):
-        return self.Ekin_MeV() / self.mass_u()
-
-    def Ekin_MeV_qm(self):
-        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
-
-    def Ekin_keV(self):
-        return self.Ekin() / pc.qe / 1e3
-
-    def Ekin_keV_amu(self):
-        return self.Ekin_keV() / self.mass_u()
-
-    def Ekin_keV_qm(self):
-        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
 
 
 class MultiSpecies(object):
@@ -522,251 +631,231 @@ class MultiSpecies(object):
         data = (ssdata(ss) for ss in self._ssas)
         return np.hstack(data)
 
-    # --- map functions to SingleSpeciesAnalyzer
-
-    def _map2ssa(self, func):
-        '''
-        maps a function to the SingleSpecies. If the SingleSpecies
-        returns a single scalar, it will be repeated using np.repeat to ensure
-        that a list will always be returned.
-        '''
-        def ssadata(ssa, func):
-            a = getattr(ssa, func)()
-            if a.shape is ():
-                a = np.repeat(a, len(ssa))
-            return a
-        if len(self._ssas) == 0:
-            # Happens, if only missing species were added with
-            # ignore_missing_species = True.
-            return np.array([])
-        data = (ssadata(ssa, func) for ssa in self._ssas)
-        return np.hstack(data)
-
     # --- "A scalar for every particle"-functions.
 
     def time(self):
-        return self._map2ssa('time')
+        return self('time')
     time.name = 'time'
     time.unit = 's'
 
     def weight(self):
-        return self._map2ssa('weight')
+        return self('weight')
     weight.name = 'Particle weight'
     weight.unit = 'npartpermacro'
 
     def ID(self):
-        return self._map2ssa('ID')
+        return self('id')
 
     def mass(self):  # SI
-        return self._map2ssa('mass')
+        return self('mass')
     mass.unit = 'kg'
     mass.name = 'm'
 
     def mass_u(self):
-        return self._map2ssa('mass_u')
+        return self('mass_u')
     mass_u.unit = 'u'
     mass_u.name = 'm'
 
     def charge(self):  # SI
-        return self._map2ssa('charge')
+        return self('charge')
     charge.unit = 'C'
     charge.name = 'q'
 
     def charge_e(self):
-        return self._map2ssa('charge_e')
+        return self('charge_e')
     charge.unit = 'qe'
     charge.name = 'q'
 
     def Eruhe(self):
-        return self._map2ssa('Eruhe')
+        return self('Eruhe')
 
     def Px(self):
-        return self._map2ssa('px')
+        return self('px')
     Px.unit = ''
     Px.name = 'Px'
 
     def Py(self):
-        return self._map2ssa('py')
+        return self('py')
     Py.unit = ''
     Py.name = 'Py'
 
     def Pz(self):
-        return self._map2ssa('pz')
+        return self('pz')
     Pz.unit = ''
     Pz.name = 'Pz'
 
     def P(self):
-        return np.sqrt(self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
+        return self('p')
     P.unit = ''
     P.name = 'P'
 
     def X(self):
-        return self._map2ssa('x')
+        return self('x')
     X.unit = 'm'
     X.name = 'X'
 
     def X_um(self):
-        return self.X() * 1e6
+        return self('x_um')
     X_um.unit = '$\mu m$'
     X_um.name = 'X'
 
     def Y(self):
-        return self._map2ssa('y')
+        return self('y')
     Y.unit = 'm'
     Y.name = 'Y'
 
     def Y_um(self):
-        return self.Y() * 1e6
+        return self('y_um')
     Y_um.unit = '$\mu m$'
     Y_um.name = 'Y'
 
     def Z(self):
-        return self._map2ssa('z')
+        return self('z')
     Z.unit = 'm'
     Z.name = 'Z'
 
     def Z_um(self):
-        return self.Z() * 1e6
+        return self('z_um')
     Z_um.unit = '$\mu m$'
     Z_um.name = 'Z'
 
     def beta(self):
-        return np.sqrt(self.gamma() ** 2 - 1) / self.gamma()
+        return self('beta')
     beta.unit = r'$\beta$'
     beta.name = 'beta'
 
     def betax(self):
-        return self.Vx() / pc.c
+        return self('betax')
     betax.unit = r'$\beta$'
     betax.name = 'betax'
 
     def betay(self):
-        return self.Vy() / pc.c
+        return self('betay')
     betay.unit = r'$\beta$'
     betay.name = 'betay'
 
     def betaz(self):
-        return self.Vz() / pc.c
+        return self('betaz')
     betaz.unit = r'$\beta$'
     betaz.name = 'betaz'
 
     def V(self):
-        return pc.c * self.beta()
+        return self('v')
     V.unit = 'm/s'
     V.name = 'V'
 
     def Vx(self):
-        return self.Px() / self._map2ssa('gamma_m')
+        return self('vx')
     Vx.unit = 'm/s'
     Vx.name = 'Vx'
 
     def Vy(self):
-        return self.Py() / self._map2ssa('gamma_m')
+        return self('vy')
     Vy.unit = 'm/s'
     Vy.name = 'Vy'
 
     def Vz(self):
-        return self.Pz() / self._map2ssa('gamma_m')
+        return self('vz')
     Vz.unit = 'm/s'
     Vz.name = 'Vz'
 
     def gamma(self):
-        return self._map2ssa('gamma')
+        return self('gamma')
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
 
     def gamma_m1(self):
-        return self._map2ssa('gamma_m1')
+        return self('gamma_m1')
     gamma_m1.unit = r'$\gamma - 1$'
     gamma_m1.name = 'gamma_m1'
 
     def Ekin(self):
-        return self._map2ssa('Ekin')
+        return self('Ekin')
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
 
     def Ekin_MeV(self):
-        return self._map2ssa('Ekin_MeV')
+        return self('Ekin_MeV')
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
 
     def Ekin_MeV_amu(self):
-        return self._map2ssa('Ekin_MeV_amu')
+        return self('Ekin_MeV_amu')
     Ekin_MeV_amu.unit = 'MeV / amu'
     Ekin_MeV_amu.name = 'Ekin / amu'
 
     def Ekin_MeV_qm(self):
-        return self._map2ssa('Ekin_MeV_qm')
+        return self('Ekin_MeV_qm')
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
 
     def Ekin_keV(self):
-        return self._map2ssa('Ekin_keV')
+        return self('Ekin_keV')
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
 
     def Ekin_keV_amu(self):
-        return self._map2ssa('Ekin_keV_amu')
+        return self('Ekin_keV_amu')
     Ekin_keV_amu.unit = 'keV / amu'
     Ekin_keV_amu.name = 'Ekin / amu'
 
     def Ekin_keV_qm(self):
-        return self._map2ssa('Ekin_keV_qm')
+        return self('Ekin_keV_qm')
     Ekin_keV_qm.unit = 'keV*q/m'
     Ekin_keV_qm.name = 'Ekin * q/m'
 
     def angle_xy(self):
-        return np.arctan2(self.Py(), self.Px())
+        return self('angle_xy')
     angle_xy.unit = 'rad'
     angle_xy.name = 'anglexy'
 
     def angle_yz(self):
-        return np.arctan2(self.Pz(), self.Py())
+        return self('ange_yz')
     angle_yz.unit = 'rad'
     angle_yz.name = 'angleyz'
 
     def angle_zx(self):
-        return np.arctan2(self.Px(), self.Pz())
+        return self('angle_zx')
     angle_zx.unit = 'rad'
     angle_zx.name = 'anglezx'
 
     def angle_yx(self):
-        return np.arctan2(self.Px(), self.Py())
+        return self('angle_yx')
     angle_yx.unit = 'rad'
     angle_yx.name = 'angleyx'
 
     def angle_zy(self):
-        return np.arctan2(self.Py(), self.Pz())
+        return self('angle_zy')
     angle_zy.unit = 'rad'
     angle_zy.name = 'anglezy'
 
     def angle_xz(self):
-        return np.arctan2(self.Pz(), self.Px())
+        return self('angle_xz')
     angle_xz.unit = 'rad'
     angle_xz.name = 'anglexz'
 
     def angle_xaxis(self):
-        return np.arctan2(np.sqrt(self.Py()**2 + self.Pz()**2), self.Px())
+        return self('angle_xaxis')
     angle_xaxis.unit = 'rad'
     angle_xaxis.name = 'angle_xaxis'
 
     def r_xy(self):
-        return np.sqrt(self.X()**2 + self.Y()**2)
+        return self('r_xy')
     r_xy.unit = 'm'
     r_xy.name = 'r_xy'
 
     def r_yz(self):
-        return np.sqrt(self.Y()**2 + self.Z()**2)
+        return self('r_yz')
     r_yz.unit = 'm'
     r_yz.name = 'r_yz'
 
     def r_zx(self):
-        return np.sqrt(self.Z()**2 + self.X()**2)
+        return self('r_zx')
     r_zx.unit = 'm'
     r_zx.name = 'r_zx'
 
     def r_xyz(self):
-        return np.sqrt(self.X()**2 + self.Y()**2 + self.Z()**2)
+        return self('r_xyz')
     r_xyz.unit = 'm'
     r_xyz.name = 'r_xyz'
     # ---- Functions for measuring particle collection related values
