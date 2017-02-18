@@ -32,9 +32,13 @@ from .datahandling import *
 try:
     import numexpr as ne
     _evaluate = ne.evaluate
+    raise ImportError()
 except(ImportError):
-    print('Install numexpr to improve performance!')
-    _evaluate = eval
+    warnings.warn('Install numexpr to improve performance!')
+
+    def _evaluate(*args, **kwargs):
+        r = eval(*args, **kwargs)
+        return np.asarray(r)
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
