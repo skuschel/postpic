@@ -31,14 +31,10 @@ from .helper import deprecated
 from .datahandling import *
 try:
     import numexpr as ne
-    _evaluate = ne.evaluate
 except(ImportError):
     ne = None
     warnings.warn('Install numexpr to improve performance!')
 
-    def _evaluate(*args, **kwargs):
-        r = eval(*args, **kwargs)
-        return np.asarray(r)
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
@@ -47,6 +43,14 @@ __all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory', 'ScalarProperty
 
 
 class ScalarProperty(object):
+
+    if ne is None:
+        @staticmethod
+        def _evaluate(*args, **kwargs):
+            r = eval(*args, **kwargs)
+            return np.asarray(r)
+    else:
+        _evaluate = staticmethod(ne.evaluate)
 
     def __init__(self, name, expr, unit=None, symbol=None):
         '''
@@ -94,7 +98,7 @@ class ScalarProperty(object):
         The list of variables used within this expression.
         '''
         if ne is None:
-            c = compile(expr, '<expr>', 'eval')
+            c = compile(self.expr, '<expr>', 'eval')
             return c.co_names
         else:
             return self._func.input_names
@@ -105,7 +109,7 @@ class ScalarProperty(object):
         within the expression "expr".
         '''
         if ne is None:
-            return _evaluate(self.expr, vars)
+            return self._evaluate(self.expr, vars)
         args = [vars[v] for v in self.input_names]
         return self._func(*args)
 
