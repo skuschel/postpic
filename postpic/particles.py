@@ -33,6 +33,7 @@ try:
     import numexpr as ne
     _evaluate = ne.evaluate
 except(ImportError):
+    ne = None
     warnings.warn('Install numexpr to improve performance!')
 
     def _evaluate(*args, **kwargs):
@@ -51,15 +52,16 @@ class ScalarProperty(object):
         '''
         Represents a scalar particle property.
 
-        name - the name the property can be accessed by
-        expr - The expression how to calcualte the value
-        unit - unit of property
-        symbol - symbol used in formulas
+        name - the name the property can be accessed by.
+        expr - The expression how to calcualte the value (string).
+        unit - unit of property.
+        symbol - symbol used in formulas. Defaults to 'name' if omitted.
         '''
         self._name = name
         self._expr = expr
         self._unit = unit
         self._symbol = symbol
+        self._func_cache = None  # Optimized numexpr function if available
 
     @property
     def name(self):
@@ -77,6 +79,36 @@ class ScalarProperty(object):
     def symbol(self):
         return self.name if self._symbol is None else self._symbol
 
+    @property
+    def _func(self):
+        '''
+        The optimized numexpr function.
+        '''
+        if self._func_cache is None:
+            self._func_cache = ne.NumExpr(self.expr)
+        return self._func_cache
+
+    @property
+    def input_names(self):
+        '''
+        The list of variables used within this expression.
+        '''
+        if ne is None:
+            c = compile(expr, '<expr>', 'eval')
+            return c.co_names
+        else:
+            return self._func.input_names
+
+    def evaluate(self, vars):
+        '''
+        vars must be a dictionary containing variables used
+        within the expression "expr".
+        '''
+        if ne is None:
+            return _evaluate(self.expr, vars)
+        args = [vars[v] for v in self.input_names]
+        return self._func(*args)
+
     def __iter__(self):
         for k in ['name', 'expr', 'unit', 'symbol']:
             yield k, getattr(self, k)
@@ -93,6 +125,7 @@ class ScalarProperty(object):
         Therefore this class behaves as if it would be a function.
         '''
         if isinstance(ms, MultiSpecies):
+            # this is for convenience only
             return ms(self.expr)
         else:
             raise TypeError('Dont know what to do with {} !'.format(ms))
@@ -364,20 +397,23 @@ class _SingleSpecies(object):
 
     # --- The Interface for particle properties using __call__ ---
     def __call__(self, expr, _vars=None):
-        return self._eval_single_expr(expr, _vars=_vars)
+        if isinstance(expr, ScalarProperty):
+            sp = expr
+        else:
+            sp = ScalarProperty('', expr)
+        return self._eval_single_sp(sp, _vars=_vars)
 
-    def _eval_single_expr(self, expr, _vars=None):
+    def _eval_single_sp(self, sp, _vars=None):
         '''
+        sp must be a ScalarProperty instance.
         Variable resolution order:
         1. try to find the value as a defined particle property
         2. if not found looking for an equally named attribute of numpy
         3. if not found looking for an equally named attribute of scipy.constants
         '''
         _vars = dict() if _vars is None else _vars
-        if isinstance(expr, ScalarProperty):
-            expr = expr.expr
-        c = compile(expr, '<expr>', 'eval')
-        for name in c.co_names:
+        expr = sp.expr
+        for name in sp.input_names:
             # load each variable needed
             if name in _vars:
                 # already loaded -> skip
@@ -390,7 +426,7 @@ class _SingleSpecies(object):
                 _vars[name] = getattr(self, fullname)()
                 continue
             if name in particle_scalars:  # the public list of scalar values
-                _vars[name] = self._eval_single_expr(particle_scalars[name].expr, _vars=_vars)
+                _vars[name] = self._eval_single_sp(particle_scalars[name], _vars=_vars)
                 continue
             for source in [np, scipy.constants]:
                 try:
@@ -400,7 +436,7 @@ class _SingleSpecies(object):
                     pass
             if name not in _vars:
                 raise KeyError('"{}" not found!'.format(name))
-        return _evaluate(expr, _vars)
+        return sp.evaluate(_vars)
 
 
 class MultiSpecies(object):
