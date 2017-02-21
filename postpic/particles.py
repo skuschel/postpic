@@ -400,11 +400,9 @@ class _SingleSpecies(object):
         return ret
 
     # --- The Interface for particle properties using __call__ ---
-    def __call__(self, expr, _vars=None):
-        if isinstance(expr, ScalarProperty):
-            sp = expr
-        else:
-            sp = ScalarProperty('', expr)
+    def __call__(self, sp, _vars=None):
+        if not isinstance(sp, ScalarProperty):
+            raise TypeError('Argument must be a ScalarProperty object')
         return self._eval_single_sp(sp, _vars=_vars)
 
     def _eval_single_sp(self, sp, _vars=None):
@@ -680,18 +678,23 @@ class MultiSpecies(object):
         self('x')
         self('sqrt(px**2 + py**2 + pz**2)')
         '''
+        if isinstance(expr, ScalarProperty):
+            # best case
+            return self.__call_sp(expr)
         try:
             bs = basestring  # python2
         except(NameError):
             bs = str  # python3
-        if isinstance(expr, (bs, ScalarProperty)):
-            return self.__call_expr(expr)
+        if isinstance(expr, bs):
+            # create temporary ScalarProperty object
+            sp = ScalarProperty('', expr)
+            return self.__call_sp(sp)
         else:
             return self.__call_func(expr)
 
-    def __call_expr(self, expr):
+    def __call_sp(self, sp):
         def ssdata(ss):
-            a = ss(expr)
+            a = ss(sp)
             if a.shape is ():
                 a = np.repeat(a, len(ss))
             return a
