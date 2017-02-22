@@ -515,16 +515,13 @@ class MultiSpecies(object):
         May be overwritten.
         '''
         if self._species is not None:
+            # return trivial name if set
             return self._species
-        ret = ''
-        for s in set(self.speciess):
-            ret += s + ' '
-        ret = ret[0:-1]
-        return ret
+        return ' '.join(set(self.speciess))
 
     @species.setter
-    def species(self, name):
-        self._name = name
+    def species(self, species):
+        self._species = species
 
     @property
     def name(self):
