@@ -987,14 +987,14 @@ class MultiSpecies(object):
         of the individual particles will be included in the calculation.
         An additional weight can be given as well.
         '''
-        w = self('weight') * self(weights)
+        w = self('weight * ({})'.format(weights))
         return np.average(self(expr), weights=w)
 
     def var(self, expr, weights='1'):
         '''
         variance
         '''
-        w = self('weight') * self(weights)
+        w = self('weight * ({})'.format(weights))
         data = self(expr)
         m = np.average(data, weights=w)
         return np.average((data - m)**2, weights=w)
@@ -1005,18 +1005,18 @@ class MultiSpecies(object):
         '''
         if q < 0 or q > 1:
             raise ValueError('Quantile q ({:}) must be in range [0, 1]'.format(q))
-        w = self('weight') * self(weights)
+        w = self('weight * ({})'.format(weights))
         data = self(expr)
         sortidx = np.argsort(data)
         wcs = np.cumsum(w[sortidx])
         idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
         return data[sortidx[idx]]
 
-    def median(self, func, weights='1'):
+    def median(self, expr, weights='1'):
         '''
         The median
         '''
-        return self.quantile(func, 0.5, weights=weights)
+        return self.quantile(expr, 0.5, weights=weights)
 
     # ---- Functions to create a Histogram. ---
 

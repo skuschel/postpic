@@ -26,5 +26,9 @@ class TestMultiSpecies(unittest.TestCase):
         self.assertAlmostEqual(self.p.var('y'), 0.98615759)
         self.assertRaises(KeyError, self.p.var, 'z')
 
+    def test_quantile(self):
+        self.assertAlmostEqual(self.p.quantile('x', 0.4), -0.26393734)
+        self.assertAlmostEqual(self.p.quantile('x', 0.6, weights='gamma'), 0.21717963)
+
 if __name__ == '__main__':
     unittest.main()
