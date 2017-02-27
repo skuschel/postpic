@@ -247,12 +247,12 @@ def _findscalarattr(scalarf, attrib, default='unknown'):
     '''
     if hasattr(scalarf, attrib):
         # scalarf is function or ScalarProperty
-        return getattr(scalarf, attrib)
+        ret = getattr(scalarf, attrib)
     if scalarf in particle_scalars:
         # scalarf is a string
         if hasattr(particle_scalars[scalarf], attrib):
-            return getattr(particle_scalars[scalarf], attrib)
-    return default
+            ret = getattr(particle_scalars[scalarf], attrib)
+    return default if ret is None else default
 
 
 class _SingleSpecies(object):
@@ -288,6 +288,10 @@ class _SingleSpecies(object):
             return ret
         for key in self._atomicprops:
             setattr(_SingleSpecies, key, makefunc(self, key))
+
+    @property
+    def dumpreader(self):
+        return self._dumpreader
 
     def __str__(self):
         return '<_SingleSpecies ' + str(self.species) \
@@ -460,24 +464,6 @@ class MultiSpecies(object):
         self._ssas = []
         self._species = None  # trivial name if set
         self._compresslog = []
-        try:
-            self.X.__func__.extent = dumpreader.simextent('x')
-            self.X.__func__.gridpoints = dumpreader.simgridpoints('x')
-            self.X_um.__func__.extent = dumpreader.simextent('x') * 1e6
-            self.X_um.__func__.gridpoints = dumpreader.simgridpoints('x')
-            self.Y.__func__.extent = dumpreader.simextent('y')
-            self.Y.__func__.gridpoints = dumpreader.simgridpoints('y')
-            self.Y_um.__func__.extent = dumpreader.simextent('y') * 1e6
-            self.Y_um.__func__.gridpoints = dumpreader.simgridpoints('y')
-            self.Z.__func__.extent = dumpreader.simextent('z')
-            self.Z.__func__.gridpoints = dumpreader.simgridpoints('z')
-            self.Z_um.__func__.extent = dumpreader.simextent('z') * 1e6
-            self.Z_um.__func__.gridpoints = dumpreader.simgridpoints('z')
-        except(KeyError, IndexError):
-            pass
-        self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
-        self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])
-        self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
         # add particle species one by one
         for s in speciess:
             self.add(dumpreader, s, **kwargs)
@@ -485,6 +471,33 @@ class MultiSpecies(object):
     def __str__(self):
         return '<MultiSpecies including ' + str(self.species) \
             + '(' + str(len(self)) + ')>'
+
+    @property
+    def dumpreader(self):
+        '''
+        returns the dumpreader if the dumpreader of **all** species
+        are pointing to the same dump. This should be mostly the case.
+
+        Otherwise returns None.
+        '''
+        try:
+            dr0 = self._ssas[0].dumpreader
+            if all([dr0 == ssa.dumpreader for ssa in self._ssas]):
+                return dr0
+        except(IndexError, KeyError):
+            return None
+
+    def simextent(self, axis):
+        try:
+            return self.dumpreader.simextent(axis)
+        except(AttributeError, KeyError):
+            return None
+
+    def simgridpoints(self, axis):
+        try:
+            return self.dumpreader.simgridpoints(axis)
+        except(AttributeError, KeyError):
+            return None
 
     @property
     def npart(self):
@@ -1020,9 +1033,13 @@ class MultiSpecies(object):
 
     # ---- Functions to create a Histogram. ---
 
-    def createHistgram1d(self, scalarfx, optargsh={},
-                         simextent=False, simgrid=False, rangex=None,
-                         weights=lambda x: 1, force=False):
+    def _createHistgram1d(self, spx, optargsh={},
+                          simextent=False, simgrid=False, rangex=None,
+                          weights=lambda x: 1, force=False):
+        '''
+        creates a 1d histogram.
+        spx must be a ScalarProperty object.
+        '''
         optargshdefs = {'bins': 300}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
@@ -1030,17 +1047,18 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = self(scalarfx)
+                xdata = self(spx)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = self(scalarfx)
+            xdata = self(spx)
         if simextent:
-            if hasattr(scalarfx, 'extent'):
-                rangex = scalarfx.extent
+            tmp = self.simextent(spx.symbol)
+            rangex = tmp if tmp is not None else rangex
         if simgrid:
-            if hasattr(scalarfx, 'gridpoints'):
-                optargsh['bins'] = scalarfx.gridpoints
+            tmp = self.simgridpoints(spx.symbol)
+            if tmp is not None:
+                optargsh['bins'] = tmp
         if len(xdata) == 0:
             h = np.zeros(optargsh['bins'])
             if rangex is not None:
@@ -1056,18 +1074,18 @@ class MultiSpecies(object):
         h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
 
-    def createHistgram2d(self, scalarfx, scalarfy,
-                         optargsh={}, simextent=False,
-                         simgrid=False, rangex=None, rangey=None,
-                         weights=lambda x: 1, force=False):
+    def _createHistgram2d(self, spx, spy,
+                          optargsh={}, simextent=False,
+                          simgrid=False, rangex=None, rangey=None,
+                          weights=lambda x: 1, force=False):
         """
         Creates an 2d Histogram.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : ScalarProperty
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : ScalarProperty
             returns a list of scalar values for the y axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
@@ -1087,24 +1105,26 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = self(scalarfx)
-                ydata = self(scalarfy)
+                xdata = self(spx)
+                ydata = self(spy)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = self(scalarfx)
-            ydata = self(scalarfy)
+            xdata = self(spx)
+            ydata = self(spy)
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            rangex = _findscalarattr(scalarfx, 'extent', None)
-            rangex = _findscalarattr(scalarfy, 'extent', None)
+            tmp = self.simextent(spx.symbol)
+            rangex = tmp if tmp is not None else rangex
+            tmp = self.simextent(spy.symbol)
+            rangey = tmp if tmp is not None else rangey
         if simgrid:
-            if hasattr(scalarfx, 'gridpoints'):
-                optargsh['bins'][0] = scalarfx.gridpoints
-            if hasattr(scalarfy, 'gridpoints'):
-                optargsh['bins'][1] = scalarfy.gridpoints
+            for i, sp in enumerate([spx, spy]):
+                tmp = self.simgridpoints(sp.symbol)
+                if tmp is not None:
+                    optargsh['bins'][i] = tmp
         if len(xdata) == 0:
             h = np.zeros(optargsh['bins'])
             if rangex is not None:
@@ -1127,20 +1147,20 @@ class MultiSpecies(object):
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
         return h, xedges, yedges
 
-    def createHistgram3d(self, scalarfx, scalarfy, scalarfz,
-                         optargsh={}, simextent=False,
-                         simgrid=False, rangex=None, rangey=None, rangez=None,
-                         weights=lambda x: 1, force=False):
+    def _createHistgram3d(self, spx, spy, spz,
+                          optargsh={}, simextent=False,
+                          simgrid=False, rangex=None, rangey=None, rangez=None,
+                          weights=lambda x: 1, force=False):
         """
         Creates an 3d Histogram.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : ScalarProperty
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : ScalarProperty
             returns a list of scalar values for the y axis.
-        scalarfz : function
+        spz : ScalarProperty
             returns a list of scalar values for the z axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
@@ -1160,32 +1180,30 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = self(scalarfx)
-                ydata = self(scalarfy)
-                zdata = self(scalarfz)
+                xdata = self(spx)
+                ydata = self(spy)
+                zdata = self(spz)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = self(scalarfx)
-            ydata = self(scalarfy)
-            zdata = self(scalarfz)
+            xdata = self(spx)
+            ydata = self(spy)
+            zdata = self(spz)
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            if hasattr(scalarfx, 'extent'):
-                rangex = scalarfx.extent
-            if hasattr(scalarfy, 'extent'):
-                rangey = scalarfy.extent
-            if hasattr(scalarfz, 'extent'):
-                rangez = scalarfz.extent
+            tmp = self.simextent(spx.symbol)
+            rangex = tmp if tmp is not None else rangex
+            tmp = self.simextent(spy.symbol)
+            rangey = tmp if tmp is not None else rangey
+            tmp = self.simextent(spz.symbol)
+            rangez = tmp if tmp is not None else rangez
         if simgrid:
-            if hasattr(scalarfx, 'gridpoints'):
-                optargsh['bins'][0] = scalarfx.gridpoints
-            if hasattr(scalarfy, 'gridpoints'):
-                optargsh['bins'][1] = scalarfy.gridpoints
-            if hasattr(scalarfz, 'gridpoints'):
-                optargsh['bins'][1] = scalarfz.gridpoints
+            for i, sp in enumerate([spx, spy, spz]):
+                tmp = self.simgridpoints(sp.symbol)
+                if tmp is not None:
+                    optargsh['bins'][i] = tmp
         if len(xdata) == 0:
             h = np.zeros(optargsh['bins'])
             if rangex is not None:
@@ -1214,14 +1232,14 @@ class MultiSpecies(object):
         h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
         return h, xe, ye, ze
 
-    def createHistgramField1d(self, scalarfx, name='distfn', title=None,
+    def createHistgramField1d(self, spx, name='distfn', title=None,
                               **kwargs):
         """
         Creates an 1d Histogram enclosed in a Field object.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : str or ScalarProperty
             returns a list of scalar values for the x axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1234,29 +1252,31 @@ class MultiSpecies(object):
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
-        h, edges = self.createHistgram1d(scalarfx, **kwargs)
+        if not isinstance(spx, ScalarProperty):
+            spx = ScalarProperty('', spx)
+        h, edges = self._createHistgram1d(spx, **kwargs)
         ret = Field(h, edges)
         ret.axes[0].grid_node = edges
         ret.name = name + ' ' + self.species
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = _findscalarattr(scalarfx, 'unit')
-        ret.axes[0].name = _findscalarattr(scalarfx, 'name')
+        ret.axes[0].unit = _findscalarattr(spx, 'unit')
+        ret.axes[0].name = _findscalarattr(spx, 'name')
         ret.infos = self.getcompresslog()['all']
         ret.infostring = self.npart
         return ret
 
-    def createHistgramField2d(self, scalarfx, scalarfy, name='distfn',
+    def createHistgramField2d(self, spx, spy, name='distfn',
                               title=None, **kwargs):
         """
         Creates an 2d Histogram enclosed in a Field object.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : str or ScalarProperty
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : str or ScalarProperty
             returns a list of scalar values for the y axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1269,7 +1289,11 @@ class MultiSpecies(object):
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
-        h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
+        if not isinstance(spx, ScalarProperty):
+            spx = ScalarProperty('', spx)
+        if not isinstance(spy, ScalarProperty):
+            spy = ScalarProperty('', spy)
+        h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
         ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
         ret.axes[1].grid_node = yedges
@@ -1277,26 +1301,26 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = _findscalarattr(scalarfx, 'unit')
-        ret.axes[0].name = _findscalarattr(scalarfx, 'name')
-        ret.axes[1].unit = _findscalarattr(scalarfy, 'unit')
-        ret.axes[1].name = _findscalarattr(scalarfy, 'name')
+        ret.axes[0].unit = _findscalarattr(spx, 'unit')
+        ret.axes[0].name = _findscalarattr(spx, 'name')
+        ret.axes[1].unit = _findscalarattr(spy, 'unit')
+        ret.axes[1].name = _findscalarattr(spy, 'name')
         ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
 
-    def createHistgramField3d(self, scalarfx, scalarfy, scalarfz, name='distfn',
+    def createHistgramField3d(self, spx, spy, spz, name='distfn',
                               title=None, **kwargs):
         """
         Creates an 3d Histogram enclosed in a Field object.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : str or ScalarProperty
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : str or ScalarProperty
             returns a list of scalar values for the y axis.
-        scalarfz : function
+        spz : str or ScalarProperty
             returns a list of scalar values for the z axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1309,7 +1333,13 @@ class MultiSpecies(object):
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
-        h, xedges, yedges, zedges = self.createHistgram3d(scalarfx, scalarfy, scalarfz, **kwargs)
+        if not isinstance(spx, ScalarProperty):
+            spx = ScalarProperty('', spx)
+        if not isinstance(spy, ScalarProperty):
+            spy = ScalarProperty('', spy)
+        if not isinstance(spz, ScalarProperty):
+            spz = ScalarProperty('', spz)
+        h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
         ret = Field(h, xedges, yedges, zedges)
         ret.axes[0].grid_node = xedges
         ret.axes[1].grid_node = yedges
@@ -1318,12 +1348,12 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = _findscalarattr(scalarfx, 'unit')
-        ret.axes[0].name = _findscalarattr(scalarfx, 'name')
-        ret.axes[1].unit = _findscalarattr(scalarfy, 'unit')
-        ret.axes[1].name = _findscalarattr(scalarfy, 'name')
-        ret.axes[2].unit = _findscalarattr(scalarfz, 'unit')
-        ret.axes[2].name = _findscalarattr(scalarfz, 'name')
+        ret.axes[0].unit = _findscalarattr(spx, 'unit')
+        ret.axes[0].name = _findscalarattr(spx, 'name')
+        ret.axes[1].unit = _findscalarattr(spy, 'unit')
+        ret.axes[1].name = _findscalarattr(spy, 'name')
+        ret.axes[2].unit = _findscalarattr(spz, 'unit')
+        ret.axes[2].name = _findscalarattr(spz, 'name')
         ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
