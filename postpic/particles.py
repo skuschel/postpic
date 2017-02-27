@@ -52,17 +52,17 @@ class ScalarProperty(object):
     else:
         _evaluate = staticmethod(ne.evaluate)
 
-    def __init__(self, name, expr, unit=None, symbol=None):
+    def __init__(self, expr, name=None, unit=None, symbol=None):
         '''
         Represents a scalar particle property.
 
-        name - the name the property can be accessed by.
         expr - The expression how to calcualte the value (string).
+        name - the name the property can be accessed by.
         unit - unit of property.
         symbol - symbol used in formulas. Defaults to 'name' if omitted.
         '''
-        self._name = name
         self._expr = expr
+        self._name = name
         self._unit = unit
         self._symbol = symbol
         self._func_cache = None  # Optimized numexpr function if available
@@ -118,7 +118,7 @@ class ScalarProperty(object):
             yield k, getattr(self, k)
 
     def __str__(self):
-        formatstring = 'ScalarProperty("{name}", "{expr}", unit="{unit}", symbol="{symbol}")'
+        formatstring = 'ScalarProperty("{expr}", name="{name}", unit="{unit}", symbol="{symbol}")'
         return formatstring.format(**dict(self))
 
     __repr__ = __str__
@@ -162,6 +162,8 @@ class _ScalarPropertyList(collections.Mapping):
         '''
         if sp.symbol in self._mapping:
             raise KeyError('The symbol {} is already known!'.format(sp.symbol))
+        if sp.symbol is None:
+            raise ValueError('Impossible to add the anonymous ScalarProperty {}'.format(str(sp)))
         self._mapping.update({sp.symbol: sp})
 
     def remove(self, symbol):
@@ -179,57 +181,57 @@ def _createScalarList():
         ScalarProperty('id', 'id', ''),
         ScalarProperty('mass', 'mass', 'kg'),
         ScalarProperty('mass', 'mass', 'kg', symbol='m'),
-        ScalarProperty('mass_u', 'mass / atomic_mass', 'amu'),
-        ScalarProperty('mass_u', 'mass / atomic_mass', 'amu', symbol='m_u'),
+        ScalarProperty('mass / atomic_mass', 'mass_u', 'amu'),
+        ScalarProperty('mass / atomic_mass', 'mass_u', 'amu', symbol='m_u'),
         ScalarProperty('charge', 'charge', 'C'),
         ScalarProperty('charge', 'charge', 'C', symbol='q'),
-        ScalarProperty('charge_e', 'charge / elementary_charge', ''),
-        ScalarProperty('charge_e', 'charge / elementary_charge', '', symbol='q_e'),
+        ScalarProperty('charge / elementary_charge', 'charge_e', ''),
+        ScalarProperty('charge / elementary_charge', 'charge_e', '', symbol='q_e'),
         ScalarProperty('x', 'x', 'm'),
-        ScalarProperty('x_um', 'x * 1e6', r'$\mu$ m'),
+        ScalarProperty('x * 1e6', 'x_um', r'$\mu$ m'),
         ScalarProperty('y', 'y', 'm'),
-        ScalarProperty('y_um', 'y * 1e6', r'$\mu$ m'),
+        ScalarProperty('y * 1e6', 'y_um', r'$\mu$ m'),
         ScalarProperty('z', 'z', 'm'),
-        ScalarProperty('z_um', 'y * 1e6', r'$\mu$ m'),
+        ScalarProperty('y * 1e6', 'z_um', r'$\mu$ m'),
         ScalarProperty('px', 'px', 'kg*m/s'),
         ScalarProperty('py', 'pz', 'kg*m/s'),
         ScalarProperty('pz', 'py', 'kg*m/s'),
-        ScalarProperty('p', 'sqrt(px**2 + py**2 + pz**2)', 'kg*m/s'),
-        ScalarProperty('_np2', '(px**2 + py**2 + pz**2)/(mass * c)**2', ''),
-        ScalarProperty('gamma_m1', '_np2 / (sqrt(1 + _np2) + 1)', ''),
-        ScalarProperty('gamma', '_np2 / (sqrt(1 + _np2) + 1) + 1', ''),
-        ScalarProperty('gamma_m', 'gamma * mass', 'kg'),
-        ScalarProperty('v', 'beta * c', 'm/s'),
-        ScalarProperty('vx', 'px / (gamma * mass)', 'm/s'),
-        ScalarProperty('vy', 'py / (gamma * mass)', 'm/s'),
-        ScalarProperty('vz', 'pz / (gamma * mass)', 'm/s'),
-        ScalarProperty('beta', 'sqrt(gamma**2 - 1) / gamma', ''),
-        ScalarProperty('betax', 'vx / c', ''),
-        ScalarProperty('betay', 'vy / c', ''),
-        ScalarProperty('betaz', 'vz / c', ''),
-        ScalarProperty('Eruhe', 'mass * c**2', 'J'),
-        ScalarProperty('Ekin', 'gamma_m1 * mass * c**2', 'J'),
-        ScalarProperty('Ekin_MeV', 'Ekin / elementary_charge / 1e6', 'MeV'),
-        ScalarProperty('Ekin_MeV_amu', 'Ekin / elementary_charge / 1e6 / mass_u', 'MeV/u'),
-        ScalarProperty('Ekin_MeV_qm', 'Ekin / elementary_charge / 1e6 / mass_u * charge_e',
-                       'MeV * q/m'),
-        ScalarProperty('Ekin_keV', 'Ekin / elementary_charge / 1e3', 'keV/u'),
-        ScalarProperty('Ekin_keV_amu', 'Ekin / elementary_charge / 1e3 / mass_u', 'keV/u'),
-        ScalarProperty('Ekin_keV_qm', 'Ekin / elementary_charge / 1e3 / mass_u * charge_e',
-                       'keV * q/m'),
-        ScalarProperty('angle_xy', 'arctan2(py, px)', 'rad'),
-        ScalarProperty('angle_yx', 'arctan2(px, py)', 'rad'),
-        ScalarProperty('angle_yz', 'arctan2(pz, py)', 'rad'),
-        ScalarProperty('angle_zy', 'arctan2(py, pz)', 'rad'),
-        ScalarProperty('angle_zx', 'arctan2(px, pz)', 'rad'),
-        ScalarProperty('angle_xz', 'arctan2(pz, px)', 'rad'),
-        ScalarProperty('angle_xaxis', 'arctan2(sqrt(py**2 + pz**2), px)', 'rad'),
-        ScalarProperty('angle_yaxis', 'arctan2(sqrt(pz**2 + px**2), py)', 'rad'),
-        ScalarProperty('angle_zaxis', 'arctan2(sqrt(px**2 + py**2), pz)', 'rad'),
-        ScalarProperty('r_xy', 'sqrt(x**2 + y**2)', 'm'),
-        ScalarProperty('r_yz', 'sqrt(y**2 + z**2)', 'm'),
-        ScalarProperty('r_zx', 'sqrt(z**2 + x**2)', 'm'),
-        ScalarProperty('r_xyz', 'sqrt(x**2 + y**2 + z**2)', 'm')
+        ScalarProperty('sqrt(px**2 + py**2 + pz**2)', 'p', 'kg*m/s'),
+        ScalarProperty('(px**2 + py**2 + pz**2)/(mass * c)**2', '_np2', ''),
+        ScalarProperty('_np2 / (sqrt(1 + _np2) + 1)', 'gamma_m1', ''),
+        ScalarProperty('_np2 / (sqrt(1 + _np2) + 1) + 1', 'gamma', ''),
+        ScalarProperty('gamma * mass', 'gamma_m', 'kg'),
+        ScalarProperty('beta * c', 'v', 'm/s'),
+        ScalarProperty('px / (gamma * mass)', 'vx', 'm/s'),
+        ScalarProperty('py / (gamma * mass)', 'vy', 'm/s'),
+        ScalarProperty('pz / (gamma * mass)', 'vz', 'm/s'),
+        ScalarProperty('sqrt(gamma**2 - 1) / gamma', 'beta', ''),
+        ScalarProperty('vx / c', 'betax', ''),
+        ScalarProperty('vy / c', 'betay', ''),
+        ScalarProperty('vz / c', 'betaz', ''),
+        ScalarProperty('mass * c**2', 'Eruhe', 'J'),
+        ScalarProperty('gamma_m1 * mass * c**2', 'Ekin', 'J'),
+        ScalarProperty('Ekin / elementary_charge / 1e6', 'Ekin_MeV', 'MeV'),
+        ScalarProperty('Ekin / elementary_charge / 1e6 / mass_u', 'Ekin_MeV_amu', 'MeV/u'),
+        ScalarProperty('Ekin / elementary_charge / 1e6 / mass_u * charge_e',
+                       'Ekin_MeV_qm', 'MeV * q/m'),
+        ScalarProperty('Ekin / elementary_charge / 1e3', 'Ekin_keV', 'keV/u'),
+        ScalarProperty('Ekin / elementary_charge / 1e3 / mass_u', 'Ekin_keV_amu', 'keV/u'),
+        ScalarProperty('Ekin / elementary_charge / 1e3 / mass_u * charge_e',
+                       'Ekin_keV_qm', 'keV * q/m'),
+        ScalarProperty('arctan2(py, px)', 'angle_xy', 'rad'),
+        ScalarProperty('arctan2(px, py)', 'angle_yx', 'rad'),
+        ScalarProperty('arctan2(pz, py)', 'angle_yz', 'rad'),
+        ScalarProperty('arctan2(py, pz)', 'angle_zy', 'rad'),
+        ScalarProperty('arctan2(px, pz)', 'angle_zx', 'rad'),
+        ScalarProperty('arctan2(pz, px)', 'angle_xz', 'rad'),
+        ScalarProperty('arctan2(sqrt(py**2 + pz**2), px)', 'angle_xaxis', 'rad'),
+        ScalarProperty('arctan2(sqrt(pz**2 + px**2), py)', 'angle_yaxis', 'rad'),
+        ScalarProperty('arctan2(sqrt(px**2 + py**2), pz)', 'angle_zaxis', 'rad'),
+        ScalarProperty('sqrt(x**2 + y**2)', 'r_xy', 'm'),
+        ScalarProperty('sqrt(y**2 + z**2)', 'r_yz', 'm'),
+        ScalarProperty('sqrt(z**2 + x**2)', 'r_zx', 'm'),
+        ScalarProperty('sqrt(x**2 + y**2 + z**2)', 'r_xyz', 'm')
         ]
     scalars = _ScalarPropertyList()
     for _s in _scalarprops:
@@ -697,7 +699,7 @@ class MultiSpecies(object):
             bs = str  # python3
         if isinstance(expr, bs):
             # create temporary ScalarProperty object
-            sp = ScalarProperty('', expr)
+            sp = ScalarProperty(expr)
             return self.__call_sp(sp)
         else:
             return self.__call_func(expr)
@@ -1253,7 +1255,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         if not isinstance(spx, ScalarProperty):
-            spx = ScalarProperty('', spx)
+            spx = ScalarProperty(spx)
         h, edges = self._createHistgram1d(spx, **kwargs)
         ret = Field(h, edges)
         ret.axes[0].grid_node = edges
@@ -1290,9 +1292,9 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         if not isinstance(spx, ScalarProperty):
-            spx = ScalarProperty('', spx)
+            spx = ScalarProperty(spx)
         if not isinstance(spy, ScalarProperty):
-            spy = ScalarProperty('', spy)
+            spy = ScalarProperty(spy)
         h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
         ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
@@ -1334,11 +1336,11 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         if not isinstance(spx, ScalarProperty):
-            spx = ScalarProperty('', spx)
+            spx = ScalarProperty(spx)
         if not isinstance(spy, ScalarProperty):
-            spy = ScalarProperty('', spy)
+            spy = ScalarProperty(spy)
         if not isinstance(spz, ScalarProperty):
-            spz = ScalarProperty('', spz)
+            spz = ScalarProperty(spz)
         h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
         ret = Field(h, xedges, yedges, zedges)
         ret.axes[0].grid_node = xedges

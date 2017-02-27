@@ -94,8 +94,8 @@ def main():
             # however, since its unknown to the program, what quantities were calculated the axis of plot 12 will only say "unknown"
             # this can be avoided in two ways:
             # 1st: define your own ScalarProperty(name, expr, unit):
-            p_perp = pp.particles.ScalarProperty('p_perp', 'sqrt(px**2 + py**2)/p', 'kg*m/s')
-            r_xy = pp.particles.ScalarProperty('r_xy', 'sqrt(x**2 + y**2)', 'm')
+            p_perp = pp.particles.ScalarProperty('sqrt(px**2 + py**2)/p', name='p_perp', unit='kg*m/s')
+            r_xy = pp.particles.ScalarProperty('sqrt(x**2 + y**2)', name='r_xy', unit='m')
             # this will create an identical plot, but correcly labled
             plotter.plotField(pa.createField(p_perp, r_xy, optargsh={'bins':[400,400]}))  # plot 13
             # if those quantities are reused often, teach postip to recognize them within the string expression:
