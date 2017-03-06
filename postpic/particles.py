@@ -176,6 +176,18 @@ class _ScalarPropertyList(collections.Mapping):
     def remove(self, symbol):
         self._mapping.pop(symbol)
 
+    def __call__(self, expr):
+        '''
+        tries to identify the ScalarProperty by its expression or symbol.
+        '''
+        if expr in self:
+            return self[expr]
+        for k in self:
+            if self[k].expr == expr:
+                return self[k]
+        # if not found return an anonymous ScalarProperty
+        return ScalarProperty(expr)
+
 
 # ---- List of default scalar particle properties and how to calculate them
 def _createScalarList():
@@ -261,7 +273,7 @@ def _findscalarattr(scalarf, attrib, default='unknown'):
         # scalarf is a string
         if hasattr(particle_scalars[scalarf], attrib):
             ret = getattr(particle_scalars[scalarf], attrib)
-    return default if ret is None else default
+    return default if ret is None else ret
 
 
 class _SingleSpecies(object):
@@ -706,7 +718,7 @@ class MultiSpecies(object):
             bs = str  # python3
         if isinstance(expr, bs):
             # create temporary ScalarProperty object
-            sp = ScalarProperty(expr)
+            sp = particle_scalars(expr)
             return self.__call_sp(sp)
         else:
             return self.__call_func(expr)
@@ -1262,7 +1274,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         if not isinstance(spx, ScalarProperty):
-            spx = ScalarProperty(spx)
+            spx = particle_scalars(spx)
         h, edges = self._createHistgram1d(spx, **kwargs)
         ret = Field(h, edges)
         ret.axes[0].grid_node = edges
@@ -1299,9 +1311,9 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         if not isinstance(spx, ScalarProperty):
-            spx = ScalarProperty(spx)
+            spx = particle_scalars(spx)
         if not isinstance(spy, ScalarProperty):
-            spy = ScalarProperty(spy)
+            spy = particle_scalars(spy)
         h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
         ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
@@ -1343,11 +1355,11 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         if not isinstance(spx, ScalarProperty):
-            spx = ScalarProperty(spx)
+            spx = particle_scalars(spx)
         if not isinstance(spy, ScalarProperty):
-            spy = ScalarProperty(spy)
+            spy = particle_scalars(spy)
         if not isinstance(spz, ScalarProperty):
-            spz = ScalarProperty(spz)
+            spz = particle_scalars(spz)
         h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
         ret = Field(h, xedges, yedges, zedges)
         ret.axes[0].grid_node = xedges
