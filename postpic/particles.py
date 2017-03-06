@@ -130,7 +130,7 @@ class ScalarProperty(object):
         '''
         if isinstance(ms, MultiSpecies):
             # this is for convenience only
-            return ms(self.expr)
+            return ms(self)
         else:
             raise TypeError('Dont know what to do with {} !'.format(ms))
 
