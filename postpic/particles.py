@@ -118,10 +118,11 @@ class ScalarProperty(object):
             yield k, getattr(self, k)
 
     def __str__(self):
+        return self.expr
+
+    def __repr__(self):
         formatstring = 'ScalarProperty("{expr}", name="{name}", unit="{unit}", symbol="{symbol}")'
         return formatstring.format(**dict(self))
-
-    __repr__ = __str__
 
     def __call__(self, ms):
         '''
@@ -266,6 +267,7 @@ def _findscalarattr(scalarf, attrib, default='unknown'):
     Tries to find the scalarf's attribute attrib like name or unit.
     returns None if not found
     '''
+    ret = None
     if hasattr(scalarf, attrib):
         # scalarf is function or ScalarProperty
         ret = getattr(scalarf, attrib)
@@ -704,6 +706,14 @@ class MultiSpecies(object):
         This is **only** function to actually access the data. Every other function
         which allows data access must call this one internally!
 
+        Supported Types:
+        ----------------
+        * ScalarProperty
+        * str: will be converted to a ScalarProperty by particle_scalars.__call__.
+               Therefore known quantities will be recognized
+        * callable, that acts on the MultiSpecies object. This will work, but
+          maybe removed in a future release.
+
         Examples
         --------
         self('x')
@@ -738,6 +748,13 @@ class MultiSpecies(object):
 
     def __call_func(self, func):
         # hope it does what it should...
+        s = '''
+        You are accessing particle properties via the function {}.
+        The Calculation of particle properties using functions is deprecated.
+        Use a str or a ScalarProperty object instead. This will also allow postic to enable
+        certain optimizations. When in doubt, use the str.
+        '''.format(str(func))
+        warnings.warn(s, category=DeprecationWarning)
         return func(self)
 
     # --- "A scalar for every particle"-functions.
@@ -1056,10 +1073,10 @@ class MultiSpecies(object):
 
     def _createHistgram1d(self, spx, optargsh={},
                           simextent=False, simgrid=False, rangex=None,
-                          weights=lambda x: 1, force=False):
+                          weights='1', force=False):
         '''
         creates a 1d histogram.
-        spx must be a ScalarProperty object.
+        spx must be of a kind, that self.__call__ can evalute to
         '''
         optargshdefs = {'bins': 300}
         optargshdefs.update(optargsh)
@@ -1074,10 +1091,10 @@ class MultiSpecies(object):
         else:
             xdata = self(spx)
         if simextent:
-            tmp = self.simextent(spx.symbol)
+            tmp = self.simextent(getattr(spx, 'symbol', None))
             rangex = tmp if tmp is not None else rangex
         if simgrid:
-            tmp = self.simgridpoints(spx.symbol)
+            tmp = self.simgridpoints(getattr(spx, 'symbol', None))
             if tmp is not None:
                 optargsh['bins'] = tmp
         if len(xdata) == 0:
@@ -1089,7 +1106,7 @@ class MultiSpecies(object):
             return h, xedges  # empty histogram: h == 0 everywhere
         if rangex is None:
             rangex = [np.min(xdata), np.max(xdata)]
-        w = self('weight') * self(weights)
+        w = self('weight * ({})'.format(weights))
         h, edges = histogramdd((xdata,), weights=w,
                                range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
@@ -1098,15 +1115,15 @@ class MultiSpecies(object):
     def _createHistgram2d(self, spx, spy,
                           optargsh={}, simextent=False,
                           simgrid=False, rangex=None, rangey=None,
-                          weights=lambda x: 1, force=False):
+                          weights='1', force=False):
         """
         Creates an 2d Histogram.
 
         Attributes
         ----------
-        spx : ScalarProperty
+        spx : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the x axis.
-        spy : ScalarProperty
+        spy : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the y axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
@@ -1137,13 +1154,13 @@ class MultiSpecies(object):
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            tmp = self.simextent(spx.symbol)
+            tmp = self.simextent(getattr(spx, 'symbol', None))
             rangex = tmp if tmp is not None else rangex
-            tmp = self.simextent(spy.symbol)
+            tmp = self.simextent(getattr(spy, 'symbol', None))
             rangey = tmp if tmp is not None else rangey
         if simgrid:
             for i, sp in enumerate([spx, spy]):
-                tmp = self.simgridpoints(sp.symbol)
+                tmp = self.simgridpoints(getattr(spx, 'symbol', None))
                 if tmp is not None:
                     optargsh['bins'][i] = tmp
         if len(xdata) == 0:
@@ -1161,7 +1178,7 @@ class MultiSpecies(object):
             rangex = [np.min(xdata), np.max(xdata)]
         if rangey is None:
             rangey = [np.min(ydata), np.max(ydata)]
-        w = self('weight') * self(weights)  # Particle Size * additional weights
+        w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, xedges, yedges = histogramdd((xdata, ydata),
                                         weights=w, range=[rangex, rangey],
                                         **optargsh)
@@ -1171,17 +1188,17 @@ class MultiSpecies(object):
     def _createHistgram3d(self, spx, spy, spz,
                           optargsh={}, simextent=False,
                           simgrid=False, rangex=None, rangey=None, rangez=None,
-                          weights=lambda x: 1, force=False):
+                          weights='1', force=False):
         """
         Creates an 3d Histogram.
 
         Attributes
         ----------
-        spx : ScalarProperty
+        spx : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the x axis.
-        spy : ScalarProperty
+        spy : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the y axis.
-        spz : ScalarProperty
+        spz : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the z axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
@@ -1214,15 +1231,15 @@ class MultiSpecies(object):
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            tmp = self.simextent(spx.symbol)
+            tmp = self.simextent(getattr(spx, 'symbol', None))
             rangex = tmp if tmp is not None else rangex
-            tmp = self.simextent(spy.symbol)
+            tmp = self.simextent(getattr(spy, 'symbol', None))
             rangey = tmp if tmp is not None else rangey
-            tmp = self.simextent(spz.symbol)
+            tmp = self.simextent(getattr(spz, 'symbol', None))
             rangez = tmp if tmp is not None else rangez
         if simgrid:
             for i, sp in enumerate([spx, spy, spz]):
-                tmp = self.simgridpoints(sp.symbol)
+                tmp = self.simgridpoints(getattr(spx, 'symbol', None))
                 if tmp is not None:
                     optargsh['bins'][i] = tmp
         if len(xdata) == 0:
@@ -1246,7 +1263,7 @@ class MultiSpecies(object):
             rangey = [np.min(ydata), np.max(ydata)]
         if rangez is None:
             rangez = [np.min(zdata), np.max(zdata)]
-        w = self('weight') * self(weights)  # Particle Size * additional weights
+        w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, xe, ye, ze = histogramdd((xdata, ydata, zdata),
                                     weights=w, range=[rangex, rangey, rangez],
                                     **optargsh)
@@ -1260,7 +1277,7 @@ class MultiSpecies(object):
 
         Attributes
         ----------
-        spx : str or ScalarProperty
+        spx : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1273,8 +1290,6 @@ class MultiSpecies(object):
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
-        if not isinstance(spx, ScalarProperty):
-            spx = particle_scalars(spx)
         h, edges = self._createHistgram1d(spx, **kwargs)
         ret = Field(h, edges)
         ret.axes[0].grid_node = edges
@@ -1295,9 +1310,9 @@ class MultiSpecies(object):
 
         Attributes
         ----------
-        spx : str or ScalarProperty
+        spx : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
-        spy : str or ScalarProperty
+        spy : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the y axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1310,10 +1325,6 @@ class MultiSpecies(object):
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
-        if not isinstance(spx, ScalarProperty):
-            spx = particle_scalars(spx)
-        if not isinstance(spy, ScalarProperty):
-            spy = particle_scalars(spy)
         h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
         ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
@@ -1337,11 +1348,11 @@ class MultiSpecies(object):
 
         Attributes
         ----------
-        spx : str or ScalarProperty
+        spx : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
-        spy : str or ScalarProperty
+        spy : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the y axis.
-        spz : str or ScalarProperty
+        spz : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the z axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1354,12 +1365,6 @@ class MultiSpecies(object):
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
-        if not isinstance(spx, ScalarProperty):
-            spx = particle_scalars(spx)
-        if not isinstance(spy, ScalarProperty):
-            spy = particle_scalars(spy)
-        if not isinstance(spz, ScalarProperty):
-            spz = particle_scalars(spz)
         h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
         ret = Field(h, xedges, yedges, zedges)
         ret.axes[0].grid_node = xedges

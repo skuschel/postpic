@@ -71,7 +71,6 @@ def main():
             # The Field objectes can be used for calculations. Here we use this to
             # calculate the average kinetic energy on grid and plot
             plotter.plotField(ekin / nd, name='Avg Kin Energy (MeV)')  # plot 5
-
             # use optargsh to force lower resolution
             # plot number density
             plotter.plotField(pa.createField('x', 'y', optargsh=optargsh), lineoutx=True, lineouty=True)  # plot 6
