@@ -105,10 +105,13 @@ def main():
 
 
             # choose particles by their properies
-            def cf(ms):
-                return ms('x') > 0.0  # only use particles with x > 0.0
-            cf.name = 'x>0'
-            pa.compressfn(cf)
+            # this has been the old interface, which would still work
+            # def cf(ms):
+            #     return ms('x') > 0.0  # only use particles with x > 0.0
+            # cf.name = 'x>0.0'
+            # pa.compress(cf)
+            # nicer is the new filter function, which does exactly the same:
+            pa.filter('x>0')
             # plot 15, compare with plot 10
             plotter.plotField(pa.createField('x', 'y', optargsh={'bins': [1000,1000]}))
             # plot 16, compare with plot 12

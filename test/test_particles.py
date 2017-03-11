@@ -30,5 +30,16 @@ class TestMultiSpecies(unittest.TestCase):
         self.assertAlmostEqual(self.p.quantile('x', 0.4), -0.26393734)
         self.assertAlmostEqual(self.p.quantile('x', 0.6, weights='gamma'), 0.21717963)
 
+    def test_compress(self):
+        def cf(ms):
+            return ms('x>0')
+        self.p.compressfn(cf)
+        lencf = len(self.p)
+        self.p.uncompress()
+        self.p.filter('x>0')
+        lenf = len(self.p)
+        self.p.uncompress()
+        self.assertEqual(lencf, lenf)
+
 if __name__ == '__main__':
     unittest.main()

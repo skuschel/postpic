@@ -353,6 +353,16 @@ class _SingleSpecies(object):
             # See commit message for benchmark.
         return ret
 
+    def filter(self, condition, name=None):
+        '''
+        like compress, but takes a ScalarProperty object instead which is required
+        to evalute to a boolean list.
+        '''
+        cond = self(condition)
+        if name is None:
+            name = condition.expr if condition.name is None else condition.name
+        self.compress(cond, name=name)
+
     def compress(self, condition, name='unknown condition'):
         """
         works like numpy.compress.
@@ -634,6 +644,20 @@ class MultiSpecies(object):
         return self
 
     # --- compress related functions ---
+
+    def filter(self, condition, name=None):
+        '''
+        like compress, but takes a ScalarProperty or a str, which are required to
+        evaluate to a boolean list to filter particles. This is the preferred method to
+        filter particles by a value of their property.
+        '''
+        if isinstance(condition, ScalarProperty):
+            sp = condition
+        else:
+            sp = particle_scalars(condition)
+        for ssa in self._ssas:
+            ssa.filter(sp, name=name)
+        self._compresslog = np.append(self._compresslog, str(condition))
 
     def compress(self, condition, name='unknown condition'):
         """
