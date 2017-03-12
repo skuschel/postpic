@@ -32,8 +32,10 @@ from .scalarproperties import ScalarProperty, ScalarPropertyContext, createdefau
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
-__all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory', 'ScalarProperty',
-           'particle_scalars']
+# this file
+__all__ = ['MultiSpecies', 'ParticleHistory', 'particle_scalars']
+# imported
+__all__ += ['identifyspecies', 'ScalarProperty']
 
 
 particle_scalars = createdefaultscalarcontext()
