@@ -16,7 +16,7 @@
 #
 # Stephan Kuschel 2017
 
-# from .particles import MultiSpecies
+import warnings
 import collections
 try:
     import numexpr as ne
