@@ -41,5 +41,12 @@ class TestMultiSpecies(unittest.TestCase):
         self.p.uncompress()
         self.assertEqual(lencf, lenf)
 
+    def test_compress_ids(self):
+        ids = [1,5,10]
+        self.p.compress(ids)
+        lenc = len(self.p)
+        self.p.uncompress()
+        self.assertEqual(lenc, 3)
+
 if __name__ == '__main__':
     unittest.main()

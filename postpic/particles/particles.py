@@ -184,7 +184,7 @@ class _SingleSpecies(object):
             # bools = np.array([idx in condition for idx in self.ID()])
             # but benchmarked to be 1500 times faster :)
             condition.sort()
-            ids = self('id')
+            ids = self.id()
             idx = np.searchsorted(condition, ids)
             idx[idx == len(condition)] = 0
             bools = condition[idx] == ids
@@ -452,7 +452,7 @@ class MultiSpecies(object):
         cfintospectrometer.name = '< 30mrad offaxis'
         pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
         2)
-        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
+        condition = [1, 2, 4, 5, 9, ... , 805, 809]
         condition can be a list of arbitraty length, so only the particles
         with the ids listed here are kept.
 

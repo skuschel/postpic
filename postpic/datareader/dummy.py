@@ -180,6 +180,8 @@ class Dummyreader(Dumpreader_ifc):
             ret = np.roll(self._xdata, 3) * (PhysicalConstants.me * PhysicalConstants.c)
         elif attribid == 9:  # weights
             ret = np.repeat(1, len(self._xdata))
+        elif attribid == 10:  # ids
+            ret = np.arange(len(self._xdata))
         else:
             raise KeyError('Attrib "' + str(attrib) + '" of species "' +
                            str(species) + '" not present')
@@ -212,27 +214,3 @@ class Dummysim(Simulationreader_ifc):
             + str(self.dumpidentifier) + '">'
         ret = ret.format(self._dimensions)
         return ret
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
