@@ -71,6 +71,17 @@ def deprecated(msg):
     return _deprecated
 
 
+def append_doc_of(obj):
+    '''
+    decorator to append the doc of `obj` to decorated object/class.
+    '''
+    def ret(a):
+        doc = '' if a.__doc__ is None else a.__doc__
+        a.__doc__ = doc + obj.__doc__
+        return a
+    return ret
+
+
 class PhysicalConstants:
     """
     gives you some constants.

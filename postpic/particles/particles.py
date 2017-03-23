@@ -25,7 +25,7 @@ import copy
 import warnings
 from ..helper import PhysicalConstants as pc
 import scipy.constants
-from ..helper import SpeciesIdentifier, histogramdd
+from ..helper import SpeciesIdentifier, histogramdd, append_doc_of
 from ..helper import deprecated
 from ..datahandling import *
 from .scalarproperties import ScalarProperty, ScalarPropertyContext, createdefaultscalarcontext
@@ -216,18 +216,16 @@ class _SingleSpecies(object):
         return ret
 
     # --- The Interface for particle properties using __call__ ---
-    def __call__(self, sp, _vars=None):
-        if not isinstance(sp, ScalarProperty):
-            raise TypeError('Argument must be a ScalarProperty object')
-        return self._eval_single_sp(sp, _vars=_vars)
 
     def _eval_single_sp(self, sp, _vars=None):
+        # sp MUST be ScalarProperty
+        # this docsting is forwared to __call__
         '''
-        sp must be a ScalarProperty instance.
         Variable resolution order:
-        1. try to find the value as a defined particle property
-        2. if not found looking for an equally named attribute of numpy
-        3. if not found looking for an equally named attribute of scipy.constants
+        --------------------------
+        1. try to find the value as a atomic particle property.
+        2. try to find the value as a defined particle property in `particle_scalars`.
+        3. if not found look for an equally named attribute in `scipy.constants`.
         '''
         _vars = dict() if _vars is None else _vars
         expr = sp.expr
@@ -249,12 +247,17 @@ class _SingleSpecies(object):
             for source in [np, scipy.constants]:
                 try:
                     _vars[name] = getattr(source, name)
-                    continue
                 except(AttributeError):
                     pass
             if name not in _vars:
                 raise KeyError('"{}" not found!'.format(name))
         return sp.evaluate(_vars)
+
+    @append_doc_of(_eval_single_sp)
+    def __call__(self, sp, _vars=None):
+        if not isinstance(sp, ScalarProperty):
+            raise TypeError('Argument must be a ScalarProperty object')
+        return self._eval_single_sp(sp, _vars=_vars)
 
 
 class MultiSpecies(object):
@@ -501,6 +504,7 @@ class MultiSpecies(object):
 
     # --- Methods to access particle properties
 
+    @append_doc_of(_SingleSpecies.__call__)
     def __call__(self, expr):
         '''
         Access to particle properties via the expression,
@@ -537,6 +541,7 @@ class MultiSpecies(object):
             return self.__call_func(expr)
 
     def __call_sp(self, sp):
+        # sp MUST be ScalarProperty
         def ssdata(ss):
             a = ss(sp)
             if a.shape is ():
