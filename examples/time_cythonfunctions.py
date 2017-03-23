@@ -19,6 +19,10 @@
 #
 
 def main():
+    time_histogram()
+    time_particlescalars()
+
+def time_histogram():
     import timeit
     import numpy as np
     import postpic.cythonfunctions as cf
@@ -108,6 +112,32 @@ def main():
     time3D(datax, datay, dataz, bins, None, 2, tn)
     time3D(datax, datay, dataz, bins, weights, 2, tnw)
 
+
+def time_particlescalars():
+    import postpic as pp
+    import timeit
+    pp.chooseCode('dummy')
+    dr1 = pp.readDump(0.01e6, dimensions=3)
+    dr2 = pp.readDump(1.0e6, dimensions=3)
+    ms1 = pp.MultiSpecies(dr1, 'electron')
+    ms2 = pp.MultiSpecies(dr2, 'electron')
+    testexprs = ['x', 'x + y + z', 'gamma', 'beta', 'angle_xy', 'angle_xaxis',
+                'sqrt(x**2 + y**2 + z**2)', 'r_xyz',
+                '(gamma > 1) & (angle_xaxis < 0.1) & (r_xyz < 5e-6)']
+    print('')
+    print('calculation times for n million particles, averaged over 3 calculations each...')
+    headformat = ' {:2s}  | {:6s} | {:6s} | {:s}'
+    print(headformat.format('n', ' t', ' t/n', 'per particle quantity'))
+    print(headformat.format('',   ' ms', 'ms/mio', ''))
+    def timeexpr(expr, ms):
+        t = timeit.Timer(lambda: ms(expr))
+        tc = t.timeit(number=3)/3.0
+        npartmio = len(ms)/1e6
+        print('{:4.2f} | {:6.2f} | {:6.2f} | {}'.format(npartmio, tc*1e3, (tc*1e3)/npartmio, expr))
+    for expr in testexprs:
+        for ms in (ms1, ms2):
+            timeexpr(expr, ms)
+
+
 if __name__=='__main__':
     main()
-
