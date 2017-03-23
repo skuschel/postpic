@@ -16,8 +16,18 @@
 #
 
 from __future__ import absolute_import, division, print_function, unicode_literals
+import sys
 
 from . import particles
 from .particles import *
+from . import scalarproperties
+from .scalarproperties import ScalarProperty
 
-__all__ = particles.__all__
+
+__all__ = ['ScalarProperty']
+__all__ += particles.__all__
+
+
+if sys.version_info[0] == 2:
+    # some weired python2 thing
+    __all__ = [n.encode('ascii') for n in __all__]

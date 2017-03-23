@@ -35,7 +35,7 @@ identifyspecies = SpeciesIdentifier.identifyspecies
 # this file
 __all__ = ['MultiSpecies', 'ParticleHistory', 'particle_scalars']
 # imported
-__all__ += ['identifyspecies', 'ScalarProperty']
+__all__ += ['identifyspecies']
 
 
 particle_scalars = createdefaultscalarcontext()

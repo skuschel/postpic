@@ -44,4 +44,3 @@ __all__ += ['chooseCode', 'readDump', 'readSim']
 
 
 __git_version__, __version__ = _postpic_version.getversion_package()
-
