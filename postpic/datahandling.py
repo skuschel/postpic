@@ -280,8 +280,8 @@ class Field(object):
         '''
         sets the new extent to the specific values
         '''
-        assert self.dimensions * 2 == len(newextent), \
-            'size of newextent doesnt match self.dimensions * 2'
+        if not self.dimensions * 2 == len(newextent):
+            raise TypeError('size of newextent doesnt match self.dimensions * 2')
         for i in range(len(self.axes)):
             self.axes[i].setextent(newextent[2 * i:2 * i + 2],
                                    self.matrix.shape[i])
@@ -328,8 +328,8 @@ class Field(object):
         '''
         if self.dimensions == 0:
             return
-        assert self.dimensions * 2 == len(newextent), \
-            'size of newextent doesnt match self.dimensions * 2'
+        if not self.dimensions * 2 == len(newextent):
+            raise TypeError('size of newextent doesnt match self.dimensions * 2')
         self.matrix = helper.cutout(self.matrix, self.extent, newextent)
         for i in range(len(self.axes)):
             self.axes[i].cutout(newextent[2 * i:2 * i + 2])
