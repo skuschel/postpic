@@ -176,6 +176,12 @@ class Field(object):
         elif self.dimensions > 2:
             self._addaxis((0, 1), name='z')
 
+    def __array__(self):
+        '''
+        will be called by numpy function in case an numpy array is needed.
+        '''
+        return self.matrix
+
     def _addaxisobj(self, axisobj):
         '''
         uses the given axisobj as the axis obj in the given dimension.
@@ -451,5 +457,3 @@ class Field(object):
     # python 2
     __idiv__ = __itruediv__
     __div__ = __truediv__
-
-
