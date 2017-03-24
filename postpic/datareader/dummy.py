@@ -53,6 +53,12 @@ class Dummyreader(Dumpreader_ifc):
             self._ydata = randfunc(size=int(dumpid))
         if dimensions > 2:
             self._zdata = randfunc(size=int(dumpid))
+        self._pxdata = np.roll(self._xdata, 1) ** 2 * (PhysicalConstants.me * PhysicalConstants.c)
+        self._pydata = np.roll(self._xdata, 2) * (PhysicalConstants.me * PhysicalConstants.c)
+        self._pzdata = np.roll(self._xdata, 3) * (PhysicalConstants.me * PhysicalConstants.c)
+        self._weights = np.repeat(1, len(self._xdata))
+        self._ids = np.arange(len(self._xdata))
+        np.random.shuffle(self._ids)
 
     def keys(self):
         pass
@@ -173,15 +179,15 @@ class Dummyreader(Dumpreader_ifc):
         elif attribid == 2 and self.simdimensions() > 2:  # z
             ret = self._zdata
         elif attribid == 3:  # px
-            ret = np.roll(self._xdata, 1) ** 2 * (PhysicalConstants.me * PhysicalConstants.c)
+            ret = self._pxdata
         elif attribid == 4:  # py
-            ret = np.roll(self._ydata, 1) * (PhysicalConstants.me * PhysicalConstants.c)
+            ret = self._pydata
         elif attribid == 5:  # pz
-            ret = np.roll(self._xdata, 3) * (PhysicalConstants.me * PhysicalConstants.c)
+            ret = self._pzdata
         elif attribid == 9:  # weights
-            ret = np.repeat(1, len(self._xdata))
+            ret = self._weights
         elif attribid == 10:  # ids
-            ret = np.arange(len(self._xdata))
+            ret = self._ids
         else:
             raise KeyError('Attrib "' + str(attrib) + '" of species "' +
                            str(species) + '" not present')

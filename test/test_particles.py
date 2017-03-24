@@ -19,7 +19,7 @@ class TestMultiSpecies(unittest.TestCase):
 
     def test_mean(self):
         self.assertAlmostEqual(self.p.mean('x'), -0.0184337)
-        self.assertAlmostEqual(self.p.mean('x', weights='beta'), -0.01965867)
+        self.assertAlmostEqual(self.p.mean('x', weights='beta'), -0.01708324558)
 
     def test_var(self):
         self.assertAlmostEqual(self.p.var('x'), 0.97526797)
@@ -28,7 +28,7 @@ class TestMultiSpecies(unittest.TestCase):
 
     def test_quantile(self):
         self.assertAlmostEqual(self.p.quantile('x', 0.4), -0.26393734)
-        self.assertAlmostEqual(self.p.quantile('x', 0.6, weights='gamma'), 0.21717963)
+        self.assertAlmostEqual(self.p.quantile('x', 0.6, weights='gamma'), 0.2220709288)
 
     def test_compress(self):
         def cf(ms):
