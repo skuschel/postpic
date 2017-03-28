@@ -37,7 +37,8 @@ histogramdd_defs = {'shape': 2}
 
 axesidentify = {'X': 0, 'x': 0, 0: 0,
                 'Y': 1, 'y': 1, 1: 1,
-                'Z': 2, 'z': 2, 2: 2}
+                'Z': 2, 'z': 2, 2: 2,
+                None: slice(None)}
 attribidentify = axesidentify.copy()
 attribidentify.update({'PX': 3, 'Px': 3, 'px': 3, 3: 3,
                        'PY': 4, 'Py': 4, 'py': 4, 4: 4,
@@ -342,6 +343,3 @@ def histogramdd(data, **kwargs):
                                             np.float64(data[1]),
                                             np.float64(data[2]), **kwargs)
             return h, xe, ye, ze
-
-
-

@@ -152,6 +152,14 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
     def time(self):
         pass
 
+    @abc.abstractmethod
+    def simdimensions(self):
+        '''
+        the number of spatial dimensions the simulations was using.
+        Must be 1, 2 or 3.
+        '''
+        pass
+
     # --- Data on Grid ---
     # _key[E,B] methods are ONLY used inside the datareader class
     @abc.abstractmethod
@@ -327,6 +335,3 @@ class Simulationreader_ifc(collections.Sequence):
 
     def times(self):
         return np.array([s.time() for s in self])
-
-
-
