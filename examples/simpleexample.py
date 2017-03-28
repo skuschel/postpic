@@ -66,6 +66,11 @@ def main():
             nd = pa.createField('x', 'y', optargsh=optargsh, simextent=True)
             # plot the Field object nd
             plotter.plotField(nd, name='NumberDensity')   # plot 4
+            # if you like to keep working with the just created number density
+            # yourself, it will convert to an numpy array whenever needed:
+            arr = np.asarray(nd)
+            print('Shape of number density: {}'.format(arr.shape))
+
             # more advanced: create a field holding the total kinetic energy on grid
             ekin = pa.createField('x', 'y', weights='Ekin_MeV', optargsh=optargsh, simextent=True)
             # The Field objectes can be used for calculations. Here we use this to
