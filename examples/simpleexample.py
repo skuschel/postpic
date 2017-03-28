@@ -117,5 +117,7 @@ def main():
             # plot 14, compare with plot 12
             plotter.plotField(pa.createField(r, p_r, optargsh={'bins':[400,400]}))
 
+            plotter.plotField(dr.divE())  # plot 13
+
 if __name__=='__main__':
     main()

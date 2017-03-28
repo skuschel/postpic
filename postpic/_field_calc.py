@@ -198,3 +198,31 @@ class FieldAnalyzer(object):
         ret.shortname = 'EM'
         return ret
 
+    def _divE1d(self, **kwargs):
+        return np.gradient(self._Ex(**kwargs), axis=0)
+
+    def _divE2d(self, **kwargs):
+        return np.gradient(self._Ex(**kwargs), axis=0) \
+            + np.gradient(self._Ey(**kwargs), axis=1)
+
+    def _divE3d(self, **kwargs):
+        return np.gradient(self._Ex(**kwargs), axis=0) \
+            + np.gradient(self._Ey(**kwargs), axis=1) \
+            + np.gradient(self._Ez(**kwargs), axis=2)
+
+    def divE(self, **kwargs):
+        '''
+        returns the divergence of E.
+        This is calculated in the number of dimensions the simulation was running on.
+        '''
+        # this works because the datareader extents this class
+        simdims = self.simdimensions()
+        opts = {1: self._divE1d,
+                2: self._divE2d,
+                3: self._divE3d}
+        data = opts[simdims](**kwargs)
+        ret = self._createfieldfromdata(data, self.gridkeyE('x', **kwargs))
+        ret.unit = 'V/m^2'
+        ret.name = 'div E'
+        ret.shortname = 'divE'
+        return ret
