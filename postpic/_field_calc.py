@@ -24,6 +24,7 @@ import numpy as np
 from .helper import PhysicalConstants as pc
 from . import helper
 from .datahandling import *
+import warnings
 
 __all__ = ['FieldAnalyzer']
 
@@ -199,13 +200,28 @@ class FieldAnalyzer(object):
         return ret
 
     def _divE1d(self, **kwargs):
-        return np.gradient(self._Ex(**kwargs), axis=0)
+        return np.gradient(self._Ex(**kwargs))
 
     def _divE2d(self, **kwargs):
+        from pkg_resources import parse_version
+        if parse_version(np.__version__) < parse_version('1.11'):
+            warnings.warn('''
+            The support for numpy < "1.11" will be dropped in the future. Upgrade!
+            ''', DeprecationWarning)
+            return np.gradient(self._Ex(**kwargs))[0] \
+                + np.gradient(self._Ey(**kwargs))[1]
         return np.gradient(self._Ex(**kwargs), axis=0) \
             + np.gradient(self._Ey(**kwargs), axis=1)
 
     def _divE3d(self, **kwargs):
+        from pkg_resources import parse_version
+        if parse_version(np.__version__) < parse_version('1.11'):
+            warnings.warn('''
+            The support for numpy < "1.11" will be dropped in the future. Upgrade!
+            ''', DeprecationWarning)
+            return np.gradient(self._Ex(**kwargs))[0] \
+                + np.gradient(self._Ey(**kwargs))[1] \
+                + np.gradient(self._Ez(**kwargs))[2]
         return np.gradient(self._Ex(**kwargs), axis=0) \
             + np.gradient(self._Ey(**kwargs), axis=1) \
             + np.gradient(self._Ez(**kwargs), axis=2)
