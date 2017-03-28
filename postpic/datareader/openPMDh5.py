@@ -114,6 +114,18 @@ class OpenPMDreader(Dumpreader_ifc):
     def time(self):
         return np.float64(self.attrs['time'] * self.attrs['timeUnitSI'])
 
+    def simdimensions(self):
+        '''
+        the number of spatial dimensions the simulation was using.
+        '''
+        for k in self.simgridkeys():
+            try:
+                gs = self.gridspacing(k, None)
+                return len(gs)
+            except(KeyError):
+                pass
+        raise KeyError('number of simdimensions could not be retrieved for {}'.format(self))
+
     def _keyE(self, component, **kwargs):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
         return 'fields/E/' + axsuffix
@@ -196,11 +208,3 @@ class FileSeries(Simulationreader_ifc):
 
     def __str__(self):
         return '<FileSeries at "' + self.simidentifier + '">'
-
-
-
-
-
-
-
-

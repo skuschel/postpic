@@ -55,6 +55,7 @@ def main():
     import matplotlib; matplotlib.use('Agg')
     pp.chooseCode('openpmd')
     dr = pp.readDump('examples/_openPMDdata/example-2d/hdf5/data00000300.h5')
+    print('The simulations was running on {} spatial dimensions.'.format(dr.simdimensions()))
     # set and create directory for pictures.
     savedir = '_examplepictures/openPMD/'
     import os
