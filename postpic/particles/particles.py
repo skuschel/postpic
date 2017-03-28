@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014
+# Stephan Kuschel 2014-2017
 """
 Particle related routines.
 """
@@ -22,14 +22,39 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import copy
-from .helper import PhysicalConstants as pc
-from .helper import SpeciesIdentifier
-from .helper import histogramdd
-from .datahandling import *
+import warnings
+from ..helper import PhysicalConstants as pc
+import scipy.constants
+from ..helper import SpeciesIdentifier, histogramdd, append_doc_of
+from ..helper import deprecated
+from ..datahandling import *
+from .scalarproperties import ScalarProperty, ScalarPropertyContext, createdefaultscalarcontext
 
 identifyspecies = SpeciesIdentifier.identifyspecies
 
-__all__ = ['MultiSpecies', 'identifyspecies', 'ParticleHistory']
+# this file
+__all__ = ['MultiSpecies', 'ParticleHistory', 'particle_scalars']
+# imported
+__all__ += ['identifyspecies']
+
+
+particle_scalars = createdefaultscalarcontext()
+
+
+def _findscalarattr(scalarf, attrib, default='unknown'):
+    '''
+    Tries to find the scalarf's attribute attrib like name or unit.
+    returns None if not found
+    '''
+    ret = None
+    if hasattr(scalarf, attrib):
+        # scalarf is function or ScalarProperty
+        ret = getattr(scalarf, attrib)
+    if scalarf in particle_scalars:
+        # scalarf is a string
+        if hasattr(particle_scalars[scalarf], attrib):
+            ret = getattr(particle_scalars[scalarf], attrib)
+    return default if ret is None else ret
 
 
 class _SingleSpecies(object):
@@ -45,7 +70,8 @@ class _SingleSpecies(object):
     """
     # List of atomic particle properties. Those will be requested from the dumpreader
     # All other particle properties will be calculated from these.
-    _atomicprops = ['weight', 'X', 'Y', 'Z', 'Px', 'Py', 'Pz', 'mass', 'charge', 'ID', 'time']
+    _atomicprops = ['weight', 'x', 'y', 'z', 'px', 'py', 'pz', 'mass', 'charge', 'id', 'time']
+    _atomicprops_synonyms = {'w': 'weight', 'm': 'mass', 'q': 'charge', 't': 'time'}
 
     def __init__(self, dumpreader, species):
         if species not in dumpreader.listSpecies():
@@ -64,6 +90,10 @@ class _SingleSpecies(object):
             return ret
         for key in self._atomicprops:
             setattr(_SingleSpecies, key, makefunc(self, key))
+
+    @property
+    def dumpreader(self):
+        return self._dumpreader
 
     def __str__(self):
         return '<_SingleSpecies ' + str(self.species) \
@@ -92,15 +122,25 @@ class _SingleSpecies(object):
         else:
             ret = self._dumpreader.getSpecies(self.species, key)
         # now that we have got the data, check if compress was used and/or maybe cache value
-        ret = np.int64(ret) if key == 'ID' else np.float64(ret)
-        if isinstance(ret, float):  # cache single scalars always
+        ret = np.int64(ret) if key == 'id' else np.float64(ret)
+        if ret.shape is ():  # cache single scalars always
             self._cache[key] = ret
-        if isinstance(ret, np.ndarray) and self._compressboollist is not None:
+        elif self._compressboollist is not None:
             ret = ret[self._compressboollist]  # avoid executing this line too often.
             self._cache[key] = ret
             # if memomry is low, caching could be skipped entirely.
             # See commit message for benchmark.
         return ret
+
+    def filter(self, condition, name=None):
+        '''
+        like compress, but takes a ScalarProperty object instead which is required
+        to evalute to a boolean list.
+        '''
+        cond = self(condition)
+        if name is None:
+            name = condition.expr if condition.name is None else condition.name
+        self.compress(cond, name=name)
 
     def compress(self, condition, name='unknown condition'):
         """
@@ -133,7 +173,7 @@ class _SingleSpecies(object):
             else:
                 self._compressboollist[self._compressboollist] = condition
             for key in self._cache:
-                if isinstance(self._cache[key], np.ndarray):
+                if self._cache[key].shape is not ():
                     self._cache[key] = self._cache[key][condition]
             self.compresslog = np.append(self.compresslog, name)
         else:
@@ -144,7 +184,7 @@ class _SingleSpecies(object):
             # bools = np.array([idx in condition for idx in self.ID()])
             # but benchmarked to be 1500 times faster :)
             condition.sort()
-            ids = self.ID()
+            ids = self.id()
             idx = np.searchsorted(condition, ids)
             idx[idx == len(condition)] = 0
             bools = condition[idx] == ids
@@ -175,57 +215,49 @@ class _SingleSpecies(object):
                 pass
         return ret
 
-    # calculate new per particle properties from the atomic properties.
-    # the following functions can be computed more efficiently here
-    # than in the MultiSpecies class
-    # (example: if mass is constant for the entire species, it doesnt
-    # have to be repeated using np.repeat before the calculation)
+    # --- The Interface for particle properties using __call__ ---
 
-    def gamma(self):
-        return self.gamma_m1() + 1
-
-    def gamma_m1(self):
+    def _eval_single_sp(self, sp, _vars=None):
+        # sp MUST be ScalarProperty
+        # this docsting is forwared to __call__
         '''
-        returns gamma-1 in a numerical stable way, even for
-        gamma-1 very close to zero. It uses the identity
-        gamma - 1 = (p/mc)**2 / (gamma + 1)
+        Variable resolution order:
+        --------------------------
+        1. try to find the value as a atomic particle property.
+        2. try to find the value as a defined particle property in `particle_scalars`.
+        3. if not found look for an equally named attribute in `scipy.constants`.
         '''
-        p2 = (self.Px()**2 + self.Py()**2 + self.Pz()**2) / (self.mass() * pc.c)**2
-        # gamma = np.sqrt(1 + p2)
-        return p2 / (np.sqrt(1 + p2) + 1)
+        _vars = dict() if _vars is None else _vars
+        expr = sp.expr
+        for name in sp.input_names:
+            # load each variable needed
+            if name in _vars:
+                # already loaded -> skip
+                continue
+            fullname = self._atomicprops_synonyms.get(name, name)
+            if fullname in _vars:
+                _vars[name] = _vars[fullname]
+                continue
+            if fullname in self._atomicprops:
+                _vars[name] = getattr(self, fullname)()
+                continue
+            if name in particle_scalars:  # the public list of scalar values
+                _vars[name] = self._eval_single_sp(particle_scalars[name], _vars=_vars)
+                continue
+            for source in [np, scipy.constants]:
+                try:
+                    _vars[name] = getattr(source, name)
+                except(AttributeError):
+                    pass
+            if name not in _vars:
+                raise KeyError('"{}" not found!'.format(name))
+        return sp.evaluate(_vars)
 
-    def gamma_m(self):
-        return self.gamma() * self.mass()
-
-    def mass_u(self):
-        return self.mass() / pc.mass_u
-
-    def charge_e(self):
-        return self.charge() / pc.qe
-
-    def Eruhe(self):
-        return self.mass() * pc.c ** 2
-
-    def Ekin(self):
-        return self.gamma_m1() * self.Eruhe()
-
-    def Ekin_MeV(self):
-        return self.Ekin() / pc.qe / 1e6
-
-    def Ekin_MeV_amu(self):
-        return self.Ekin_MeV() / self.mass_u()
-
-    def Ekin_MeV_qm(self):
-        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
-
-    def Ekin_keV(self):
-        return self.Ekin() / pc.qe / 1e3
-
-    def Ekin_keV_amu(self):
-        return self.Ekin_keV() / self.mass_u()
-
-    def Ekin_keV_qm(self):
-        return self.Ekin_MeV() * self.charge_e() / self.mass_u()
+    @append_doc_of(_eval_single_sp)
+    def __call__(self, sp, _vars=None):
+        if not isinstance(sp, ScalarProperty):
+            raise TypeError('Argument must be a ScalarProperty object')
+        return self._eval_single_sp(sp, _vars=_vars)
 
 
 class MultiSpecies(object):
@@ -247,24 +279,6 @@ class MultiSpecies(object):
         self._ssas = []
         self._species = None  # trivial name if set
         self._compresslog = []
-        try:
-            self.X.__func__.extent = dumpreader.simextent('x')
-            self.X.__func__.gridpoints = dumpreader.simgridpoints('x')
-            self.X_um.__func__.extent = dumpreader.simextent('x') * 1e6
-            self.X_um.__func__.gridpoints = dumpreader.simgridpoints('x')
-            self.Y.__func__.extent = dumpreader.simextent('y')
-            self.Y.__func__.gridpoints = dumpreader.simgridpoints('y')
-            self.Y_um.__func__.extent = dumpreader.simextent('y') * 1e6
-            self.Y_um.__func__.gridpoints = dumpreader.simgridpoints('y')
-            self.Z.__func__.extent = dumpreader.simextent('z')
-            self.Z.__func__.gridpoints = dumpreader.simgridpoints('z')
-            self.Z_um.__func__.extent = dumpreader.simextent('z') * 1e6
-            self.Z_um.__func__.gridpoints = dumpreader.simgridpoints('z')
-        except(KeyError, IndexError):
-            pass
-        self.angle_xy.__func__.extent = np.real([-np.pi, np.pi])
-        self.angle_yz.__func__.extent = np.real([-np.pi, np.pi])
-        self.angle_zx.__func__.extent = np.real([-np.pi, np.pi])
         # add particle species one by one
         for s in speciess:
             self.add(dumpreader, s, **kwargs)
@@ -272,6 +286,33 @@ class MultiSpecies(object):
     def __str__(self):
         return '<MultiSpecies including ' + str(self.species) \
             + '(' + str(len(self)) + ')>'
+
+    @property
+    def dumpreader(self):
+        '''
+        returns the dumpreader if the dumpreader of **all** species
+        are pointing to the same dump. This should be mostly the case.
+
+        Otherwise returns None.
+        '''
+        try:
+            dr0 = self._ssas[0].dumpreader
+            if all([dr0 == ssa.dumpreader for ssa in self._ssas]):
+                return dr0
+        except(IndexError, KeyError):
+            return None
+
+    def simextent(self, axis):
+        try:
+            return self.dumpreader.simextent(axis)
+        except(AttributeError, KeyError):
+            return None
+
+    def simgridpoints(self, axis):
+        try:
+            return self.dumpreader.simgridpoints(axis)
+        except(AttributeError, KeyError):
+            return None
 
     @property
     def npart(self):
@@ -302,16 +343,13 @@ class MultiSpecies(object):
         May be overwritten.
         '''
         if self._species is not None:
+            # return trivial name if set
             return self._species
-        ret = ''
-        for s in set(self.speciess):
-            ret += s + ' '
-        ret = ret[0:-1]
-        return ret
+        return ' '.join(set(self.speciess))
 
     @species.setter
-    def species(self, name):
-        self._name = name
+    def species(self, species):
+        self._species = species
 
     @property
     def name(self):
@@ -389,6 +427,20 @@ class MultiSpecies(object):
 
     # --- compress related functions ---
 
+    def filter(self, condition, name=None):
+        '''
+        like compress, but takes a ScalarProperty or a str, which are required to
+        evaluate to a boolean list to filter particles. This is the preferred method to
+        filter particles by a value of their property.
+        '''
+        if isinstance(condition, ScalarProperty):
+            sp = condition
+        else:
+            sp = particle_scalars(condition)
+        for ssa in self._ssas:
+            ssa.filter(sp, name=name)
+        self._compresslog = np.append(self._compresslog, str(condition))
+
     def compress(self, condition, name='unknown condition'):
         """
         works like numpy.compress.
@@ -403,7 +455,7 @@ class MultiSpecies(object):
         cfintospectrometer.name = '< 30mrad offaxis'
         pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
         2)
-        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
+        condition = [1, 2, 4, 5, 9, ... , 805, 809]
         condition can be a list of arbitraty length, so only the particles
         with the ids listed here are kept.
 
@@ -450,297 +502,390 @@ class MultiSpecies(object):
             ret.update({ssa.species: ssa.compresslog})
         return ret
 
-    # --- map functions to SingleSpeciesAnalyzer
+    # --- Methods to access particle properties
 
-    def _map2ssa(self, func):
+    @append_doc_of(_SingleSpecies.__call__)
+    def __call__(self, expr):
         '''
-        maps a function to the SingleSpecies. If the SingleSpecies
-        returns a single scalar, it will be repeated using np.repeat to ensure
-        that a list will always be returned.
+        Access to particle properties via the expression,
+        which is used to calculate them.
+
+        This is **only** function to actually access the data. Every other function
+        which allows data access must call this one internally!
+
+        Supported Types:
+        ----------------
+        * ScalarProperty
+        * str: will be converted to a ScalarProperty by particle_scalars.__call__.
+               Therefore known quantities will be recognized
+        * callable, that acts on the MultiSpecies object. This will work, but
+          maybe removed in a future release.
+
+        Examples
+        --------
+        self('x')
+        self('sqrt(px**2 + py**2 + pz**2)')
         '''
-        def ssadata(ssa, func):
-            a = getattr(ssa, func)()
-            if isinstance(a, float):
-                a = np.repeat(a, len(ssa))
+        if isinstance(expr, ScalarProperty):
+            # best case
+            return self.__call_sp(expr)
+        try:
+            bs = basestring  # python2
+        except(NameError):
+            bs = str  # python3
+        if isinstance(expr, bs):
+            # create temporary ScalarProperty object
+            sp = particle_scalars(expr)
+            return self.__call_sp(sp)
+        else:
+            return self.__call_func(expr)
+
+    def __call_sp(self, sp):
+        # sp MUST be ScalarProperty
+        def ssdata(ss):
+            a = ss(sp)
+            if a.shape is ():
+                a = np.repeat(a, len(ss))
             return a
         if len(self._ssas) == 0:
             # Happens, if only missing species were added with
             # ignore_missing_species = True.
             return np.array([])
-        data = (ssadata(ssa, func) for ssa in self._ssas)
+        data = (ssdata(ss) for ss in self._ssas)
         return np.hstack(data)
+
+    def __call_func(self, func):
+        # hope it does what it should...
+        s = '''
+        You are accessing particle properties via the function {}.
+        The Calculation of particle properties using functions is deprecated.
+        Use a str or a ScalarProperty object instead. This will also allow postic to enable
+        certain optimizations. When in doubt, use the str.
+        '''.format(str(func))
+        warnings.warn(s, category=DeprecationWarning)
+        return func(self)
 
     # --- "A scalar for every particle"-functions.
 
+    @deprecated('Use self("{name}") instead.')
     def time(self):
-        return self._map2ssa('time')
+        return self('time')
     time.name = 'time'
     time.unit = 's'
 
+    @deprecated('Use self("{name}") instead.')
     def weight(self):
-        return self._map2ssa('weight')
+        return self('weight')
     weight.name = 'Particle weight'
     weight.unit = 'npartpermacro'
 
+    @deprecated('Use self("id") instead.')
     def ID(self):
-        return self._map2ssa('ID')
+        return self('id')
 
+    @deprecated('Use self("{name}") instead.')
     def mass(self):  # SI
-        return self._map2ssa('mass')
+        return self('mass')
     mass.unit = 'kg'
     mass.name = 'm'
 
+    @deprecated('Use self("{name}") instead.')
     def mass_u(self):
-        return self._map2ssa('mass_u')
+        return self('mass_u')
     mass_u.unit = 'u'
     mass_u.name = 'm'
 
+    @deprecated('Use self("{name}") instead.')
     def charge(self):  # SI
-        return self._map2ssa('charge')
+        return self('charge')
     charge.unit = 'C'
     charge.name = 'q'
 
+    @deprecated('Use self("{name}") instead.')
     def charge_e(self):
-        return self._map2ssa('charge_e')
+        return self('charge_e')
     charge.unit = 'qe'
     charge.name = 'q'
 
+    @deprecated('Use self("{name}") instead.')
     def Eruhe(self):
-        return self._map2ssa('Eruhe')
+        return self('Eruhe')
 
+    @deprecated('Use self("px") instead.')
     def Px(self):
-        return self._map2ssa('Px')
+        return self('px')
     Px.unit = ''
     Px.name = 'Px'
 
+    @deprecated('Use self("py") instead.')
     def Py(self):
-        return self._map2ssa('Py')
+        return self('py')
     Py.unit = ''
     Py.name = 'Py'
 
+    @deprecated('Use self("pz") instead.')
     def Pz(self):
-        return self._map2ssa('Pz')
+        return self('pz')
     Pz.unit = ''
     Pz.name = 'Pz'
 
+    @deprecated('Use self("p") instead.')
     def P(self):
-        return np.sqrt(self.Px() ** 2 + self.Py() ** 2 + self.Pz() ** 2)
+        return self('p')
     P.unit = ''
     P.name = 'P'
 
+    @deprecated('Use self("x") instead.')
     def X(self):
-        return self._map2ssa('X')
+        return self('x')
     X.unit = 'm'
     X.name = 'X'
 
+    @deprecated('Use self("x_um") instead.')
     def X_um(self):
-        return self.X() * 1e6
+        return self('x_um')
     X_um.unit = '$\mu m$'
     X_um.name = 'X'
 
+    @deprecated('Use self("y") instead.')
     def Y(self):
-        return self._map2ssa('Y')
+        return self('y')
     Y.unit = 'm'
     Y.name = 'Y'
 
+    @deprecated('Use self("Y_mu") instead.')
     def Y_um(self):
-        return self.Y() * 1e6
+        return self('y_um')
     Y_um.unit = '$\mu m$'
     Y_um.name = 'Y'
 
+    @deprecated('Use self("z") instead.')
     def Z(self):
-        return self._map2ssa('Z')
+        return self('z')
     Z.unit = 'm'
     Z.name = 'Z'
 
+    @deprecated('Use self("z_um") instead.')
     def Z_um(self):
-        return self.Z() * 1e6
+        return self('z_um')
     Z_um.unit = '$\mu m$'
     Z_um.name = 'Z'
 
+    @deprecated('Use self("{name}") instead.')
     def beta(self):
-        return np.sqrt(self.gamma() ** 2 - 1) / self.gamma()
+        return self('beta')
     beta.unit = r'$\beta$'
     beta.name = 'beta'
 
+    @deprecated('Use self("{name}") instead.')
     def betax(self):
-        return self.Vx() / pc.c
+        return self('betax')
     betax.unit = r'$\beta$'
     betax.name = 'betax'
 
+    @deprecated('Use self("{name}") instead.')
     def betay(self):
-        return self.Vy() / pc.c
+        return self('betay')
     betay.unit = r'$\beta$'
     betay.name = 'betay'
 
+    @deprecated('Use self("{name}") instead.')
     def betaz(self):
-        return self.Vz() / pc.c
+        return self('betaz')
     betaz.unit = r'$\beta$'
     betaz.name = 'betaz'
 
+    @deprecated('Use self("v") instead.')
     def V(self):
-        return pc.c * self.beta()
+        return self('v')
     V.unit = 'm/s'
     V.name = 'V'
 
+    @deprecated('Use self("vx") instead.')
     def Vx(self):
-        return self.Px() / self._map2ssa('gamma_m')
+        return self('vx')
     Vx.unit = 'm/s'
     Vx.name = 'Vx'
 
+    @deprecated('Use self("vy") instead.')
     def Vy(self):
-        return self.Py() / self._map2ssa('gamma_m')
+        return self('vy')
     Vy.unit = 'm/s'
     Vy.name = 'Vy'
 
+    @deprecated('Use self("vz") instead.')
     def Vz(self):
-        return self.Pz() / self._map2ssa('gamma_m')
+        return self('vz')
     Vz.unit = 'm/s'
     Vz.name = 'Vz'
 
+    @deprecated('Use self("{name}") instead.')
     def gamma(self):
-        return self._map2ssa('gamma')
+        return self('gamma')
     gamma.unit = r'$\gamma$'
     gamma.name = 'gamma'
 
+    @deprecated('Use self("{name}") instead.')
     def gamma_m1(self):
-        return self._map2ssa('gamma_m1')
+        return self('gamma_m1')
     gamma_m1.unit = r'$\gamma - 1$'
     gamma_m1.name = 'gamma_m1'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin(self):
-        return self._map2ssa('Ekin')
+        return self('Ekin')
     Ekin.unit = 'J'
     Ekin.name = 'Ekin'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_MeV(self):
-        return self._map2ssa('Ekin_MeV')
+        return self('Ekin_MeV')
     Ekin_MeV.unit = 'MeV'
     Ekin_MeV.name = 'Ekin'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_MeV_amu(self):
-        return self._map2ssa('Ekin_MeV_amu')
+        return self('Ekin_MeV_amu')
     Ekin_MeV_amu.unit = 'MeV / amu'
     Ekin_MeV_amu.name = 'Ekin / amu'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_MeV_qm(self):
-        return self._map2ssa('Ekin_MeV_qm')
+        return self('Ekin_MeV_qm')
     Ekin_MeV_qm.unit = 'MeV*q/m'
     Ekin_MeV_qm.name = 'Ekin * q/m'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_keV(self):
-        return self._map2ssa('Ekin_keV')
+        return self('Ekin_keV')
     Ekin_keV.unit = 'keV'
     Ekin_keV.name = 'Ekin'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_keV_amu(self):
-        return self._map2ssa('Ekin_keV_amu')
+        return self('Ekin_keV_amu')
     Ekin_keV_amu.unit = 'keV / amu'
     Ekin_keV_amu.name = 'Ekin / amu'
 
+    @deprecated('Use self("{name}") instead.')
     def Ekin_keV_qm(self):
-        return self._map2ssa('Ekin_keV_qm')
+        return self('Ekin_keV_qm')
     Ekin_keV_qm.unit = 'keV*q/m'
     Ekin_keV_qm.name = 'Ekin * q/m'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_xy(self):
-        return np.arctan2(self.Py(), self.Px())
+        return self('angle_xy')
     angle_xy.unit = 'rad'
     angle_xy.name = 'anglexy'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_yz(self):
-        return np.arctan2(self.Pz(), self.Py())
+        return self('ange_yz')
     angle_yz.unit = 'rad'
     angle_yz.name = 'angleyz'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_zx(self):
-        return np.arctan2(self.Px(), self.Pz())
+        return self('angle_zx')
     angle_zx.unit = 'rad'
     angle_zx.name = 'anglezx'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_yx(self):
-        return np.arctan2(self.Px(), self.Py())
+        return self('angle_yx')
     angle_yx.unit = 'rad'
     angle_yx.name = 'angleyx'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_zy(self):
-        return np.arctan2(self.Py(), self.Pz())
+        return self('angle_zy')
     angle_zy.unit = 'rad'
     angle_zy.name = 'anglezy'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_xz(self):
-        return np.arctan2(self.Pz(), self.Px())
+        return self('angle_xz')
     angle_xz.unit = 'rad'
     angle_xz.name = 'anglexz'
 
+    @deprecated('Use self("{name}") instead.')
     def angle_xaxis(self):
-        return np.arctan2(np.sqrt(self.Py()**2 + self.Pz()**2), self.Px())
+        return self('angle_xaxis')
     angle_xaxis.unit = 'rad'
     angle_xaxis.name = 'angle_xaxis'
 
+    @deprecated('Use self("{name}") instead.')
     def r_xy(self):
-        return np.sqrt(self.X()**2 + self.Y()**2)
+        return self('r_xy')
     r_xy.unit = 'm'
     r_xy.name = 'r_xy'
 
+    @deprecated('Use self("{name}") instead.')
     def r_yz(self):
-        return np.sqrt(self.Y()**2 + self.Z()**2)
+        return self('r_yz')
     r_yz.unit = 'm'
     r_yz.name = 'r_yz'
 
+    @deprecated('Use self("{name}") instead.')
     def r_zx(self):
-        return np.sqrt(self.Z()**2 + self.X()**2)
+        return self('r_zx')
     r_zx.unit = 'm'
     r_zx.name = 'r_zx'
 
+    @deprecated('Use self("{name}") instead.')
     def r_xyz(self):
-        return np.sqrt(self.X()**2 + self.Y()**2 + self.Z()**2)
+        return self('r_xyz')
     r_xyz.unit = 'm'
     r_xyz.name = 'r_xyz'
     # ---- Functions for measuring particle collection related values
 
-    def mean(self, func, weights=1.0):
+    def mean(self, expr, weights='1'):
         '''
         the mean of a value given by the function func. The particle weight
         of the individual particles will be included in the calculation.
         An additional weight can be given as well.
         '''
-        w = self.weight() * weights
-        return np.average(func(self), weights=w)
+        w = self('weight * ({})'.format(weights))
+        return np.average(self(expr), weights=w)
 
-    def var(self, func, weights=1.0):
+    def var(self, expr, weights='1'):
         '''
         variance
         '''
-        w = self.weight() * weights
-        data = func(self)
+        w = self('weight * ({})'.format(weights))
+        data = self(expr)
         m = np.average(data, weights=w)
         return np.average((data - m)**2, weights=w)
 
-    def quantile(self, func, q, weights=1.0):
+    def quantile(self, expr, q, weights='1'):
         '''
         The qth-quantile of the distribution.
         '''
         if q < 0 or q > 1:
             raise ValueError('Quantile q ({:}) must be in range [0, 1]'.format(q))
-        w = self.weight() * weights
-        data = func(self)
+        w = self('weight * ({})'.format(weights))
+        data = self(expr)
         sortidx = np.argsort(data)
         wcs = np.cumsum(w[sortidx])
         idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
         return data[sortidx[idx]]
 
-    def median(self, func, weights=1.0):
+    def median(self, expr, weights='1'):
         '''
         The median
         '''
-        return self.quantile(func, 0.5, weights=weights)
+        return self.quantile(expr, 0.5, weights=weights)
 
     # ---- Functions to create a Histogram. ---
 
-    def createHistgram1d(self, scalarfx, optargsh={},
-                         simextent=False, simgrid=False, rangex=None,
-                         weights=lambda x: 1, force=False):
+    def _createHistgram1d(self, spx, optargsh={},
+                          simextent=False, simgrid=False, rangex=None,
+                          weights='1', force=False):
+        '''
+        creates a 1d histogram.
+        spx must be of a kind, that self.__call__ can evalute to
+        '''
         optargshdefs = {'bins': 300}
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
@@ -748,17 +893,18 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = scalarfx(self)
+                xdata = self(spx)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = scalarfx(self)
+            xdata = self(spx)
         if simextent:
-            if hasattr(scalarfx, 'extent'):
-                rangex = scalarfx.extent
+            tmp = self.simextent(getattr(spx, 'symbol', None))
+            rangex = tmp if tmp is not None else rangex
         if simgrid:
-            if hasattr(scalarfx, 'gridpoints'):
-                optargsh['bins'] = scalarfx.gridpoints
+            tmp = self.simgridpoints(getattr(spx, 'symbol', None))
+            if tmp is not None:
+                optargsh['bins'] = tmp
         if len(xdata) == 0:
             h = np.zeros(optargsh['bins'])
             if rangex is not None:
@@ -768,24 +914,24 @@ class MultiSpecies(object):
             return h, xedges  # empty histogram: h == 0 everywhere
         if rangex is None:
             rangex = [np.min(xdata), np.max(xdata)]
-        w = self.weight() * weights(self)
+        w = self('weight * ({})'.format(weights))
         h, edges = histogramdd((xdata,), weights=w,
                                range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
         return h, edges
 
-    def createHistgram2d(self, scalarfx, scalarfy,
-                         optargsh={}, simextent=False,
-                         simgrid=False, rangex=None, rangey=None,
-                         weights=lambda x: 1, force=False):
+    def _createHistgram2d(self, spx, spy,
+                          optargsh={}, simextent=False,
+                          simgrid=False, rangex=None, rangey=None,
+                          weights='1', force=False):
         """
         Creates an 2d Histogram.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the y axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
@@ -805,26 +951,26 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = scalarfx(self)
-                ydata = scalarfy(self)
+                xdata = self(spx)
+                ydata = self(spy)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = scalarfx(self)
-            ydata = scalarfy(self)
+            xdata = self(spx)
+            ydata = self(spy)
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            if hasattr(scalarfx, 'extent'):
-                rangex = scalarfx.extent
-            if hasattr(scalarfy, 'extent'):
-                rangey = scalarfy.extent
+            tmp = self.simextent(getattr(spx, 'symbol', None))
+            rangex = tmp if tmp is not None else rangex
+            tmp = self.simextent(getattr(spy, 'symbol', None))
+            rangey = tmp if tmp is not None else rangey
         if simgrid:
-            if hasattr(scalarfx, 'gridpoints'):
-                optargsh['bins'][0] = scalarfx.gridpoints
-            if hasattr(scalarfy, 'gridpoints'):
-                optargsh['bins'][1] = scalarfy.gridpoints
+            for i, sp in enumerate([spx, spy]):
+                tmp = self.simgridpoints(getattr(spx, 'symbol', None))
+                if tmp is not None:
+                    optargsh['bins'][i] = tmp
         if len(xdata) == 0:
             h = np.zeros(optargsh['bins'])
             if rangex is not None:
@@ -840,27 +986,27 @@ class MultiSpecies(object):
             rangex = [np.min(xdata), np.max(xdata)]
         if rangey is None:
             rangey = [np.min(ydata), np.max(ydata)]
-        w = self.weight() * weights(self)  # Particle Size * additional weights
+        w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, xedges, yedges = histogramdd((xdata, ydata),
                                         weights=w, range=[rangex, rangey],
                                         **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
         return h, xedges, yedges
 
-    def createHistgram3d(self, scalarfx, scalarfy, scalarfz,
-                         optargsh={}, simextent=False,
-                         simgrid=False, rangex=None, rangey=None, rangez=None,
-                         weights=lambda x: 1, force=False):
+    def _createHistgram3d(self, spx, spy, spz,
+                          optargsh={}, simextent=False,
+                          simgrid=False, rangex=None, rangey=None, rangez=None,
+                          weights='1', force=False):
         """
         Creates an 3d Histogram.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the y axis.
-        scalarfz : function
+        spz : a kind, that self.__call__ can evalute to
             returns a list of scalar values for the z axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
@@ -880,32 +1026,30 @@ class MultiSpecies(object):
             simextent = True
         if force:
             try:
-                xdata = scalarfx(self)
-                ydata = scalarfy(self)
-                zdata = scalarfz(self)
+                xdata = self(spx)
+                ydata = self(spy)
+                zdata = self(spz)
             except (KeyError):
                 xdata = []  # Return empty histogram
         else:
-            xdata = scalarfx(self)
-            ydata = scalarfy(self)
-            zdata = scalarfz(self)
+            xdata = self(spx)
+            ydata = self(spy)
+            zdata = self(spz)
         # TODO: Falls rangex oder rangy gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            if hasattr(scalarfx, 'extent'):
-                rangex = scalarfx.extent
-            if hasattr(scalarfy, 'extent'):
-                rangey = scalarfy.extent
-            if hasattr(scalarfz, 'extent'):
-                rangez = scalarfz.extent
+            tmp = self.simextent(getattr(spx, 'symbol', None))
+            rangex = tmp if tmp is not None else rangex
+            tmp = self.simextent(getattr(spy, 'symbol', None))
+            rangey = tmp if tmp is not None else rangey
+            tmp = self.simextent(getattr(spz, 'symbol', None))
+            rangez = tmp if tmp is not None else rangez
         if simgrid:
-            if hasattr(scalarfx, 'gridpoints'):
-                optargsh['bins'][0] = scalarfx.gridpoints
-            if hasattr(scalarfy, 'gridpoints'):
-                optargsh['bins'][1] = scalarfy.gridpoints
-            if hasattr(scalarfz, 'gridpoints'):
-                optargsh['bins'][1] = scalarfz.gridpoints
+            for i, sp in enumerate([spx, spy, spz]):
+                tmp = self.simgridpoints(getattr(spx, 'symbol', None))
+                if tmp is not None:
+                    optargsh['bins'][i] = tmp
         if len(xdata) == 0:
             h = np.zeros(optargsh['bins'])
             if rangex is not None:
@@ -927,21 +1071,21 @@ class MultiSpecies(object):
             rangey = [np.min(ydata), np.max(ydata)]
         if rangez is None:
             rangez = [np.min(zdata), np.max(zdata)]
-        w = self.weight() * weights(self)  # Particle Size * additional weights
+        w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, xe, ye, ze = histogramdd((xdata, ydata, zdata),
                                     weights=w, range=[rangex, rangey, rangez],
                                     **optargsh)
         h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
         return h, xe, ye, ze
 
-    def createHistgramField1d(self, scalarfx, name='distfn', title=None,
+    def createHistgramField1d(self, spx, name='distfn', title=None,
                               **kwargs):
         """
         Creates an 1d Histogram enclosed in a Field object.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -953,32 +1097,30 @@ class MultiSpecies(object):
             given to createHistgram1d.
         """
         if 'weights' in kwargs:
-            name = kwargs['weights'].name
-        h, edges = self.createHistgram1d(scalarfx, **kwargs)
+            name = _findscalarattr(kwargs['weights'], 'name')
+        h, edges = self._createHistgram1d(spx, **kwargs)
         ret = Field(h, edges)
         ret.axes[0].grid_node = edges
         ret.name = name + ' ' + self.species
         ret.label = self.species
         if title:
             ret.name = title
-        if hasattr(scalarfx, 'unit'):
-            ret.axes[0].unit = scalarfx.unit
-        if hasattr(scalarfx, 'name'):
-            ret.axes[0].name = scalarfx.name
+        ret.axes[0].unit = _findscalarattr(spx, 'unit')
+        ret.axes[0].name = _findscalarattr(spx, 'name')
         ret.infos = self.getcompresslog()['all']
         ret.infostring = self.npart
         return ret
 
-    def createHistgramField2d(self, scalarfx, scalarfy, name='distfn',
+    def createHistgramField2d(self, spx, spy, name='distfn',
                               title=None, **kwargs):
         """
         Creates an 2d Histogram enclosed in a Field object.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the y axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -990,8 +1132,8 @@ class MultiSpecies(object):
             given to createHistgram2d.
         """
         if 'weights' in kwargs:
-            name = kwargs['weights'].name
-        h, xedges, yedges = self.createHistgram2d(scalarfx, scalarfy, **kwargs)
+            name = _findscalarattr(kwargs['weights'], 'name')
+        h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
         ret = Field(h, xedges, yedges)
         ret.axes[0].grid_node = xedges
         ret.axes[1].grid_node = yedges
@@ -999,26 +1141,26 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = scalarfx.unit
-        ret.axes[0].name = scalarfx.name
-        ret.axes[1].unit = scalarfy.unit
-        ret.axes[1].name = scalarfy.name
+        ret.axes[0].unit = _findscalarattr(spx, 'unit')
+        ret.axes[0].name = _findscalarattr(spx, 'name')
+        ret.axes[1].unit = _findscalarattr(spy, 'unit')
+        ret.axes[1].name = _findscalarattr(spy, 'name')
         ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
 
-    def createHistgramField3d(self, scalarfx, scalarfy, scalarfz, name='distfn',
+    def createHistgramField3d(self, spx, spy, spz, name='distfn',
                               title=None, **kwargs):
         """
         Creates an 3d Histogram enclosed in a Field object.
 
         Attributes
         ----------
-        scalarfx : function
+        spx : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
-        scalarfy : function
+        spy : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the y axis.
-        scalarfz : function
+        spz : str or ScalarProperty or function acting on a MultiSpecies object
             returns a list of scalar values for the z axis.
         name : string, optional
             addes a name. usually used for generating savenames.
@@ -1030,8 +1172,8 @@ class MultiSpecies(object):
             given to createHistgram2d.
         """
         if 'weights' in kwargs:
-            name = kwargs['weights'].name
-        h, xedges, yedges, zedges = self.createHistgram3d(scalarfx, scalarfy, scalarfz, **kwargs)
+            name = _findscalarattr(kwargs['weights'], 'name')
+        h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
         ret = Field(h, xedges, yedges, zedges)
         ret.axes[0].grid_node = xedges
         ret.axes[1].grid_node = yedges
@@ -1040,12 +1182,12 @@ class MultiSpecies(object):
         ret.label = self.species
         if title:
             ret.name = title
-        ret.axes[0].unit = scalarfx.unit
-        ret.axes[0].name = scalarfx.name
-        ret.axes[1].unit = scalarfy.unit
-        ret.axes[1].name = scalarfy.name
-        ret.axes[2].unit = scalarfz.unit
-        ret.axes[2].name = scalarfz.name
+        ret.axes[0].unit = _findscalarattr(spx, 'unit')
+        ret.axes[0].name = _findscalarattr(spx, 'name')
+        ret.axes[1].unit = _findscalarattr(spy, 'unit')
+        ret.axes[1].name = _findscalarattr(spy, 'name')
+        ret.axes[2].unit = _findscalarattr(spz, 'unit')
+        ret.axes[2].name = _findscalarattr(spz, 'name')
         ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
         ret.infos = self.getcompresslog()['all']
         return ret
@@ -1116,7 +1258,7 @@ class ParticleHistory(object):
         idsfound = set()
         for dr in self.sr:
             ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
-            idsfound |= set(ms.ID())
+            idsfound |= set(ms('id'))
             del ms
         return np.asarray(list(idsfound), dtype=np.int)
 
@@ -1136,8 +1278,8 @@ class ParticleHistory(object):
         ms.compress(self.ids)
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
-            scalars[i, :] = scalarfs[i](ms)
-        ids = ms.ID()
+            scalars[i, :] = ms(scalarfs[i])
+        ids = ms('id')
         del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
@@ -1171,6 +1313,3 @@ class ParticleHistory(object):
                 particlelist[i].append(scalars[:, k])
         ret = [np.asarray(p).T for p in particlelist]
         return ret
-
-
-

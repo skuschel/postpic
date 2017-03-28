@@ -15,32 +15,19 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""
-+--------------+
-|   POSTPIC    |
-+--------------+
-
-The open source particle-in-cell post processor.
-"""
 from __future__ import absolute_import, division, print_function, unicode_literals
+import sys
 
-from . import helper
-from . import datahandling
-from .datahandling import *
-from .helper import PhysicalConstants
+from . import particles
 from .particles import *
-from . import datareader
-from .datareader import chooseCode, readDump, readSim
-from . import plotting
-from . import _postpic_version
+from . import scalarproperties
+from .scalarproperties import ScalarProperty
 
-__all__ = ['helper']
-__all__ += datahandling.__all__
-__all__ += ['PhysicalConstants']
+
+__all__ = ['ScalarProperty']
 __all__ += particles.__all__
-__all__ += ['datareader', 'plotting']
-# high level functions
-__all__ += ['chooseCode', 'readDump', 'readSim']
 
 
-__git_version__, __version__ = _postpic_version.getversion_package()
+if sys.version_info[0] == 2:
+    # some weired python2 thing
+    __all__ = [n.encode('ascii') for n in __all__]
