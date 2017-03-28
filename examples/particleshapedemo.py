@@ -87,19 +87,19 @@ def main():
             plotargs = {'ylim': (0,1600), 'log10plot': False}
 
             # 1 particle per cell
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 300, 'shape': 0}, title='1ppc_order0', rangex=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 300, 'shape': 1}, title='1ppc_order1', rangex=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 300, 'shape': 2}, title='1ppc_order2', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 300, 'shape': 0}, title='1ppc_order0', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 300, 'shape': 1}, title='1ppc_order1', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 300, 'shape': 2}, title='1ppc_order2', rangex=(0,1)), **plotargs)
 
             # 3 particles per cell
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 100, 'shape': 0}, title='3ppc_order0', rangex=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 100, 'shape': 1}, title='3ppc_order1', rangex=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 100, 'shape': 2}, title='3ppc_order2', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 100, 'shape': 0}, title='3ppc_order0', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 100, 'shape': 1}, title='3ppc_order1', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 100, 'shape': 2}, title='3ppc_order2', rangex=(0,1)), **plotargs)
 
             # 10 particles per cell
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 30, 'shape': 0}, title='10ppc_order0', rangex=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 30, 'shape': 1}, title='10ppc_order1', rangex=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, optargsh={'bins': 30, 'shape': 2}, title='10ppc_order2', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 30, 'shape': 0}, title='10ppc_order0', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 30, 'shape': 1}, title='10ppc_order1', rangex=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', optargsh={'bins': 30, 'shape': 2}, title='10ppc_order2', rangex=(0,1)), **plotargs)
 
 
     # --- 2D ---
@@ -109,14 +109,14 @@ def main():
             plotargs = {'clim': (0,3e4), 'log10plot': False}
 
             # 1 particle per cell
-            plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': (300,30), 'shape': 0}, title='1ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': (300,30), 'shape': 1}, title='1ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': (300,30), 'shape': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': (300,30), 'shape': 0}, title='1ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': (300,30), 'shape': 1}, title='1ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': (300,30), 'shape': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
             # 3 particles per cell
-            plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': (100,10), 'shape': 0}, title='3ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': (100,10), 'shape': 1}, title='3ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
-            plotter.plotField(pa.createField(MS.X, MS.Y, optargsh={'bins': (100,10), 'shape': 2}, title='3ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': (100,10), 'shape': 0}, title='3ppc_order0', rangex=(0,1), rangey=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': (100,10), 'shape': 1}, title='3ppc_order1', rangex=(0,1), rangey=(0,1)), **plotargs)
+            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': (100,10), 'shape': 2}, title='3ppc_order2', rangex=(0,1), rangey=(0,1)), **plotargs)
 
 
     # --- 3D ---
@@ -124,8 +124,7 @@ def main():
         dr = pp.readDump(300*30, seed=None, randfunc=np.random.random, dimensions=3)
         pa = MS(dr, dr.listSpecies()[0])
         # just try to create the field. not plotting routines yet
-        f = pa.createField(MS.X, MS.Y, MS.Z, optargsh={'bins': (30,30,10), 'shape': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1), rangez=(0,1))
+        f = pa.createField('x', 'y', 'z', optargsh={'bins': (30,30,10), 'shape': 2}, title='1ppc_order2', rangex=(0,1), rangey=(0,1), rangez=(0,1))
 
 if __name__=='__main__':
     main()
-
