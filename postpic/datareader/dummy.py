@@ -127,6 +127,13 @@ class Dummyreader(Dumpreader_ifc):
     def _keyB(self, component):
         return component
 
+    def simgridpoints(self, axis):
+        return self.grid(None, axis)
+
+    def simextent(self, axis):
+        g = self.grid(None, axis)
+        return np.asfarray([g[0], g[-1]])
+
     def gridnode(self, key, axis):
         '''
         Args:

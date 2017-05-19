@@ -303,11 +303,22 @@ class MultiSpecies(object):
             return None
 
     def simextent(self, axis):
-        return None
+        '''
+        the combined simextent for all species and dumps included in this MultiSpecies object.
+        '''
+        extents = np.asarray([ssa.dumpreader.simextent(axis) for ssa in self._ssas])
+        mins = np.min(extents, axis=0)[::2]
+        maxs = np.max(extents, axis=0)[1::2]
+        return np.asarray([mins, maxs]).T.flatten()
 
     def simgridpoints(self, axis):
+        '''
+        this function is for convenience only and is likely to be removed in the future.
+        Particlarly it is impossible to define the grid of the simulation if the
+        MultiSpecies object consists of multiple dumps from different simulations.
+        '''
         try:
-            return self.dumpreader.simgridpoints(axis)
+            ret = self._ssas[0].dumpreader.simgridpoints(axis)
         except(AttributeError, KeyError):
             return None
 
@@ -896,10 +907,10 @@ class MultiSpecies(object):
         else:
             xdata = self(spx)
         if simextent:
-            tmp = self.simextent(getattr(spx, 'symbol', None))
+            tmp = self.simextent(getattr(spx, 'symbol', spx))
             rangex = tmp if tmp is not None else rangex
         if simgrid:
-            tmp = self.simgridpoints(getattr(spx, 'symbol', None))
+            tmp = self.simgridpoints(getattr(spx, 'symbol', spx))
             if tmp is not None:
                 optargsh['bins'] = tmp
         if len(xdata) == 0:
@@ -959,13 +970,13 @@ class MultiSpecies(object):
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            tmp = self.simextent(getattr(spx, 'symbol', None))
+            tmp = self.simextent(getattr(spx, 'symbol', spx))
             rangex = tmp if tmp is not None else rangex
-            tmp = self.simextent(getattr(spy, 'symbol', None))
+            tmp = self.simextent(getattr(spy, 'symbol', spy))
             rangey = tmp if tmp is not None else rangey
         if simgrid:
             for i, sp in enumerate([spx, spy]):
-                tmp = self.simgridpoints(getattr(spx, 'symbol', None))
+                tmp = self.simgridpoints(getattr(sp, 'symbol', sp))
                 if tmp is not None:
                     optargsh['bins'][i] = tmp
         if len(xdata) == 0:
@@ -1036,15 +1047,15 @@ class MultiSpecies(object):
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
         if simextent:
-            tmp = self.simextent(getattr(spx, 'symbol', None))
+            tmp = self.simextent(getattr(spx, 'symbol', spx))
             rangex = tmp if tmp is not None else rangex
-            tmp = self.simextent(getattr(spy, 'symbol', None))
+            tmp = self.simextent(getattr(spy, 'symbol', spy))
             rangey = tmp if tmp is not None else rangey
-            tmp = self.simextent(getattr(spz, 'symbol', None))
+            tmp = self.simextent(getattr(spz, 'symbol', spz))
             rangez = tmp if tmp is not None else rangez
         if simgrid:
             for i, sp in enumerate([spx, spy, spz]):
-                tmp = self.simgridpoints(getattr(spx, 'symbol', None))
+                tmp = self.simgridpoints(getattr(sp, 'symbol', sp))
                 if tmp is not None:
                     optargsh['bins'][i] = tmp
         if len(xdata) == 0:

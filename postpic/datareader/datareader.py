@@ -226,7 +226,7 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
                 return np.array([offset, offset + self.gridspacing(key, axis) * n])
             except(KeyError):
                 pass
-        raise KeyError
+        raise KeyError('Unable to resolve "simexent" for axis "{:}"'.format(axis))
 
     # --- Particle Data ---
     @abc.abstractmethod
