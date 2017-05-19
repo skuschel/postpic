@@ -303,10 +303,7 @@ class MultiSpecies(object):
             return None
 
     def simextent(self, axis):
-        try:
-            return self.dumpreader.simextent(axis)
-        except(AttributeError, KeyError):
-            return None
+        return None
 
     def simgridpoints(self, axis):
         try:

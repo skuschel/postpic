@@ -120,7 +120,7 @@ class Sdfreader(Dumpreader_ifc):
 
     def simextent(self, axis):
         '''
-        Returns the extent of the actual simulation window.
+        Returns the extent of the actual simulation box.
         '''
         m = self['Grid/Grid']
         extents = m.extents
@@ -214,27 +214,3 @@ class Visitreader(Simulationreader_ifc):
 
     def __str__(self):
         return '<Visitreader at "' + self.visitfile + '">'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

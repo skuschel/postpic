@@ -197,15 +197,17 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
     def gridkeyB(self, component, **kwargs):
         return self._keyB(component, **kwargs)
 
-    def simgridkeys(self):
+    def _simgridkeys(self):
         '''
         returns a list of keys that can be tried one after another to determine the grid,
         that the actual simulations was running on.
+        This is dirty. Rather override self.simgridpoints and self.simextent
+        with your own (better performance) implementation.
         '''
         return []
 
     def simgridpoints(self, axis):
-        for key in self.simgridkeys():
+        for key in self._simgridkeys():
             try:
                 return self.gridpoints(key, axis)
             except(KeyError):
@@ -214,9 +216,10 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
 
     def simextent(self, axis):
         '''
-        returns the extent of the actual simulation window
+        returns the extent of the actual simulation box.
+        Override in your own reader class for better performance implementation.
         '''
-        for key in self.simgridkeys():
+        for key in self._simgridkeys():
             try:
                 offset = self.gridoffset(key, axis)
                 n = self.gridpoints(key, axis)
