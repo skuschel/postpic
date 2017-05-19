@@ -118,7 +118,7 @@ class OpenPMDreader(Dumpreader_ifc):
         '''
         the number of spatial dimensions the simulation was using.
         '''
-        for k in self.simgridkeys():
+        for k in self._simgridkeys():
             try:
                 gs = self.gridspacing(k, None)
                 return len(gs)
@@ -134,7 +134,7 @@ class OpenPMDreader(Dumpreader_ifc):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
         return 'fields/B/' + axsuffix
 
-    def simgridkeys(self):
+    def _simgridkeys(self):
         return ['fields/E/x', 'fields/E/y', 'fields/E/z',
                 'fields/B/x', 'fields/B/y', 'fields/B/z']
 
