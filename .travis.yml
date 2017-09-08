@@ -20,10 +20,11 @@ python:
 matrix:
   include:
     - python: "2.7_with_system_site_packages"
+      virtualenv:
+        system_site_packages: true
       addons:
         apt:
           packages:
-            - liblapack3
             - python-numpy
             - python-scipy
             - python-matplotlib
