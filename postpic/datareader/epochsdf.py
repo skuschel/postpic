@@ -86,7 +86,8 @@ class Sdfreader(Dumpreader_ifc):
     def gridspacing(self, key, axis):
         axid = helper.axesidentify[axis]
         grid = self[key].grid
-        return float(grid.extents[axid + len(grid.dims)] - grid.extents[axid]) / grid.dims[axid]
+        extent = float(grid.extents[axid + len(grid.dims)] - grid.extents[axid])
+        return extent / (grid.dims[axid]-1)
 
     def gridpoints(self, key, axis):
         axid = helper.axesidentify[axis]
