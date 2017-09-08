@@ -43,6 +43,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import copy
 from . import helper
+from .helper import PhysicalConstants as pc
 
 __all__ = ['Field', 'Axis']
 
@@ -209,6 +210,69 @@ class Field(object):
         ax = Axis(**kwargs)
         ax.setextent(extent, matrixpts)
         self._addaxisobj(ax)
+
+    def _fft(self, **kwargs):
+        '''
+        applies the fast fourier transform (FFT) to the field object. It accepts
+        the same arguments as numpy.fft.rfftn().
+        '''
+        self.matrix = np.fft.rfftn(self.matrix, **kwargs)
+        return self
+
+    def spectrum(self, k0=1, shiftaxis=None, transformaxes=None):
+        '''
+        calculates the spectrum by applying the fast fourier transform (FFT)
+        to the field object and returns a new transformed field. By default, all axes are
+        transformed. The axis given by shiftaxis is shifted in such a way, that
+        the 0 component is in the middle. The frequencies are given in terms
+        of k0, which has to be defined by the user.
+        '''
+
+        if transformaxes is None:
+            if shiftaxis is not None:
+                fftaxes = np.roll(np.arange(self.dimensions), shiftaxis)
+            else:
+                fftaxes = np.arange(self.dimensions)
+        else:
+            fftaxes = transformaxes
+        ret = self.fft(k0, shiftaxis, axes=fftaxes)
+        ret.matrix = 0.5 * pc.epsilon0 * abs((ret.matrix))**2
+        ret.unit = ''
+        ret.name = 'Spectrum of {0}'.format(self.name)
+        return ret
+
+    def fft(self, k0=1, shiftaxis=None, axes=None, **kwargs):
+        '''
+        applies the fast fourier transform (FFT) to the field object.
+        The axis given by shiftaxis is shifted by np.fft.fftshift().
+        If shiftaxis is None, no shift will be applied.
+        The frequencies on the axes are normalized by k0.
+        '''
+        ret = copy.deepcopy(self)
+        ret._fft(axes=axes, **kwargs)
+        if shiftaxis is not None:
+            ret.matrix = np.fft.fftshift(ret.matrix, axes=shiftaxis)
+        ret.unit = ''
+        ret.name = 'Spectrum of {0}'.format(self.name)
+
+        # Set correct axes
+        for axid in axes:
+            ax = ret.axes[axid]
+            # only linear axes can be transformed
+            if ax.islinear():
+                ax.name = r'$k_{0} / k_0$'.format(ax.name)
+                ax.unit = ''
+                dx = ax.grid_node[1]-ax.grid_node[0]
+                freq = np.fft.rfftfreq(len(ax.grid_node), dx) / k0
+                if axid == shiftaxis:
+                    freq_extent = np.array([-freq[-1]/2., freq[-1]/2.])
+                else:
+                    freq_extent = np.array([freq[0], freq[-1]])
+                ax.setextent(freq_extent, len(freq))
+            else:
+                raise ValueError('Specified axis is not linear.')
+
+        return ret
 
     def setaxisobj(self, axis, axisobj):
         '''

@@ -130,6 +130,14 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d.extent[1], 1)
         self.checkFieldConsistancy(self.f3d)
 
+    def test_spectrum(self):
+        self.f2d.fft(axes=[1])
+        self.f2d.spectrum()
+        self.f2d.spectrum(shiftaxis=1)
+        self.f2d.spectrum(shiftaxis=1, transformaxes=[0])
+        self.f1d.spectrum()
+        self.f3d.spectrum(shiftaxis=1)
+
 
 if __name__ == '__main__':
     unittest.main()
