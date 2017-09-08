@@ -469,8 +469,11 @@ class Spectrum(Field):
         Translate the Field by dx
         '''
         dx = np.asarray(dx)
-        kmesh = np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=True)
-        arg = sum([dxi*ki for dxi, ki in zip(dx, kmesh)])
+        if self.dimensions > 1:
+            kmesh = np.meshgrid(*self.grid, indexing='ij', sparse=True)
+            arg = sum([dxi*ki for dxi, ki in zip(dx, kmesh)])
+        else:
+            arg = self.grid * np.asscalar(dx)
         self.matrix = self.matrix * np.exp(1.j * arg)
         self.origin += dx
 
