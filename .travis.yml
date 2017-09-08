@@ -3,6 +3,8 @@
 
 language: python
 sudo: false
+dist: trusty
+
 
 notifications:
   email:
@@ -21,6 +23,7 @@ matrix:
       addons:
         apt:
           packages:
+            - liblapack3
             - python-numpy
             - python-scipy
             - python-matplotlib
