@@ -3,6 +3,7 @@
 
 language: python
 sudo: false
+dist: trusty
 
 notifications:
   email:
@@ -14,21 +15,6 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-
-matrix:
-  include:
-    - python: "2.7_with_system_site_packages"
-      addons:
-        apt:
-          packages:
-            - python-numpy
-            - python-scipy
-            - python-matplotlib
-            - python-nose
-            - python-h5py
-            - cython
-      before_install:
-        - pip install -U pip setuptools
 
 # Install conda
 before_install:
