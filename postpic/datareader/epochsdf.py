@@ -81,7 +81,12 @@ class Sdfreader(Dumpreader_ifc):
         return self[key].data
 
     def gridoffset(self, key, axis):
-        return self[key].grid.extents[helper.axesidentify[axis]]
+        axid = helper.axesidentify[axis]
+        dx = self.gridspacing(key, axis)
+        if self[key].stagger & (1 << axid):
+            return self[key].grid_mid.data[axid][0] - dx/2.0
+        else:
+            return self[key].grid.data[axid][0] - dx/2.0
 
     def gridspacing(self, key, axis):
         axid = helper.axesidentify[axis]
@@ -91,6 +96,7 @@ class Sdfreader(Dumpreader_ifc):
     def gridpoints(self, key, axis):
         axid = helper.axesidentify[axis]
         return self[key].dims[axid]
+
 
 # --- Level 2 methods ---
 
