@@ -41,6 +41,7 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import numpy.fft as fft
 import copy
 from . import helper
 
@@ -156,7 +157,7 @@ class Field(object):
         if xedges is not None:
             self.matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
         else:
-            self.matrix = np.float64(np.squeeze(matrix))
+            self.matrix = np.squeeze(matrix)
         self.name = name
         self.unit = unit
         self.axes = []
@@ -457,3 +458,87 @@ class Field(object):
     # python 2
     __idiv__ = __itruediv__
     __div__ = __truediv__
+
+
+class Spectrum(Field):
+    """
+    A Field that lives in Fourier Space
+    """
+    def translate(self, dx):
+        '''
+        Translate the Field by dx
+        '''
+        dx = np.asarray(dx)
+        kmesh = np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=True)
+        arg = sum([dxi*ki for dxi, ki in zip(dx, kmesh)])
+        self.matrix = self.matrix * np.exp(1.j * arg)
+        self.origin += dx
+
+
+def FieldFFT(field):
+    '''
+    Performs an FFT on any Field and returns the transformed Field
+    as an instance of the subclass Spectrum
+    '''
+    if not field.islinear():
+        raise ValueError("FFT only allowed for linear grids")
+
+    origin = np.asarray([ax.grid[0] for ax in field.axes])
+    dx = np.asarray([ax.grid[1] - ax.grid[0] for ax in field.axes])
+    datafft = fft.fftshift(fft.fftn(field.matrix))
+
+    kaxes = [
+        fft.fftshift(2*np.pi*fft.fftfreq(n, d))
+        for n, d in zip(field.shape, dx)
+    ]
+
+    kaxesobjs = [Axis('k'+ax.name, '1/'+ax.unit) for ax in field.axes]
+
+    for axisobj, axisdata in zip(kaxesobjs, kaxes):
+        axisobj.grid = axisdata
+
+    fftfield = Spectrum(datafft)
+    for axis, axisobj in enumerate(kaxesobjs):
+        fftfield.setaxisobj(axis, axisobj)
+
+    fftfield.unit = field.unit
+    fftfield.name = 'FFT of ' + field.name
+    if hasattr(field, 'shortname'):
+        fftfield.shortname = 'FFT[{}]'.format(field.shortname)
+
+    fftfield.origin = origin
+    fftfield.dx = dx
+
+    return fftfield
+
+
+def SpectrumIFFT(spectrum):
+    '''
+    Performs an IFFT on a Spectrum and returns the Field
+    '''
+    if not spectrum.islinear():
+        raise ValueError("IFFT only allowed for linear grids")
+
+    data = fft.ifftn(fft.ifftshift(spectrum.matrix))
+    axes = [
+        np.linspace(o, o+(n-1)*d, n)
+        for o, d, n
+        in zip(spectrum.origin, spectrum.dx, spectrum.matrix.shape)
+    ]
+
+    axesobjs = [Axis(ax.name.lstrip('k'), ax.unit.lstrip('1/')) for ax in spectrum.axes]
+
+    for axisobj, axisdata in zip(axesobjs, axes):
+        print(axisdata)
+        axisobj.grid = axisdata
+
+    field = Field(data)
+    for axis, axisobj in enumerate(axesobjs):
+        field.setaxisobj(axis, axisobj)
+
+    field.unit = spectrum.unit
+    field.name = 'IFFT of ' + spectrum.name
+    if hasattr(spectrum, 'shortname'):
+        field.shortname = 'IFFT[{}]'.format(spectrum.shortname)
+
+    return field
