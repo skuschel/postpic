@@ -377,3 +377,67 @@ def histogramdd(data, **kwargs):
                                             np.float64(data[1]),
                                             np.float64(data[2]), **kwargs)
             return h, xe, ye, ze
+
+
+def kspace(dumpreader, component, omega_func=None):
+    '''
+    Reconstruct the physical kspace of one polarization component
+
+    dumpreader must be a dumpreader object containing the data.
+    The required fields will be read from the dumpreader.
+
+    component must be one of ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
+
+    omega may be a function that will calculate the dispersion
+    relation of the simulation.
+    '''
+    polfield = component[0]
+    otherfield = 'B' if polfield == 'E' else 'E'
+
+    polaxis = axesidentify[component[1]]
+
+    field_factories = {'E': {0: dumpreader.Ex, 1: dumpreader.Ey, 2: dumpreader.Ez},
+                       'B': {0: dumpreader.Bx, 1: dumpreader.By, 2: dumpreader.Bz}}
+
+    fields = []
+    fields.append(field_factories[polfield][polaxis]())
+    fields.append(field_factories[otherfield][(polaxis+1) % 3]())
+    fields.append(field_factories[otherfield][(polaxis+2) % 3]())
+
+    dims = dumpreader.simdimensions()
+
+    simorigin = [dumpreader.simextent(i)[0] for i in range(dims)]
+
+    for field in fields:
+        field.fft()
+        dx = [so-to for so, to, ax in zip(simorigin, field.transformed_axes_origins, field.axes)]
+        field.shift_grid_by(dx, no_fft=True)
+
+    result = fields[0]
+
+    mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
+
+    k2 = sum(ki**2 for ki in mesh)
+
+    if omega_func is None:
+        omega = PhysicalConstants.c * np.sqrt(k2)
+    else:
+        omega = omega_func(mesh)
+
+    old_settings = np.seterr(all='ignore')
+    if polfield == "E":
+        prefactor = omega/k2
+        prefactor[np.argwhere(np.isnan(prefactor))] = 0.0
+    else:
+        prefactor = -1.0/omega
+        prefactor[np.argwhere(np.isinf(prefactor))] = 0.0
+    np.seterr(**old_settings)
+
+    for i in (1, 2):
+        mesh_i = (polaxis-i) % 3
+        if mesh_i < len(mesh):
+            result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * fields[i].matrix
+
+    result.matrix *= 0.5
+
+    return result
