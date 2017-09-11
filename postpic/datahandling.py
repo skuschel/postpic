@@ -398,7 +398,7 @@ class Field(object):
                         '1/'+self.axes[i].unit)
                 for i in axes
             }
-            self.matrix = fft.fftshift(fft.fftn(self.matrix, axes=axes), axes=axes)
+            self.matrix = fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'), axes=axes)
 
         elif transform_state is True:
             new_axesobjs = {
@@ -406,7 +406,7 @@ class Field(object):
                         self.axes[i].unit.lstrip('1/'))
                 for i in axes
             }
-            self.matrix = fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes)
+            self.matrix = fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho')
 
         for i in axes:
             if self.transformed_axes_origins[i]:
