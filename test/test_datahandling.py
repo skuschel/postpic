@@ -130,18 +130,18 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d.extent[1], 1)
         self.checkFieldConsistancy(self.f3d)
 
-    def test_fourier(self):
-        fft1d = dh.FieldFFT(self.f1d)
-        fft1d.translate([fft1d.dx[0]/2.0])
-        tf1d = dh.SpectrumIFFT(fft1d)
+    #def test_fourier(self):
+        #fft1d = dh.FieldFFT(self.f1d)
+        #fft1d.translate([fft1d.dx[0]/2.0])
+        #tf1d = dh.SpectrumIFFT(fft1d)
 
-        fft2d = dh.FieldFFT(self.f2d)
-        fft2d.translate([fft2d.dx[0]/2.0, 0])
-        tf2d = dh.SpectrumIFFT(fft2d)
+        #fft2d = dh.FieldFFT(self.f2d)
+        #fft2d.translate([fft2d.dx[0]/2.0, 0])
+        #tf2d = dh.SpectrumIFFT(fft2d)
 
-        fft3d = dh.FieldFFT(self.f3d)
-        fft3d.translate([fft3d.dx[0]/2.0, 0, 0])
-        tf3d = dh.SpectrumIFFT(fft3d)
+        #fft3d = dh.FieldFFT(self.f3d)
+        #fft3d.translate([fft3d.dx[0]/2.0, 0, 0])
+        #tf3d = dh.SpectrumIFFT(fft3d)
 
 
 if __name__ == '__main__':

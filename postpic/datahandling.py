@@ -40,6 +40,8 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
+
 import numpy as np
 import numpy.fft as fft
 import copy
@@ -176,6 +178,10 @@ class Field(object):
             self._addaxisnodes(zedges, name='z')
         elif self.dimensions > 2:
             self._addaxis((0, 1), name='z')
+
+        # Additions due to FFT capabilities
+        self.axes_transform_state = [False] * len(self.matrix.shape)
+        self.transformed_axes_origins = [None] * len(self.matrix.shape)
 
     def __array__(self):
         '''
@@ -346,6 +352,101 @@ class Field(object):
         self.axes.pop(axis)
         return self
 
+    def transform_state(self, axes):
+        """
+        Returns the collective transform state of the given axes
+        """
+        transform_state = None
+        for b in [True, False]:
+            if all(self.axes_transform_state[i] == b for i in axes):
+                transform_state = b
+        return transform_state
+
+    def fft(self, axes=None):
+        '''
+        Performs Fourier transform on any number of axes
+
+        Automatically determines forward/inverse transform.
+        Transform is only applied if all mentioned axes are in the same space.
+        If an axis is transformed twice, the origin of the axis is restored.
+        '''
+        if axes is None:
+            axes = range(self.dimensions)
+        axes = sorted(set(axes))
+
+        if not all(self.axes[i].islinear() for i in axes):
+            raise ValueError("FFT only allowed for linear grids")
+
+        transform_state = self.transform_state(axes)
+
+        if transform_state is None:
+            raise ValueError("FFT only allowed if all mentioned axes are in same transform state")
+
+        new_origins = {i: self.axes[i].grid[0] for i in axes}
+
+        dx = {i: self.axes[i].grid[1] - self.axes[i].grid[0] for i in axes}
+
+        new_axes = {
+            i: fft.fftshift(2*np.pi*fft.fftfreq(self.matrix.shape[i], dx[i]))
+            for i in axes
+        }
+
+        if transform_state is False:
+            new_axesobjs = {
+                i: Axis('k'+self.axes[i].name,
+                        '1/'+self.axes[i].unit)
+                for i in axes
+            }
+            self.matrix = fft.fftshift(fft.fftn(self.matrix, axes=axes), axes=axes)
+
+        elif transform_state is True:
+            new_axesobjs = {
+                i: Axis(self.axes[i].name.lstrip('k'),
+                        self.axes[i].unit.lstrip('1/'))
+                for i in axes
+            }
+            self.matrix = fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes)
+
+        for i in axes:
+            if self.transformed_axes_origins[i]:
+                new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
+
+            new_axesobjs[i].grid = new_axes[i]
+            self.setaxisobj(i, new_axesobjs[i])
+
+            self.axes_transform_state[i] = not transform_state
+            self.transformed_axes_origins[i] = new_origins[i]
+
+    def translate(self, dx):
+        '''
+        Translate the Field by dx
+
+        In case all axes are to be translated, dx may be a list of length self.dimension
+        In other cases dx should be a mapping from axis number to translation distance
+        All axes must have same transform_state and transformed_axes_origins not None
+        '''
+        if not isinstance(dx, collections.Mapping):
+            dx = dict(enumerate(dx))
+
+        transform_state = self.transform_state(dx.keys())
+        if transform_state is None:
+            raise ValueError("Translation only allowed if all mentioned axes"
+                             "are in same transform state")
+
+        if any(self.transformed_axes_origins[i] is None for i in dx.keys()):
+            raise ValueError("Translation only allowed if all mentioned axes"
+                             "have transformed_axes_origins not None")
+
+        if self.dimensions > 1:
+            mesh = np.meshgrid(*self.grid, indexing='ij', sparse=True)
+            arg = sum([dx[i]*mesh[i] for i in dx.keys()])
+        else:
+            arg = self.grid * np.asscalar(dx[0])
+
+        self.matrix = self.matrix * np.exp(1.j * arg)
+        for i in dx.keys():
+            self.transformed_axes_origins[i] += dx[i]
+
     def topolar(self, extent=None, shape=None, angleoffset=0):
         '''
         remaps the current kartesian coordinates to polar coordinates
@@ -458,99 +559,3 @@ class Field(object):
     # python 2
     __idiv__ = __itruediv__
     __div__ = __truediv__
-
-
-class Spectrum(Field):
-    """
-    A Field that lives in Fourier Space
-    """
-    def translate(self, dx):
-        '''
-        Translate the Field by dx
-        '''
-        dx = np.asarray(dx)
-        if self.dimensions > 1:
-            kmesh = np.meshgrid(*self.grid, indexing='ij', sparse=True)
-            arg = sum([dxi*ki for dxi, ki in zip(dx, kmesh)])
-        else:
-            arg = self.grid * np.asscalar(dx)
-        self.matrix = self.matrix * np.exp(1.j * arg)
-        self.origin += dx
-
-
-def FieldFFT(field):
-    '''
-    Performs an FFT on any Field and returns the transformed Field
-    as an instance of the subclass Spectrum
-    '''
-    if not field.islinear():
-        raise ValueError("FFT only allowed for linear grids")
-
-    origin = np.asarray([ax.grid[0] for ax in field.axes])
-    dx = np.asarray([ax.grid[1] - ax.grid[0] for ax in field.axes])
-    datafft = fft.fftshift(fft.fftn(field.matrix))
-
-    kaxes = [
-        fft.fftshift(2*np.pi*fft.fftfreq(n, d))
-        for n, d in zip(field.shape, dx)
-    ]
-
-    kaxesobjs = [Axis('k'+ax.name, '1/'+ax.unit) for ax in field.axes]
-
-    for axisobj, axisdata in zip(kaxesobjs, kaxes):
-        axisobj.grid = axisdata
-
-    fftfield = Spectrum(datafft)
-    for axis, axisobj in enumerate(kaxesobjs):
-        fftfield.setaxisobj(axis, axisobj)
-
-    fftfield.unit = field.unit
-    fftfield.name = 'FFT of ' + field.name
-    if hasattr(field, 'shortname'):
-        fftfield.shortname = 'FFT[{}]'.format(field.shortname)
-
-    fftfield.origin = origin
-    fftfield.dx = dx
-
-    return fftfield
-
-
-def SpectrumIFFT(spectrum):
-    '''
-    Performs an IFFT on a Spectrum and returns the Field
-    '''
-    if not spectrum.islinear():
-        raise ValueError("IFFT only allowed for linear grids")
-
-    data = fft.ifftn(fft.ifftshift(spectrum.matrix))
-    # axes = [
-    #    np.linspace(o, o+(n-1)*d, n)
-    #    for o, d, n
-    #    in zip(spectrum.origin, spectrum.dx, spectrum.matrix.shape)
-    # ]
-
-    dk = np.asarray([ax.grid[1] - ax.grid[0] for ax in spectrum.axes])
-    axes = [
-        fft.fftshift(2*np.pi*fft.fftfreq(n, d))
-        for n, d in
-        zip(spectrum.shape, dk)
-    ]
-    for origin, axis in zip(spectrum.origin, axes):
-        axis += origin-axis[0]
-
-    axesobjs = [Axis(ax.name.lstrip('k'), ax.unit.lstrip('1/')) for ax in spectrum.axes]
-
-    for axisobj, axisdata in zip(axesobjs, axes):
-        print(axisdata)
-        axisobj.grid = axisdata
-
-    field = Field(data)
-    for axis, axisobj in enumerate(axesobjs):
-        field.setaxisobj(axis, axisobj)
-
-    field.unit = spectrum.unit
-    field.name = 'IFFT of ' + spectrum.name
-    if hasattr(spectrum, 'shortname'):
-        field.shortname = 'IFFT[{}]'.format(spectrum.shortname)
-
-    return field
