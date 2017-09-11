@@ -108,8 +108,7 @@ class Sdfreader(Dumpreader_ifc):
         return np.float64(self['Header']['time'])
 
     def simdimensions(self):
-        return float(re.match('Epoch(\d)d',
-                              self['Header']['code_name']).group(1))
+        return int(re.match('Epoch(\d)d', self['Header']['code_name']).group(1))
 
     def _keyE(self, component, average=False):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
