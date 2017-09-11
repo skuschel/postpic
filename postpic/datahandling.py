@@ -352,7 +352,7 @@ class Field(object):
         self.axes.pop(axis)
         return self
 
-    def transform_state(self, axes):
+    def _transform_state(self, axes):
         """
         Returns the collective transform state of the given axes
         """
@@ -364,9 +364,10 @@ class Field(object):
 
     def fft(self, axes=None):
         '''
-        Performs Fourier transform on any number of axes
+        Performs Fourier transform on any number of axes.
 
-        Automatically determines forward/inverse transform.
+        The argument axis is a tuple giving the numebers of the axes that
+        should be transformed. Automatically determines forward/inverse transform.
         Transform is only applied if all mentioned axes are in the same space.
         If an axis is transformed twice, the origin of the axis is restored.
         '''
@@ -377,7 +378,7 @@ class Field(object):
         if not all(self.axes[i].islinear() for i in axes):
             raise ValueError("FFT only allowed for linear grids")
 
-        transform_state = self.transform_state(axes)
+        transform_state = self._transform_state(axes)
 
         if transform_state is None:
             raise ValueError("FFT only allowed if all mentioned axes are in same transform state")
@@ -417,18 +418,14 @@ class Field(object):
             self.axes_transform_state[i] = not transform_state
             self.transformed_axes_origins[i] = new_origins[i]
 
-    def translate(self, dx):
+    def _shift_conjugate_grid_by(self, dx):
         '''
-        Translate the Field by dx
+        Translate the Grid of the Fourier conjugate axes by dx
 
-        In case all axes are to be translated, dx may be a list of length self.dimension
-        In other cases dx should be a mapping from axis number to translation distance
+        dx should be a mapping from axis number to translation distance
         All axes must have same transform_state and transformed_axes_origins not None
         '''
-        if not isinstance(dx, collections.Mapping):
-            dx = dict(enumerate(dx))
-
-        transform_state = self.transform_state(dx.keys())
+        transform_state = self._transform_state(dx.keys())
         if transform_state is None:
             raise ValueError("Translation only allowed if all mentioned axes"
                              "are in same transform state")
@@ -446,6 +443,25 @@ class Field(object):
         self.matrix = self.matrix * np.exp(1.j * arg)
         for i in dx.keys():
             self.transformed_axes_origins[i] += dx[i]
+
+    def shift_grid_by(self, dx):
+        '''
+        Translate the Grid by dx by doing two fourier transforms.
+        This is useful to remove the grid stagger of field components.
+
+        If all axis will be shifted, dx may be a list.
+        Otherwise dx should be a mapping from axis to translation distance
+        All axes must have same transform_state and transformed_axes_origins not None
+        '''
+        if not isinstance(dx, collections.Mapping):
+            dx = dict(enumerate(dx))
+
+        dx = {helper.axesidentify[i]: v for i, v in dx.items()}
+
+        axes = dx.keys()
+        self.fft(axes)
+        self._shift_conjugate_grid_by(dx)
+        self.fft(axes)
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
         '''
