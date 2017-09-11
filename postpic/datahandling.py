@@ -385,8 +385,25 @@ class Field(object):
 
         new_origins = {i: self.axes[i].grid[0] for i in axes}
 
+        # Grid spacing
         dx = {i: self.axes[i].grid[1] - self.axes[i].grid[0] for i in axes}
 
+        # Unit volume of transform
+        dV = np.product(list(dx.values()))
+
+        # Number of grid cells of transform
+        N = np.product([self.matrix.shape[i] for i in axes])
+
+        # Total volume of transform
+        V = dV*N
+
+        # Total volume of conjugate space
+        Vk = (2*np.pi)**len(dx)/dV
+
+        # normalization factor ensuring Parseval's Theorem
+        fftnorm = np.sqrt(V/Vk)
+
+        # new axes in conjugate space
         new_axes = {
             i: fft.fftshift(2*np.pi*fft.fftfreq(self.matrix.shape[i], dx[i]))
             for i in axes
@@ -398,7 +415,7 @@ class Field(object):
                         '1/'+self.axes[i].unit)
                 for i in axes
             }
-            self.matrix = fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'), axes=axes)
+            self.matrix = fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'), axes=axes) * fftnorm
 
         elif transform_state is True:
             new_axesobjs = {
@@ -406,7 +423,7 @@ class Field(object):
                         self.axes[i].unit.lstrip('1/'))
                 for i in axes
             }
-            self.matrix = fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho')
+            self.matrix = fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho') * fftnorm
 
         for i in axes:
             if self.transformed_axes_origins[i]:
