@@ -523,11 +523,20 @@ def SpectrumIFFT(spectrum):
         raise ValueError("IFFT only allowed for linear grids")
 
     data = fft.ifftn(fft.ifftshift(spectrum.matrix))
+    # axes = [
+    #    np.linspace(o, o+(n-1)*d, n)
+    #    for o, d, n
+    #    in zip(spectrum.origin, spectrum.dx, spectrum.matrix.shape)
+    # ]
+
+    dk = np.asarray([ax.grid[1] - ax.grid[0] for ax in spectrum.axes])
     axes = [
-        np.linspace(o, o+(n-1)*d, n)
-        for o, d, n
-        in zip(spectrum.origin, spectrum.dx, spectrum.matrix.shape)
+        fft.fftshift(2*np.pi*fft.fftfreq(n, d))
+        for n, d in
+        zip(spectrum.shape, dk)
     ]
+    for origin, axis in zip(spectrum.origin, axes):
+        axis += origin-axis[0]
 
     axesobjs = [Axis(ax.name.lstrip('k'), ax.unit.lstrip('1/')) for ax in spectrum.axes]
 
