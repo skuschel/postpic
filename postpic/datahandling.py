@@ -438,7 +438,7 @@ class Field(object):
             mesh = np.meshgrid(*self.grid, indexing='ij', sparse=True)
             arg = sum([dx[i]*mesh[i] for i in dx.keys()])
         else:
-            arg = self.grid * np.asscalar(dx[0])
+            arg = self.grid * dx[0]
 
         self.matrix = self.matrix * np.exp(1.j * arg)
         for i in dx.keys():
