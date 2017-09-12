@@ -20,6 +20,7 @@ Some global constants that are used in the code.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import copy
 import numpy as np
 import re
 import warnings
@@ -377,3 +378,103 @@ def histogramdd(data, **kwargs):
                                             np.float64(data[1]),
                                             np.float64(data[2]), **kwargs)
             return h, xe, ye, ze
+
+
+def kspace(component, fields, omega_func=None):
+    '''
+    Reconstruct the physical kspace of one polarization component
+    This function basically computes one component of
+        E = 0.5*(E - omega/k^2 * Cross[k, E])
+    or
+        B = 0.5*(B + 1/omega * Cross[k, B])
+    after removing the grid stagger.
+
+    component must be one of ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
+
+    The necessary fields must be given in the dict fields with keys
+    chosen from ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
+    Which are needed depends on the chosen component and
+    the dimensionality of the fields. In 3D the following fields are necessary:
+
+    Ex, By, Bz -> Ex
+    Ey, Bx, Bz -> Ey
+    Ez, Bx, By -> Ez
+
+    Bx, Ey, Ez -> Bx
+    By, Ex, Ez -> By
+    Bz, Ex, Ey -> Bz
+
+    In 2D, components which have "k_z" in front of them (see cross-product in
+    equations above) are not needed.
+    In 1D, components which have "k_y" or "k_z" in front of them (see
+    cross-product in equations above) are not needed.
+
+    The keyword-argument omega_func may be used to pass a function that will
+    calculate the dispersion relation of the simulation may be given. The
+    function will receive one argument that contains the k mesh.
+    '''
+    # target field is polfield and the other field is otherfield
+    polfield = component[0]
+    otherfield = 'B' if polfield == 'E' else 'E'
+
+    # polarization axis
+    polaxis = axesidentify[component[1]]
+
+    # build a dict of the keys of the fields-dict
+    field_keys = {'E': {0: 'Ex', 1: 'Ey', 2: 'Ez'},
+                  'B': {0: 'Bx', 1: 'By', 2: 'Bz'}}
+
+    # copy the polfield as a starting point for the result
+    try:
+        result = copy.deepcopy(fields[field_keys[polfield][polaxis]])
+    except KeyError:
+        raise ValueError("Required field {} not present in fields".format(component))
+    result.fft()
+
+    # calculate the k mesh and k^2
+    mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
+    k2 = sum(ki**2 for ki in mesh)
+
+    # calculate omega, either using the vacuum expression or omega_func()
+    if omega_func is None:
+        omega = PhysicalConstants.c * np.sqrt(k2)
+    else:
+        omega = omega_func(mesh)
+
+    # calculate the prefactor in front of the cross product
+    # this will produce nan/inf in specific places, which are replaced by 0
+    old_settings = np.seterr(all='ignore')
+    if polfield == "E":
+        prefactor = omega/k2
+        prefactor[np.argwhere(np.isnan(prefactor))] = 0.0
+    else:
+        prefactor = -1.0/omega
+        prefactor[np.argwhere(np.isinf(prefactor))] = 0.0
+    np.seterr(**old_settings)
+
+    # add/subtract the two terms of the cross-product
+    # i chooses the otherfield component  (polaxis+i) % 3
+    # mesh_i chooses the k-axis component (polaxis-i) % 3
+    # which recreates the crossproduct
+    for i in (1, 2):
+        mesh_i = (polaxis-i) % 3
+        if mesh_i < len(mesh):
+            # copy the otherfield component, transform and reverse the grid stagger
+            try:
+                field = copy.deepcopy(fields[field_keys[otherfield][(polaxis+i) % 3]])
+            except KeyError as e:
+                raise ValueError("Required field {} not present in fields".format(e.message))
+            field.fft()
+            dx = [
+                so-to for so, to in
+                zip(result.transformed_axes_origins, field.transformed_axes_origins)
+            ]
+            field.shift_grid_by(dx, no_fft=True)
+
+            # add the component to the result
+            result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
+
+    # divide result by 2 and return
+    result.matrix *= 0.5
+    return result
+

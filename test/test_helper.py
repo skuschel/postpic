@@ -4,7 +4,7 @@ import unittest
 import postpic as pp
 
 class TestSpeciesIdentifier(unittest.TestCase):
-    
+
     def setUp(self):
         pass
 
@@ -83,6 +83,11 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checke(idfy('NElectron'), 1, -1, False, False, False)
         self.checkion(idfy('Nelectron'), 20.2, 0, False, False, True)
         self.checke(idfy('Neelectron'), 1, -1, False, False, False)
+
+    def test_kspace(self):
+        pp.chooseCode('dummy')
+        dr = pp.readDump(10000)
+        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
 
 if __name__ == '__main__':
     unittest.main()

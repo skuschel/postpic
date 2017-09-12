@@ -14,8 +14,5 @@ class TestFieldAnalyzer(unittest.TestCase):
         emfield = self.dr.energydensityEM()
         self.assertEqual(emfield.name, 'Energy Density EM-Field')
 
-    def test_kspace(self):
-        kspace = self.dr.kspace("Ex")
-
 if __name__ == '__main__':
     unittest.main()
