@@ -5,7 +5,7 @@ import postpic as pp
 import numpy as np
 
 class TestFieldAnalyzer(unittest.TestCase):
-    
+
     def setUp(self):
         pp.chooseCode('dummy')
         self.dr = pp.readDump(10000)
@@ -13,6 +13,9 @@ class TestFieldAnalyzer(unittest.TestCase):
     def test_fa(self):
         emfield = self.dr.energydensityEM()
         self.assertEqual(emfield.name, 'Energy Density EM-Field')
+
+    def test_kspace(self):
+        kspace = self.dr.kspace("Ex")
 
 if __name__ == '__main__':
     unittest.main()
