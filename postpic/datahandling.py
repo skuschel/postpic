@@ -463,9 +463,9 @@ class Field(object):
             self.axes_transform_state[i] = not transform_state
             self.transformed_axes_origins[i] = new_origins[i]
 
-    def _shift_conjugate_grid_by(self, dx):
+    def _apply_linear_phase(self, dx):
         '''
-        Translate the Grid of the Fourier conjugate axes by dx
+        Apply a linear phase as part of translating the grid points.
 
         dx should be a mapping from axis number to translation distance
         All axes must have same transform_state and transformed_axes_origins not None
@@ -480,9 +480,24 @@ class Field(object):
                              "have transformed_axes_origins not None")
 
         mesh = np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=True)
+
+        # center the mesh around 0 to eliminate global phase
+        for i in range(len(mesh)):
+            l = len(mesh[i])
+            if l%2:
+                mesh[i] -= np.mean(mesh[i][l//2:l//2+2])
+            else:
+                mesh[i] -= mesh[i][l//2]
+
+        # calculate linear phase
         arg = sum([dx[i]*mesh[i] for i in dx.keys()])
 
-        self.matrix = self.matrix * np.exp(1.j * arg)
+        # apply linear phase with correct sign and global phase
+        if transform_state is True:
+            self.matrix = self.matrix * np.exp(1.j * arg)
+        else:
+            self.matrix = -self.matrix * np.exp(-1.j * arg)
+
         for i in dx.keys():
             self.transformed_axes_origins[i] += dx[i]
 
@@ -502,7 +517,7 @@ class Field(object):
 
         axes = dx.keys()
         self.fft(axes)
-        self._shift_conjugate_grid_by(dx)
+        self._apply_linear_phase(dx)
         self.fft(axes)
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
