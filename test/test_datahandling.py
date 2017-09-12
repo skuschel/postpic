@@ -3,6 +3,7 @@
 import unittest
 import postpic.datahandling as dh
 import numpy as np
+import copy
 
 
 class TestAxis(unittest.TestCase):
@@ -131,10 +132,52 @@ class TestField(unittest.TestCase):
         self.checkFieldConsistancy(self.f3d)
 
     def test_fourier(self):
-        self.f1d.shift_grid_by([0.1])
-        self.f2d.shift_grid_by([0.1]*2)
-        self.f3d.shift_grid_by([0.1]*3)
+        f1d_orig = copy.deepcopy(self.f1d)
+        dx = [ax.grid[1]-ax.grid[0] for ax in self.f1d.axes]
+        self.f1d.shift_grid_by(dx)
+        self.assertTrue(np.all(np.isclose(np.roll(f1d_orig.matrix, -1), self.f1d.matrix.real)))
 
+        f2d_orig = copy.deepcopy(self.f2d)
+        dx = [ax.grid[1]-ax.grid[0] for ax in self.f2d.axes]
+        self.f2d.shift_grid_by([dx[0], 0])
+        self.assertTrue(np.all(np.isclose(np.roll(f2d_orig.matrix, -1, axis=0), self.f2d.matrix.real)))
+
+        self.f2d = copy.deepcopy(f2d_orig)
+        self.f2d.shift_grid_by(dx)
+        self.assertTrue(np.all(np.isclose(np.roll(
+            np.roll(f2d_orig.matrix, -1, axis=0), -1, axis=1
+            ), self.f2d.matrix.real)))
+
+        f3d_orig = copy.deepcopy(self.f3d)
+        self.f3d.shift_grid_by([0.25, 0, 0])
+        self.assertTrue(np.all(np.isclose(np.roll(f3d_orig.matrix, -1, axis=0), self.f3d.matrix.real)))
+
+    def test_fourier2(self):
+        self.f1d.fft()
+        dk = self.f1d.grid[1]-self.f1d.grid[0]
+        f1d_orig = copy.deepcopy(self.f1d)
+        self.f1d.shift_grid_by([dk])
+        self.assertTrue(np.all(np.isclose(np.roll(f1d_orig.matrix, -1), self.f1d.matrix)))
+
+        self.f2d.fft()
+        dk = [ax.grid[1]-ax.grid[0] for ax in self.f2d.axes]
+        f2d_orig = copy.deepcopy(self.f2d)
+        self.f2d.shift_grid_by(dk)
+        self.assertTrue(np.all(np.isclose(np.roll(
+            np.roll(f2d_orig.matrix, -1, axis=0), -1, axis=1),
+        self.f2d.matrix)))
+
+        self.f3d.fft()
+        dk = [ax.grid[1]-ax.grid[0] for ax in self.f3d.axes]
+        f3d_orig = copy.deepcopy(self.f3d)
+        self.f3d.shift_grid_by(dk)
+        self.assertTrue(np.all(np.isclose(
+            np.roll(
+                np.roll(
+                    np.roll(f3d_orig.matrix, -1, axis=0),
+                -1, axis=1),
+            -1, axis=2),
+        self.f3d.matrix)))
 
 if __name__ == '__main__':
     unittest.main()
