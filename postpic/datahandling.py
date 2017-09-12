@@ -15,6 +15,7 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stephan Kuschel, 2014
+# Alexander Blinne, 2017
 """
 The Core module for final data handling.
 
@@ -180,7 +181,15 @@ class Field(object):
             self._addaxis((0, 1), name='z')
 
         # Additions due to FFT capabilities
+
+        # self.axes_transform_state is False for axes which live in spatial domain
+        # and it is True for axes which live in frequency domain
+        # This assumes that fields are initially created in spatial domain.
         self.axes_transform_state = [False] * len(self.matrix.shape)
+
+        # self.transformed_axes_origins stores the starting values of the grid
+        # from before the last transform was executed, this is used to
+        # recreate the correct axis interval upon inverse transform
         self.transformed_axes_origins = [None] * len(self.matrix.shape)
 
     def __array__(self):
@@ -355,12 +364,18 @@ class Field(object):
     def _transform_state(self, axes):
         """
         Returns the collective transform state of the given axes
+
+        If all mentioned axis i have self.axes_transform_state[i]==True return True
+        (All axes live in frequency domain)
+        If all mentioned axis i have self.axes_transform_state[i]==False return False
+        (All axes live in spatial domain)
+        Else return None
+        (Axes have mixed transform_state)
         """
-        transform_state = None
         for b in [True, False]:
             if all(self.axes_transform_state[i] == b for i in axes):
-                transform_state = b
-        return transform_state
+                return b
+        return None
 
     def fft(self, axes=None):
         '''
@@ -371,18 +386,23 @@ class Field(object):
         Transform is only applied if all mentioned axes are in the same space.
         If an axis is transformed twice, the origin of the axis is restored.
         '''
+        # If axes is None, transform all axes
         if axes is None:
             axes = range(self.dimensions)
+
+        # List axes uniquely and in ascending order
         axes = sorted(set(axes))
 
         if not all(self.axes[i].islinear() for i in axes):
             raise ValueError("FFT only allowed for linear grids")
 
+        # Get the collective transform state of the axes
         transform_state = self._transform_state(axes)
 
         if transform_state is None:
             raise ValueError("FFT only allowed if all mentioned axes are in same transform state")
 
+        # Record current axes origins of transformed axes
         new_origins = {i: self.axes[i].grid[0] for i in axes}
 
         # Grid spacing
@@ -409,6 +429,7 @@ class Field(object):
             for i in axes
         }
 
+        # Transforming from spatial domain to frequency domain ...
         if transform_state is False:
             new_axesobjs = {
                 i: Axis('k'+self.axes[i].name,
@@ -418,6 +439,7 @@ class Field(object):
             self.matrix = fftnorm * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'),
                                                  axes=axes)
 
+        # ... or transforming from frequency domain to spatial domain
         elif transform_state is True:
             new_axesobjs = {
                 i: Axis(self.axes[i].name.lstrip('k'),
@@ -427,13 +449,17 @@ class Field(object):
             self.matrix = fftnorm * fft.ifftn(fft.ifftshift(self.matrix, axes=axes),
                                               axes=axes, norm='ortho')
 
+        # Update axes objects
         for i in axes:
+            # restore original axes origins
             if self.transformed_axes_origins[i]:
                 new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
 
+            # update axes objects
             new_axesobjs[i].grid = new_axes[i]
             self.setaxisobj(i, new_axesobjs[i])
 
+            # update transform state and record axes origins
             self.axes_transform_state[i] = not transform_state
             self.transformed_axes_origins[i] = new_origins[i]
 
@@ -453,11 +479,8 @@ class Field(object):
             raise ValueError("Translation only allowed if all mentioned axes"
                              "have transformed_axes_origins not None")
 
-        if self.dimensions > 1:
-            mesh = np.meshgrid(*self.grid, indexing='ij', sparse=True)
-            arg = sum([dx[i]*mesh[i] for i in dx.keys()])
-        else:
-            arg = self.grid * dx[0]
+        mesh = np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=True)
+        arg = sum([dx[i]*mesh[i] for i in dx.keys()])
 
         self.matrix = self.matrix * np.exp(1.j * arg)
         for i in dx.keys():

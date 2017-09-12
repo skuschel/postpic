@@ -3,6 +3,7 @@
 import unittest
 import postpic.datahandling as dh
 import numpy as np
+import copy
 
 
 class TestAxis(unittest.TestCase):
@@ -131,9 +132,17 @@ class TestField(unittest.TestCase):
         self.checkFieldConsistancy(self.f3d)
 
     def test_fourier(self):
+        f1d_orig = copy.deepcopy(self.f1d)
         self.f1d.shift_grid_by([0.1])
-        self.f2d.shift_grid_by([0.1]*2)
-        self.f3d.shift_grid_by([0.1]*3)
+        self.assertTrue(np.all(np.isclose(np.roll(f1d_orig.matrix, -1), self.f1d.matrix.real)))
+
+        f2d_orig = copy.deepcopy(self.f2d)
+        self.f2d.shift_grid_by([0.25, 0])
+        self.assertTrue(np.all(np.isclose(np.roll(f2d_orig.matrix, -1, axis=0), self.f2d.matrix.real)))
+
+        f3d_orig = copy.deepcopy(self.f3d)
+        self.f3d.shift_grid_by([0.25, 0, 0])
+        self.assertTrue(np.all(np.isclose(np.roll(f3d_orig.matrix, -1, axis=0), self.f3d.matrix.real)))
 
 
 if __name__ == '__main__':
