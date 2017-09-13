@@ -497,7 +497,7 @@ def kspace(component, fields, omega_func=None):
                                  "the origin of {} by more than 2 dx.".format(field_key,
                                                                               component))
 
-            field.shift_grid_by(grid_shift, no_fft=True)
+            field.shift_grid_by(grid_shift, _no_fft=True)
 
             # add the component to the result
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix

@@ -504,7 +504,7 @@ class Field(object):
         for i in dx.keys():
             self.transformed_axes_origins[i] += dx[i]
 
-    def shift_grid_by(self, dx, no_fft=False):
+    def shift_grid_by(self, dx, _no_fft=False):
         '''
         Translate the Grid by dx by doing two fourier transforms.
         This is useful to remove the grid stagger of field components.
@@ -519,10 +519,10 @@ class Field(object):
         dx = {helper.axesidentify[i]: v for i, v in dx.items()}
 
         axes = dx.keys()
-        if not no_fft:
+        if not _no_fft:
             self.fft(axes)
         self._apply_linear_phase(dx)
-        if not no_fft:
+        if not _no_fft:
             self.fft(axes)
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
