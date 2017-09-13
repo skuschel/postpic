@@ -475,14 +475,14 @@ def kspace(component, fields, omega_func=None):
 
             if not field.shape == inputfield.shape:
                 raise ValueError("All given Fields must have the same number of grid points. "
-                                 "Given field {} has a different shape than {}.".format(field_key,
-                                                                                        component))
+                                 "Field {} has a different shape than {}.".format(field_key,
+                                                                                  component))
 
             oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
 
             if not np.all(np.isclose(Dx, oDx)):
-                raise ValueError("The axes of all given Fields must have the same length. Given "
-                                 "field {} has a different extent than {}.".format(field_key,
+                raise ValueError("The axes of all given Fields must have the same length. "
+                                 "Field {} has a different extent than {}.".format(field_key,
                                                                                    component))
 
             field.fft()
