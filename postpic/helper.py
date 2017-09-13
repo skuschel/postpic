@@ -426,10 +426,17 @@ def kspace(component, fields, omega_func=None):
 
     # copy the polfield as a starting point for the result
     try:
-        result = copy.deepcopy(fields[field_keys[polfield][polaxis]])
+        inputfield = fields[field_keys[polfield][polaxis]]
+        result = copy.deepcopy(inputfield)
     except KeyError:
         raise ValueError("Required field {} not present in fields".format(component))
     result.fft()
+
+    # store box size of input field
+    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in inputfield.axes])
+
+    # store grid spacing of input field
+    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in inputfield.axes])
 
     # calculate the k mesh and k^2
     mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
@@ -460,16 +467,37 @@ def kspace(component, fields, omega_func=None):
         mesh_i = (polaxis-i) % 3
         if mesh_i < len(mesh):
             # copy the otherfield component, transform and reverse the grid stagger
+            field_key = field_keys[otherfield][(polaxis+i) % 3]
             try:
-                field = copy.deepcopy(fields[field_keys[otherfield][(polaxis+i) % 3]])
+                field = copy.deepcopy(fields[field_key])
             except KeyError as e:
                 raise ValueError("Required field {} not present in fields".format(e.message))
+
+            if not field.shape == inputfield.shape:
+                raise ValueError("All given Fields must have the same number of grid points. "
+                                 "Given field {} has a different shape than {}.".format(field_key,
+                                                                                        component))
+
+            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
+
+            if not np.all(np.isclose(Dx, oDx)):
+                raise ValueError("The axes of all given Fields must have the same length. Given "
+                                 "field {} has a different extent than {}.".format(field_key,
+                                                                                   component))
+
             field.fft()
-            dx = [
+            grid_shift = [
                 so-to for so, to in
                 zip(result.transformed_axes_origins, field.transformed_axes_origins)
             ]
-            field.shift_grid_by(dx, no_fft=True)
+
+            if not np.all(abs(np.array(grid_shift)) < 2*dx):
+                raise ValueError("The grids of all given Fields should have approximately the "
+                                 "same origin. The origin of {} along some axis differs from "
+                                 "the origin of {} by more than 2 dx.".format(field_key,
+                                                                              component))
+
+            field.shift_grid_by(grid_shift, no_fft=True)
 
             # add the component to the result
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
