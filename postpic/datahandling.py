@@ -15,6 +15,7 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stephan Kuschel, 2014
+# Alexander Blinne, 2017
 """
 The Core module for final data handling.
 
@@ -40,7 +41,10 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import collections
+
 import numpy as np
+import numpy.fft as fft
 import copy
 from . import helper
 
@@ -156,7 +160,7 @@ class Field(object):
         if xedges is not None:
             self.matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
         else:
-            self.matrix = np.float64(np.squeeze(matrix))
+            self.matrix = np.squeeze(matrix)
         self.name = name
         self.unit = unit
         self.axes = []
@@ -175,6 +179,18 @@ class Field(object):
             self._addaxisnodes(zedges, name='z')
         elif self.dimensions > 2:
             self._addaxis((0, 1), name='z')
+
+        # Additions due to FFT capabilities
+
+        # self.axes_transform_state is False for axes which live in spatial domain
+        # and it is True for axes which live in frequency domain
+        # This assumes that fields are initially created in spatial domain.
+        self.axes_transform_state = [False] * len(self.matrix.shape)
+
+        # self.transformed_axes_origins stores the starting values of the grid
+        # from before the last transform was executed, this is used to
+        # recreate the correct axis interval upon inverse transform
+        self.transformed_axes_origins = [None] * len(self.matrix.shape)
 
     def __array__(self):
         '''
@@ -344,6 +360,168 @@ class Field(object):
         self.matrix = np.mean(self.matrix, axis=axis)
         self.axes.pop(axis)
         return self
+
+    def _transform_state(self, axes):
+        """
+        Returns the collective transform state of the given axes
+
+        If all mentioned axis i have self.axes_transform_state[i]==True return True
+        (All axes live in frequency domain)
+        If all mentioned axis i have self.axes_transform_state[i]==False return False
+        (All axes live in spatial domain)
+        Else return None
+        (Axes have mixed transform_state)
+        """
+        for b in [True, False]:
+            if all(self.axes_transform_state[i] == b for i in axes):
+                return b
+        return None
+
+    def fft(self, axes=None):
+        '''
+        Performs Fourier transform on any number of axes.
+
+        The argument axis is a tuple giving the numebers of the axes that
+        should be transformed. Automatically determines forward/inverse transform.
+        Transform is only applied if all mentioned axes are in the same space.
+        If an axis is transformed twice, the origin of the axis is restored.
+        '''
+        # If axes is None, transform all axes
+        if axes is None:
+            axes = range(self.dimensions)
+
+        # List axes uniquely and in ascending order
+        axes = sorted(set(axes))
+
+        if not all(self.axes[i].islinear() for i in axes):
+            raise ValueError("FFT only allowed for linear grids")
+
+        # Get the collective transform state of the axes
+        transform_state = self._transform_state(axes)
+
+        if transform_state is None:
+            raise ValueError("FFT only allowed if all mentioned axes are in same transform state")
+
+        # Record current axes origins of transformed axes
+        new_origins = {i: self.axes[i].grid[0] for i in axes}
+
+        # Grid spacing
+        dx = {i: self.axes[i].grid[1] - self.axes[i].grid[0] for i in axes}
+
+        # Unit volume of transform
+        dV = np.product(list(dx.values()))
+
+        # Number of grid cells of transform
+        N = np.product([self.matrix.shape[i] for i in axes])
+
+        # Total volume of transform
+        V = dV*N
+
+        # Total volume of conjugate space
+        Vk = (2*np.pi)**len(dx)/dV
+
+        # normalization factor ensuring Parseval's Theorem
+        fftnorm = np.sqrt(V/Vk)
+
+        # new axes in conjugate space
+        new_axes = {
+            i: fft.fftshift(2*np.pi*fft.fftfreq(self.matrix.shape[i], dx[i]))
+            for i in axes
+        }
+
+        # Transforming from spatial domain to frequency domain ...
+        if transform_state is False:
+            new_axesobjs = {
+                i: Axis('k'+self.axes[i].name,
+                        '1/'+self.axes[i].unit)
+                for i in axes
+            }
+            self.matrix = fftnorm * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'),
+                                                 axes=axes)
+
+        # ... or transforming from frequency domain to spatial domain
+        elif transform_state is True:
+            new_axesobjs = {
+                i: Axis(self.axes[i].name.lstrip('k'),
+                        self.axes[i].unit.lstrip('1/'))
+                for i in axes
+            }
+            self.matrix = fftnorm * fft.ifftn(fft.ifftshift(self.matrix, axes=axes),
+                                              axes=axes, norm='ortho')
+
+        # Update axes objects
+        for i in axes:
+            # restore original axes origins
+            if self.transformed_axes_origins[i]:
+                new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
+
+            # update axes objects
+            new_axesobjs[i].grid = new_axes[i]
+            self.setaxisobj(i, new_axesobjs[i])
+
+            # update transform state and record axes origins
+            self.axes_transform_state[i] = not transform_state
+            self.transformed_axes_origins[i] = new_origins[i]
+
+    def _apply_linear_phase(self, dx):
+        '''
+        Apply a linear phase as part of translating the grid points.
+
+        dx should be a mapping from axis number to translation distance
+        All axes must have same transform_state and transformed_axes_origins not None
+        '''
+        transform_state = self._transform_state(dx.keys())
+        if transform_state is None:
+            raise ValueError("Translation only allowed if all mentioned axes"
+                             "are in same transform state")
+
+        if any(self.transformed_axes_origins[i] is None for i in dx.keys()):
+            raise ValueError("Translation only allowed if all mentioned axes"
+                             "have transformed_axes_origins not None")
+
+        axes = [ax.grid for ax in self.axes]
+        for i in range(len(axes)):
+            gridlen = len(axes[i])
+            if transform_state is True:
+                # center the axes around 0 to eliminate global phase
+                axes[i] -= axes[i][gridlen//2]
+            else:
+                # start the axes at 0 to eliminate global phase
+                axes[i] -= axes[i][0]
+
+        # build mesh
+        mesh = np.meshgrid(*axes, indexing='ij', sparse=True)
+
+        # calculate linear phase
+        arg = sum([dx[i]*mesh[i] for i in dx.keys()])
+
+        # apply linear phase with correct sign and global phase
+        if transform_state is True:
+            self.matrix *= np.exp(1.j * arg)
+        else:
+            self.matrix *= np.exp(-1.j * arg)
+
+        for i in dx.keys():
+            self.transformed_axes_origins[i] += dx[i]
+
+    def shift_grid_by(self, dx):
+        '''
+        Translate the Grid by dx by doing two fourier transforms.
+        This is useful to remove the grid stagger of field components.
+
+        If all axis will be shifted, dx may be a list.
+        Otherwise dx should be a mapping from axis to translation distance
+        All axes must have same transform_state and transformed_axes_origins not None
+        '''
+        if not isinstance(dx, collections.Mapping):
+            dx = dict(enumerate(dx))
+
+        dx = {helper.axesidentify[i]: v for i, v in dx.items()}
+
+        axes = dx.keys()
+        self.fft(axes)
+        self._apply_linear_phase(dx)
+        self.fft(axes)
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
         '''
