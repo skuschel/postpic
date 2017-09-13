@@ -131,7 +131,36 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d.extent[1], 1)
         self.checkFieldConsistancy(self.f3d)
 
-    def test_fourier(self):
+    def test_fourier_inverse(self):
+        f1d_orig = copy.deepcopy(self.f1d)
+        self.f1d.fft()
+        self.f1d.fft()
+        self.assertTrue(np.all(np.isclose(f1d_orig.matrix, self.f1d.matrix)))
+        self.assertTrue(np.all(np.isclose(f1d_orig.grid, self.f1d.grid)))
+
+        f2d_orig = copy.deepcopy(self.f2d)
+        self.f2d.fft()
+        self.f2d.fft()
+        self.assertTrue(np.all(np.isclose(f2d_orig.matrix, self.f2d.matrix)))
+        self.assertTrue(
+            all(
+                np.all(np.isclose(f2d_orig.grid[i], self.f2d.grid[i]))
+                for i in (0, 1)
+                )
+            )
+
+        f3d_orig = copy.deepcopy(self.f3d)
+        self.f3d.fft()
+        self.f3d.fft()
+        self.assertTrue(np.all(np.isclose(f3d_orig.matrix, self.f3d.matrix)))
+        self.assertTrue(
+            all(
+                np.all(np.isclose(f3d_orig.grid[i], self.f3d.grid[i]))
+                for i in (0, 1, 2)
+                )
+            )
+
+    def test_fourier_shift_spatial_domain(self):
         f1d_orig = copy.deepcopy(self.f1d)
         dx = [ax.grid[1]-ax.grid[0] for ax in self.f1d.axes]
         self.f1d.shift_grid_by(dx)
@@ -152,7 +181,7 @@ class TestField(unittest.TestCase):
         self.f3d.shift_grid_by([0.25, 0, 0])
         self.assertTrue(np.all(np.isclose(np.roll(f3d_orig.matrix, -1, axis=0), self.f3d.matrix.real)))
 
-    def test_fourier2(self):
+    def test_fourier_shift_frequency_domain(self):
         self.f1d.fft()
         dk = self.f1d.grid[1]-self.f1d.grid[0]
         f1d_orig = copy.deepcopy(self.f1d)
@@ -178,6 +207,32 @@ class TestField(unittest.TestCase):
                 -1, axis=1),
             -1, axis=2),
         self.f3d.matrix)))
+
+    def test_fourier_norm(self):
+        f1d_orig = copy.deepcopy(self.f1d)
+        self.f1d.fft()
+        I1 = np.sum(abs(f1d_orig.matrix)**2) * (f1d_orig.grid[1]-f1d_orig.grid[0])
+        I2 = np.sum(abs(self.f1d.matrix)**2) * (self.f1d.grid[1]-self.f1d.grid[0])
+        print(I1, I2)
+        self.assertTrue(np.isclose(I1, I2))
+
+        f2d_orig = copy.deepcopy(self.f2d)
+        self.f2d.fft()
+        I1 = np.sum(abs(f2d_orig.matrix)**2) * (f2d_orig.grid[0][1]-f2d_orig.grid[0][0]) \
+            * (f2d_orig.grid[1][1]-f2d_orig.grid[1][0])
+        I2 = np.sum(abs(self.f2d.matrix)**2) * (self.f2d.grid[0][1]-self.f2d.grid[0][0]) \
+            * (self.f2d.grid[1][1]-self.f2d.grid[1][0])
+        print(I1, I2)
+        self.assertTrue(np.isclose(I1, I2))
+
+        f3d_orig = copy.deepcopy(self.f3d)
+        self.f3d.fft()
+        I1 = np.sum(abs(f3d_orig.matrix)**2) * (f3d_orig.grid[0][1]-f3d_orig.grid[0][0]) \
+            * (f3d_orig.grid[1][1]-f3d_orig.grid[1][0]) * (f3d_orig.grid[2][1]-f3d_orig.grid[2][0])
+        I2 = np.sum(abs(self.f3d.matrix)**2) * (self.f3d.grid[0][1]-self.f3d.grid[0][0]) \
+            * (self.f3d.grid[1][1]-self.f3d.grid[1][0]) * (self.f3d.grid[2][1]-self.f3d.grid[2][0])
+        print(I1, I2)
+        self.assertTrue(np.isclose(I1, I2))
 
 if __name__ == '__main__':
     unittest.main()
