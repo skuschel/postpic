@@ -155,7 +155,7 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(f3d_orig.matrix, self.f3d.matrix)))
         self.assertTrue(
             all(
-                np.all(np.isclose(f2d_orig.grid[i], self.f3d.grid[i]))
+                np.all(np.isclose(f3d_orig.grid[i], self.f3d.grid[i]))
                 for i in (0, 1, 2)
                 )
             )
