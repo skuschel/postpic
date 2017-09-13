@@ -474,7 +474,5 @@ def kspace(component, fields, omega_func=None):
             # add the component to the result
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
 
-    # divide result by 2 and return
-    result.matrix *= 0.5
     return result
 
