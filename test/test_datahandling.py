@@ -3,7 +3,6 @@
 import unittest
 import postpic.datahandling as dh
 import numpy as np
-import scipy.integrate as sint
 import copy
 
 
