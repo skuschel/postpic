@@ -380,14 +380,13 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
 
 
-def kspace(component, fields, omega_func=None):
+def kspace(component, fields, interpolation=None, omega_func=None):
     '''
     Reconstruct the physical kspace of one polarization component
     This function basically computes one component of
         E = 0.5*(E - omega/k^2 * Cross[k, E])
     or
-        B = 0.5*(B + 1/omega * Cross[k, B])
-    after removing the grid stagger.
+        B = 0.5*(B + 1/omega * Cross[k, B]).
 
     component must be one of ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
 
@@ -409,6 +408,11 @@ def kspace(component, fields, omega_func=None):
     In 1D, components which have "k_y" or "k_z" in front of them (see
     cross-product in equations above) are not needed.
 
+    The keyword-argument interpolation indicates whether interpolation should be
+    used to remove the grid stagger. If interpolation is None, this function
+    works only for non-staggered grids. Other choices for interpolation are
+    "linear" and "fourier".
+
     The keyword-argument omega_func may be used to pass a function that will
     calculate the dispersion relation of the simulation may be given. The
     function will receive one argument that contains the k mesh.
@@ -426,17 +430,21 @@ def kspace(component, fields, omega_func=None):
 
     # copy the polfield as a starting point for the result
     try:
-        inputfield = fields[field_keys[polfield][polaxis]]
-        result = copy.deepcopy(inputfield)
+        result = copy.deepcopy(fields[field_keys[polfield][polaxis]])
     except KeyError:
         raise ValueError("Required field {} not present in fields".format(component))
-    result.fft()
+
+    # remember the origins of result's axes to compare with other fields
+    result_origin = [a.grid_node[0] for a in result.axes]
 
     # store box size of input field
-    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in inputfield.axes])
+    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in result.axes])
 
     # store grid spacing of input field
-    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in inputfield.axes])
+    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in result.axes])
+
+    # Change to frequency domain
+    result.fft()
 
     # calculate the k mesh and k^2
     mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
@@ -473,33 +481,53 @@ def kspace(component, fields, omega_func=None):
             except KeyError as e:
                 raise ValueError("Required field {} not present in fields".format(e.message))
 
-            if not field.shape == inputfield.shape:
+            # remember the origin and box size of the field
+            field_origin = [a.grid_node[0] for a in field.axes]
+            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
+
+            # Test if all fields have the same number of grid points
+            if not field.shape == result.shape:
                 raise ValueError("All given Fields must have the same number of grid points. "
                                  "Field {} has a different shape than {}.".format(field_key,
                                                                                   component))
 
-            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
-
+            # Test if the axes of all fields have the same lengths
             if not np.all(np.isclose(Dx, oDx)):
                 raise ValueError("The axes of all given Fields must have the same length. "
                                  "Field {} has a different extent than {}.".format(field_key,
                                                                                    component))
 
+            # Test if all fields have same grid origin...
+            if interpolation is None:
+                if not np.all(np.isclose(result_origin, field_origin)):
+                    raise ValueError("The grids of all given Fields should have the same origin."
+                                     "The origin of {} ({}) differs from the origin of {} ({})."
+                                     "".format(field_key, field_origin, component, result_origin))
+
+            # ...or at least approximately the same origin, when interpolation is activated
+            else:
+                grid_shift = [
+                    so-to for so, to in
+                    zip(result_origin, field_origin)
+                ]
+
+                if not np.all(abs(np.array(grid_shift)) < 2.*dx):
+                    raise ValueError("The grids of all given Fields should have approximately the "
+                                     "same origin. The origin of {} ({}) differs from the origin "
+                                     "of {} ({}) by more than 2 dx."
+                                     "".format(field_key, field_origin, component, result_origin))
+
+            # linear interpolation is applied before the fft
+            if interpolation == 'linear':
+                field.shift_grid_by(grid_shift, interpolation='linear')
+
             field.fft()
-            grid_shift = [
-                so-to for so, to in
-                zip(result.transformed_axes_origins, field.transformed_axes_origins)
-            ]
 
-            if not np.all(abs(np.array(grid_shift)) < 2*dx):
-                raise ValueError("The grids of all given Fields should have approximately the "
-                                 "same origin. The origin of {} along some axis differs from "
-                                 "the origin of {} by more than 2 dx.".format(field_key,
-                                                                              component))
+            # fourier interpolation is done after the fft by applying a linear phase
+            if interpolation == 'fourier':
+                field._apply_linear_phase(dict(enumerate(grid_shift)))
 
-            field.shift_grid_by(grid_shift, _no_fft=True)
-
-            # add the component to the result
+            # add the field to the result with the appropriate prefactor
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
 
     return result
