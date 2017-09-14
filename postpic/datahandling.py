@@ -45,7 +45,7 @@ import collections
 
 import numpy as np
 import numpy.fft as fft
-import scipy.interpolate as spi
+import scipy.ndimage as spnd
 import copy
 from . import helper
 
@@ -532,15 +532,22 @@ class Field(object):
             self.fft(axes)
 
         if interpolation == 'linear':
-            axgrids = [ax.grid for ax in self.axes]
-            axgrids_shifted = [ax.grid + dx.get(i, 0.0) for i, ax in enumerate(self.axes)]
+            gridspacing = np.array([ax.grid[1] - ax.grid[0] for ax in self.axes])
+            shift = np.zeros(len(self.axes))
+            for i, d in dx.items():
+                shift[i] = d
 
-            mesh = np.meshgrid(*axgrids_shifted, indexing='ij', sparse=False)
-            pointlist = np.stack([np.ravel(a) for a in mesh], axis=-1)
+            shift_px = shift/gridspacing
 
-            tmp = spi.interpn(axgrids, self.matrix, pointlist, bounds_error=False, fill_value=0.0)
-            tmp.shape = self.matrix.shape
-            self.matrix = tmp
+            if np.isrealobj(self.matrix):
+                self.matrix = spnd.shift(self.matrix, -shift_px, order = 1, mode = 'nearest')
+            else:
+                matrix = self.matrix
+                self.matrix = empty_like
+                spnd.shift(matrix.real, -shift_px, output = self.matrix.real,
+                           order = 1, mode = 'nearest')
+                spnd.shift(matrix.imag, -shift_px, output = self.matrix.imag,
+                           order = 1, mode = 'nearest')
 
             for i in axes:
                 self.axes[i].grid_node = self.axes[i].grid_node + dx[i]
