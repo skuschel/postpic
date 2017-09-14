@@ -511,7 +511,7 @@ class Field(object):
         This is useful to remove the grid stagger of field components.
 
         If all axis will be shifted, dx may be a list.
-        Otherwise dx should be a mapping from axis to translation distance
+        Otherwise dx should be a mapping from axis to translation distance.
 
         The keyword-argument interpolation indicates the method to be used and
         may be one of ['linear', 'fourier'].
@@ -542,11 +542,12 @@ class Field(object):
             if np.isrealobj(self.matrix):
                 self.matrix = spnd.shift(self.matrix, -shift_px, order = 1, mode = 'nearest')
             else:
-                matrix = self.matrix
-                self.matrix = empty_like
-                spnd.shift(matrix.real, -shift_px, output = self.matrix.real,
+                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+                if not self.matrix.flags['WRITEABLE']:
+                    self.matrix = np.empty_like(matrix)
+                spnd.shift(real, -shift_px, output = self.matrix.real,
                            order = 1, mode = 'nearest')
-                spnd.shift(matrix.imag, -shift_px, output = self.matrix.imag,
+                spnd.shift(imag, -shift_px, output = self.matrix.imag,
                            order = 1, mode = 'nearest')
 
             for i in axes:
