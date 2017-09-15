@@ -380,6 +380,36 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
 
 
+def kspace_epoch_style(component, fields, omega_func=None, align_to='B'):
+    '''
+    Reconstruct the physical kspace of one polarization component
+    See documentation of kspace
+
+    This will choose the alignment of the fields in a way to improve
+    accuracy on EPOCH-style staggered dumps
+
+    align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
+    '''
+    polfield = component[0]
+    polaxis = axesidentify[component[1]]
+
+    if polfield == align_to:
+        return kspace(component, fields, interpolation='linear', omega_func=omega_func)
+
+    dx = np.array([ax.grid[1]-ax.grid[0] for ax in fields[component].axes])/2.0
+    try:
+        dx[polaxis] = 0
+    except IndexError:
+        pass
+
+    if polfield == 'B':
+        dx *= -1
+
+    fields[component] = copy.deepcopy(fields[component])
+    fields[component].shift_grid_by(dx, interpolation='linear')
+    return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
+
+
 def kspace(component, fields, interpolation=None, omega_func=None):
     '''
     Reconstruct the physical kspace of one polarization component

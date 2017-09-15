@@ -543,12 +543,9 @@ class Field(object):
                 self.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
             else:
                 real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
-                if not self.matrix.flags['WRITEABLE']:
-                    self.matrix = np.empty_like(matrix)
-                spnd.shift(real, -shift_px, output=self.matrix.real,
-                           order=1, mode='nearest')
-                spnd.shift(imag, -shift_px, output=self.matrix.imag,
-                           order=1, mode='nearest')
+                self.matrix = np.empty_like(matrix)
+                spnd.shift(real, -shift_px, output=self.matrix.real, order=1, mode='nearest')
+                spnd.shift(imag, -shift_px, output=self.matrix.imag, order=1, mode='nearest')
 
             for i in axes:
                 self.axes[i].grid_node = self.axes[i].grid_node + dx[i]
