@@ -228,6 +228,10 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
                 pass
         raise KeyError('Unable to resolve "simexent" for axis "{:}"'.format(axis))
 
+    def simgridspacing(self, axis):
+        extent = self.simextent(axis)
+        return (extent[1]-extent[0])/(self.simgridpoints(axis)-1)
+
     # --- Particle Data ---
     @abc.abstractmethod
     def listSpecies(self):

@@ -168,7 +168,7 @@ class FieldAnalyzer(object):
             raise ValueError()
 
         if alignment == 'auto':
-            if self.name.lower().endswith('sdf'):
+            if self.name.lower().endswith('.sdf'):
                 alignment = 'epoch'
             else:
                 alignment = 'default'
@@ -177,8 +177,9 @@ class FieldAnalyzer(object):
             return helper.kspace(component, fields, interpolation='fourier', **kwargs)
 
         if alignment.startswith('epoch'):
-            if 'omega_func' not in kwargs:
-                dx = [ax.grid[1] - ax.grid[0] for ax in next(iter(fields.values())).axes]
+            solver = kwargs.pop('solver', None)
+            if 'omega_func' not in kwargs and solver == 'yee':
+                dx = [self.simgridspacing(axis) for axis in range(self.simdimensions())]
                 dt = self.time()/self.timestep()
                 kwargs['omega_func'] = helper.omega_yee_factory(dx, dt)
 
