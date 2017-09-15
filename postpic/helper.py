@@ -406,6 +406,7 @@ def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     This will choose the alignment of the fields in a way to improve
     accuracy on EPOCH-like staggered dumps
 
+    For the current version of EPOCH, v4.9, use the following:
     align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
     '''
     polfield = component[0]
