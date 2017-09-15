@@ -380,6 +380,24 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
 
 
+def omega_yee_factory(dx, dt):
+    """
+    Return a function omega_yee that is suitable as input for kspace.
+    Pass the returned function as omega_func to kspace
+
+    dx: a list of the grid spacings, e. g.
+    dx = [ax.grid[1] - ax.grid[0] for ax in dumpreader.Ey().axes]
+
+    dt: time step, e. g.
+    dt = dumpreader.time()/dumpreader.timestep()
+    """
+    def omega_yee(kmesh):
+        tmp = sum((np.sin(0.5 * kxi * dxi) / dxi)**2 for kxi, dxi in zip(kmesh, dx))
+        omega = 2.0*np.arcsin(PhysicalConstants.c * dt * np.sqrt(tmp))/dt
+        return omega
+    return omega_yee
+
+
 def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
@@ -491,10 +509,10 @@ def kspace(component, fields, interpolation=None, omega_func=None):
     old_settings = np.seterr(all='ignore')
     if polfield == "E":
         prefactor = omega/k2
-        prefactor[np.argwhere(np.isnan(prefactor))] = 0.0
+        prefactor[np.isnan(prefactor)] = 0.0
     else:
         prefactor = -1.0/omega
-        prefactor[np.argwhere(np.isinf(prefactor))] = 0.0
+        prefactor[np.isinf(prefactor)] = 0.0
     np.seterr(**old_settings)
 
     # add/subtract the two terms of the cross-product

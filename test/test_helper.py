@@ -84,15 +84,28 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checkion(idfy('Nelectron'), 20.2, 0, False, False, True)
         self.checke(idfy('Neelectron'), 1, -1, False, False, False)
 
+
+
+class TestKspace(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
     def test_kspace(self):
         pp.chooseCode('dummy')
-        dr = pp.readDump(10000)
-        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+        for d in (1,2,3):
+            dr = pp.readDump(10000, dimensions=d)
+            kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+
+        omega = pp.helper.omega_yee_factory([ax.grid[1] - ax.grid[0] for ax in dr.Ey().axes], 1e-10)
+        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()), omega_func=omega)
 
     def test_kspace_epoch_like(self):
         pp.chooseCode('dummy')
-        dr = pp.readDump(10000)
-        kspace = pp.helper.kspace_epoch_like("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+        for d in (1,2,3):
+            dr = pp.readDump(10000, dimensions=d)
+            kspace = pp.helper.kspace_epoch_like("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+
 
 if __name__ == '__main__':
     unittest.main()
