@@ -20,6 +20,7 @@ Some global constants that are used in the code.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import copy
 import numpy as np
 import re
 import warnings
@@ -377,3 +378,206 @@ def histogramdd(data, **kwargs):
                                             np.float64(data[1]),
                                             np.float64(data[2]), **kwargs)
             return h, xe, ye, ze
+
+
+def omega_yee_factory(dx, dt):
+    """
+    Return a function omega_yee that is suitable as input for kspace.
+    Pass the returned function as omega_func to kspace
+
+    dx: a list of the grid spacings, e. g.
+    dx = [ax.grid[1] - ax.grid[0] for ax in dumpreader.Ey().axes]
+
+    dt: time step, e. g.
+    dt = dumpreader.time()/dumpreader.timestep()
+    """
+    def omega_yee(kmesh):
+        tmp = sum((np.sin(0.5 * kxi * dxi) / dxi)**2 for kxi, dxi in zip(kmesh, dx))
+        omega = 2.0*np.arcsin(PhysicalConstants.c * dt * np.sqrt(tmp))/dt
+        return omega
+    return omega_yee
+
+
+def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
+    '''
+    Reconstruct the physical kspace of one polarization component
+    See documentation of kspace
+
+    This will choose the alignment of the fields in a way to improve
+    accuracy on EPOCH-like staggered dumps
+
+    For the current version of EPOCH, v4.9, use the following:
+    align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
+    '''
+    polfield = component[0]
+    polaxis = axesidentify[component[1]]
+
+    if polfield == align_to:
+        return kspace(component, fields, interpolation='linear', omega_func=omega_func)
+
+    dx = np.array([ax.grid[1]-ax.grid[0] for ax in fields[component].axes])/2.0
+    try:
+        dx[polaxis] = 0
+    except IndexError:
+        pass
+
+    if polfield == 'B':
+        dx *= -1
+
+    fields[component] = copy.deepcopy(fields[component])
+    fields[component].shift_grid_by(dx, interpolation='linear')
+    return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
+
+
+def kspace(component, fields, interpolation=None, omega_func=None):
+    '''
+    Reconstruct the physical kspace of one polarization component
+    This function basically computes one component of
+        E = 0.5*(E - omega/k^2 * Cross[k, E])
+    or
+        B = 0.5*(B + 1/omega * Cross[k, B]).
+
+    component must be one of ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
+
+    The necessary fields must be given in the dict fields with keys
+    chosen from ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
+    Which are needed depends on the chosen component and
+    the dimensionality of the fields. In 3D the following fields are necessary:
+
+    Ex, By, Bz -> Ex
+    Ey, Bx, Bz -> Ey
+    Ez, Bx, By -> Ez
+
+    Bx, Ey, Ez -> Bx
+    By, Ex, Ez -> By
+    Bz, Ex, Ey -> Bz
+
+    In 2D, components which have "k_z" in front of them (see cross-product in
+    equations above) are not needed.
+    In 1D, components which have "k_y" or "k_z" in front of them (see
+    cross-product in equations above) are not needed.
+
+    The keyword-argument interpolation indicates whether interpolation should be
+    used to remove the grid stagger. If interpolation is None, this function
+    works only for non-staggered grids. Other choices for interpolation are
+    "linear" and "fourier".
+
+    The keyword-argument omega_func may be used to pass a function that will
+    calculate the dispersion relation of the simulation may be given. The
+    function will receive one argument that contains the k mesh.
+    '''
+    # target field is polfield and the other field is otherfield
+    polfield = component[0]
+    otherfield = 'B' if polfield == 'E' else 'E'
+
+    # polarization axis
+    polaxis = axesidentify[component[1]]
+
+    # build a dict of the keys of the fields-dict
+    field_keys = {'E': {0: 'Ex', 1: 'Ey', 2: 'Ez'},
+                  'B': {0: 'Bx', 1: 'By', 2: 'Bz'}}
+
+    # copy the polfield as a starting point for the result
+    try:
+        result = copy.deepcopy(fields[field_keys[polfield][polaxis]])
+    except KeyError:
+        raise ValueError("Required field {} not present in fields".format(component))
+
+    # remember the origins of result's axes to compare with other fields
+    result_origin = [a.grid_node[0] for a in result.axes]
+
+    # store box size of input field
+    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in result.axes])
+
+    # store grid spacing of input field
+    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in result.axes])
+
+    # Change to frequency domain
+    result.fft()
+
+    # calculate the k mesh and k^2
+    mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
+    k2 = sum(ki**2 for ki in mesh)
+
+    # calculate omega, either using the vacuum expression or omega_func()
+    if omega_func is None:
+        omega = PhysicalConstants.c * np.sqrt(k2)
+    else:
+        omega = omega_func(mesh)
+
+    # calculate the prefactor in front of the cross product
+    # this will produce nan/inf in specific places, which are replaced by 0
+    old_settings = np.seterr(all='ignore')
+    if polfield == "E":
+        prefactor = omega/k2
+        prefactor[np.isnan(prefactor)] = 0.0
+    else:
+        prefactor = -1.0/omega
+        prefactor[np.isinf(prefactor)] = 0.0
+    np.seterr(**old_settings)
+
+    # add/subtract the two terms of the cross-product
+    # i chooses the otherfield component  (polaxis+i) % 3
+    # mesh_i chooses the k-axis component (polaxis-i) % 3
+    # which recreates the crossproduct
+    for i in (1, 2):
+        mesh_i = (polaxis-i) % 3
+        if mesh_i < len(mesh):
+            # copy the otherfield component, transform and reverse the grid stagger
+            field_key = field_keys[otherfield][(polaxis+i) % 3]
+            try:
+                field = copy.deepcopy(fields[field_key])
+            except KeyError as e:
+                raise ValueError("Required field {} not present in fields".format(e.message))
+
+            # remember the origin and box size of the field
+            field_origin = [a.grid_node[0] for a in field.axes]
+            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
+
+            # Test if all fields have the same number of grid points
+            if not field.shape == result.shape:
+                raise ValueError("All given Fields must have the same number of grid points. "
+                                 "Field {} has a different shape than {}.".format(field_key,
+                                                                                  component))
+
+            # Test if the axes of all fields have the same lengths
+            if not np.all(np.isclose(Dx, oDx)):
+                raise ValueError("The axes of all given Fields must have the same length. "
+                                 "Field {} has a different extent than {}.".format(field_key,
+                                                                                   component))
+
+            # Test if all fields have same grid origin...
+            if interpolation is None:
+                if not np.all(np.isclose(result_origin, field_origin)):
+                    raise ValueError("The grids of all given Fields should have the same origin."
+                                     "The origin of {} ({}) differs from the origin of {} ({})."
+                                     "".format(field_key, field_origin, component, result_origin))
+
+            # ...or at least approximately the same origin, when interpolation is activated
+            else:
+                grid_shift = [
+                    so-to for so, to in
+                    zip(result_origin, field_origin)
+                ]
+
+                if not np.all(abs(np.array(grid_shift)) < 2.*dx):
+                    raise ValueError("The grids of all given Fields should have approximately the "
+                                     "same origin. The origin of {} ({}) differs from the origin "
+                                     "of {} ({}) by more than 2 dx."
+                                     "".format(field_key, field_origin, component, result_origin))
+
+            # linear interpolation is applied before the fft
+            if interpolation == 'linear':
+                field.shift_grid_by(grid_shift, interpolation='linear')
+
+            field.fft()
+
+            # fourier interpolation is done after the fft by applying a linear phase
+            if interpolation == 'fourier':
+                field._apply_linear_phase(dict(enumerate(grid_shift)))
+
+            # add the field to the result with the appropriate prefactor
+            result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
+
+    return result
+

@@ -5,7 +5,7 @@ import postpic as pp
 import numpy as np
 
 class TestFieldAnalyzer(unittest.TestCase):
-    
+
     def setUp(self):
         pp.chooseCode('dummy')
         self.dr = pp.readDump(10000)

@@ -45,6 +45,7 @@ import collections
 
 import numpy as np
 import numpy.fft as fft
+import scipy.ndimage as spnd
 import copy
 from . import helper
 
@@ -504,24 +505,50 @@ class Field(object):
         for i in dx.keys():
             self.transformed_axes_origins[i] += dx[i]
 
-    def shift_grid_by(self, dx):
+    def shift_grid_by(self, dx, interpolation='fourier'):
         '''
-        Translate the Grid by dx by doing two fourier transforms.
+        Translate the Grid by dx.
         This is useful to remove the grid stagger of field components.
 
         If all axis will be shifted, dx may be a list.
-        Otherwise dx should be a mapping from axis to translation distance
-        All axes must have same transform_state and transformed_axes_origins not None
+        Otherwise dx should be a mapping from axis to translation distance.
+
+        The keyword-argument interpolation indicates the method to be used and
+        may be one of ['linear', 'fourier'].
+        In case of interpolation = 'fourier' all axes must have same transform_state.
         '''
+        if interpolation not in ['fourier', 'linear']:
+            raise ValueError("Requested method {} is not supported".format(method))
+
         if not isinstance(dx, collections.Mapping):
             dx = dict(enumerate(dx))
 
         dx = {helper.axesidentify[i]: v for i, v in dx.items()}
+        axes = sorted(dx.keys())
 
-        axes = dx.keys()
-        self.fft(axes)
-        self._apply_linear_phase(dx)
-        self.fft(axes)
+        if interpolation == 'fourier':
+            self.fft(axes)
+            self._apply_linear_phase(dx)
+            self.fft(axes)
+
+        if interpolation == 'linear':
+            gridspacing = np.array([ax.grid[1] - ax.grid[0] for ax in self.axes])
+            shift = np.zeros(len(self.axes))
+            for i, d in dx.items():
+                shift[i] = d
+
+            shift_px = shift/gridspacing
+
+            if np.isrealobj(self.matrix):
+                self.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
+            else:
+                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+                self.matrix = np.empty_like(matrix)
+                spnd.shift(real, -shift_px, output=self.matrix.real, order=1, mode='nearest')
+                spnd.shift(imag, -shift_px, output=self.matrix.imag, order=1, mode='nearest')
+
+            for i in axes:
+                self.axes[i].grid_node = self.axes[i].grid_node + dx[i]
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
         '''
