@@ -162,6 +162,88 @@ class FieldAnalyzer(object):
 
     # --- spezielle Funktionen
 
+    def _kspace(self, component, fields, **kwargs):
+        alignment = kwargs.pop('alignment', 'auto')
+        if alignment not in ['auto', 'default', 'epoch', 'epoch-final']:
+            raise ValueError()
+
+        if alignment == 'auto':
+            if self.name.lower().endswith('sdf'):
+                alignment = 'epoch'
+            else:
+                alignment = 'default'
+
+        if alignment == 'default':
+            return helper.kspace(component, fields, interpolation='fourier', **kwargs)
+
+        if alignment.startswith('epoch'):
+            if 'omega_func' not in kwargs:
+                dx = [ax.grid[1] - ax.grid[0] for ax in next(iter(fields.values())).axes]
+                dt = self.time()/self.timestep()
+                kwargs['omega_func'] = helper.omega_yee_factory(dx, dt)
+
+        if alignment == 'epoch':
+            return helper.kspace_epoch_like(component, fields, align_to='B', **kwargs)
+
+        if alignment == 'epoch-final':
+            return helper.kspace_epoch_like(component, fields, align_to='E', **kwargs)
+
+    def kspace_Ex(self, **kwargs):
+        fields = dict()
+        fields['Ex'] = self.Ex()
+        if fields['Ex'].dimensions >= 2:
+            fields['Bz'] = self.Bz()
+        if fields['Ex'].dimensions >= 3:
+            fields['By'] = self.By()
+
+        return self._kspace('Ex', fields, **kwargs)
+
+    def kspace_Ey(self, **kwargs):
+        fields = dict()
+        fields['Ey'] = self.Ey()
+        fields['Bz'] = self.Bz()
+        if fields['Ey'].dimensions >= 3:
+            fields['Bx'] = self.By()
+
+        return self._kspace('Ey', fields, **kwargs)
+
+    def kspace_Ez(self, **kwargs):
+        fields = dict()
+        fields['Ez'] = self.Ey()
+        fields['By'] = self.Bz()
+        if fields['Ez'].dimensions >= 2:
+            fields['Bx'] = self.By()
+
+        return self._kspace('Ez', fields, **kwargs)
+
+    def kspace_Bx(self, **kwargs):
+        fields = dict()
+        fields['Bx'] = self.Bx()
+        if fields['Bx'].dimensions >= 2:
+            fields['Ez'] = self.Ez()
+        if fields['Bx'].dimensions >= 3:
+            fields['Ey'] = self.Ey()
+
+        return self._kspace('Bx', fields, **kwargs)
+
+    def kspace_By(self, **kwargs):
+        fields = dict()
+        fields['By'] = self.By()
+        fields['Ez'] = self.Ez()
+        if fields['By'].dimensions >= 3:
+            fields['Ex'] = self.Ey()
+
+        return self._kspace('By', fields, **kwargs)
+
+    def kspace_Bz(self, **kwargs):
+        fields = dict()
+        fields['Bz'] = self.By()
+        fields['Ey'] = self.Ez()
+        if fields['Bz'].dimensions >= 2:
+            fields['Ex'] = self.Ey()
+
+        return self._kspace('Bz', fields, **kwargs)
+
     def energydensityE(self, **kwargs):
         ret = self._createfieldfromdata(0.5 * pc.epsilon0 *
                                         (self._Ex(**kwargs) ** 2 +
