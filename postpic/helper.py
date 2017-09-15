@@ -380,13 +380,13 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
 
 
-def kspace_epoch_style(component, fields, omega_func=None, align_to='B'):
+def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
 
     This will choose the alignment of the fields in a way to improve
-    accuracy on EPOCH-style staggered dumps
+    accuracy on EPOCH-like staggered dumps
 
     align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
     '''

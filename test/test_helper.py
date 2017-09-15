@@ -89,10 +89,10 @@ class TestSpeciesIdentifier(unittest.TestCase):
         dr = pp.readDump(10000)
         kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
 
-    def test_kspace_epoch_style(self):
+    def test_kspace_epoch_like(self):
         pp.chooseCode('dummy')
         dr = pp.readDump(10000)
-        kspace = pp.helper.kspace_epoch_style("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+        kspace = pp.helper.kspace_epoch_like("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
 
 if __name__ == '__main__':
     unittest.main()
