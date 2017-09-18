@@ -707,13 +707,14 @@ class Field(object):
         return self
 
     def __add__(self, other):
-        ret = copy.deepcopy(self)
-        ret += other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix + other.matrix
+        self.name = self.name + ' + ' + other.name
         return ret
 
     def __neg__(self):
-        ret = copy.deepcopy(self)
-        ret.matrix *= -1
+        ret = copy.copy(self)
+        ret.matrix = -self.matrix
         return ret
 
     def __isub__(self, other):
@@ -725,12 +726,13 @@ class Field(object):
         return self
 
     def __sub__(self, other):
-        ret = copy.deepcopy(self)
-        ret -= other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix - other.matrix
+        self.name = self.name + ' - ' + other.name
         return ret
 
     def __pow__(self, other):
-        ret = copy.deepcopy(self)
+        ret = copy.copy(self)
         ret.matrix = self.matrix ** other
         return ret
 
@@ -743,12 +745,13 @@ class Field(object):
         return self
 
     def __mul__(self, other):
-        ret = copy.deepcopy(self)
-        ret *= other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix * other.matrix
+        self.name = self.name + ' * ' + other.name
         return ret
 
     def __abs__(self):
-        ret = copy.deepcopy(self)
+        ret = copy.copy(self)
         ret.matrix = np.abs(ret.matrix)
         return ret
 
@@ -762,8 +765,9 @@ class Field(object):
         return self
 
     def __truediv__(self, other):
-        ret = copy.deepcopy(self)
-        ret /= other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix / other.matrix
+        self.name = self.name + ' / ' + other.name
         return ret
 
     # python 2
