@@ -102,6 +102,13 @@ class Axis(object):
         gn[0] = grid[0] + (grid[0] - gn[1])
         gn[-1] = grid[-1] + (grid[-1] - gn[-2])
         self.grid_node = gn
+        self._linear = None
+
+    @property
+    def spacing(self):
+        if not self.islinear():
+            raise TypeError('Grid must be linear to calcualte gridspacing')
+        return self.grid_node[1] - self.grid_node[0]
 
     @property
     def extent(self):
@@ -469,7 +476,7 @@ class Field(object):
         new_origins = {i: self.axes[i].grid[0] for i in axes}
 
         # Grid spacing
-        dx = {i: self.axes[i].grid[1] - self.axes[i].grid[0] for i in axes}
+        dx = {i: self.axes[i].spacing for i in axes}
 
         # Unit volume of transform
         dV = np.product(list(dx.values()))
@@ -601,7 +608,7 @@ class Field(object):
             ret = ret.fft(axes)
 
         if interpolation == 'linear':
-            gridspacing = np.array([ax.grid[1] - ax.grid[0] for ax in self.axes])
+            gridspacing = np.array([ax.spacing for ax in self.axes])
             shift = np.zeros(len(self.axes))
             for i, d in dx.items():
                 shift[i] = d
