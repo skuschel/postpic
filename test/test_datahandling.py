@@ -131,6 +131,15 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d.extent[1], 1)
         self.checkFieldConsistancy(self.f3d)
 
+    def test_slicing(self):
+        self.assertEqual(self.f1d[0.15:0.75].matrix.shape, (6,))
+        self.assertEqual(self.f1d[5].matrix.shape, (1,))
+
+        self.assertEqual(self.f2d[0.5:, :].matrix.shape, (2, 5))
+
+        self.assertEqual(self.f3d[0.5:, :, 0.5].matrix.shape, (2, 5, 1))
+        self.assertEqual(self.f3d[0.5:, :, 0.5].squeeze().matrix.shape, (2, 5))
+
     def test_fourier_inverse(self):
         f1d_orig = copy.deepcopy(self.f1d)
         self.f1d.fft()

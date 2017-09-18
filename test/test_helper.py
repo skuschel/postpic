@@ -100,6 +100,8 @@ class TestKspace(unittest.TestCase):
         omega = pp.helper.omega_yee_factory([ax.grid[1] - ax.grid[0] for ax in dr.Ey().axes], 1e-10)
         kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()), omega_func=omega)
 
+        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()), extent=[0, 0.5, 0, 0.5, 0, 0.5])
+
     def test_kspace_epoch_like(self):
         pp.chooseCode('dummy')
         for d in (1,2,3):
