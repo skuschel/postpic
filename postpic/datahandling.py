@@ -239,10 +239,12 @@ class Field(object):
         '''
         ret = type(self)(self.matrix)
         ret.__dict__.update(self.__dict__)  # shallow copy
-        for k in ['axes', 'infos', 'axes_transform_state', 'transformed_axes_origins']:
+        for k in ['infos', 'axes_transform_state', 'transformed_axes_origins']:
             # copy iterables one level deeper
             # but matrix is not copied!
             ret.__dict__[k] = copy.copy(self.__dict__[k])
+        # create shallow copies of Axis objects
+        ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
     def __array__(self):
