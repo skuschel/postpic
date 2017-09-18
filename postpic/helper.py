@@ -21,6 +21,7 @@ Some global constants that are used in the code.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import copy
+import numbers
 import numpy as np
 import re
 import warnings
@@ -380,6 +381,26 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
 
 
+def is_non_integer_real_number(x):
+    """
+    Tests if an object ix is a real number and not an integer.
+    """
+    return isinstance(x, numbers.Real) and not isinstance(x, numbers.Integral)
+
+
+def find_nearest_index(array, value):
+    """
+    Gives the index i of the value array[i] which is closest to value.
+    Assumes that the array is sorted.
+    """
+    idx = np.searchsorted(array, value, side="left")
+    if idx > 0 and (idx == len(array) or
+                    np.fabs(value - array[idx-1]) < np.fabs(value - array[idx])):
+                        return idx-1
+    else:
+        return idx
+
+
 def omega_yee_factory(dx, dt):
     """
     Return a function omega_yee that is suitable as input for kspace.
@@ -465,6 +486,10 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     equations above) are not needed.
     In 1D, components which have "k_y" or "k_z" in front of them (see
     cross-product in equations above) are not needed.
+
+    The keyword-argument extent may be a list of values [xmin, xmax, ymin, ymax, ...]
+    which denote a region of the Fields on which to execute the kspace
+    reconstruction.
 
     The keyword-argument interpolation indicates whether interpolation should be
     used to remove the grid stagger. If interpolation is None, this function

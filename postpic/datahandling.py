@@ -42,7 +42,6 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import collections
-import numbers
 import copy
 
 import numpy as np
@@ -51,19 +50,6 @@ import scipy.ndimage as spnd
 from . import helper
 
 __all__ = ['Field', 'Axis']
-
-
-def is_non_integer_real_number(x):
-    return isinstance(x, numbers.Real) and not isinstance(x, numbers.Integral)
-
-
-def find_nearest_index(array, value):
-    idx = np.searchsorted(array, value, side="left")
-    if idx > 0 and (idx == len(array) or
-                    np.fabs(value - array[idx-1]) < np.fabs(value - array[idx])):
-                        return idx-1
-    else:
-        return idx
 
 
 class Axis(object):
@@ -159,7 +145,7 @@ class Axis(object):
 
     def _normalize_slice(self, index):
         if isinstance(index, slice):
-            if any(is_non_integer_real_number(x) for x in (index.start, index.stop)):
+            if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices should have step == None')
 
@@ -168,8 +154,8 @@ class Axis(object):
             return index
 
         else:
-            if is_non_integer_real_number(index):
-                index = find_nearest_index(self.grid, index)
+            if helper.is_non_integer_real_number(index):
+                index = helper.find_nearest_index(self.grid, index)
             return slice(index, index+1)
 
     def _getslice(self, key):
