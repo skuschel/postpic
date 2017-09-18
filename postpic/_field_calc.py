@@ -202,16 +202,16 @@ class FieldAnalyzer(object):
         fields['Ey'] = self.Ey()
         fields['Bz'] = self.Bz()
         if fields['Ey'].dimensions >= 3:
-            fields['Bx'] = self.By()
+            fields['Bx'] = self.Bx()
 
         return self._kspace('Ey', fields, **kwargs)
 
     def kspace_Ez(self, **kwargs):
         fields = dict()
-        fields['Ez'] = self.Ey()
-        fields['By'] = self.Bz()
+        fields['Ez'] = self.Ez()
+        fields['By'] = self.By()
         if fields['Ez'].dimensions >= 2:
-            fields['Bx'] = self.By()
+            fields['Bx'] = self.Bx()
 
         return self._kspace('Ez', fields, **kwargs)
 
@@ -230,16 +230,16 @@ class FieldAnalyzer(object):
         fields['By'] = self.By()
         fields['Ez'] = self.Ez()
         if fields['By'].dimensions >= 3:
-            fields['Ex'] = self.Ey()
+            fields['Ex'] = self.Ex()
 
         return self._kspace('By', fields, **kwargs)
 
     def kspace_Bz(self, **kwargs):
         fields = dict()
-        fields['Bz'] = self.By()
-        fields['Ey'] = self.Ez()
+        fields['Bz'] = self.Bz()
+        fields['Ey'] = self.Ey()
         if fields['Bz'].dimensions >= 2:
-            fields['Ex'] = self.Ey()
+            fields['Ex'] = self.Ex()
 
         return self._kspace('Bz', fields, **kwargs)
 
