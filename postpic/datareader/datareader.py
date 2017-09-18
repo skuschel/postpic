@@ -230,7 +230,7 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
 
     def simgridspacing(self, axis):
         extent = self.simextent(axis)
-        return (extent[1]-extent[0])/(self.simgridpoints(axis)-1)
+        return (extent[1]-extent[0])/self.simgridpoints(axis)
 
     # --- Particle Data ---
     @abc.abstractmethod
