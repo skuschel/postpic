@@ -546,7 +546,7 @@ class Field(object):
             raise ValueError("Translation only allowed if all mentioned axes"
                              "have transformed_axes_origins not None")
 
-        axes = [ax.grid for ax in self.axes]
+        axes = [ax.grid for ax in self.axes]  # each axis object returns new numpy array
         for i in range(len(axes)):
             gridlen = len(axes[i])
             if transform_state is True:
@@ -563,13 +563,16 @@ class Field(object):
         arg = sum([dx[i]*mesh[i] for i in dx.keys()])
 
         # apply linear phase with correct sign and global phase
+        ret = copy.copy(self)
         if transform_state is True:
-            self.matrix *= np.exp(1.j * arg)
+            ret.matrix = self.matrix * np.exp(1.j * arg)
         else:
-            self.matrix *= np.exp(-1.j * arg)
+            ret.matrix = self.matrix * np.exp(-1.j * arg)
 
         for i in dx.keys():
-            self.transformed_axes_origins[i] += dx[i]
+            ret.transformed_axes_origins[i] += dx[i]
+
+        return ret
 
     def shift_grid_by(self, dx, interpolation='fourier'):
         '''
@@ -594,7 +597,7 @@ class Field(object):
 
         if interpolation == 'fourier':
             ret = self.fft(axes)
-            ret._apply_linear_phase(dx)
+            ret = ret._apply_linear_phase(dx)
             ret = ret.fft(axes)
 
         if interpolation == 'linear':
