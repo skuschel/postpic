@@ -265,38 +265,6 @@ class SpeciesIdentifier(PhysicalConstants):
 # Some static functions
 
 
-def cutout(m, oldextent, newextent):
-    """
-    cuts out a part of the matrix m that belongs to newextent if the full
-    matrix corresponds to oldextent. If m has dims dimensions, then oldextent
-    and newextent have to have a length of 2*dims each.
-    nexextent has to be inside of oldextent!
-    (this should be fixed in the future...)
-    """
-    import numpy as np
-    dims = len(m.shape)
-    assert oldextent is not newextent, 'oldextent and newextent point to the' \
-                                       'same objekt(!). Get a coffe and' \
-                                       'check your code again. :)'
-    assert len(oldextent) / 2 == dims, \
-        'dimensions of oldextent and m are wrong!'
-    assert len(newextent) / 2 == dims, \
-        'dimensions of newextent and m are wrong!'
-    s = ()
-    for dim in range(dims):
-        i = 2 * dim
-        thisdimmin = round((newextent[i] - oldextent[i]) /
-                           (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-        thisdimmax = round((newextent[i + 1] - oldextent[i]) /
-                           (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-        s = np.append(s, slice(thisdimmin, thisdimmax))
-    if len(s) == 1:
-        s = s[0]
-    else:
-        s = tuple(s)
-    return m[s]
-
-
 def transfromxy2polar(matrixxy, extentxy,
                       extentpolar, shapepolar, ashistogram=True):
     '''

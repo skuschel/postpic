@@ -379,13 +379,10 @@ class Field(object):
         '''
         only keeps that part of the matrix, that belongs to newextent.
         '''
-        if self.dimensions == 0:
-            return
-        if not self.dimensions * 2 == len(newextent):
-            raise TypeError('size of newextent doesnt match self.dimensions * 2')
-        self.matrix = helper.cutout(self.matrix, self.extent, newextent)
-        for i in range(len(self.axes)):
-            self.axes[i].cutout(newextent[2 * i:2 * i + 2])
+        slices = self._extent_to_slices(newextent)
+        self.matrix = self.matrix[slices]
+        for i, sl in enumerate(slices):
+            self.setaxisobj(i, self.axes[i][sl])
         return self
 
     def squeeze(self):
