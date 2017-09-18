@@ -42,11 +42,11 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import collections
+import copy
 
 import numpy as np
 import numpy.fft as fft
 import scipy.ndimage as spnd
-import copy
 from . import helper
 
 __all__ = ['Field', 'Axis']
@@ -135,6 +135,42 @@ class Axis(object):
         removes every second grid_node.
         '''
         self.grid_node = self.grid_node[::2]
+
+    def _extent_to_slice(self, extent):
+        a, b = extent
+        if a is None:
+            a = self._grid_node[0]
+        if b is None:
+            b = self._grid_node[-1]
+        return slice(*np.searchsorted(self.grid, np.sort([a, b])))
+
+    def _normalize_slice(self, index):
+        """
+        Applies some checks and transformations to the object passed
+        to __getitem__
+        """
+        if isinstance(index, slice):
+            if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
+                if index.step is not None:
+                    raise IndexError('Non-Integer slices should have step == None')
+
+                return self._extent_to_slice((index.start, index.stop))
+
+            return index
+
+        else:
+            if helper.is_non_integer_real_number(index):
+                index = helper.find_nearest_index(self.grid, index)
+            return slice(index, index+1)
+
+    def __getitem__(self, key):
+        """
+        Returns an Axis which consists of a sub-part of this object defined by
+        a slice containing floats or integers or a float or an integer
+        """
+        ax = copy.deepcopy(self)
+        ax.grid = ax.grid[self._normalize_slice(key)]
+        return ax
 
     def __len__(self):
         ret = len(self._grid_node) - 1
@@ -343,14 +379,19 @@ class Field(object):
         '''
         only keeps that part of the matrix, that belongs to newextent.
         '''
-        if self.dimensions == 0:
-            return
-        if not self.dimensions * 2 == len(newextent):
-            raise TypeError('size of newextent doesnt match self.dimensions * 2')
-        self.matrix = helper.cutout(self.matrix, self.extent, newextent)
-        for i in range(len(self.axes)):
-            self.axes[i].cutout(newextent[2 * i:2 * i + 2])
-        return
+        slices = self._extent_to_slices(newextent)
+        self.matrix = self.matrix[slices]
+        for i, sl in enumerate(slices):
+            self.setaxisobj(i, self.axes[i][sl])
+        return self
+
+    def squeeze(self):
+        '''
+        removes axes that have length 1, reducing self.dimensions
+        '''
+        self.axes = [ax for ax in self.axes if len(ax) > 1]
+        self.matrix = np.squeeze(self.matrix)
+        return self
 
     def mean(self, axis=-1):
         '''
@@ -590,7 +631,33 @@ class Field(object):
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.matrix.shape) + '>'
 
+    def _extent_to_slices(self, extent):
+        if not self.dimensions * 2 == len(extent):
+            raise TypeError('size of extent doesnt match self.dimensions * 2')
+
+        extent = np.reshape(np.asarray(extent), (self.dimensions, 2))
+        return [ax._extent_to_slice(ex) for ax, ex in zip(self.axes, extent)]
+
+    def _normalize_slices(self, key):
+        if not isinstance(key, collections.Iterable):
+            key = (key,)
+        if len(key) != self.dimensions:
+            raise IndexError("{}D Field requires a {}-tuple of slices as index"
+                             "".format(self.dimensions, self.dimensions))
+
+        return [ax._normalize_slice(sl) for ax, sl in zip(self.axes, key)]
+
     # Operator overloading
+    def __getitem__(self, key):
+        key = self._normalize_slices(key)
+
+        field = copy.deepcopy(self)
+        field.matrix = field.matrix[key]
+        for i, sl in enumerate(key):
+            field.setaxisobj(i, field.axes[i][sl])
+
+        return field
+
     def __iadd__(self, other):
         if isinstance(other, Field):
             self.matrix += other.matrix

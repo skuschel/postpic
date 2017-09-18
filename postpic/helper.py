@@ -21,6 +21,7 @@ Some global constants that are used in the code.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import copy
+import numbers
 import numpy as np
 import re
 import warnings
@@ -264,38 +265,6 @@ class SpeciesIdentifier(PhysicalConstants):
 # Some static functions
 
 
-def cutout(m, oldextent, newextent):
-    """
-    cuts out a part of the matrix m that belongs to newextent if the full
-    matrix corresponds to oldextent. If m has dims dimensions, then oldextent
-    and newextent have to have a length of 2*dims each.
-    nexextent has to be inside of oldextent!
-    (this should be fixed in the future...)
-    """
-    import numpy as np
-    dims = len(m.shape)
-    assert oldextent is not newextent, 'oldextent and newextent point to the' \
-                                       'same objekt(!). Get a coffe and' \
-                                       'check your code again. :)'
-    assert len(oldextent) / 2 == dims, \
-        'dimensions of oldextent and m are wrong!'
-    assert len(newextent) / 2 == dims, \
-        'dimensions of newextent and m are wrong!'
-    s = ()
-    for dim in range(dims):
-        i = 2 * dim
-        thisdimmin = round((newextent[i] - oldextent[i]) /
-                           (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-        thisdimmax = round((newextent[i + 1] - oldextent[i]) /
-                           (oldextent[i + 1] - oldextent[i]) * m.shape[dim])
-        s = np.append(s, slice(thisdimmin, thisdimmax))
-    if len(s) == 1:
-        s = s[0]
-    else:
-        s = tuple(s)
-    return m[s]
-
-
 def transfromxy2polar(matrixxy, extentxy,
                       extentpolar, shapepolar, ashistogram=True):
     '''
@@ -380,6 +349,26 @@ def histogramdd(data, **kwargs):
             return h, xe, ye, ze
 
 
+def is_non_integer_real_number(x):
+    """
+    Tests if an object ix is a real number and not an integer.
+    """
+    return isinstance(x, numbers.Real) and not isinstance(x, numbers.Integral)
+
+
+def find_nearest_index(array, value):
+    """
+    Gives the index i of the value array[i] which is closest to value.
+    Assumes that the array is sorted.
+    """
+    idx = np.searchsorted(array, value, side="left")
+    if idx > 0 and (idx == len(array) or
+                    np.fabs(value - array[idx-1]) < np.fabs(value - array[idx])):
+                        return idx-1
+    else:
+        return idx
+
+
 def omega_yee_factory(dx, dt):
     """
     Return a function omega_yee that is suitable as input for kspace.
@@ -398,7 +387,12 @@ def omega_yee_factory(dx, dt):
     return omega_yee
 
 
-def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
+def _kspace_helper_cutfields(component, fields, extent):
+    slices = fields[component]._extent_to_slices(extent)
+    return {k: f[slices] for k, f in fields.items()}
+
+
+def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
@@ -411,6 +405,10 @@ def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     '''
     polfield = component[0]
     polaxis = axesidentify[component[1]]
+
+    # apply extent to all fields
+    if extent is not None:
+        fields = _kspace_helper_cutfields(component, fields, extent)
 
     if polfield == align_to:
         return kspace(component, fields, interpolation='linear', omega_func=omega_func)
@@ -429,7 +427,7 @@ def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
 
 
-def kspace(component, fields, interpolation=None, omega_func=None):
+def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     '''
     Reconstruct the physical kspace of one polarization component
     This function basically computes one component of
@@ -457,6 +455,10 @@ def kspace(component, fields, interpolation=None, omega_func=None):
     In 1D, components which have "k_y" or "k_z" in front of them (see
     cross-product in equations above) are not needed.
 
+    The keyword-argument extent may be a list of values [xmin, xmax, ymin, ymax, ...]
+    which denote a region of the Fields on which to execute the kspace
+    reconstruction.
+
     The keyword-argument interpolation indicates whether interpolation should be
     used to remove the grid stagger. If interpolation is None, this function
     works only for non-staggered grids. Other choices for interpolation are
@@ -469,6 +471,10 @@ def kspace(component, fields, interpolation=None, omega_func=None):
     # target field is polfield and the other field is otherfield
     polfield = component[0]
     otherfield = 'B' if polfield == 'E' else 'E'
+
+    # apply extent to all fields
+    if extent is not None:
+        fields = _kspace_helper_cutfields(component, fields, extent)
 
     # polarization axis
     polaxis = axesidentify[component[1]]
@@ -507,14 +513,14 @@ def kspace(component, fields, interpolation=None, omega_func=None):
 
     # calculate the prefactor in front of the cross product
     # this will produce nan/inf in specific places, which are replaced by 0
-    old_settings = np.seterr(all='ignore')
-    if polfield == "E":
-        prefactor = omega/k2
-        prefactor[np.isnan(prefactor)] = 0.0
-    else:
-        prefactor = -1.0/omega
-        prefactor[np.isinf(prefactor)] = 0.0
-    np.seterr(**old_settings)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        if polfield == "E":
+            prefactor = omega/k2
+        else:
+            prefactor = -1.0/omega
+
+    prefactor[np.isnan(prefactor)] = 0.0
+    prefactor[np.isinf(prefactor)] = 0.0
 
     # add/subtract the two terms of the cross-product
     # i chooses the otherfield component  (polaxis+i) % 3

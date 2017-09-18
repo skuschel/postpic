@@ -140,7 +140,7 @@ class Sdfreader(Dumpreader_ifc):
         '''
         mesh = self['Grid/Grid']
         axid = helper.axesidentify[axis]
-        return mesh.dims[axid]
+        return mesh.dims[axid] - 1
 
     def listSpecies(self):
         ret = set()
