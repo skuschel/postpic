@@ -507,14 +507,14 @@ def kspace(component, fields, interpolation=None, omega_func=None):
 
     # calculate the prefactor in front of the cross product
     # this will produce nan/inf in specific places, which are replaced by 0
-    old_settings = np.seterr(all='ignore')
-    if polfield == "E":
-        prefactor = omega/k2
-        prefactor[np.isnan(prefactor)] = 0.0
-    else:
-        prefactor = -1.0/omega
-        prefactor[np.isinf(prefactor)] = 0.0
-    np.seterr(**old_settings)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        if polfield == "E":
+            prefactor = omega/k2
+        else:
+            prefactor = -1.0/omega
+
+    prefactor[np.isnan(prefactor)] = 0.0
+    prefactor[np.isinf(prefactor)] = 0.0
 
     # add/subtract the two terms of the cross-product
     # i chooses the otherfield component  (polaxis+i) % 3
