@@ -130,17 +130,6 @@ class Axis(object):
             gn = np.linspace(extent[0], extent[-1], n + 1)
         self.grid_node = gn
 
-    def cutout(self, newextent):
-        '''
-        keeps the grid points within the newextent only.
-        '''
-        nex = np.sort(newextent)
-        gnnew = [gn for gn in self.grid_node
-                 if (nex[0] <= gn and gn <= nex[1])]
-        ret = copy.copy(self)
-        ret.grid_node = gnnew
-        return ret
-
     def half_resolution(self):
         '''
         removes every second grid_node.
@@ -166,11 +155,8 @@ class Axis(object):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices should have step == None')
-
                 return self._extent_to_slice((index.start, index.stop))
-
             return index
-
         else:
             if helper.is_non_integer_real_number(index):
                 index = helper.find_nearest_index(self.grid, index)
@@ -413,12 +399,8 @@ class Field(object):
         '''
         only keeps that part of the matrix, that belongs to newextent.
         '''
-        ret = copy.copy(self)
         slices = self._extent_to_slices(newextent)
-        ret.matrix = self.matrix[slices]  # view only
-        for i, sl in enumerate(slices):
-            ret.setaxisobj(i, self.axes[i][sl])
-        return ret
+        return self[slices]
 
     def squeeze(self):
         '''

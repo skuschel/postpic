@@ -31,15 +31,15 @@ class TestAxis(unittest.TestCase):
         self.assertEqual(ax.name, '')
         self.assertEqual(ax.unit, '')
 
-    def test_cutout(self):
+    def test_getitem(self):
         # even number of grid points
         self.ax.setextent((-1, 1), 100)
-        ax = self.ax.cutout((0, 1))
+        ax = self.ax[0.0:1.0]
         self.assertEqual(len(ax), 50)
         self.assertEqual(ax.grid_node[0], 0)
         # odd number of grid points
         self.ax.setextent((-1, 1), 101)
-        ax = self.ax.cutout((-0.01, 1))
+        ax = self.ax[-0.01: 1]
         self.assertEqual(len(ax), 51)
         self.assertEqual(ax.grid[0], 0)
 
