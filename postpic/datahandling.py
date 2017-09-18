@@ -228,12 +228,12 @@ class Field(object):
         # self.axes_transform_state is False for axes which live in spatial domain
         # and it is True for axes which live in frequency domain
         # This assumes that fields are initially created in spatial domain.
-        self.axes_transform_state = [False] * len(self.matrix.shape)
+        self.axes_transform_state = [False] * len(self.shape)
 
         # self.transformed_axes_origins stores the starting values of the grid
         # from before the last transform was executed, this is used to
         # recreate the correct axis interval upon inverse transform
-        self.transformed_axes_origins = [None] * len(self.matrix.shape)
+        self.transformed_axes_origins = [None] * len(self.shape)
 
     def __copy__(self):
         '''
@@ -265,7 +265,7 @@ class Field(object):
         uses the given axisobj as the axis obj in the given dimension.
         '''
         # check if number of grid points match
-        matrixpts = self.matrix.shape[len(self.axes)]
+        matrixpts = self.shape[len(self.axes)]
         if matrixpts != len(axisobj):
             raise ValueError(
                 'Number of Grid points in next missing Data '
@@ -283,7 +283,7 @@ class Field(object):
         '''
         adds a new axis that is supported by the matrix.
         '''
-        matrixpts = self.matrix.shape[len(self.axes)]
+        matrixpts = self.shape[len(self.axes)]
         ax = Axis(**kwargs)
         ax.setextent(extent, matrixpts)
         self._addaxisobj(ax)
@@ -294,11 +294,11 @@ class Field(object):
         new axisobj axisobj.
         '''
         axid = helper.axesidentify[axis]
-        if not len(axisobj) == self.matrix.shape[axid]:
+        if not len(axisobj) == self.shape[axid]:
             raise ValueError('Axis object has {:3n} grid points, whereas '
                              'the data matrix has {:3n} on axis {:1n}'
                              ''.format(len(axisobj),
-                                       self.matrix.shape[axid], axid))
+                                       self.shape[axid], axid))
         self.axes[axid] = axisobj
 
     def islinear(self):
@@ -340,8 +340,8 @@ class Field(object):
         np.array([1,2,3]) is interpreted as 1
         and so on...
         '''
-        ret = len(self.matrix.shape)  # works for everything with data.
-        if np.prod(self.matrix.shape) == 0:  # handels everything without data
+        ret = len(self.shape)  # works for everything with data.
+        if np.prod(self.shape) == 0:  # handels everything without data
             ret = -1
         return ret
 
@@ -363,7 +363,7 @@ class Field(object):
         for i in range(len(self.axes)):
             newax = copy.copy(self.axes[i])
             newax.setextent(newextent[2 * i:2 * i + 2],
-                            self.matrix.shape[i])
+                            self.shape[i])
             self.axes[i] = newax
         return
 
@@ -383,7 +383,7 @@ class Field(object):
         s1 = [slice(None), ] * n
         s2 = [slice(None), ] * n
         # ignore last grid point if self.matrix.shape[axis] is odd
-        lastpt = ret.matrix.shape[axis] - ret.matrix.shape[axis] % 2
+        lastpt = ret.shape[axis] - ret.shape[axis] % 2
         # Averaging over neighboring points
         s1[axis] = slice(0, lastpt, 2)
         s2[axis] = slice(1, lastpt, 2)
@@ -482,7 +482,7 @@ class Field(object):
         dV = np.product(list(dx.values()))
 
         # Number of grid cells of transform
-        N = np.product([self.matrix.shape[i] for i in axes])
+        N = np.product([self.shape[i] for i in axes])
 
         # Total volume of transform
         V = dV*N
@@ -495,7 +495,7 @@ class Field(object):
 
         # new axes in conjugate space
         new_axes = {
-            i: fft.fftshift(2*np.pi*fft.fftfreq(self.matrix.shape[i], dx[i]))
+            i: fft.fftshift(2*np.pi*fft.fftfreq(self.shape[i], dx[i]))
             for i in axes
         }
 
@@ -637,7 +637,7 @@ class Field(object):
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
         if shape is None:
-            maxpt_r = np.min((np.floor(np.min(self.matrix.shape) / 2), 1000))
+            maxpt_r = np.min((np.floor(np.min(self.shape) / 2), 1000))
             shape = (1000, maxpt_r)
 
         extent[0:2] = extent[0:2] - angleoffset
@@ -665,7 +665,7 @@ class Field(object):
         return
 
     def __str__(self):
-        return '<Feld "' + self.name + '" ' + str(self.matrix.shape) + '>'
+        return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
 
     def _extent_to_slices(self, extent):
         if not self.dimensions * 2 == len(extent):
