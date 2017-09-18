@@ -398,7 +398,12 @@ def omega_yee_factory(dx, dt):
     return omega_yee
 
 
-def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
+def _kspace_helper_cutfields(component, fields, extent):
+    slices = fields[component]._extent_to_slices(extent)
+    return {k: f[slices] for k, f in fields.items()}
+
+
+def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
@@ -411,6 +416,10 @@ def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     '''
     polfield = component[0]
     polaxis = axesidentify[component[1]]
+
+    # apply extent to all fields
+    if extent is not None:
+        fields = _kspace_helper_cutfields(component, fields, extent)
 
     if polfield == align_to:
         return kspace(component, fields, interpolation='linear', omega_func=omega_func)
@@ -429,7 +438,7 @@ def kspace_epoch_like(component, fields, omega_func=None, align_to='B'):
     return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
 
 
-def kspace(component, fields, interpolation=None, omega_func=None):
+def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     '''
     Reconstruct the physical kspace of one polarization component
     This function basically computes one component of
@@ -469,6 +478,10 @@ def kspace(component, fields, interpolation=None, omega_func=None):
     # target field is polfield and the other field is otherfield
     polfield = component[0]
     otherfield = 'B' if polfield == 'E' else 'E'
+
+    # apply extent to all fields
+    if extent is not None:
+        fields = _kspace_helper_cutfields(component, fields, extent)
 
     # polarization axis
     polaxis = axesidentify[component[1]]
