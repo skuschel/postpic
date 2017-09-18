@@ -164,10 +164,10 @@ class _SingleSpecies(object):
         if condition.dtype is np.dtype('bool'):
             # Case 1:
             # condition is list of boolean values specifying particles to use
-            assert len(self) == len(condition), \
-                'number of particles ({:7n}) has to match' \
-                'length of condition ({:7n})' \
-                ''.format(len(self), len(condition))
+            if not len(self) == len(condition):
+                raise ValueError('number of particles ({:7n}) has to match'
+                                 'length of condition ({:7n})'
+                                 ''.format(len(self), len(condition)))
             if self._compressboollist is None:
                 self._compressboollist = condition
             else:
