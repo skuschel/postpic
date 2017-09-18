@@ -162,8 +162,7 @@ class FieldAnalyzer(object):
 
     # --- spezielle Funktionen
 
-    def _kspace(self, component, fields, **kwargs):
-        alignment = kwargs.pop('alignment', 'auto')
+    def _kspace(self, component, fields, alignment='auto', solver=None, **kwargs):
         if alignment not in ['auto', 'default', 'epoch', 'epoch-final']:
             raise ValueError()
 
@@ -177,7 +176,6 @@ class FieldAnalyzer(object):
             return helper.kspace(component, fields, interpolation='fourier', **kwargs)
 
         if alignment.startswith('epoch'):
-            solver = kwargs.pop('solver', None)
             if 'omega_func' not in kwargs and solver == 'yee':
                 dx = [self.simgridspacing(axis) for axis in range(self.simdimensions())]
                 dt = self.time()/self.timestep()
