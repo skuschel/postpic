@@ -136,7 +136,8 @@ class Axis(object):
         '''
         self.grid_node = self.grid_node[::2]
 
-    def _extent_to_slice(self, a, b):
+    def _extent_to_slice(self, extent):
+        a, b = extent
         if a is None:
             a = self._grid_node[0]
         if b is None:
@@ -144,12 +145,16 @@ class Axis(object):
         return slice(*np.searchsorted(self.grid, np.sort([a, b])))
 
     def _normalize_slice(self, index):
+        """
+        Applies some checks and transformations to the object passed
+        to __getitem__
+        """
         if isinstance(index, slice):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices should have step == None')
 
-                return self._extent_to_slice(index.start, index.stop)
+                return self._extent_to_slice((index.start, index.stop))
 
             return index
 
@@ -158,13 +163,14 @@ class Axis(object):
                 index = helper.find_nearest_index(self.grid, index)
             return slice(index, index+1)
 
-    def _getslice(self, key):
-        ax = copy.deepcopy(self)
-        ax.grid = ax.grid[key]
-        return ax
-
     def __getitem__(self, key):
-        return self._getslice(self._normalize_slice(key))
+        """
+        Returns an Axis which consists of a sub-part of this object defined by
+        a slice containing floats or integers or a float or an integer
+        """
+        ax = copy.deepcopy(self)
+        ax.grid = ax.grid[self._normalize_slice(key)]
+        return ax
 
     def __len__(self):
         ret = len(self._grid_node) - 1
@@ -633,7 +639,7 @@ class Field(object):
             raise TypeError('size of extent doesnt match self.dimensions * 2')
 
         extent = np.reshape(np.asarray(extent), (self.dimensions, 2))
-        return [ax._extent_to_slice(*ex) for ax, ex in zip(self.axes, extent)]
+        return [ax._extent_to_slice(ex) for ax, ex in zip(self.axes, extent)]
 
     def _normalize_slices(self, key):
         if not isinstance(key, collections.Iterable):
@@ -651,7 +657,7 @@ class Field(object):
         field = copy.deepcopy(self)
         field.matrix = field.matrix[key]
         for i, sl in enumerate(key):
-            field.setaxisobj(i, field.axes[i]._getslice(sl))
+            field.setaxisobj(i, field.axes[i][sl])
 
         return field
 
