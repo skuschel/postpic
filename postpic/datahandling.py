@@ -188,6 +188,18 @@ class Axis(object):
         return '<Axis "' + str(self.name) + \
                '" (' + str(len(self)) + ' grid points)'
 
+def _updatename(operator, reverse = False):
+    def ret(func):
+        def f(s, o):
+            res = func(s, o)
+            try:
+                (a, b) = (o, s) if reverse else (s, o)
+                res.name = a.name + ' ' + operator + ' ' + b.name
+            except AttributeError:
+                pass
+            return res
+        return f
+    return ret
 
 class Field(object):
     '''
@@ -707,76 +719,86 @@ class Field(object):
             field.setaxisobj(i, field.axes[i][sl])
         return field
 
+    @_updatename('+')
     def __iadd__(self, other):
-        if isinstance(other, Field):
-            self.matrix += other.matrix
-            self.name = self.name + ' + ' + other.name
-        else:
-            self.matrix += other
+        self.matrix += np.asarray(other)
         return self
 
+    @_updatename('+')
     def __add__(self, other):
         ret = copy.copy(self)
-        ret.matrix = ret.matrix + other.matrix
-        self.name = self.name + ' + ' + other.name
+        ret.matrix = ret.matrix + np.asarray(other)
         return ret
+    __radd__ = __add__
 
     def __neg__(self):
         ret = copy.copy(self)
         ret.matrix = -self.matrix
+        ret.name = '-' + ret.name
         return ret
 
+    @_updatename('-')
     def __isub__(self, other):
-        if isinstance(other, Field):
-            self.matrix -= other.matrix
-            self.name = self.name + ' - ' + other.name
-        else:
-            self.matrix -= other
+        self.matrix -= np.asarray(other)
         return self
 
+    @_updatename('-')
     def __sub__(self, other):
         ret = copy.copy(self)
-        ret.matrix = ret.matrix - other.matrix
-        self.name = self.name + ' - ' + other.name
+        ret.matrix = ret.matrix - np.asarray(other)
         return ret
 
+    @_updatename('-', reverse=True)
+    def __rsub__(self, other):
+        ret = copy.copy(self)
+        ret.matrix = np.asarray(other) - ret.matrix
+        return ret
+
+    @_updatename('^')
     def __pow__(self, other):
         ret = copy.copy(self)
-        ret.matrix = self.matrix ** other
+        ret.matrix = self.matrix ** np.asarray(other)
         return ret
 
+    @_updatename('^', reverse=True)
+    def __rpow__(self, other):
+        ret = copy.copy(self)
+        ret.matrix = np.asarray(other) ** self.matrix
+        return ret
+
+    @_updatename('*')
     def __imul__(self, other):
-        if isinstance(other, Field):
-            self.matrix *= other.matrix
-            self.name = self.name + ' * ' + other.name
-        else:
-            self.matrix *= other
+        self.matrix *= np.asarray(other)
         return self
 
+    @_updatename('*')
     def __mul__(self, other):
         ret = copy.copy(self)
-        ret.matrix = ret.matrix * other.matrix
-        self.name = self.name + ' * ' + other.name
+        ret.matrix = ret.matrix * np.asarray(other)
         return ret
+    __rmul__ = __mul__
 
     def __abs__(self):
         ret = copy.copy(self)
         ret.matrix = np.abs(ret.matrix)
+        ret.name = '|{}|'.format(ret.name)
         return ret
 
-    # self /= other: normalization
+    @_updatename('/')
     def __itruediv__(self, other):
-        if isinstance(other, Field):
-            self.matrix /= other.matrix
-            self.name = self.name + ' / ' + other.name
-        else:
-            self.matrix /= other
+        self.matrix /= np.asarray(other)
         return self
 
+    @_updatename('/')
     def __truediv__(self, other):
         ret = copy.copy(self)
-        ret.matrix = ret.matrix / other.matrix
-        self.name = self.name + ' / ' + other.name
+        ret.matrix = ret.matrix / np.asarray(other)
+        return ret
+
+    @_updatename('/', reverse=True)
+    def __rtruediv__(self, other):
+        ret = copy.copy(self)
+        ret.matrix = np.asarray(other) / ret.matrix
         return ret
 
     # python 2
