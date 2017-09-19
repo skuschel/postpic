@@ -458,7 +458,7 @@ class Field(object):
         ret = copy.copy(self)
         if self.dimensions == 0:
             return self
-        ret.matrix = np.mean(ret.matrix, axis=axis)
+        ret._matrix = np.mean(ret.matrix, axis=axis)
         ret.axes.pop(axis)
         return ret
 
