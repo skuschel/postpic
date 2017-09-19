@@ -85,17 +85,26 @@ def append_doc_of(obj):
     return ret
 
 
+class float_with_name(float):
+    def __new__(self, value, name):
+        return float.__new__(self, value)
+
+    def __init__(self, value, name):
+        float.__init__(value)
+        self.name = name
+
+
 class PhysicalConstants:
     """
     gives you some constants.
     """
 
-    c = 299792458.0
-    me = 9.109383e-31
-    mass_u = me * 1836.2
-    qe = 1.602176565e-19
-    mu0 = np.pi * 4e-7  # N/A^2
-    epsilon0 = 1 / (mu0 * c ** 2)  # 8.85419e-12 As/Vm
+    c = float_with_name(299792458.0, 'c')
+    me = float_with_name(9.109383e-31, 'me')
+    mass_u = float_with_name(me * 1836.2, 'mu')
+    qe = float_with_name(1.602176565e-19, 'qe')
+    mu0 = float_with_name(np.pi * 4e-7, 'mu0')  # N/A^2
+    epsilon0 = float_with_name(1 / (mu0 * c ** 2), 'eps0')  # 8.85419e-12 As/Vm
 
     @staticmethod
     def ncrit_um(lambda_um):
@@ -103,7 +112,7 @@ class PhysicalConstants:
         Critical plasma density in particles per m^3 for a given
         wavelength lambda_um in microns.
         '''
-        return 1.11e27 * 1 / (lambda_um ** 2)  # 1/m^3
+        return float_with_name(1.11e27 * 1 / (lambda_um ** 2), 'ncrit_um')  # 1/m^3
 
     @staticmethod
     def ncrit(laslambda):
@@ -111,7 +120,7 @@ class PhysicalConstants:
         Critical plasma density in particles per m^3 for a given
         wavelength laslambda in m.
         '''
-        return PhysicalConstants.ncrit_um(laslambda * 1e6)  # 1/m^3
+        return float_with_name(PhysicalConstants.ncrit_um(laslambda * 1e6), 'ncrit')  # 1/m^3
 
 
 class SpeciesIdentifier(PhysicalConstants):
