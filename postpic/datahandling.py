@@ -202,9 +202,9 @@ class Field(object):
 
     def __init__(self, matrix, xedges=None, yedges=None, zedges=None, name='', unit=''):
         if xedges is not None:
-            self.matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
+            self._matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
         else:
-            self.matrix = np.squeeze(matrix)
+            self._matrix = np.squeeze(matrix)
         self.name = name
         self.unit = unit
         self.axes = []
@@ -319,6 +319,16 @@ class Field(object):
         return
 
     @property
+    def matrix(self):
+        return self._matrix
+
+    @matrix.setter
+    def matrix(self, other):
+        if other.shape != self.shape:
+            raise ValueError("Shape of old and new matrix must be identical")
+        self._matrix = other
+
+    @property
     def shape(self):
         return self.matrix.shape
 
@@ -366,6 +376,11 @@ class Field(object):
             self.setaxisobj(i, newax)
         return
 
+    def replace_data(self, other):
+        ret = copy.copy(self)
+        ret.matrix = other
+        return ret
+
     def half_resolution(self, axis):
         '''
         Halfs the resolution along the given axis by removing
@@ -386,7 +401,7 @@ class Field(object):
         s1[axis] = slice(0, lastpt, 2)
         s2[axis] = slice(1, lastpt, 2)
         m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
-        ret.matrix = m
+        ret._matrix = m
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
         return ret
 
@@ -416,7 +431,8 @@ class Field(object):
         '''
         ret = copy.copy(self)
         ret.axes = [ax for ax in ret.axes if len(ax) > 1]
-        ret.matrix = np.squeeze(ret.matrix)
+        ret._matrix = np.squeeze(ret.matrix)
+        assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
 
     def mean(self, axis=-1):
@@ -686,7 +702,7 @@ class Field(object):
     def __getitem__(self, key):
         key = self._normalize_slices(key)
         field = copy.copy(self)
-        field.matrix = field.matrix[key]
+        field._matrix = field.matrix[key]
         for i, sl in enumerate(key):
             field.setaxisobj(i, field.axes[i][sl])
         return field
