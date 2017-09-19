@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel, 2014
+# Stephan Kuschel, 2014-2017
 # Alexander Blinne, 2017
 """
 The Core module for final data handling.
@@ -63,6 +63,16 @@ class Axis(object):
         self._grid_node = np.array([])
         self._linear = None
 
+    def __copy__(self):
+        '''
+        returns a shallow copy of the object.
+        This method is called by `copy.copy(obj)`.
+        '''
+        cls = type(self)
+        ret = cls.__new__(cls)
+        ret.__dict__.update(self.__dict__)
+        return ret
+
     def islinear(self, force=False):
         """
         Checks if the axis has a linear grid.
@@ -93,6 +103,13 @@ class Axis(object):
         gn[0] = grid[0] + (grid[0] - gn[1])
         gn[-1] = grid[-1] + (grid[-1] - gn[-2])
         self.grid_node = gn
+        self._linear = None
+
+    @property
+    def spacing(self):
+        if not self.islinear():
+            raise TypeError('Grid must be linear to calculate gridspacing')
+        return self.grid_node[1] - self.grid_node[0]
 
     @property
     def extent(self):
@@ -121,20 +138,13 @@ class Axis(object):
             gn = np.linspace(extent[0], extent[-1], n + 1)
         self.grid_node = gn
 
-    def cutout(self, newextent):
-        '''
-        keeps the grid points within the newextent only.
-        '''
-        nex = np.sort(newextent)
-        gnnew = [gn for gn in self.grid_node
-                 if (nex[0] <= gn and gn <= nex[1])]
-        self.grid_node = gnnew
-
     def half_resolution(self):
         '''
         removes every second grid_node.
         '''
-        self.grid_node = self.grid_node[::2]
+        ret = copy.copy(self)
+        ret.grid_node = ret.grid_node[::2]
+        return ret
 
     def _extent_to_slice(self, extent):
         a, b = extent
@@ -153,11 +163,8 @@ class Axis(object):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices should have step == None')
-
                 return self._extent_to_slice((index.start, index.stop))
-
             return index
-
         else:
             if helper.is_non_integer_real_number(index):
                 index = helper.find_nearest_index(self.grid, index)
@@ -168,7 +175,7 @@ class Axis(object):
         Returns an Axis which consists of a sub-part of this object defined by
         a slice containing floats or integers or a float or an integer
         """
-        ax = copy.deepcopy(self)
+        ax = copy.copy(self)
         ax.grid = ax.grid[self._normalize_slice(key)]
         return ax
 
@@ -222,12 +229,29 @@ class Field(object):
         # self.axes_transform_state is False for axes which live in spatial domain
         # and it is True for axes which live in frequency domain
         # This assumes that fields are initially created in spatial domain.
-        self.axes_transform_state = [False] * len(self.matrix.shape)
+        self.axes_transform_state = [False] * len(self.shape)
 
         # self.transformed_axes_origins stores the starting values of the grid
         # from before the last transform was executed, this is used to
         # recreate the correct axis interval upon inverse transform
-        self.transformed_axes_origins = [None] * len(self.matrix.shape)
+        self.transformed_axes_origins = [None] * len(self.shape)
+
+    def __copy__(self):
+        '''
+        returns a shallow copy of the object.
+        This method is called by `copy.copy(obj)`.
+        Just copy enough to create copies for operator overloading.
+        '''
+        cls = type(self)
+        ret = cls.__new__(cls)
+        ret.__dict__.update(self.__dict__)  # shallow copy
+        for k in ['infos', 'axes_transform_state', 'transformed_axes_origins']:
+            # copy iterables one level deeper
+            # but matrix is not copied!
+            ret.__dict__[k] = copy.copy(self.__dict__[k])
+        # create shallow copies of Axis objects
+        ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
+        return ret
 
     def __array__(self):
         '''
@@ -240,7 +264,7 @@ class Field(object):
         uses the given axisobj as the axis obj in the given dimension.
         '''
         # check if number of grid points match
-        matrixpts = self.matrix.shape[len(self.axes)]
+        matrixpts = self.shape[len(self.axes)]
         if matrixpts != len(axisobj):
             raise ValueError(
                 'Number of Grid points in next missing Data '
@@ -258,7 +282,7 @@ class Field(object):
         '''
         adds a new axis that is supported by the matrix.
         '''
-        matrixpts = self.matrix.shape[len(self.axes)]
+        matrixpts = self.shape[len(self.axes)]
         ax = Axis(**kwargs)
         ax.setextent(extent, matrixpts)
         self._addaxisobj(ax)
@@ -269,11 +293,11 @@ class Field(object):
         new axisobj axisobj.
         '''
         axid = helper.axesidentify[axis]
-        if not len(axisobj) == self.matrix.shape[axid]:
+        if not len(axisobj) == self.shape[axid]:
             raise ValueError('Axis object has {:3n} grid points, whereas '
                              'the data matrix has {:3n} on axis {:1n}'
                              ''.format(len(axisobj),
-                                       self.matrix.shape[axid], axid))
+                                       self.shape[axid], axid))
         self.axes[axid] = axisobj
 
     def islinear(self):
@@ -315,8 +339,8 @@ class Field(object):
         np.array([1,2,3]) is interpreted as 1
         and so on...
         '''
-        ret = len(self.matrix.shape)  # works for everything with data.
-        if np.prod(self.matrix.shape) == 0:  # handels everything without data
+        ret = len(self.shape)  # works for everything with data.
+        if np.prod(self.shape) == 0:  # handels everything without data
             ret = -1
         return ret
 
@@ -336,8 +360,10 @@ class Field(object):
         if not self.dimensions * 2 == len(newextent):
             raise TypeError('size of newextent doesnt match self.dimensions * 2')
         for i in range(len(self.axes)):
-            self.axes[i].setextent(newextent[2 * i:2 * i + 2],
-                                   self.matrix.shape[i])
+            newax = copy.copy(self.axes[i])
+            newax.setextent(newextent[2 * i:2 * i + 2],
+                            self.shape[i])
+            self.setaxisobj(i, newax)
         return
 
     def half_resolution(self, axis):
@@ -350,58 +376,59 @@ class Field(object):
         the last grid cell)
         '''
         axis = helper.axesidentify[axis]
-        self.axes[axis].half_resolution()
-        n = self.matrix.ndim
-        s = [slice(None), ] * n
+        ret = copy.copy(self)
+        n = ret.matrix.ndim
+        s1 = [slice(None), ] * n
+        s2 = [slice(None), ] * n
         # ignore last grid point if self.matrix.shape[axis] is odd
-        lastpt = self.matrix.shape[axis] - self.matrix.shape[axis] % 2
+        lastpt = ret.shape[axis] - ret.shape[axis] % 2
         # Averaging over neighboring points
-        s[axis] = slice(0, lastpt, 2)
-        ret = self.matrix[s]
-        s[axis] = slice(1, lastpt, 2)
-        ret += self.matrix[s]
-        self.matrix = ret / 2.0
-        return
+        s1[axis] = slice(0, lastpt, 2)
+        s2[axis] = slice(1, lastpt, 2)
+        m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
+        ret.matrix = m
+        ret.setaxisobj(axis, ret.axes[axis].half_resolution())
+        return ret
 
     def autoreduce(self, maxlen=4000):
         '''
         Reduces the Grid to a maximum length of maxlen per dimension
         by just executing half_resolution as often as necessary.
         '''
-        for i in range(len(self.axes)):
-            if len(self.axes[i]) > maxlen:
-                self.half_resolution(i)
-                self.autoreduce(maxlen=maxlen)
+        ret = self  # half_resolution will take care for the copy
+        for i in range(len(ret.axes)):
+            if len(ret.axes[i]) > maxlen:
+                ret = ret.half_resolution(i)
+                ret = ret.autoreduce(maxlen=maxlen)
                 break
-        return self
+        return ret
 
     def cutout(self, newextent):
         '''
         only keeps that part of the matrix, that belongs to newextent.
         '''
         slices = self._extent_to_slices(newextent)
-        self.matrix = self.matrix[slices]
-        for i, sl in enumerate(slices):
-            self.setaxisobj(i, self.axes[i][sl])
-        return self
+        return self[slices]
 
     def squeeze(self):
         '''
         removes axes that have length 1, reducing self.dimensions
         '''
-        self.axes = [ax for ax in self.axes if len(ax) > 1]
-        self.matrix = np.squeeze(self.matrix)
-        return self
+        ret = copy.copy(self)
+        ret.axes = [ax for ax in ret.axes if len(ax) > 1]
+        ret.matrix = np.squeeze(ret.matrix)
+        return ret
 
     def mean(self, axis=-1):
         '''
         takes the mean along the given axis.
         '''
+        ret = copy.copy(self)
         if self.dimensions == 0:
             return self
-        self.matrix = np.mean(self.matrix, axis=axis)
-        self.axes.pop(axis)
-        return self
+        ret.matrix = np.mean(ret.matrix, axis=axis)
+        ret.axes.pop(axis)
+        return ret
 
     def _transform_state(self, axes):
         """
@@ -448,13 +475,13 @@ class Field(object):
         new_origins = {i: self.axes[i].grid[0] for i in axes}
 
         # Grid spacing
-        dx = {i: self.axes[i].grid[1] - self.axes[i].grid[0] for i in axes}
+        dx = {i: self.axes[i].spacing for i in axes}
 
         # Unit volume of transform
         dV = np.product(list(dx.values()))
 
         # Number of grid cells of transform
-        N = np.product([self.matrix.shape[i] for i in axes])
+        N = np.product([self.shape[i] for i in axes])
 
         # Total volume of transform
         V = dV*N
@@ -467,9 +494,11 @@ class Field(object):
 
         # new axes in conjugate space
         new_axes = {
-            i: fft.fftshift(2*np.pi*fft.fftfreq(self.matrix.shape[i], dx[i]))
+            i: fft.fftshift(2*np.pi*fft.fftfreq(self.shape[i], dx[i]))
             for i in axes
         }
+
+        ret = copy.copy(self)
 
         # Transforming from spatial domain to frequency domain ...
         if transform_state is False:
@@ -478,8 +507,8 @@ class Field(object):
                         '1/'+self.axes[i].unit)
                 for i in axes
             }
-            self.matrix = fftnorm * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'),
-                                                 axes=axes)
+            ret.matrix = fftnorm \
+                * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'), axes=axes)
 
         # ... or transforming from frequency domain to spatial domain
         elif transform_state is True:
@@ -488,8 +517,8 @@ class Field(object):
                         self.axes[i].unit.lstrip('1/'))
                 for i in axes
             }
-            self.matrix = fftnorm * fft.ifftn(fft.ifftshift(self.matrix, axes=axes),
-                                              axes=axes, norm='ortho')
+            ret.matrix = fftnorm \
+                * fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho')
 
         # Update axes objects
         for i in axes:
@@ -499,11 +528,13 @@ class Field(object):
 
             # update axes objects
             new_axesobjs[i].grid = new_axes[i]
-            self.setaxisobj(i, new_axesobjs[i])
+            ret.setaxisobj(i, new_axesobjs[i])
 
             # update transform state and record axes origins
-            self.axes_transform_state[i] = not transform_state
-            self.transformed_axes_origins[i] = new_origins[i]
+            ret.axes_transform_state[i] = not transform_state
+            ret.transformed_axes_origins[i] = new_origins[i]
+
+        return ret
 
     def _apply_linear_phase(self, dx):
         '''
@@ -521,7 +552,7 @@ class Field(object):
             raise ValueError("Translation only allowed if all mentioned axes"
                              "have transformed_axes_origins not None")
 
-        axes = [ax.grid for ax in self.axes]
+        axes = [ax.grid for ax in self.axes]  # each axis object returns new numpy array
         for i in range(len(axes)):
             gridlen = len(axes[i])
             if transform_state is True:
@@ -538,13 +569,16 @@ class Field(object):
         arg = sum([dx[i]*mesh[i] for i in dx.keys()])
 
         # apply linear phase with correct sign and global phase
+        ret = copy.copy(self)
         if transform_state is True:
-            self.matrix *= np.exp(1.j * arg)
+            ret.matrix = self.matrix * np.exp(1.j * arg)
         else:
-            self.matrix *= np.exp(-1.j * arg)
+            ret.matrix = self.matrix * np.exp(-1.j * arg)
 
         for i in dx.keys():
-            self.transformed_axes_origins[i] += dx[i]
+            ret.transformed_axes_origins[i] += dx[i]
+
+        return ret
 
     def shift_grid_by(self, dx, interpolation='fourier'):
         '''
@@ -568,28 +602,29 @@ class Field(object):
         axes = sorted(dx.keys())
 
         if interpolation == 'fourier':
-            self.fft(axes)
-            self._apply_linear_phase(dx)
-            self.fft(axes)
+            ret = self.fft(axes)
+            ret = ret._apply_linear_phase(dx)
+            ret = ret.fft(axes)
 
         if interpolation == 'linear':
-            gridspacing = np.array([ax.grid[1] - ax.grid[0] for ax in self.axes])
+            gridspacing = np.array([ax.spacing for ax in self.axes])
             shift = np.zeros(len(self.axes))
             for i, d in dx.items():
                 shift[i] = d
-
             shift_px = shift/gridspacing
-
+            ret = copy.copy(self)
             if np.isrealobj(self.matrix):
-                self.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
+                ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
             else:
                 real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
-                self.matrix = np.empty_like(matrix)
-                spnd.shift(real, -shift_px, output=self.matrix.real, order=1, mode='nearest')
-                spnd.shift(imag, -shift_px, output=self.matrix.imag, order=1, mode='nearest')
+                ret.matrix = np.empty_like(matrix)
+                spnd.shift(real, -shift_px, output=ret.matrix.real, order=1, mode='nearest')
+                spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
 
             for i in axes:
-                self.axes[i].grid_node = self.axes[i].grid_node + dx[i]
+                ret.axes[i].grid_node = self.axes[i].grid_node + dx[i]
+
+        return ret
 
     def topolar(self, extent=None, shape=None, angleoffset=0):
         '''
@@ -601,7 +636,7 @@ class Field(object):
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
         if shape is None:
-            maxpt_r = np.min((np.floor(np.min(self.matrix.shape) / 2), 1000))
+            maxpt_r = np.min((np.floor(np.min(self.shape) / 2), 1000))
             shape = (1000, maxpt_r)
 
         extent[0:2] = extent[0:2] - angleoffset
@@ -629,7 +664,7 @@ class Field(object):
         return
 
     def __str__(self):
-        return '<Feld "' + self.name + '" ' + str(self.matrix.shape) + '>'
+        return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
 
     def _extent_to_slices(self, extent):
         if not self.dimensions * 2 == len(extent):
@@ -650,12 +685,10 @@ class Field(object):
     # Operator overloading
     def __getitem__(self, key):
         key = self._normalize_slices(key)
-
-        field = copy.deepcopy(self)
+        field = copy.copy(self)
         field.matrix = field.matrix[key]
         for i, sl in enumerate(key):
             field.setaxisobj(i, field.axes[i][sl])
-
         return field
 
     def __iadd__(self, other):
@@ -667,13 +700,14 @@ class Field(object):
         return self
 
     def __add__(self, other):
-        ret = copy.deepcopy(self)
-        ret += other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix + other.matrix
+        self.name = self.name + ' + ' + other.name
         return ret
 
     def __neg__(self):
-        ret = copy.deepcopy(self)
-        ret.matrix *= -1
+        ret = copy.copy(self)
+        ret.matrix = -self.matrix
         return ret
 
     def __isub__(self, other):
@@ -685,12 +719,13 @@ class Field(object):
         return self
 
     def __sub__(self, other):
-        ret = copy.deepcopy(self)
-        ret -= other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix - other.matrix
+        self.name = self.name + ' - ' + other.name
         return ret
 
     def __pow__(self, other):
-        ret = copy.deepcopy(self)
+        ret = copy.copy(self)
         ret.matrix = self.matrix ** other
         return ret
 
@@ -703,12 +738,13 @@ class Field(object):
         return self
 
     def __mul__(self, other):
-        ret = copy.deepcopy(self)
-        ret *= other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix * other.matrix
+        self.name = self.name + ' * ' + other.name
         return ret
 
     def __abs__(self):
-        ret = copy.deepcopy(self)
+        ret = copy.copy(self)
         ret.matrix = np.abs(ret.matrix)
         return ret
 
@@ -722,8 +758,9 @@ class Field(object):
         return self
 
     def __truediv__(self, other):
-        ret = copy.deepcopy(self)
-        ret /= other
+        ret = copy.copy(self)
+        ret.matrix = ret.matrix / other.matrix
+        self.name = self.name + ' / ' + other.name
         return ret
 
     # python 2

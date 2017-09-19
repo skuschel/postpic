@@ -423,7 +423,7 @@ def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to=
         dx *= -1
 
     fields[component] = copy.deepcopy(fields[component])
-    fields[component].shift_grid_by(dx, interpolation='linear')
+    fields[component] = fields[component].shift_grid_by(dx, interpolation='linear')
     return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
 
 
@@ -485,7 +485,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
     # copy the polfield as a starting point for the result
     try:
-        result = copy.deepcopy(fields[field_keys[polfield][polaxis]])
+        result = fields[field_keys[polfield][polaxis]]
     except KeyError:
         raise ValueError("Required field {} not present in fields".format(component))
 
@@ -499,7 +499,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     dx = np.array([a.grid_node[1] - a.grid_node[0] for a in result.axes])
 
     # Change to frequency domain
-    result.fft()
+    result = result.fft()
 
     # calculate the k mesh and k^2
     mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
@@ -574,16 +574,15 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
             # linear interpolation is applied before the fft
             if interpolation == 'linear':
-                field.shift_grid_by(grid_shift, interpolation='linear')
+                field = field.shift_grid_by(grid_shift, interpolation='linear')
 
-            field.fft()
+            field = field.fft()
 
             # fourier interpolation is done after the fft by applying a linear phase
             if interpolation == 'fourier':
-                field._apply_linear_phase(dict(enumerate(grid_shift)))
+                field = field._apply_linear_phase(dict(enumerate(grid_shift)))
 
             # add the field to the result with the appropriate prefactor
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
 
     return result
-
