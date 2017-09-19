@@ -41,6 +41,7 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import functools
 import collections
 import copy
 
@@ -188,8 +189,10 @@ class Axis(object):
         return '<Axis "' + str(self.name) + \
                '" (' + str(len(self)) + ' grid points)'
 
-def _updatename(operator, reverse = False):
+
+def _updatename(operator, reverse=False):
     def ret(func):
+        @functools.wraps(func)
         def f(s, o):
             res = func(s, o)
             try:
@@ -200,6 +203,7 @@ def _updatename(operator, reverse = False):
             return res
         return f
     return ret
+
 
 class Field(object):
     '''
@@ -724,12 +728,12 @@ class Field(object):
         self.matrix += np.asarray(other)
         return self
 
-    @_updatename('+')
     def __add__(self, other):
         ret = copy.copy(self)
         ret.matrix = ret.matrix + np.asarray(other)
         return ret
-    __radd__ = __add__
+    __radd__ = _updatename('+', reverse=True)(__add__)
+    __add__ = _updatename('+', reverse=False)(__add__)
 
     def __neg__(self):
         ret = copy.copy(self)
@@ -771,12 +775,12 @@ class Field(object):
         self.matrix *= np.asarray(other)
         return self
 
-    @_updatename('*')
     def __mul__(self, other):
         ret = copy.copy(self)
         ret.matrix = ret.matrix * np.asarray(other)
         return ret
-    __rmul__ = __mul__
+    __rmul__ = _updatename('*', reverse=True)(__mul__)
+    __mul__ = _updatename('*', reverse=False)(__mul__)
 
     def __abs__(self):
         ret = copy.copy(self)

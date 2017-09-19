@@ -88,6 +88,7 @@ def append_doc_of(obj):
 class float_with_name(float):
     def __new__(self, value, name):
         return float.__new__(self, value)
+
     def __init__(self, value, name):
         float.__init__(value)
         self.name = name
