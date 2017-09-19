@@ -68,7 +68,8 @@ class Axis(object):
         returns a shallow copy of the object.
         This method is called by `copy.copy(obj)`.
         '''
-        ret = type(self)()
+        cls = type(self)
+        ret = cls.__new__(cls)
         ret.__dict__.update(self.__dict__)
         return ret
 
@@ -107,7 +108,7 @@ class Axis(object):
     @property
     def spacing(self):
         if not self.islinear():
-            raise TypeError('Grid must be linear to calcualte gridspacing')
+            raise TypeError('Grid must be linear to calculate gridspacing')
         return self.grid_node[1] - self.grid_node[0]
 
     @property
@@ -240,11 +241,9 @@ class Field(object):
         returns a shallow copy of the object.
         This method is called by `copy.copy(obj)`.
         Just copy enough to create copies for operator overloading.
-        For example:
-        axes objects are not copied, but the list holding the references to
-        the axis objects is.
         '''
-        ret = type(self)(self.matrix)
+        cls = type(self)
+        ret = cls.__new__(cls)
         ret.__dict__.update(self.__dict__)  # shallow copy
         for k in ['infos', 'axes_transform_state', 'transformed_axes_origins']:
             # copy iterables one level deeper
@@ -364,7 +363,7 @@ class Field(object):
             newax = copy.copy(self.axes[i])
             newax.setextent(newextent[2 * i:2 * i + 2],
                             self.shape[i])
-            self.axes[i] = newax
+            self.setaxisobj(i, newax)
         return
 
     def half_resolution(self, axis):
@@ -378,7 +377,6 @@ class Field(object):
         '''
         axis = helper.axesidentify[axis]
         ret = copy.copy(self)
-        ret.axes[axis] = ret.axes[axis].half_resolution()
         n = ret.matrix.ndim
         s1 = [slice(None), ] * n
         s2 = [slice(None), ] * n
@@ -389,6 +387,7 @@ class Field(object):
         s2[axis] = slice(1, lastpt, 2)
         m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
         ret.matrix = m
+        ret.setaxisobj(axis, ret.axes[axis].half_resolution())
         return ret
 
     def autoreduce(self, maxlen=4000):
