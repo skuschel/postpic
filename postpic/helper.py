@@ -624,38 +624,49 @@ def kspace_propagate(kspace, dt,
     '''
     transform_state = kspace._transform_state()
     if transform_state is None:
-        raise ValueError()
+        raise ValueError("kspace must have the same transform_state on all axes. "
+                         "Please make sure that either all axes 'live' in spatial domain or all "
+                         "axes 'live' in frequency domain.")
 
     do_fft = not transform_state
 
     if do_fft:
         kspace = kspace.fft()
 
-    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.mesh()))
+    # calculate free space dispersion relation
+    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.meshgrid()))
+
+    # calculate propagation distance for the moving window
     dz = PhysicalConstants.c * dt
 
+    # process argument moving_window_vect
     if moving_window_vect is not None:
         if len(moving_window_vect) != kspace.dimensions:
-            raise ValueError()
+            raise ValueError("Argument moving_window_vect has the wrong length. "
+                             "Please make sure that len(moving_window_vect) == kspace.dimensions.")
 
         moving_window_vect = np.asfarray(moving_window_vect)
         moving_window_vect /= np.sqrt(np.sum(moving_window_vect**2))
         moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
 
+    # remove antipropagating waves, if requested
     if remove_antipropagating_waves:
         if moving_window_vect is None:
-            raise ValueError()
+            raise ValueError("Missing required argument moving_window_vect.")
 
         m = kspace.matrix.copy()
-        m[sum(k*dx for k, dx in zip(kspace.mesh(), moving_window_vect)) < 0.0] = 0.0
+        m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) < 0.0] = 0.0
         kspace = kspace.replace_data(m)
 
+    # Apply the phase due the propagation via the dispersion relation omega
     kspace = kspace * np.exp(-1.j * omega * dt)
 
+    # Move the window
     if moving_window:
         if moving_window_vect is None:
-            raise ValueError()
+            raise ValueError("Missing required argument moving_window_vect.")
 
+        # Apply the linear phase due to the moving window
         kspace = kspace._apply_linear_phase(moving_window_dict)
 
     if do_fft:

@@ -356,7 +356,7 @@ class Field(object):
     def grid(self):
         return np.squeeze([a.grid for a in self.axes])
 
-    def mesh(self, sparse=True):
+    def meshgrid(self, sparse=True):
         return np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
 
     @property
