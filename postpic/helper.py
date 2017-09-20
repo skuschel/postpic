@@ -595,3 +595,24 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
 
     return result
+
+
+def kspace_propagate(kspace, dt, moving_window=False, moving_window_vect=(1, 0)):
+    kmesh = np.meshgrid(*[ax.grid for ax in kspace.axes], indexing='ij', sparse=True)
+    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kmesh))
+    dz = PhysicalConstants.c * dt
+
+    if moving_window:
+        if len(moving_window_vect) != kspace.dimensions:
+            raise ValueError()
+
+        moving_window_vect = np.asfarray(moving_window_vect)
+        moving_window_vect *= dz / np.sqrt(np.sum(moving_window_vect**2))
+        moving_window_vect = dict(enumerate(moving_window_vect))
+
+    kspace = kspace * np.exp(-1.j * omega * dt)
+
+    if moving_window:
+        kspace = kspace._apply_linear_phase(moving_window_vect)
+
+    return kspace
