@@ -409,6 +409,64 @@ class Field(object):
         ret.matrix = other
         return ret
 
+    def pad(self, pad_width, mode='constant', **kwargs):
+        '''
+        Pads the matrix using np.pad and takes care of the axes.
+        See documentation of np.pad.
+
+        In contrast to np.pad, pad_width may be given as integers, which will be interpreted
+        as pixels, or as floats, which will be interpreted as distance along the appropriate axis.
+
+        All other parameters are passed to np.pad unchanged.
+        '''
+        ret = copy.copy(self)
+        if not self.islinear():
+            raise ValueError('Padding the axes is only meaningful with linear axes.'
+                             'Please apply np.pad to the matrix by yourself and update the axes'
+                             'as you like.')
+
+        if not isinstance(pad_width, collections.Iterable):
+            pad_width = [pad_width]
+
+        if len(pad_width) == 1:
+            pad_width *= self.dimensions
+
+        if len(pad_width) != self.dimensions:
+            raise ValueError('Please check your pad_width argument. If it is an Iterable, its'
+                             'length must equal the number of dimensions of this Field.')
+
+        pad_width_numpy = []
+
+        for i, axis_pad in enumerate(pad_width):
+            if not isinstance(axis_pad, collections.Iterable):
+                axis_pad = [axis_pad, axis_pad]
+
+            if len(axis_pad) > 2:
+                raise ValueError
+
+            if len(axis_pad) == 1:
+                axis_pad = list(axis_pad)*2
+
+            axis = ret.axes[i]
+
+            dx = axis.spacing
+            axis_pad = [int(np.ceil(p/dx))
+                        if helper.is_non_integer_real_number(p)
+                        else p
+                        for p
+                        in axis_pad]
+            pad_width_numpy.append(axis_pad)
+
+            extent = axis.extent
+            newextent = [extent[0] - axis_pad[0]*dx, extent[1] + axis_pad[1]*dx]
+            gridpoints = len(axis.grid_node) - 1 + axis_pad[0] + axis_pad[1]
+
+            axis.setextent(newextent, gridpoints)
+
+        ret._matrix = np.pad(self, pad_width_numpy, mode, **kwargs)
+
+        return ret
+
     def half_resolution(self, axis):
         '''
         Halfs the resolution along the given axis by removing
