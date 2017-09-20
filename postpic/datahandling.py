@@ -745,19 +745,19 @@ class Field(object):
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
         if shape is None:
-            maxpt_r = np.min((np.floor(np.min(self.shape) / 2), 1000))
+            maxpt_r = min(int(np.min(self.shape) / 2), 1000)
             shape = (1000, maxpt_r)
 
         extent[0:2] = extent[0:2] - angleoffset
-        ret.matrix = helper.transfromxy2polar(self.matrix, self.extent,
+        ret._matrix = helper.transfromxy2polar(self.matrix, self.extent,
                                               np.roll(extent, 2), shape).T
         extent[0:2] = extent[0:2] + angleoffset
 
         ret.extent = extent
-        if ret.axes[0].name.startswith('$k_') \
-           and ret.axes[1].name.startswith('$k_'):
-            ret.axes[0].name = '$k_\phi$'
-            ret.axes[1].name = '$|k|$'
+        if ret.axes[0].name.startswith('k') \
+           and ret.axes[1].name.startswith('k'):
+            ret.axes[0].name = r'$k_\phi$'
+            ret.axes[1].name = r'$|k|$'
         return ret
 
     def exporttocsv(self, filename):
