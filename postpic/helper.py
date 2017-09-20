@@ -631,7 +631,7 @@ def kspace_propagate(kspace, dt,
     if do_fft:
         kspace = kspace.fft()
 
-    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.mesh))
+    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.mesh()))
     dz = PhysicalConstants.c * dt
 
     if moving_window_vect is not None:
@@ -647,7 +647,7 @@ def kspace_propagate(kspace, dt,
             raise ValueError()
 
         m = kspace.matrix.copy()
-        m[sum(k*dx for k, dx in zip(kspace.mesh, moving_window_vect)) < 0.0] = 0.0
+        m[sum(k*dx for k, dx in zip(kspace.mesh(), moving_window_vect)) < 0.0] = 0.0
         kspace = kspace.replace_data(m)
 
     kspace = kspace * np.exp(-1.j * omega * dt)

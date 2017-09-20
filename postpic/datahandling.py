@@ -356,9 +356,8 @@ class Field(object):
     def grid(self):
         return np.squeeze([a.grid for a in self.axes])
 
-    @property
-    def mesh(self):
-        return np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=True)
+    def mesh(self, sparse=True):
+        return np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
 
     @property
     def dimensions(self):
@@ -750,7 +749,7 @@ class Field(object):
 
         extent[0:2] = extent[0:2] - angleoffset
         ret._matrix = helper.transfromxy2polar(self.matrix, self.extent,
-                                              np.roll(extent, 2), shape).T
+                                               np.roll(extent, 2), shape).T
         extent[0:2] = extent[0:2] + angleoffset
 
         ret.extent = extent
