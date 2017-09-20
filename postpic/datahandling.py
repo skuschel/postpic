@@ -392,6 +392,18 @@ class Field(object):
             self.setaxisobj(i, newax)
         return
 
+    @property
+    def real(self):
+        return self.replace_data(self.matrix.real)
+
+    @property
+    def imag(self):
+        return self.replace_data(self.matrix.imag)
+
+    @property
+    def angle(self):
+        return self.replace_data(np.angle(self))
+
     def replace_data(self, other):
         ret = copy.copy(self)
         ret.matrix = other
