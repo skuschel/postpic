@@ -597,22 +597,50 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     return result
 
 
-def kspace_propagate(kspace, dt, moving_window=False, moving_window_vect=(1, 0)):
-    kmesh = np.meshgrid(*[ax.grid for ax in kspace.axes], indexing='ij', sparse=True)
-    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kmesh))
+def kspace_propagate(kspace, dt, moving_window=False, moving_window_vect=None,
+                     remove_antipropagating_waves=False):
+    '''
+    Evolve time on a field in frequency domain.
+
+    dt: time in seconds
+
+    If moving_window is true, an additional linear phase is applied in order to keep
+    the pulse inside of the box
+
+    moving_window_vect gives the direction of the box, which is ideally identical
+    to the mean propagation direction of the field in forward time direction.
+    If dt is negative, the window will actually move the opposite direction of
+    moving_window_vect.
+
+    If remove_antipropagating_waves is True, all modes which propagate in the opposite
+    direction of the moving window, i.e. all modes for which dot(moving_window_vect, k)<0,
+    will be deleted.
+    '''
+    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.mesh))
     dz = PhysicalConstants.c * dt
 
-    if moving_window:
+    if moving_window_vect is not None:
         if len(moving_window_vect) != kspace.dimensions:
             raise ValueError()
 
         moving_window_vect = np.asfarray(moving_window_vect)
-        moving_window_vect *= dz / np.sqrt(np.sum(moving_window_vect**2))
-        moving_window_vect = dict(enumerate(moving_window_vect))
+        moving_window_vect /= np.sqrt(np.sum(moving_window_vect**2))
+        moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
+
+    if remove_antipropagating_waves:
+        if moving_window_vect is None:
+            raise ValueError()
+
+        m = kspace.matrix.copy()
+        m[sum(k*dx for k, dx in zip(kspace.mesh, moving_window_vect)) < 0.0] = 0.0
+        kspace = kspace.replace_data(m)
 
     kspace = kspace * np.exp(-1.j * omega * dt)
 
     if moving_window:
-        kspace = kspace._apply_linear_phase(moving_window_vect)
+        if moving_window_vect is None:
+            raise ValueError()
+
+        kspace = kspace._apply_linear_phase(moving_window_dict)
 
     return kspace

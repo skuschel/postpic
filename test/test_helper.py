@@ -108,6 +108,11 @@ class TestKspace(unittest.TestCase):
             dr = pp.readDump(10000, dimensions=d)
             kspace = pp.helper.kspace_epoch_like("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
 
+    def test_kspace_propagate(self):
+        pp.chooseCode('dummy')
+        dr = pp.readDump(10000, dimensions=2)
+        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+        pp.helper.kspace_propagate(kspace, 0.1, moving_window=True, moving_window_vect=(1,0), remove_antipropagating_waves=True)
 
 if __name__ == '__main__':
     unittest.main()
