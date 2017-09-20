@@ -255,5 +255,11 @@ class TestField(unittest.TestCase):
         self.assertEqual(padded_2d.shape, (8, 11))
         self.assertTrue(np.all(np.isclose(padded_2d.grid[0][2:-2], self.f2d.grid[0])))
 
+        backcut = padded_2d[padded_2d._extent_to_slices(self.f2d.extent)]
+        self.assertTrue(np.all(np.isclose(backcut, self.f2d)))
+        self.assertTrue(np.all(np.isclose(backcut.grid[0], self.f2d.grid[0])))
+        self.assertTrue(np.all(np.isclose(backcut.grid[1], self.f2d.grid[1])))
+
+
 if __name__ == '__main__':
     unittest.main()
