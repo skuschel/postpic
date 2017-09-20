@@ -357,6 +357,10 @@ class Field(object):
         return np.squeeze([a.grid for a in self.axes])
 
     @property
+    def mesh(self):
+        return np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=True)
+
+    @property
     def dimensions(self):
         '''
         returns only present dimensions.
