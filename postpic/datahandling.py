@@ -536,7 +536,7 @@ class Field(object):
         ret.axes.pop(axis)
         return ret
 
-    def _transform_state(self, axes):
+    def _transform_state(self, axes=None):
         """
         Returns the collective transform state of the given axes
 
@@ -547,6 +547,9 @@ class Field(object):
         Else return None
         (Axes have mixed transform_state)
         """
+        if axes is None:
+            axes = range(self.dimensions)
+
         for b in [True, False]:
             if all(self.axes_transform_state[i] == b for i in axes):
                 return b

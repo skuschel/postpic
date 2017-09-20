@@ -597,10 +597,16 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     return result
 
 
-def kspace_propagate(kspace, dt, moving_window=False, moving_window_vect=None,
+def kspace_propagate(kspace, dt,
+                     moving_window=False, moving_window_vect=None,
                      remove_antipropagating_waves=False):
     '''
-    Evolve time on a field in frequency domain.
+    Evolve time on a field.
+    This function checks the transform_state of the field and transforms first from spatial
+    domain to frequency domain if necessary. In this case the inverse transform will also
+    be applied to the result before returning it. This works, however, only correctly with
+    fields that are the inverse transforms of a k-space reconstruction, i.e. with complex
+    fields.
 
     dt: time in seconds
 
@@ -616,6 +622,15 @@ def kspace_propagate(kspace, dt, moving_window=False, moving_window_vect=None,
     direction of the moving window, i.e. all modes for which dot(moving_window_vect, k)<0,
     will be deleted.
     '''
+    transform_state = kspace._transform_state()
+    if transform_state is None:
+        raise ValueError()
+
+    do_fft = not transform_state
+
+    if do_fft:
+        kspace = kspace.fft()
+
     omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.mesh))
     dz = PhysicalConstants.c * dt
 
@@ -642,5 +657,8 @@ def kspace_propagate(kspace, dt, moving_window=False, moving_window_vect=None,
             raise ValueError()
 
         kspace = kspace._apply_linear_phase(moving_window_dict)
+
+    if do_fft:
+        kspace = kspace.fft()
 
     return kspace
