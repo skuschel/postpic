@@ -789,10 +789,12 @@ class Field(object):
 
         return ret
 
-    def topolar(self, extent=None, shape=None, angleoffset=0):
+    def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
         remaps the current kartesian coordinates to polar coordinates
         extent should be given as extent=(phimin, phimax, rmin, rmax)
+
+        Additional kwargs are passed to the transform method.
         '''
         # Fill extent and shape with sensible defaults if nothing was passed
         if extent is None:
@@ -813,7 +815,7 @@ class Field(object):
         theta.grid_node = theta.grid_node - angleoffset
 
         # Perform the transformation
-        ret = self.transform([theta, r], transform=helper.polar2linear)
+        ret = self.transform([theta, r], transform=helper.polar2linear, **kwargs)
 
         # Remove the angleoffset from the theta grid
         ret.axes[0].grid_node = theta.grid_node + angleoffset
