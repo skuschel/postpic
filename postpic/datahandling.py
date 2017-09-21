@@ -514,16 +514,23 @@ class Field(object):
             y = r*np.cos(theta)
             return x, y
 
+        Additional keyword arguments are passed to scipy.ndimage.map_cordinates,
+        see the documentation for that function.
+
         '''
+        # Instantiate an identity if no transformation function was given
         if transform is None:
             def transform(*x):
                 return x
 
+        # Start a new Field object by inserting the new axes
         ret = copy.copy(self)
         ret.axes = newaxes
 
+        # Calculate the source points for every point of the new mesh
         coordinates_ax = transform(*ret.meshgrid())
 
+        # Rescale the source coordinates to pixel coordinates
         coordinates_px = []
         for ax, x in zip(self.axes, coordinates_ax):
             a, b = ax.extent
@@ -531,6 +538,7 @@ class Field(object):
             c = (x-a)/(b-a) * lg - 0.5   # x=a => c=-0.5, x=b => c=l-0.5
             coordinates_px.append(c)
 
+        # Map the matrix using scipy.ndimage.map_coordinates
         if np.isrealobj(self.matrix):
             ret._matrix = spnd.map_coordinates(self.matrix, coordinates_px, **kwargs)
         else:
@@ -786,6 +794,7 @@ class Field(object):
         remaps the current kartesian coordinates to polar coordinates
         extent should be given as extent=(phimin, phimax, rmin, rmax)
         '''
+        # Fill extent and shape with sensible defaults if nothing was passed
         if extent is None:
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
@@ -793,14 +802,20 @@ class Field(object):
             maxpt_r = min(int(np.min(self.shape) / 2), 1000)
             shape = (1000, maxpt_r)
 
+        # Create the new axes objects
         theta = Axis(name='theta', unit='rad')
         theta.grid = np.linspace(extent[0], extent[1], shape[0])
 
         r = Axis(name='r', unit=self.axes[0].unit)
         r.grid = np.linspace(extent[2], extent[3], shape[1])
 
+        # Apply the angleoffset to the theta grid
         theta.grid_node = theta.grid_node - angleoffset
+
+        # Perform the transformation
         ret = self.transform([theta, r], transform=helper.polar2linear)
+
+        # Remove the angleoffset from the theta grid
         ret.axes[0].grid_node = theta.grid_node + angleoffset
 
         return ret
