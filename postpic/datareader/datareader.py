@@ -15,6 +15,8 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stephan Kuschel 2015
+# Alexander Blinne, 2017
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 from future.utils import with_metaclass
 
