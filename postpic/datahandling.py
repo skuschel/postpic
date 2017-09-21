@@ -609,7 +609,12 @@ class Field(object):
         removes axes that have length 1, reducing self.dimensions
         '''
         ret = copy.copy(self)
-        ret.axes = [ax for ax in ret.axes if len(ax) > 1]
+        retained_axes = [i for i in range(self.dimensions) if len(self.axes[i]) > 1]
+
+        ret.axes = [self.axes[i] for i in retained_axes]
+        ret.axes_transform_state = [self.axes_transform_state[i] for i in retained_axes]
+        ret.transformed_axes_origins = [self.transformed_axes_origins[i] for i in retained_axes]
+
         ret._matrix = np.squeeze(ret.matrix)
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
