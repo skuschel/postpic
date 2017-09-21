@@ -23,6 +23,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import copy
 import numbers
 import numpy as np
+import numpy.linalg as npl
 import re
 import warnings
 import functools
@@ -652,7 +653,7 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
                              "Please make sure that len(moving_window_vect) == kspace.dimensions.")
 
         moving_window_vect = np.asfarray(moving_window_vect)
-        moving_window_vect /= np.sqrt(np.sum(moving_window_vect**2))
+        moving_window_vect /= npl.norm(moving_window_vect)
         moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
 
         if remove_antipropagating_waves is None:
