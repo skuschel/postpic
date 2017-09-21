@@ -843,7 +843,12 @@ class Field(object):
         theta = Axis(name='theta', unit='rad')
         theta.grid = np.linspace(extent[0], extent[1], shape[0])
 
-        r = Axis(name='r', unit=self.axes[0].unit)
+        if self.axes[0].name.startswith('k'):
+            rname = 'k'
+        else:
+            rname = 'r'
+
+        r = Axis(name=rname, unit=self.axes[0].unit)
         r.grid = np.linspace(extent[2], extent[3], shape[1])
 
         # Apply the angleoffset to the theta grid
