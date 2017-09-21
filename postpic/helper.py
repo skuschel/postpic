@@ -597,9 +597,9 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     return result
 
 
-def kspace_propagate(kspace, dt,
-                     moving_window=False, moving_window_vect=None,
-                     remove_antipropagating_waves=False):
+def kspace_propagate(kspace, dt, moving_window_vect=None,
+                     move_window=None,
+                     remove_antipropagating_waves=None):
     '''
     Evolve time on a field.
     This function checks the transform_state of the field and transforms first from spatial
@@ -610,17 +610,23 @@ def kspace_propagate(kspace, dt,
 
     dt: time in seconds
 
-    If moving_window is true, an additional linear phase is applied in order to keep
-    the pulse inside of the box
-
-    moving_window_vect gives the direction of the box, which is ideally identical
-    to the mean propagation direction of the field in forward time direction.
+    If a vector moving_window_vect is passed to this function, which is ideally identical
+    to the mean propagation direction of the field in forward time direction,
+    an additional linear phase is applied in order to keep the pulse inside of the box.
+    This effectively enables propagation in a moving window.
     If dt is negative, the window will actually move the opposite direction of
     moving_window_vect.
+    Additionally, all modes which propagate in the opposite direction of the moving window,
+    i.e. all modes for which dot(moving_window_vect, k)<0, will be deleted.
 
-    If remove_antipropagating_waves is True, all modes which propagate in the opposite
-    direction of the moving window, i.e. all modes for which dot(moving_window_vect, k)<0,
-    will be deleted.
+    The motion of the window can be inhibited by specifying move_window=False.
+    If move_window is None, the moving window is automatically enabled if moving_window_vect
+    is given.
+
+    The deletion of the antipropagating modes can be inhibited by specifying
+    remove_antipropagating_waves=False.
+    If remove_antipropagating_waves is None, the deletion of the antipropagating modes
+    is automatically enabled if moving_window_vect is given.
     '''
     transform_state = kspace._transform_state()
     if transform_state is None:
@@ -649,6 +655,12 @@ def kspace_propagate(kspace, dt,
         moving_window_vect /= np.sqrt(np.sum(moving_window_vect**2))
         moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
 
+        if remove_antipropagating_waves is None:
+            remove_antipropagating_waves = True
+
+        if move_window is None:
+            move_window = True
+
     # remove antipropagating waves, if requested
     if remove_antipropagating_waves:
         if moving_window_vect is None:
@@ -662,7 +674,7 @@ def kspace_propagate(kspace, dt,
     kspace = kspace * np.exp(-1.j * omega * dt)
 
     # Move the window
-    if moving_window:
+    if move_window:
         if moving_window_vect is None:
             raise ValueError("Missing required argument moving_window_vect.")
 

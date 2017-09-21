@@ -112,7 +112,7 @@ class TestKspace(unittest.TestCase):
         pp.chooseCode('dummy')
         dr = pp.readDump(10000, dimensions=2)
         kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
-        pp.helper.kspace_propagate(kspace, 0.1, moving_window=True, moving_window_vect=(1,0), remove_antipropagating_waves=True)
+        pp.helper.kspace_propagate(kspace, 0.1, moving_window_vect=(1,0))
 
 if __name__ == '__main__':
     unittest.main()
