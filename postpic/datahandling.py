@@ -49,6 +49,12 @@ import numpy as np
 import numpy.fft as fft
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
+
+try:
+    from skimage.restoration import unwrap_phase
+except ImportError:
+    unwrap_phase = None
+
 from . import helper
 
 __all__ = ['Field', 'Axis']
@@ -128,6 +134,14 @@ class Axis(object):
         else:
             ret = self.name + ' [' + self.unit + ']'
         return ret
+
+    def value_to_index(self, value):
+        if not self.islinear():
+            raise ValueError("This function is intended for linear grids only.")
+
+        a, b = self.extent
+        lg = len(self)
+        return (value-a)/(b-a) * lg - 0.5
 
     def setextent(self, extent, n):
         '''
@@ -495,7 +509,7 @@ class Field(object):
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
         return ret
 
-    def transform(self, newaxes, transform=None, **kwargs):
+    def transform(self, newaxes, transform=None, complex_mode='polar', **kwargs):
         '''
         Transform the Field to new coordinates
 
@@ -510,9 +524,18 @@ class Field(object):
         Example for linear -> polar:
 
         def transform(r, theta):
-            x = r*np.sin(theta)
-            y = r*np.cos(theta)
+            x = r*np.cos(theta)
+            y = r*np.sin(theta)
             return x, y
+
+        The complex_mode specifies how to proceed with complex data:
+         *  complex_mode = 'cartesian' - interpolate real/imag part (fastest)
+
+         *  complex_mode = 'polar' - interpolate abs/phase
+         If skimage.restoration is available, the phase will be unwrapped first
+
+         *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
+         Skip unwrapping the phase, even if skimage.restoration is available
 
         Additional keyword arguments are passed to scipy.ndimage.map_cordinates,
         see the documentation for that function.
@@ -523,6 +546,11 @@ class Field(object):
             def transform(*x):
                 return x
 
+        do_unwrap_phase = True
+        if complex_mode == 'polar-no-unwrap':
+            complex_mode = 'polar'
+            do_unwrap_phase = False
+
         # Start a new Field object by inserting the new axes
         ret = copy.copy(self)
         ret.axes = newaxes
@@ -531,21 +559,28 @@ class Field(object):
         coordinates_ax = transform(*ret.meshgrid())
 
         # Rescale the source coordinates to pixel coordinates
-        coordinates_px = []
-        for ax, x in zip(self.axes, coordinates_ax):
-            a, b = ax.extent
-            lg = len(ax)
-            c = (x-a)/(b-a) * lg - 0.5   # x=a => c=-0.5, x=b => c=l-0.5
-            coordinates_px.append(c)
+        coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
 
         # Map the matrix using scipy.ndimage.map_coordinates
         if np.isrealobj(self.matrix):
             ret._matrix = spnd.map_coordinates(self.matrix, coordinates_px, **kwargs)
         else:
-            real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
-            ret._matrix = np.empty_like(matrix)
-            spnd.map_coordinates(real, coordinates_px, output=ret.matrix.real, **kwargs)
-            spnd.map_coordinates(imag, coordinates_px, output=ret.matrix.imag, **kwargs)
+            if complex_mode == 'cartesian':
+                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+                ret._matrix = np.empty(np.broadcast(*coordinates_px).shape,
+                                       dtype=self.matrix.dtype)
+                spnd.map_coordinates(real, coordinates_px, output=ret.matrix.real, **kwargs)
+                spnd.map_coordinates(imag, coordinates_px, output=ret.matrix.imag, **kwargs)
+            elif complex_mode == 'polar':
+                angle = np.angle(self)
+                if do_unwrap_phase and unwrap_phase:
+                    angle = unwrap_phase(angle)
+
+                absval = spnd.map_coordinates(abs(self), coordinates_px, **kwargs)
+                angle = spnd.map_coordinates(angle, coordinates_px, **kwargs)
+                ret._matrix = absval * np.exp(1.j * angle)
+            else:
+                raise ValueError('Invalid value of complex_mode.')
 
         return ret
 
