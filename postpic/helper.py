@@ -299,52 +299,16 @@ class SpeciesIdentifier(PhysicalConstants):
 
 
 # Some static functions
+def polar2linear(theta, r):
+    x = r*np.cos(theta)
+    y = r*np.sin(theta)
+    return x, y
 
 
-def transfromxy2polar(matrixxy, extentxy,
-                      extentpolar, shapepolar, ashistogram=True):
-    '''
-    remaps a matrix matrixxy in kartesian coordinates x,y to a polar
-    representation with axes r, phi.
-    '''
-    from scipy.ndimage.interpolation import geometric_transform
-    import numpy as np
-
-    def polar2xy(rphi):
-        (r, phi) = rphi
-        x = r * np.cos(phi)
-        y = r * np.sin(phi)
-        return (x, y)
-
-    def koord2index(q1q2, extent, shape):
-        (q1, q2) = q1q2
-        return ((q1 - extent[0]) / (extent[1] - extent[0]) * shape[0],
-                (q2 - extent[2]) / (extent[3] - extent[2]) * shape[1])
-
-    def index2koord(ij, extent, shape):
-        (i, j) = ij
-        return (extent[0] + i / shape[0] * (extent[1] - extent[0]),
-                extent[2] + j / shape[1] * (extent[3] - extent[2]))
-
-    def mappingxy2polar(ij, extentxy, shapexy, extentpolar, shapepolar):
-        '''
-        actually maps indizes of polar matrix to indices of kartesian matrix
-        '''
-        (i, j) = ij
-        ret = polar2xy(index2koord((float(i), float(j)),
-                                   extentpolar, shapepolar))
-        ret = koord2index(ret, extentxy, shapexy)
-        return ret
-
-    ret = geometric_transform(matrixxy, mappingxy2polar,
-                              output_shape=shapepolar,
-                              extra_arguments=(extentxy, matrixxy.shape,
-                                               extentpolar, shapepolar),
-                              order=1)
-    if ashistogram:  # volumeelement is just r
-        r = np.abs(np.linspace(extentpolar[0], extentpolar[1], ret.shape[0]))
-        ret = (ret.T * r).T
-    return ret
+def linear2polar(x, y):
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    return theta, r
 
 
 def histogramdd(data, **kwargs):

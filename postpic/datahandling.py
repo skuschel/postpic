@@ -48,6 +48,7 @@ import copy
 import numpy as np
 import numpy.fft as fft
 import scipy.ndimage as spnd
+import scipy.interpolate as spinterp
 from . import helper
 
 __all__ = ['Field', 'Axis']
@@ -494,6 +495,52 @@ class Field(object):
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
         return ret
 
+    def transform(self, newaxes, transform=None, **kwargs):
+        '''
+        Transform the Field to new coordinates
+
+        newaxes: The new axes of the new coordinates
+
+        transform: a callable that takes the new coordinates as input and returns
+        the old coordinates from where to sample the Field.
+        It is basically the inverse of the transformation that you want to perform.
+        If transform is not given, the identity will be used. This is suitable for
+        simple interpolation to a new extent/shape.
+
+        Example for linear -> polar:
+
+        def transform(r, theta):
+            x = r*np.sin(theta)
+            y = r*np.cos(theta)
+            return x, y
+
+        '''
+        if transform is None:
+            def transform(*x):
+                return x
+
+        ret = copy.copy(self)
+        ret.axes = newaxes
+
+        coordinates_ax = transform(*ret.meshgrid())
+
+        coordinates_px = []
+        for ax, x in zip(self.axes, coordinates_ax):
+            a, b = ax.extent
+            lg = len(ax)
+            c = (x-a)/(b-a) * lg - 0.5   # x=a => c=-0.5, x=b => c=l-0.5
+            coordinates_px.append(c)
+
+        if np.isrealobj(self.matrix):
+            ret._matrix = spnd.map_coordinates(self.matrix, coordinates_px, **kwargs)
+        else:
+            real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+            ret._matrix = np.empty_like(matrix)
+            spnd.map_coordinates(real, coordinates_px, output=ret.matrix.real, **kwargs)
+            spnd.map_coordinates(imag, coordinates_px, output=ret.matrix.imag, **kwargs)
+
+        return ret
+
     def autoreduce(self, maxlen=4000):
         '''
         Reduces the Grid to a maximum length of maxlen per dimension
@@ -739,7 +786,6 @@ class Field(object):
         remaps the current kartesian coordinates to polar coordinates
         extent should be given as extent=(phimin, phimax, rmin, rmax)
         '''
-        ret = copy.deepcopy(self)
         if extent is None:
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
@@ -747,16 +793,16 @@ class Field(object):
             maxpt_r = min(int(np.min(self.shape) / 2), 1000)
             shape = (1000, maxpt_r)
 
-        extent[0:2] = extent[0:2] - angleoffset
-        ret._matrix = helper.transfromxy2polar(self.matrix, self.extent,
-                                               np.roll(extent, 2), shape).T
-        extent[0:2] = extent[0:2] + angleoffset
+        theta = Axis(name='theta', unit='rad')
+        theta.grid = np.linspace(extent[0], extent[1], shape[0])
 
-        ret.extent = extent
-        if ret.axes[0].name.startswith('k') \
-           and ret.axes[1].name.startswith('k'):
-            ret.axes[0].name = r'$k_\phi$'
-            ret.axes[1].name = r'$|k|$'
+        r = Axis(name='r', unit=self.axes[0].unit)
+        r.grid = np.linspace(extent[2], extent[3], shape[1])
+
+        theta.grid_node = theta.grid_node - angleoffset
+        ret = self.transform([theta, r], transform=helper.polar2linear)
+        ret.axes[0].grid_node = theta.grid_node + angleoffset
+
         return ret
 
     def exporttocsv(self, filename):
