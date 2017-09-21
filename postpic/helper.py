@@ -20,6 +20,7 @@ Some global constants that are used in the code.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 import copy
 import numbers
 import numpy as np
@@ -36,7 +37,32 @@ except(ImportError):
     cyf = None
     particleshapes = [0]
 
-warnings.filterwarnings('once', category=DeprecationWarning)
+
+def isnotebook():
+    return 'ipykernel' in sys.modules
+
+
+def jupyter_client_version():
+    try:
+        import jupyter_client
+        return jupyter_client.__version__
+    except ImportError:
+        return None
+
+
+def _filterwarnings():
+    if isnotebook():
+        jver = jupyter_client_version()
+        if jver:
+            jmajor = int(jver.split('.')[0])
+            if jmajor == 5:
+                return
+
+    warnings.filterwarnings('once', category=DeprecationWarning)
+
+
+_filterwarnings()
+
 # Default values for histogramdd function
 histogramdd_defs = {'shape': 2}
 
