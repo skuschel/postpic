@@ -44,6 +44,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import functools
 import collections
 import copy
+import warnings
 
 import numpy as np
 import numpy.fft as fft
@@ -580,8 +581,13 @@ class Field(object):
                 spnd.map_coordinates(imag, coordinates_px, output=ret.matrix.imag, **kwargs)
             elif complex_mode == 'polar':
                 angle = np.angle(self)
-                if do_unwrap_phase and unwrap_phase:
-                    angle = unwrap_phase(angle)
+                if do_unwrap_phase:
+                    if unwrap_phase:
+                        angle = unwrap_phase(angle)
+                    else:
+                        warnings.warn("Function unwrap_phase from skimage.restoration not "
+                                      "available! Install scikit-image or use complex_mode = "
+                                      "'polar-no-unwrap' to get rid of this warning.")
 
                 absval = spnd.map_coordinates(abs(self), coordinates_px, **kwargs)
                 angle = spnd.map_coordinates(angle, coordinates_px, **kwargs)
