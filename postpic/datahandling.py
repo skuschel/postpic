@@ -483,6 +483,9 @@ class Field(object):
 
         ret._matrix = np.pad(self, pad_width_numpy, mode, **kwargs)
 
+        # This info is invalidated
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def half_resolution(self, axis):
@@ -507,6 +510,10 @@ class Field(object):
         m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
         ret._matrix = m
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
+
+        # This info is invalidated
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def transform(self, newaxes, transform=None, complex_mode='polar', **kwargs):
@@ -582,6 +589,9 @@ class Field(object):
             else:
                 raise ValueError('Invalid value of complex_mode.')
 
+        # This info is invalidated
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def autoreduce(self, maxlen=4000):
@@ -595,6 +605,10 @@ class Field(object):
                 ret = ret.half_resolution(i)
                 ret = ret.autoreduce(maxlen=maxlen)
                 break
+
+        # This info is invalidated by reducing the grid
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def cutout(self, newextent):
@@ -628,6 +642,9 @@ class Field(object):
             return self
         ret._matrix = np.mean(ret.matrix, axis=axis)
         ret.axes.pop(axis)
+        ret.transformed_axes_origins.pop(axis)
+        ret.axes_transform_state.pop(axis)
+
         return ret
 
     def _transform_state(self, axes=None):
@@ -905,6 +922,10 @@ class Field(object):
         field._matrix = field.matrix[key]
         for i, sl in enumerate(key):
             field.setaxisobj(i, field.axes[i][sl])
+
+        # This info is invalidated
+        field.transformed_axes_origins = [None]*field.dimensions
+
         return field
 
     @_updatename('+')
