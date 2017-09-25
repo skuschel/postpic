@@ -45,11 +45,42 @@ import functools
 import collections
 import copy
 import warnings
+import os
 
 import numpy as np
-import numpy.fft as fft
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
+
+
+try:
+    import psutil
+    nproc = psutil.cpu_count(logical=False)
+except ImportError:
+    nproc = os.cpu_count()
+
+
+try:
+    # pyfftw is, in most situations, faster than numpys fft,
+    # although pyfftw will benefit from multithreading only on very large arrays
+    # on a 720x240x240 3D transform multithreading still doesn't give a large benefit
+    # benchmarks of a 720x240x240 transform of real data on a Intel(R) Xeon(R) CPU
+    # E5-1620 v4 @ 3.50GHz:
+    # numpy.fft: 3.6 seconds
+    # pyfftw, nproc=4: first transform 2.2s, further transforms 1.8s
+    # pyfftw, nproc=1: first transform 3.4s, further transforms 2.8s
+    # Try to import pyFFTW's numpy_fft interface
+    import pyfftw.interfaces.cache as fftw_cache
+    import pyfftw.interfaces.numpy_fft as fftw
+    fftw_cache.enable()
+    fftw_cache.set_keepalive_time(3600)
+    fft = fftw
+    fft_kwargs = dict(planner_effort='FFTW_ESTIMATE', threads=nproc)
+except ImportError:
+    # pyFFTW is not available, just import numpys fft
+    import numpy.fft as fft
+    using_pyfftw = False
+    fft_kwargs = dict()
+
 
 try:
     from skimage.restoration import unwrap_phase
@@ -672,7 +703,7 @@ class Field(object):
                 return b
         return None
 
-    def fft(self, axes=None):
+    def fft(self, axes=None, **kwargs):
         '''
         Performs Fourier transform on any number of axes.
 
@@ -680,6 +711,8 @@ class Field(object):
         should be transformed. Automatically determines forward/inverse transform.
         Transform is only applied if all mentioned axes are in the same space.
         If an axis is transformed twice, the origin of the axis is restored.
+
+        keyword-arguments are passed to the underlying fft implementation.
         '''
         # If axes is None, transform all axes
         if axes is None:
@@ -724,6 +757,9 @@ class Field(object):
             for i in axes
         }
 
+        my_fft_args = fft_kwargs.copy()
+        my_fft_args.update(kwargs)
+
         ret = copy.copy(self)
 
         # Transforming from spatial domain to frequency domain ...
@@ -734,7 +770,8 @@ class Field(object):
                 for i in axes
             }
             ret.matrix = fftnorm \
-                * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'), axes=axes)
+                * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho', **my_fft_args),
+                               axes=axes)
 
         # ... or transforming from frequency domain to spatial domain
         elif transform_state is True:
@@ -744,7 +781,8 @@ class Field(object):
                 for i in axes
             }
             ret.matrix = fftnorm \
-                * fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho')
+                * fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho',
+                            **my_fft_args)
 
         # Update axes objects
         for i in axes:
