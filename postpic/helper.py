@@ -640,8 +640,12 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
     # using numexpr:
     kdict = {'k{}'.format(i): k for i, k in enumerate(kspace.meshgrid())}
     k2_expr = '+'.join('{}**2'.format(i) for i in kdict.keys())
+
+    numexpr_vars = dict(c=PhysicalConstants.c)
+    numexpr_vars.update(kdict)
     omega = ne.evaluate('c*sqrt({})'.format(k2_expr),
-                        local_dict={**kdict, 'c': PhysicalConstants.c})
+                        local_dict=numexpr_vars,
+                        global_dict=None)
 
     # calculate propagation distance for the moving window
     dz = PhysicalConstants.c * dt
@@ -673,8 +677,11 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
         arg_expr = '+'.join('({}*k{})'.format(repr(v), i)
                             for i, v
                             in enumerate(moving_window_vect))
+        numexpr_vars = dict(kspace=kspace)
+        numexpr_vars.update(kdict)
         kspace = kspace.replace_data(ne.evaluate('where({} < 0, 0, kspace)'.format(arg_expr),
-                                                 global_dict=kdict))
+                                                 local_dict=numexpr_vars,
+                                                 global_dict=None))
 
     # Apply the phase due the propagation via the dispersion relation omega
     # optimized version of

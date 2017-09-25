@@ -56,7 +56,11 @@ try:
     import psutil
     nproc = psutil.cpu_count(logical=False)
 except ImportError:
-    nproc = os.cpu_count()
+    try:
+        nproc = os.cpu_count()
+    except AttributeError:
+        import multiprocessing
+        nproc = multiprocessing.cpu_count()
 
 
 try:
@@ -841,7 +845,11 @@ class Field(object):
         ret = copy.copy(self)
         if transform_state is True:
             # ret.matrix = self.matrix * np.exp(1.j * arg)
-            ret.matrix = ne.evaluate('self * exp(1j * ({}))'.format(arg_expr), global_dict=kdict)
+            numexpr_vars = dict(self=self)
+            numexpr_vars.update(kdict)
+            ret.matrix = ne.evaluate('self * exp(1j * ({}))'.format(arg_expr),
+                                     local_dict=numexpr_vars,
+                                     global_dict=kdict)
         else:
             # ret.matrix = self.matrix * np.exp(-1.j * arg)
             ret.matrix = ne.evaluate('self * exp(-1.j * ({}))'.format(arg_expr), global_dict=kdict)
