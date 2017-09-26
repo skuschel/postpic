@@ -465,6 +465,9 @@ class Field(object):
     def angle(self):
         return self.replace_data(np.angle(self))
 
+    def conj(self):
+        return self.replace_data(np.conjugate(self))
+
     def replace_data(self, other):
         ret = copy.copy(self)
         ret.matrix = other

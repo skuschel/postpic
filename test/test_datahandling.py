@@ -279,6 +279,7 @@ class TestField(unittest.TestCase):
         c1d = self.f1d + 3j*self.f1d
         i1d = c1d.imag
         a1d = c1d.angle
+        cc1d = c1d.conj()
 
 
 if __name__ == '__main__':
