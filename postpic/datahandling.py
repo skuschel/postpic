@@ -875,6 +875,33 @@ class Field(object):
 
         return ret
 
+    def _shift_grid_by_fourier(self, dx):
+        axes = sorted(dx.keys())
+        ret = self.fft(axes)
+        ret = ret._apply_linear_phase(dx)
+        return ret.fft(axes)
+
+    def _shift_grid_by_linear(self, dx):
+        axes = sorted(dx.keys())
+        gridspacing = np.array([ax.spacing for ax in self.axes])
+        shift = np.zeros(len(self.axes))
+        for i, d in dx.items():
+            shift[i] = d
+        shift_px = shift/gridspacing
+        ret = copy.copy(self)
+        if np.isrealobj(self.matrix):
+            ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
+        else:
+            real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+            ret.matrix = np.empty_like(matrix)
+            spnd.shift(real, -shift_px, output=ret.matrix.real, order=1, mode='nearest')
+            spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
+
+        for i in axes:
+            ret.axes[i].grid_node = self.axes[i].grid_node + dx[i]
+
+        return ret
+
     def shift_grid_by(self, dx, interpolation='fourier'):
         '''
         Translate the Grid by dx.
@@ -887,39 +914,18 @@ class Field(object):
         may be one of ['linear', 'fourier'].
         In case of interpolation = 'fourier' all axes must have same transform_state.
         '''
-        if interpolation not in ['fourier', 'linear']:
+        methods = dict(fourier=self._shift_grid_by_fourier,
+                       linear=self._shift_grid_by_linear)
+
+        if interpolation not in methods.keys():
             raise ValueError("Requested method {} is not supported".format(method))
 
         if not isinstance(dx, collections.Mapping):
             dx = dict(enumerate(dx))
 
         dx = {helper.axesidentify[i]: v for i, v in dx.items()}
-        axes = sorted(dx.keys())
 
-        if interpolation == 'fourier':
-            ret = self.fft(axes)
-            ret = ret._apply_linear_phase(dx)
-            ret = ret.fft(axes)
-
-        if interpolation == 'linear':
-            gridspacing = np.array([ax.spacing for ax in self.axes])
-            shift = np.zeros(len(self.axes))
-            for i, d in dx.items():
-                shift[i] = d
-            shift_px = shift/gridspacing
-            ret = copy.copy(self)
-            if np.isrealobj(self.matrix):
-                ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
-            else:
-                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
-                ret.matrix = np.empty_like(matrix)
-                spnd.shift(real, -shift_px, output=ret.matrix.real, order=1, mode='nearest')
-                spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
-
-            for i in axes:
-                ret.axes[i].grid_node = self.axes[i].grid_node + dx[i]
-
-        return ret
+        return methods[interpolation](dx)
 
     def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
