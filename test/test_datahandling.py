@@ -275,6 +275,11 @@ class TestField(unittest.TestCase):
 
         self.assertTrue(np.isclose(a, b))
 
+    def test_arithmetic(self):
+        c1d = self.f1d + 3j*self.f1d
+        i1d = c1d.imag
+        a1d = c1d.angle
+
 
 if __name__ == '__main__':
     unittest.main()

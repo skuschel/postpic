@@ -455,11 +455,11 @@ class Field(object):
 
     @property
     def real(self):
-        return self.replace_data(np.real(self))
+        return self.replace_data(self.matrix.real)
 
     @property
     def imag(self):
-        return self.replace_data(np.imag(self))
+        return self.replace_data(self.matrix.imag)
 
     @property
     def angle(self):
