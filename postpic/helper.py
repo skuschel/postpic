@@ -23,6 +23,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 import copy
+import itertools
 import numbers
 import numpy as np
 import numpy.linalg as npl
@@ -589,9 +590,47 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     return result
 
 
-def kspace_propagate(kspace, dt, moving_window_vect=None,
-                     move_window=None,
-                     remove_antipropagating_waves=None):
+def linear_phase(field, dx):
+    '''
+    Calculates the linear phase as used in Field._apply_linear_phase
+    '''
+    import numexpr as ne
+    transform_state = field._transform_state(dx.keys())
+    axes = [ax.grid for ax in field.axes]  # each axis object returns new numpy array
+    for i in range(len(axes)):
+        gridlen = len(axes[i])
+        if transform_state is True:
+            # center the axes around 0 to eliminate global phase
+            axes[i] -= axes[i][gridlen//2]
+        else:
+            # start the axes at 0 to eliminate global phase
+            axes[i] -= axes[i][0]
+
+    # build mesh
+    mesh = np.meshgrid(*axes, indexing='ij', sparse=True)
+
+    # prepare mesh for numexpr-dict
+    kdict = {'k{}'.format(i): k for i, k in enumerate(mesh)}
+
+    # calculate linear phase
+    # arg = sum([dx[i]*mesh[i] for i in dx.keys()])
+    arg_expr = '+'.join('({}*k{})'.format(repr(v), i) for i, v in dx.items())
+
+    if transform_state is True:
+        exp_ikdx_expr = 'exp(1j * ({arg}))'.format(arg=arg_expr)
+    else:
+        exp_ikdx_expr = 'exp(-1j * ({arg}))'.format(arg=arg_expr)
+
+    exp_ikdx = ne.evaluate(exp_ikdx_expr,
+                           local_dict=kdict,
+                           global_dict=None)
+
+    return exp_ikdx
+
+
+def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
+                               move_window=None,
+                               remove_antipropagating_waves=None):
     '''
     Evolve time on a field.
     This function checks the transform_state of the field and transforms first from spatial
@@ -641,11 +680,13 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
     kdict = {'k{}'.format(i): k for i, k in enumerate(kspace.meshgrid())}
     k2_expr = '+'.join('{}**2'.format(i) for i in kdict.keys())
 
-    numexpr_vars = dict(c=PhysicalConstants.c)
+    numexpr_vars = dict(c=PhysicalConstants.c, dt=dt)
     numexpr_vars.update(kdict)
-    omega = ne.evaluate('c*sqrt({})'.format(k2_expr),
-                        local_dict=numexpr_vars,
-                        global_dict=None)
+    omega_expr = 'c*sqrt({})'.format(k2_expr)
+    exp_iwt_expr = 'exp(-1j * {omega} * dt)'.format(omega=omega_expr)
+    exp_iwt = ne.evaluate(exp_iwt_expr,
+                          local_dict=numexpr_vars,
+                          global_dict=None)
 
     # calculate propagation distance for the moving window
     dz = PhysicalConstants.c * dt
@@ -683,21 +724,59 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
                                                  local_dict=numexpr_vars,
                                                  global_dict=None))
 
-    # Apply the phase due the propagation via the dispersion relation omega
-    # optimized version of
-    # kspace = kspace * np.exp(-1.j * omega * dt)
-    # using numexpr
-    kspace = kspace.replace_data(ne.evaluate("kspace * exp(-1.j * omega * dt)"))
-
-    # Move the window
     if move_window:
         if moving_window_vect is None:
             raise ValueError("Missing required argument moving_window_vect.")
+        exp_ikdx = linear_phase(kspace, moving_window_dict)
 
-        # Apply the linear phase due to the moving window
-        kspace = kspace._apply_linear_phase(moving_window_dict)
+    while True:
+        if move_window:
+            # Apply the phase due the propagation via the dispersion relation omega
+            # and apply the linear phase due to the moving window
+            kspace = kspace.replace_data(ne.evaluate('kspace * exp_ikdx * exp_iwt'))
 
-    if do_fft:
-        kspace = kspace.fft()
+            for i in moving_window_dict.keys():
+                kspace.transformed_axes_origins[i] += moving_window_dict[i]
 
-    return kspace
+        else:
+            # Apply the phase due the propagation via the dispersion relation omega
+            kspace = kspace.replace_data(ne.evaluate('kspace * exp_iwt'))
+
+        if do_fft:
+            kspace = kspace.fft()
+
+        yield kspace
+
+
+def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
+    '''
+    Evolve time on a field.
+    This function checks the transform_state of the field and transforms first from spatial
+    domain to frequency domain if necessary. In this case the inverse transform will also
+    be applied to the result before returning it. This works, however, only correctly with
+    fields that are the inverse transforms of a k-space reconstruction, i.e. with complex
+    fields.
+
+    dt: time in seconds
+
+    If a vector moving_window_vect is passed to this function, which is ideally identical
+    to the mean propagation direction of the field in forward time direction,
+    an additional linear phase is applied in order to keep the pulse inside of the box.
+    This effectively enables propagation in a moving window.
+    If dt is negative, the window will actually move the opposite direction of
+    moving_window_vect.
+    Additionally, all modes which propagate in the opposite direction of the moving window,
+    i.e. all modes for which dot(moving_window_vect, k)<0, will be deleted.
+
+    The motion of the window can be inhibited by specifying move_window=False.
+    If move_window is None, the moving window is automatically enabled if moving_window_vect
+    is given.
+
+    The deletion of the antipropagating modes can be inhibited by specifying
+    remove_antipropagating_waves=False.
+    If remove_antipropagating_waves is None, the deletion of the antipropagating modes
+    is automatically enabled if moving_window_vect is given.
+    '''
+    gen = kspace_propagate_generator(kspace, dt, **kwargs)
+    gen = itertools.islice(gen, nsteps)
+    return gen

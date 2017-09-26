@@ -871,7 +871,6 @@ class Field(object):
         dx should be a mapping from axis number to translation distance
         All axes must have same transform_state and transformed_axes_origins not None
         '''
-        import numexpr as ne
         transform_state = self._transform_state(dx.keys())
         if transform_state is None:
             raise ValueError("Translation only allowed if all mentioned axes"
@@ -881,38 +880,9 @@ class Field(object):
             raise ValueError("Translation only allowed if all mentioned axes"
                              "have transformed_axes_origins not None")
 
-        axes = [ax.grid for ax in self.axes]  # each axis object returns new numpy array
-        for i in range(len(axes)):
-            gridlen = len(axes[i])
-            if transform_state is True:
-                # center the axes around 0 to eliminate global phase
-                axes[i] -= axes[i][gridlen//2]
-            else:
-                # start the axes at 0 to eliminate global phase
-                axes[i] -= axes[i][0]
+        exp_ikdx = helper.linear_phase(self, dx)
 
-        # build mesh
-        mesh = np.meshgrid(*axes, indexing='ij', sparse=True)
-
-        # prepare mesh for numexpr-dict
-        kdict = {'k{}'.format(i): k for i, k in enumerate(mesh)}
-
-        # calculate linear phase
-        # arg = sum([dx[i]*mesh[i] for i in dx.keys()])
-        arg_expr = '+'.join('({}*k{})'.format(repr(v), i) for i, v in dx.items())
-
-        # apply linear phase with correct sign and global phase
-        ret = copy.copy(self)
-        if transform_state is True:
-            # ret.matrix = self.matrix * np.exp(1.j * arg)
-            numexpr_vars = dict(self=self)
-            numexpr_vars.update(kdict)
-            ret.matrix = ne.evaluate('self * exp(1j * ({}))'.format(arg_expr),
-                                     local_dict=numexpr_vars,
-                                     global_dict=kdict)
-        else:
-            # ret.matrix = self.matrix * np.exp(-1.j * arg)
-            ret.matrix = ne.evaluate('self * exp(-1.j * ({}))'.format(arg_expr), global_dict=kdict)
+        ret = self * exp_ikdx
 
         for i in dx.keys():
             ret.transformed_axes_origins[i] += dx[i]
