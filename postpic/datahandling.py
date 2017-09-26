@@ -607,12 +607,16 @@ class Field(object):
         # Start a new Field object by inserting the new axes
         ret = copy.copy(self)
         ret.axes = newaxes
+        shape = [len(ax) for ax in newaxes]
 
         # Calculate the source points for every point of the new mesh
         coordinates_ax = transform(*ret.meshgrid())
 
         # Rescale the source coordinates to pixel coordinates
         coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
+
+        # Broadcast all coordinate arrays to the new shape
+        coordinates_px = [np.broadcast_to(c, shape) for c in coordinates_px]
 
         # Map the matrix using scipy.ndimage.map_coordinates
         if np.isrealobj(self.matrix):
