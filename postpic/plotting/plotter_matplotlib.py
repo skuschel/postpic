@@ -204,6 +204,7 @@ class MatplotlibPlotter(object):
     @staticmethod
     def addField1d(ax, field, log10plot=True,
                    xlim=None, ylim=None, scaletight=None):
+        field = field.squeeze()
         assert field.dimensions == 1, 'Field needs to be 1 dimensional'
         ax.plot(field.grid, field.matrix, label=field.label)
         ax.xaxis.set_major_formatter(MatplotlibPlotter.axesformatterx)
@@ -270,6 +271,7 @@ class MatplotlibPlotter(object):
                    contourlevels=np.array([]), saveandclose=True, xlim=None,
                    ylim=None, clim=None,
                    savecsv=False, lineoutx=False, lineouty=False):
+        field = field.squeeze()
         (fig, ax) = figax
         assert field.dimensions == 2, 'Field needs to be 2 dimensional'
         ax.xaxis.set_major_formatter(MatplotlibPlotter.axesformatterx)
@@ -360,6 +362,7 @@ class MatplotlibPlotter(object):
         '''
         This is the main method, that should be used for plotting.
         '''
+        field = field.squeeze()
         if autoreduce:
             field.autoreduce(maxlen=maxlen)
         if field is None:
