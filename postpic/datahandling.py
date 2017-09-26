@@ -45,11 +45,46 @@ import functools
 import collections
 import copy
 import warnings
+import os
 
 import numpy as np
-import numpy.fft as fft
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
+
+
+try:
+    import psutil
+    nproc = psutil.cpu_count(logical=False)
+except ImportError:
+    try:
+        nproc = os.cpu_count()
+    except AttributeError:
+        import multiprocessing
+        nproc = multiprocessing.cpu_count()
+
+
+try:
+    # pyfftw is, in most situations, faster than numpys fft,
+    # although pyfftw will benefit from multithreading only on very large arrays
+    # on a 720x240x240 3D transform multithreading still doesn't give a large benefit
+    # benchmarks of a 720x240x240 transform of real data on a Intel(R) Xeon(R) CPU
+    # E5-1620 v4 @ 3.50GHz:
+    # numpy.fft: 3.6 seconds
+    # pyfftw, nproc=4: first transform 2.2s, further transforms 1.8s
+    # pyfftw, nproc=1: first transform 3.4s, further transforms 2.8s
+    # Try to import pyFFTW's numpy_fft interface
+    import pyfftw.interfaces.cache as fftw_cache
+    import pyfftw.interfaces.numpy_fft as fftw
+    fftw_cache.enable()
+    fftw_cache.set_keepalive_time(3600)
+    fft = fftw
+    fft_kwargs = dict(planner_effort='FFTW_ESTIMATE', threads=nproc)
+except ImportError:
+    # pyFFTW is not available, just import numpys fft
+    import numpy.fft as fft
+    using_pyfftw = False
+    fft_kwargs = dict()
+
 
 try:
     from skimage.restoration import unwrap_phase
@@ -127,6 +162,10 @@ class Axis(object):
         else:
             ret = [self._grid_node[0], self._grid_node[-1]]
         return ret
+
+    @property
+    def physical_length(self):
+        return self._grid_node[-1] - self._grid_node[0]
 
     @property
     def label(self):
@@ -285,11 +324,14 @@ class Field(object):
         ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         '''
         will be called by numpy function in case an numpy array is needed.
         '''
-        return self.matrix
+        return np.asarray(self.matrix, dtype=dtype)
+
+    # make sure that np.array() * Field() returns a Field and not a plain array
+    __array_priority__ = 1
 
     def _addaxisobj(self, axisobj):
         '''
@@ -356,13 +398,13 @@ class Field(object):
 
     @matrix.setter
     def matrix(self, other):
-        if other.shape != self.shape:
+        if np.shape(other) != self.shape:
             raise ValueError("Shape of old and new matrix must be identical")
         self._matrix = other
 
     @property
     def shape(self):
-        return self.matrix.shape
+        return np.asarray(self).shape
 
     @property
     def grid_nodes(self):
@@ -653,6 +695,32 @@ class Field(object):
 
         return ret
 
+    def _integrate_constant(self, axes=None):
+        ret = self
+        V = 1
+
+        for axis in reversed(sorted(axes)):
+            V *= ret.axes[axis].physical_length
+            ret = ret.mean(axis)
+
+        return V * ret
+
+    def integrate(self, axes=None, method='constant'):
+        '''
+        Calculates the definite integral along the given axes
+        '''
+        methods = dict(constant=self._integrate_constant)
+        if method not in methods.keys():
+            raise ValueError("Requested method {} is not supported".format(method))
+
+        if axes is None:
+            axes = range(self.dimensions)
+
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        return methods[method](axes)
+
     def _transform_state(self, axes=None):
         """
         Returns the collective transform state of the given axes
@@ -672,18 +740,31 @@ class Field(object):
                 return b
         return None
 
-    def fft(self, axes=None):
+    def fft(self, axes=None, exponential_signs='spatial', **kwargs):
         '''
         Performs Fourier transform on any number of axes.
 
-        The argument axis is a tuple giving the numebers of the axes that
-        should be transformed. Automatically determines forward/inverse transform.
-        Transform is only applied if all mentioned axes are in the same space.
-        If an axis is transformed twice, the origin of the axis is restored.
+        The argument axis is either an integer indicating the axis to be transformed
+        or a tuple giving the axes that should be transformed. Automatically determines
+        forward/inverse transform. Transform is only applied if all mentioned axes are
+        in the same space. If an axis is transformed twice, the origin of the axis is restored.
+
+        exponential_signs configures the sign convention of the exponential
+        exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
+        exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+
+        keyword-arguments are passed to the underlying fft implementation.
         '''
         # If axes is None, transform all axes
         if axes is None:
             axes = range(self.dimensions)
+
+        # If axes is not a tuple, make it a one-tuple
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        if exponential_signs not in ['spatial', 'temporal']:
+            raise ValueError('Argument exponential_signs has an invalid value.')
 
         # List axes uniquely and in ascending order
         axes = sorted(set(axes))
@@ -724,27 +805,41 @@ class Field(object):
             for i in axes
         }
 
-        ret = copy.copy(self)
+        my_fft_args = fft_kwargs.copy()
+        my_fft_args.update(kwargs)
+
+        mat = self.matrix
+
+        if exponential_signs == 'temporal':
+            mat = np.conjugate(mat)
 
         # Transforming from spatial domain to frequency domain ...
         if transform_state is False:
             new_axesobjs = {
-                i: Axis('k'+self.axes[i].name,
+                i: Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
                         '1/'+self.axes[i].unit)
                 for i in axes
             }
-            ret.matrix = fftnorm \
-                * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho'), axes=axes)
+            mat = fftnorm \
+                * fft.fftshift(fft.fftn(mat, axes=axes, norm='ortho', **my_fft_args),
+                               axes=axes)
 
         # ... or transforming from frequency domain to spatial domain
         elif transform_state is True:
             new_axesobjs = {
-                i: Axis(self.axes[i].name.lstrip('k'),
+                i: Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
                         self.axes[i].unit.lstrip('1/'))
                 for i in axes
             }
-            ret.matrix = fftnorm \
-                * fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho')
+            mat = fftnorm \
+                * fft.ifftn(fft.ifftshift(mat, axes=axes), axes=axes, norm='ortho',
+                            **my_fft_args)
+
+        if exponential_signs == 'temporal':
+            mat = np.conjugate(mat)
+
+        ret = copy.copy(self)
+        ret.matrix = mat
 
         # Update axes objects
         for i in axes:
@@ -769,6 +864,7 @@ class Field(object):
         dx should be a mapping from axis number to translation distance
         All axes must have same transform_state and transformed_axes_origins not None
         '''
+        import numexpr as ne
         transform_state = self._transform_state(dx.keys())
         if transform_state is None:
             raise ValueError("Translation only allowed if all mentioned axes"
@@ -791,18 +887,55 @@ class Field(object):
         # build mesh
         mesh = np.meshgrid(*axes, indexing='ij', sparse=True)
 
+        # prepare mesh for numexpr-dict
+        kdict = {'k{}'.format(i): k for i, k in enumerate(mesh)}
+
         # calculate linear phase
-        arg = sum([dx[i]*mesh[i] for i in dx.keys()])
+        # arg = sum([dx[i]*mesh[i] for i in dx.keys()])
+        arg_expr = '+'.join('({}*k{})'.format(repr(v), i) for i, v in dx.items())
 
         # apply linear phase with correct sign and global phase
         ret = copy.copy(self)
         if transform_state is True:
-            ret.matrix = self.matrix * np.exp(1.j * arg)
+            # ret.matrix = self.matrix * np.exp(1.j * arg)
+            numexpr_vars = dict(self=self)
+            numexpr_vars.update(kdict)
+            ret.matrix = ne.evaluate('self * exp(1j * ({}))'.format(arg_expr),
+                                     local_dict=numexpr_vars,
+                                     global_dict=kdict)
         else:
-            ret.matrix = self.matrix * np.exp(-1.j * arg)
+            # ret.matrix = self.matrix * np.exp(-1.j * arg)
+            ret.matrix = ne.evaluate('self * exp(-1.j * ({}))'.format(arg_expr), global_dict=kdict)
 
         for i in dx.keys():
             ret.transformed_axes_origins[i] += dx[i]
+
+        return ret
+
+    def _shift_grid_by_fourier(self, dx):
+        axes = sorted(dx.keys())
+        ret = self.fft(axes)
+        ret = ret._apply_linear_phase(dx)
+        return ret.fft(axes)
+
+    def _shift_grid_by_linear(self, dx):
+        axes = sorted(dx.keys())
+        gridspacing = np.array([ax.spacing for ax in self.axes])
+        shift = np.zeros(len(self.axes))
+        for i, d in dx.items():
+            shift[i] = d
+        shift_px = shift/gridspacing
+        ret = copy.copy(self)
+        if np.isrealobj(self.matrix):
+            ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
+        else:
+            real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+            ret.matrix = np.empty_like(matrix)
+            spnd.shift(real, -shift_px, output=ret.matrix.real, order=1, mode='nearest')
+            spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
+
+        for i in axes:
+            ret.axes[i].grid_node = self.axes[i].grid_node + dx[i]
 
         return ret
 
@@ -818,39 +951,18 @@ class Field(object):
         may be one of ['linear', 'fourier'].
         In case of interpolation = 'fourier' all axes must have same transform_state.
         '''
-        if interpolation not in ['fourier', 'linear']:
-            raise ValueError("Requested method {} is not supported".format(method))
+        methods = dict(fourier=self._shift_grid_by_fourier,
+                       linear=self._shift_grid_by_linear)
+
+        if interpolation not in methods.keys():
+            raise ValueError("Requested method {} is not supported".format(interpolation))
 
         if not isinstance(dx, collections.Mapping):
             dx = dict(enumerate(dx))
 
         dx = {helper.axesidentify[i]: v for i, v in dx.items()}
-        axes = sorted(dx.keys())
 
-        if interpolation == 'fourier':
-            ret = self.fft(axes)
-            ret = ret._apply_linear_phase(dx)
-            ret = ret.fft(axes)
-
-        if interpolation == 'linear':
-            gridspacing = np.array([ax.spacing for ax in self.axes])
-            shift = np.zeros(len(self.axes))
-            for i, d in dx.items():
-                shift[i] = d
-            shift_px = shift/gridspacing
-            ret = copy.copy(self)
-            if np.isrealobj(self.matrix):
-                ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
-            else:
-                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
-                ret.matrix = np.empty_like(matrix)
-                spnd.shift(real, -shift_px, output=ret.matrix.real, order=1, mode='nearest')
-                spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
-
-            for i in axes:
-                ret.axes[i].grid_node = self.axes[i].grid_node + dx[i]
-
-        return ret
+        return methods[interpolation](dx)
 
     def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
@@ -933,6 +1045,10 @@ class Field(object):
         field.transformed_axes_origins = [None]*field.dimensions
 
         return field
+
+    def __setitem__(self, key, other):
+        key = self._normalize_slices(key)
+        self._matrix[key] = other
 
     @_updatename('+')
     def __iadd__(self, other):

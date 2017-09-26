@@ -620,6 +620,8 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
     If remove_antipropagating_waves is None, the deletion of the antipropagating modes
     is automatically enabled if moving_window_vect is given.
     '''
+    import numexpr as ne
+
     transform_state = kspace._transform_state()
     if transform_state is None:
         raise ValueError("kspace must have the same transform_state on all axes. "
@@ -632,7 +634,18 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
         kspace = kspace.fft()
 
     # calculate free space dispersion relation
-    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.meshgrid()))
+
+    # optimized version of
+    # omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.meshgrid()))
+    # using numexpr:
+    kdict = {'k{}'.format(i): k for i, k in enumerate(kspace.meshgrid())}
+    k2_expr = '+'.join('{}**2'.format(i) for i in kdict.keys())
+
+    numexpr_vars = dict(c=PhysicalConstants.c)
+    numexpr_vars.update(kdict)
+    omega = ne.evaluate('c*sqrt({})'.format(k2_expr),
+                        local_dict=numexpr_vars,
+                        global_dict=None)
 
     # calculate propagation distance for the moving window
     dz = PhysicalConstants.c * dt
@@ -658,12 +671,23 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
         if moving_window_vect is None:
             raise ValueError("Missing required argument moving_window_vect.")
 
-        m = kspace.matrix.copy()
-        m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) < 0.0] = 0.0
-        kspace = kspace.replace_data(m)
+        # m = kspace.matrix.copy()
+        # m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) < 0.0] = 0.0
+        # kspace = kspace.replace_data(m)
+        arg_expr = '+'.join('({}*k{})'.format(repr(v), i)
+                            for i, v
+                            in enumerate(moving_window_vect))
+        numexpr_vars = dict(kspace=kspace)
+        numexpr_vars.update(kdict)
+        kspace = kspace.replace_data(ne.evaluate('where({} < 0, 0, kspace)'.format(arg_expr),
+                                                 local_dict=numexpr_vars,
+                                                 global_dict=None))
 
     # Apply the phase due the propagation via the dispersion relation omega
-    kspace = kspace * np.exp(-1.j * omega * dt)
+    # optimized version of
+    # kspace = kspace * np.exp(-1.j * omega * dt)
+    # using numexpr
+    kspace = kspace.replace_data(ne.evaluate("kspace * exp(-1.j * omega * dt)"))
 
     # Move the window
     if move_window:
