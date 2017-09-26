@@ -320,11 +320,14 @@ class Field(object):
         ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
-    def __array__(self):
+    def __array__(self, dtype=None):
         '''
         will be called by numpy function in case an numpy array is needed.
         '''
-        return self.matrix
+        return np.asarray(self.matrix, dtype=dtype)
+
+    # make sure that np.array() * Field() returns a Field and not a plain array
+    __array_priority__ = 1
 
     def _addaxisobj(self, axisobj):
         '''
@@ -391,13 +394,13 @@ class Field(object):
 
     @matrix.setter
     def matrix(self, other):
-        if other.shape != self.shape:
+        if np.shape(other) != self.shape:
             raise ValueError("Shape of old and new matrix must be identical")
         self._matrix = other
 
     @property
     def shape(self):
-        return self.matrix.shape
+        return np.asarray(self).shape
 
     @property
     def grid_nodes(self):
@@ -448,11 +451,11 @@ class Field(object):
 
     @property
     def real(self):
-        return self.replace_data(self.matrix.real)
+        return self.replace_data(np.real(self))
 
     @property
     def imag(self):
-        return self.replace_data(self.matrix.imag)
+        return self.replace_data(np.imag(self))
 
     @property
     def angle(self):
@@ -1012,6 +1015,10 @@ class Field(object):
         field.transformed_axes_origins = [None]*field.dimensions
 
         return field
+
+    def __setitem__(self, key, other):
+        key = self._normalize_slices(key)
+        self._matrix[key] = other
 
     @_updatename('+')
     def __iadd__(self, other):
