@@ -356,6 +356,9 @@ class Field(object):
     def grid(self):
         return np.squeeze([a.grid for a in self.axes])
 
+    def meshgrid(self, sparse=True):
+        return np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
+
     @property
     def dimensions(self):
         '''
@@ -532,7 +535,7 @@ class Field(object):
         ret.axes.pop(axis)
         return ret
 
-    def _transform_state(self, axes):
+    def _transform_state(self, axes=None):
         """
         Returns the collective transform state of the given axes
 
@@ -543,6 +546,9 @@ class Field(object):
         Else return None
         (Axes have mixed transform_state)
         """
+        if axes is None:
+            axes = range(self.dimensions)
+
         for b in [True, False]:
             if all(self.axes_transform_state[i] == b for i in axes):
                 return b
@@ -738,19 +744,19 @@ class Field(object):
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
         if shape is None:
-            maxpt_r = np.min((np.floor(np.min(self.shape) / 2), 1000))
+            maxpt_r = min(int(np.min(self.shape) / 2), 1000)
             shape = (1000, maxpt_r)
 
         extent[0:2] = extent[0:2] - angleoffset
-        ret.matrix = helper.transfromxy2polar(self.matrix, self.extent,
-                                              np.roll(extent, 2), shape).T
+        ret._matrix = helper.transfromxy2polar(self.matrix, self.extent,
+                                               np.roll(extent, 2), shape).T
         extent[0:2] = extent[0:2] + angleoffset
 
         ret.extent = extent
-        if ret.axes[0].name.startswith('$k_') \
-           and ret.axes[1].name.startswith('$k_'):
-            ret.axes[0].name = '$k_\phi$'
-            ret.axes[1].name = '$|k|$'
+        if ret.axes[0].name.startswith('k') \
+           and ret.axes[1].name.startswith('k'):
+            ret.axes[0].name = r'$k_\phi$'
+            ret.axes[1].name = r'$|k|$'
         return ret
 
     def exporttocsv(self, filename):

@@ -595,3 +595,93 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
 
     return result
+
+
+def kspace_propagate(kspace, dt, moving_window_vect=None,
+                     move_window=None,
+                     remove_antipropagating_waves=None):
+    '''
+    Evolve time on a field.
+    This function checks the transform_state of the field and transforms first from spatial
+    domain to frequency domain if necessary. In this case the inverse transform will also
+    be applied to the result before returning it. This works, however, only correctly with
+    fields that are the inverse transforms of a k-space reconstruction, i.e. with complex
+    fields.
+
+    dt: time in seconds
+
+    If a vector moving_window_vect is passed to this function, which is ideally identical
+    to the mean propagation direction of the field in forward time direction,
+    an additional linear phase is applied in order to keep the pulse inside of the box.
+    This effectively enables propagation in a moving window.
+    If dt is negative, the window will actually move the opposite direction of
+    moving_window_vect.
+    Additionally, all modes which propagate in the opposite direction of the moving window,
+    i.e. all modes for which dot(moving_window_vect, k)<0, will be deleted.
+
+    The motion of the window can be inhibited by specifying move_window=False.
+    If move_window is None, the moving window is automatically enabled if moving_window_vect
+    is given.
+
+    The deletion of the antipropagating modes can be inhibited by specifying
+    remove_antipropagating_waves=False.
+    If remove_antipropagating_waves is None, the deletion of the antipropagating modes
+    is automatically enabled if moving_window_vect is given.
+    '''
+    transform_state = kspace._transform_state()
+    if transform_state is None:
+        raise ValueError("kspace must have the same transform_state on all axes. "
+                         "Please make sure that either all axes 'live' in spatial domain or all "
+                         "axes 'live' in frequency domain.")
+
+    do_fft = not transform_state
+
+    if do_fft:
+        kspace = kspace.fft()
+
+    # calculate free space dispersion relation
+    omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.meshgrid()))
+
+    # calculate propagation distance for the moving window
+    dz = PhysicalConstants.c * dt
+
+    # process argument moving_window_vect
+    if moving_window_vect is not None:
+        if len(moving_window_vect) != kspace.dimensions:
+            raise ValueError("Argument moving_window_vect has the wrong length. "
+                             "Please make sure that len(moving_window_vect) == kspace.dimensions.")
+
+        moving_window_vect = np.asfarray(moving_window_vect)
+        moving_window_vect /= np.sqrt(np.sum(moving_window_vect**2))
+        moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
+
+        if remove_antipropagating_waves is None:
+            remove_antipropagating_waves = True
+
+        if move_window is None:
+            move_window = True
+
+    # remove antipropagating waves, if requested
+    if remove_antipropagating_waves:
+        if moving_window_vect is None:
+            raise ValueError("Missing required argument moving_window_vect.")
+
+        m = kspace.matrix.copy()
+        m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) < 0.0] = 0.0
+        kspace = kspace.replace_data(m)
+
+    # Apply the phase due the propagation via the dispersion relation omega
+    kspace = kspace * np.exp(-1.j * omega * dt)
+
+    # Move the window
+    if move_window:
+        if moving_window_vect is None:
+            raise ValueError("Missing required argument moving_window_vect.")
+
+        # Apply the linear phase due to the moving window
+        kspace = kspace._apply_linear_phase(moving_window_dict)
+
+    if do_fft:
+        kspace = kspace.fft()
+
+    return kspace
