@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
+# Stephan Kuschel 2014-2017
+# Alexander Blinne, 2017
 """
 This package provides the MatplotlibPlotter Class.
 

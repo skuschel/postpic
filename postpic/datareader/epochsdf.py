@@ -15,6 +15,7 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright Stephan Kuschel 2014, 2015
+# Alexander Blinne, 2017
 '''
 .. _EPOCH: https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch
 .. _SDF: https://github.com/keithbennett/SDF

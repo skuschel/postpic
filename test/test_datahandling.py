@@ -260,6 +260,9 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(backcut.grid[0], self.f2d.grid[0])))
         self.assertTrue(np.all(np.isclose(backcut.grid[1], self.f2d.grid[1])))
 
+    def test_topolar(self):
+        polar = self.f2d.topolar()
+
 
 if __name__ == '__main__':
     unittest.main()

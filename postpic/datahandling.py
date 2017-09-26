@@ -44,10 +44,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import functools
 import collections
 import copy
+import warnings
 
 import numpy as np
 import numpy.fft as fft
 import scipy.ndimage as spnd
+import scipy.interpolate as spinterp
+
+try:
+    from skimage.restoration import unwrap_phase
+except ImportError:
+    unwrap_phase = None
+
 from . import helper
 
 __all__ = ['Field', 'Axis']
@@ -127,6 +135,14 @@ class Axis(object):
         else:
             ret = self.name + ' [' + self.unit + ']'
         return ret
+
+    def value_to_index(self, value):
+        if not self.islinear():
+            raise ValueError("This function is intended for linear grids only.")
+
+        a, b = self.extent
+        lg = len(self)
+        return (value-a)/(b-a) * lg - 0.5
 
     def setextent(self, extent, n):
         '''
@@ -468,6 +484,9 @@ class Field(object):
 
         ret._matrix = np.pad(self, pad_width_numpy, mode, **kwargs)
 
+        # This info is invalidated
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def half_resolution(self, axis):
@@ -492,6 +511,93 @@ class Field(object):
         m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
         ret._matrix = m
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
+
+        # This info is invalidated
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
+        return ret
+
+    def transform(self, newaxes, transform=None, complex_mode='polar', **kwargs):
+        '''
+        Transform the Field to new coordinates
+
+        newaxes: The new axes of the new coordinates
+
+        transform: a callable that takes the new coordinates as input and returns
+        the old coordinates from where to sample the Field.
+        It is basically the inverse of the transformation that you want to perform.
+        If transform is not given, the identity will be used. This is suitable for
+        simple interpolation to a new extent/shape.
+
+        Example for linear -> polar:
+
+        def transform(r, theta):
+            x = r*np.cos(theta)
+            y = r*np.sin(theta)
+            return x, y
+
+        The complex_mode specifies how to proceed with complex data:
+         *  complex_mode = 'cartesian' - interpolate real/imag part (fastest)
+
+         *  complex_mode = 'polar' - interpolate abs/phase
+         If skimage.restoration is available, the phase will be unwrapped first
+
+         *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
+         Skip unwrapping the phase, even if skimage.restoration is available
+
+        Additional keyword arguments are passed to scipy.ndimage.map_cordinates,
+        see the documentation for that function.
+
+        '''
+        # Instantiate an identity if no transformation function was given
+        if transform is None:
+            def transform(*x):
+                return x
+
+        do_unwrap_phase = True
+        if complex_mode == 'polar-no-unwrap':
+            complex_mode = 'polar'
+            do_unwrap_phase = False
+
+        # Start a new Field object by inserting the new axes
+        ret = copy.copy(self)
+        ret.axes = newaxes
+
+        # Calculate the source points for every point of the new mesh
+        coordinates_ax = transform(*ret.meshgrid())
+
+        # Rescale the source coordinates to pixel coordinates
+        coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
+
+        # Map the matrix using scipy.ndimage.map_coordinates
+        if np.isrealobj(self.matrix):
+            ret._matrix = spnd.map_coordinates(self.matrix, coordinates_px, **kwargs)
+        else:
+            if complex_mode == 'cartesian':
+                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+                ret._matrix = np.empty(np.broadcast(*coordinates_px).shape,
+                                       dtype=self.matrix.dtype)
+                spnd.map_coordinates(real, coordinates_px, output=ret.matrix.real, **kwargs)
+                spnd.map_coordinates(imag, coordinates_px, output=ret.matrix.imag, **kwargs)
+            elif complex_mode == 'polar':
+                angle = np.angle(self)
+                if do_unwrap_phase:
+                    if unwrap_phase:
+                        angle = unwrap_phase(angle)
+                    else:
+                        warnings.warn("Function unwrap_phase from skimage.restoration not "
+                                      "available! Install scikit-image or use complex_mode = "
+                                      "'polar-no-unwrap' to get rid of this warning.")
+
+                absval = spnd.map_coordinates(abs(self), coordinates_px, **kwargs)
+                angle = spnd.map_coordinates(angle, coordinates_px, **kwargs)
+                ret._matrix = absval * np.exp(1.j * angle)
+            else:
+                raise ValueError('Invalid value of complex_mode.')
+
+        # This info is invalidated
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def autoreduce(self, maxlen=4000):
@@ -505,6 +611,10 @@ class Field(object):
                 ret = ret.half_resolution(i)
                 ret = ret.autoreduce(maxlen=maxlen)
                 break
+
+        # This info is invalidated by reducing the grid
+        ret.transformed_axes_origins = [None]*ret.dimensions
+
         return ret
 
     def cutout(self, newextent):
@@ -519,7 +629,12 @@ class Field(object):
         removes axes that have length 1, reducing self.dimensions
         '''
         ret = copy.copy(self)
-        ret.axes = [ax for ax in ret.axes if len(ax) > 1]
+        retained_axes = [i for i in range(self.dimensions) if len(self.axes[i]) > 1]
+
+        ret.axes = [self.axes[i] for i in retained_axes]
+        ret.axes_transform_state = [self.axes_transform_state[i] for i in retained_axes]
+        ret.transformed_axes_origins = [self.transformed_axes_origins[i] for i in retained_axes]
+
         ret._matrix = np.squeeze(ret.matrix)
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
@@ -533,6 +648,9 @@ class Field(object):
             return self
         ret._matrix = np.mean(ret.matrix, axis=axis)
         ret.axes.pop(axis)
+        ret.transformed_axes_origins.pop(axis)
+        ret.axes_transform_state.pop(axis)
+
         return ret
 
     def _transform_state(self, axes=None):
@@ -734,12 +852,14 @@ class Field(object):
 
         return ret
 
-    def topolar(self, extent=None, shape=None, angleoffset=0):
+    def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
         remaps the current kartesian coordinates to polar coordinates
         extent should be given as extent=(phimin, phimax, rmin, rmax)
+
+        Additional kwargs are passed to the transform method.
         '''
-        ret = copy.deepcopy(self)
+        # Fill extent and shape with sensible defaults if nothing was passed
         if extent is None:
             extent = [-np.pi, np.pi, 0, self.extent[1]]
         extent = np.asarray(extent)
@@ -747,16 +867,27 @@ class Field(object):
             maxpt_r = min(int(np.min(self.shape) / 2), 1000)
             shape = (1000, maxpt_r)
 
-        extent[0:2] = extent[0:2] - angleoffset
-        ret._matrix = helper.transfromxy2polar(self.matrix, self.extent,
-                                               np.roll(extent, 2), shape).T
-        extent[0:2] = extent[0:2] + angleoffset
+        # Create the new axes objects
+        theta = Axis(name='theta', unit='rad')
+        theta.grid = np.linspace(extent[0], extent[1], shape[0])
 
-        ret.extent = extent
-        if ret.axes[0].name.startswith('k') \
-           and ret.axes[1].name.startswith('k'):
-            ret.axes[0].name = r'$k_\phi$'
-            ret.axes[1].name = r'$|k|$'
+        if self.axes[0].name.startswith('k'):
+            rname = 'k'
+        else:
+            rname = 'r'
+
+        r = Axis(name=rname, unit=self.axes[0].unit)
+        r.grid = np.linspace(extent[2], extent[3], shape[1])
+
+        # Apply the angleoffset to the theta grid
+        theta.grid_node = theta.grid_node - angleoffset
+
+        # Perform the transformation
+        ret = self.transform([theta, r], transform=helper.polar2linear, **kwargs)
+
+        # Remove the angleoffset from the theta grid
+        ret.axes[0].grid_node = theta.grid_node + angleoffset
+
         return ret
 
     def exporttocsv(self, filename):
@@ -797,6 +928,10 @@ class Field(object):
         field._matrix = field.matrix[key]
         for i, sl in enumerate(key):
             field.setaxisobj(i, field.axes[i][sl])
+
+        # This info is invalidated
+        field.transformed_axes_origins = [None]*field.dimensions
+
         return field
 
     @_updatename('+')

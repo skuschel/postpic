@@ -15,6 +15,7 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stephan Kuschel 2014
+# Alexander Blinne, 2017
 """
 Field related routines.
 """

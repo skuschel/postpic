@@ -14,15 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-
+# Stephan Kuschel 2014-2017
+# Alexander Blinne, 2017
 """
 Some global constants that are used in the code.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 import copy
 import numbers
 import numpy as np
+import numpy.linalg as npl
 import re
 import warnings
 import functools
@@ -35,7 +38,32 @@ except(ImportError):
     cyf = None
     particleshapes = [0]
 
-warnings.filterwarnings('once', category=DeprecationWarning)
+
+def isnotebook():
+    return 'ipykernel' in sys.modules
+
+
+def jupyter_client_version():
+    try:
+        import jupyter_client
+        return jupyter_client.__version__
+    except ImportError:
+        return None
+
+
+def _filterwarnings():
+    if isnotebook():
+        jver = jupyter_client_version()
+        if jver:
+            jmajor = int(jver.split('.')[0])
+            if jmajor == 5:
+                return
+
+    warnings.filterwarnings('once', category=DeprecationWarning)
+
+
+_filterwarnings()
+
 # Default values for histogramdd function
 histogramdd_defs = {'shape': 2}
 
@@ -272,52 +300,16 @@ class SpeciesIdentifier(PhysicalConstants):
 
 
 # Some static functions
+def polar2linear(theta, r):
+    x = r*np.cos(theta)
+    y = r*np.sin(theta)
+    return x, y
 
 
-def transfromxy2polar(matrixxy, extentxy,
-                      extentpolar, shapepolar, ashistogram=True):
-    '''
-    remaps a matrix matrixxy in kartesian coordinates x,y to a polar
-    representation with axes r, phi.
-    '''
-    from scipy.ndimage.interpolation import geometric_transform
-    import numpy as np
-
-    def polar2xy(rphi):
-        (r, phi) = rphi
-        x = r * np.cos(phi)
-        y = r * np.sin(phi)
-        return (x, y)
-
-    def koord2index(q1q2, extent, shape):
-        (q1, q2) = q1q2
-        return ((q1 - extent[0]) / (extent[1] - extent[0]) * shape[0],
-                (q2 - extent[2]) / (extent[3] - extent[2]) * shape[1])
-
-    def index2koord(ij, extent, shape):
-        (i, j) = ij
-        return (extent[0] + i / shape[0] * (extent[1] - extent[0]),
-                extent[2] + j / shape[1] * (extent[3] - extent[2]))
-
-    def mappingxy2polar(ij, extentxy, shapexy, extentpolar, shapepolar):
-        '''
-        actually maps indizes of polar matrix to indices of kartesian matrix
-        '''
-        (i, j) = ij
-        ret = polar2xy(index2koord((float(i), float(j)),
-                                   extentpolar, shapepolar))
-        ret = koord2index(ret, extentxy, shapexy)
-        return ret
-
-    ret = geometric_transform(matrixxy, mappingxy2polar,
-                              output_shape=shapepolar,
-                              extra_arguments=(extentxy, matrixxy.shape,
-                                               extentpolar, shapepolar),
-                              order=1)
-    if ashistogram:  # volumeelement is just r
-        r = np.abs(np.linspace(extentpolar[0], extentpolar[1], ret.shape[0]))
-        ret = (ret.T * r).T
-    return ret
+def linear2polar(x, y):
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    return theta, r
 
 
 def histogramdd(data, **kwargs):
@@ -652,7 +644,7 @@ def kspace_propagate(kspace, dt, moving_window_vect=None,
                              "Please make sure that len(moving_window_vect) == kspace.dimensions.")
 
         moving_window_vect = np.asfarray(moving_window_vect)
-        moving_window_vect /= np.sqrt(np.sum(moving_window_vect**2))
+        moving_window_vect /= npl.norm(moving_window_vect)
         moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
 
         if remove_antipropagating_waves is None:
