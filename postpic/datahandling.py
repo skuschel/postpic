@@ -711,10 +711,10 @@ class Field(object):
         '''
         Performs Fourier transform on any number of axes.
 
-        The argument axis is a tuple giving the numebers of the axes that
-        should be transformed. Automatically determines forward/inverse transform.
-        Transform is only applied if all mentioned axes are in the same space.
-        If an axis is transformed twice, the origin of the axis is restored.
+        The argument axis is either an integer indicating the axis to be transformed
+        or a tuple giving the axes that should be transformed. Automatically determines
+        forward/inverse transform. Transform is only applied if all mentioned axes are
+        in the same space. If an axis is transformed twice, the origin of the axis is restored.
 
         exponential_signs configures the sign convention of the exponential
         exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
@@ -725,6 +725,10 @@ class Field(object):
         # If axes is None, transform all axes
         if axes is None:
             axes = range(self.dimensions)
+
+        # If axes is not a tuple, make it a one-tuple
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
 
         if exponential_signs not in ['spatial', 'temporal']:
             raise ValueError('Argument exponential_signs has an invalid value.')
@@ -918,7 +922,7 @@ class Field(object):
                        linear=self._shift_grid_by_linear)
 
         if interpolation not in methods.keys():
-            raise ValueError("Requested method {} is not supported".format(method))
+            raise ValueError("Requested method {} is not supported".format(interpolation))
 
         if not isinstance(dx, collections.Mapping):
             dx = dict(enumerate(dx))
