@@ -164,6 +164,10 @@ class Axis(object):
         return ret
 
     @property
+    def physical_length(self):
+        return self._grid_node[-1] - self._grid_node[0]
+
+    @property
     def label(self):
         if self.unit == '':
             ret = self.name
@@ -690,6 +694,32 @@ class Field(object):
         ret.axes_transform_state.pop(axis)
 
         return ret
+
+    def _integrate_constant(self, axes=None):
+        ret = self
+        V = 1
+
+        for axis in reversed(sorted(axes)):
+            V *= ret.axes[axis].physical_length
+            ret = ret.mean(axis)
+
+        return V * ret
+
+    def integrate(self, axes=None, method='constant'):
+        '''
+        Calculates the definite integral along the given axes
+        '''
+        methods = dict(constant=self._integrate_constant)
+        if method not in methods.keys():
+            raise ValueError("Requested method {} is not supported".format(method))
+
+        if axes is None:
+            axes = range(self.dimensions)
+
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        return methods[method](axes)
 
     def _transform_state(self, axes=None):
         """

@@ -263,6 +263,18 @@ class TestField(unittest.TestCase):
     def test_topolar(self):
         polar = self.f2d.topolar()
 
+    def test_integrate(self):
+        print('start f1d.integrate')
+        a = self.f1d.integrate()
+
+        print('start f1d.mean * length')
+        b = self.f1d.mean() * self.f1d.axes[0].physical_length
+
+        print('type(a.matrix)', type(a.matrix))
+        print('type(b.matrix)', type(b.matrix))
+
+        self.assertTrue(np.isclose(a, b))
+
 
 if __name__ == '__main__':
     unittest.main()
