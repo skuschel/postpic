@@ -592,7 +592,8 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
 def linear_phase(field, dx):
     '''
-    Calculates the linear phase as used in Field._apply_linear_phase
+    Calculates the linear phase as used in Field._apply_linear_phase and
+    kspace_propagate_generator.
     '''
     import numexpr as ne
     transform_state = field._transform_state(dx.keys())
@@ -630,7 +631,8 @@ def linear_phase(field, dx):
 
 def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
                                move_window=None,
-                               remove_antipropagating_waves=None):
+                               remove_antipropagating_waves=None,
+                               yield_zeroth_step=False):
     '''
     Evolve time on a field.
     This function checks the transform_state of the field and transforms first from spatial
@@ -640,6 +642,11 @@ def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
     fields.
 
     dt: time in seconds
+
+    This function will return an infinite generator that will do arbitrary many time steps.
+
+    If yield_zeroth_step is True, then the kspace will also be yielded after removing the
+    antipropagating waves, but before the first actual step is done.
 
     If a vector moving_window_vect is passed to this function, which is ideally identical
     to the mean propagation direction of the field in forward time direction,
@@ -724,6 +731,12 @@ def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
                                                  local_dict=numexpr_vars,
                                                  global_dict=None))
 
+    if yield_zeroth_step:
+        if do_fft:
+            yield kspace.fft()
+        else:
+            yield kspace
+
     if move_window:
         if moving_window_vect is None:
             raise ValueError("Missing required argument moving_window_vect.")
@@ -743,9 +756,9 @@ def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
             kspace = kspace.replace_data(ne.evaluate('kspace * exp_iwt'))
 
         if do_fft:
-            kspace = kspace.fft()
-
-        yield kspace
+            yield kspace.fft()
+        else:
+            yield kspace
 
 
 def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
@@ -759,24 +772,20 @@ def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
 
     dt: time in seconds
 
-    If a vector moving_window_vect is passed to this function, which is ideally identical
-    to the mean propagation direction of the field in forward time direction,
-    an additional linear phase is applied in order to keep the pulse inside of the box.
-    This effectively enables propagation in a moving window.
-    If dt is negative, the window will actually move the opposite direction of
-    moving_window_vect.
-    Additionally, all modes which propagate in the opposite direction of the moving window,
-    i.e. all modes for which dot(moving_window_vect, k)<0, will be deleted.
+    nsteps: number of steps to take
 
-    The motion of the window can be inhibited by specifying move_window=False.
-    If move_window is None, the moving window is automatically enabled if moving_window_vect
-    is given.
+    If nsteps == 1, this function will just return the result.
+    If nsteps > 1, this function will return a generator that will generate the results.
+    If you want a list, just put list(...) around the return value.
 
-    The deletion of the antipropagating modes can be inhibited by specifying
-    remove_antipropagating_waves=False.
-    If remove_antipropagating_waves is None, the deletion of the antipropagating modes
-    is automatically enabled if moving_window_vect is given.
+    For additional arguments, see the documentation of kspace_propagate_generator, e.g.:
+
+    If yield_zeroth_step is True, then the kspace will also be yielded after removing the
+    antipropagating waves, but before the first actual step is done.
     '''
     gen = kspace_propagate_generator(kspace, dt, **kwargs)
-    gen = itertools.islice(gen, nsteps)
-    return gen
+
+    if nsteps == 1:
+        return next(gen)
+
+    return itertools.islice(gen, nsteps)
