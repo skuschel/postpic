@@ -707,7 +707,7 @@ class Field(object):
                 return b
         return None
 
-    def fft(self, axes=None, **kwargs):
+    def fft(self, axes=None, exponential_signs='spatial', **kwargs):
         '''
         Performs Fourier transform on any number of axes.
 
@@ -716,11 +716,18 @@ class Field(object):
         Transform is only applied if all mentioned axes are in the same space.
         If an axis is transformed twice, the origin of the axis is restored.
 
+        exponential_signs configures the sign convention of the exponential
+        exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
+        exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+
         keyword-arguments are passed to the underlying fft implementation.
         '''
         # If axes is None, transform all axes
         if axes is None:
             axes = range(self.dimensions)
+
+        if exponential_signs not in ['spatial', 'temporal']:
+            raise ValueError('Argument exponential_signs has an invalid value.')
 
         # List axes uniquely and in ascending order
         axes = sorted(set(axes))
@@ -764,29 +771,38 @@ class Field(object):
         my_fft_args = fft_kwargs.copy()
         my_fft_args.update(kwargs)
 
-        ret = copy.copy(self)
+        mat = self.matrix
+
+        if exponential_signs == 'temporal':
+            mat = np.conjugate(mat)
 
         # Transforming from spatial domain to frequency domain ...
         if transform_state is False:
             new_axesobjs = {
-                i: Axis('k'+self.axes[i].name,
+                i: Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
                         '1/'+self.axes[i].unit)
                 for i in axes
             }
-            ret.matrix = fftnorm \
-                * fft.fftshift(fft.fftn(self.matrix, axes=axes, norm='ortho', **my_fft_args),
+            mat = fftnorm \
+                * fft.fftshift(fft.fftn(mat, axes=axes, norm='ortho', **my_fft_args),
                                axes=axes)
 
         # ... or transforming from frequency domain to spatial domain
         elif transform_state is True:
             new_axesobjs = {
-                i: Axis(self.axes[i].name.lstrip('k'),
+                i: Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
                         self.axes[i].unit.lstrip('1/'))
                 for i in axes
             }
-            ret.matrix = fftnorm \
-                * fft.ifftn(fft.ifftshift(self.matrix, axes=axes), axes=axes, norm='ortho',
+            mat = fftnorm \
+                * fft.ifftn(fft.ifftshift(mat, axes=axes), axes=axes, norm='ortho',
                             **my_fft_args)
+
+        if exponential_signs == 'temporal':
+            mat = np.conjugate(mat)
+
+        ret = copy.copy(self)
+        ret.matrix = mat
 
         # Update axes objects
         for i in axes:
