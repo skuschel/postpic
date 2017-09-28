@@ -22,7 +22,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 
-__version__ = 'v0.2.3'
+__version__ = 'v0.3.0'
 
 try:
     FileNotFoundError  # python3
