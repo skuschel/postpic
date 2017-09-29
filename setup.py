@@ -22,13 +22,11 @@ from Cython.Build import cythonize
 import numpy
 import os
 
-
-import _postpic_version
-_, version = _postpic_version.getversion_setup()
-
+import versioneer
 
 setup(name='postpic',
-      version=version,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       include_package_data = True,
       author='Stephan Kuschel',
       author_email='stephan.kuschel@gmail.de',

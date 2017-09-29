@@ -4,3 +4,5 @@ include CONTRIBUTING.md
 include postpic/*.pyx
 include _version.txt
 include postpic/_version.txt
+include versioneer.py
+include postpic/_version.py
