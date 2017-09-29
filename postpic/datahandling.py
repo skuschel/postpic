@@ -501,6 +501,8 @@ class Field(object):
 
         pad_width_numpy = []
 
+        padded_axes = []
+
         for i, axis_pad in enumerate(pad_width):
             if not isinstance(axis_pad, collections.Iterable):
                 axis_pad = [axis_pad, axis_pad]
@@ -521,16 +523,22 @@ class Field(object):
                         in axis_pad]
             pad_width_numpy.append(axis_pad)
 
-            extent = axis.extent
-            newextent = [extent[0] - axis_pad[0]*dx, extent[1] + axis_pad[1]*dx]
-            gridpoints = len(axis.grid_node) - 1 + axis_pad[0] + axis_pad[1]
+            totalpad_axis = sum(axis_pad)
 
-            axis.setextent(newextent, gridpoints)
+            if totalpad_axis:
+                padded_axes.append(i)
+
+                extent = axis.extent
+                newextent = [extent[0] - axis_pad[0]*dx, extent[1] + axis_pad[1]*dx]
+                gridpoints = len(axis.grid_node) - 1 + axis_pad[0] + axis_pad[1]
+
+                axis.setextent(newextent, gridpoints)
 
         ret._matrix = np.pad(self, pad_width_numpy, mode, **kwargs)
 
-        # This info is invalidated
-        ret.transformed_axes_origins = [None]*ret.dimensions
+        # This info is invalidated for all axes which have actually been padded
+        for i in padded_axes:
+            ret.transformed_axes_origins[i] = None
 
         return ret
 
@@ -558,7 +566,7 @@ class Field(object):
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
 
         # This info is invalidated
-        ret.transformed_axes_origins = [None]*ret.dimensions
+        ret.transformed_axes_origins[axis] = None
 
         return ret
 
@@ -656,13 +664,8 @@ class Field(object):
         '''
         ret = self  # half_resolution will take care for the copy
         for i in range(len(ret.axes)):
-            if len(ret.axes[i]) > maxlen:
+            while len(ret.axes[i]) > maxlen:
                 ret = ret.half_resolution(i)
-                ret = ret.autoreduce(maxlen=maxlen)
-                break
-
-        # This info is invalidated by reducing the grid
-        ret.transformed_axes_origins = [None]*ret.dimensions
 
         return ret
 
@@ -1012,14 +1015,20 @@ class Field(object):
 
     # Operator overloading
     def __getitem__(self, key):
+        old_shape = self.shape
+
         key = self._normalize_slices(key)
         field = copy.copy(self)
         field._matrix = field.matrix[key]
         for i, sl in enumerate(key):
             field.setaxisobj(i, field.axes[i][sl])
 
+        new_shape = field.shape
+
         # This info is invalidated
-        field.transformed_axes_origins = [None]*field.dimensions
+        for i, (o, n) in enumerate(zip(old_shape, new_shape)):
+            if o != n:
+                field.transformed_axes_origins[i] = None
 
         return field
 
