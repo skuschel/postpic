@@ -40,6 +40,10 @@ except(ImportError):
     particleshapes = [0]
 
 
+__all__ = ['PhysicalConstants', 'kspace_epoch_like', 'kspace',
+           'kspace_propagate']
+
+
 def isnotebook():
     return 'ipykernel' in sys.modules
 
@@ -110,6 +114,17 @@ def append_doc_of(obj):
     def ret(a):
         doc = '' if a.__doc__ is None else a.__doc__
         a.__doc__ = doc + obj.__doc__
+        return a
+    return ret
+
+
+def prepend_doc_of(obj):
+    '''
+    decorator to append the doc of `obj` to decorated object/class.
+    '''
+    def ret(a):
+        doc = '' if a.__doc__ is None else a.__doc__
+        a.__doc__ = obj.__doc__ + doc
         return a
     return ret
 
@@ -593,7 +608,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 def linear_phase(field, dx):
     '''
     Calculates the linear phase as used in Field._apply_linear_phase and
-    kspace_propagate_generator.
+    _kspace_propagate_generator.
     '''
     import numexpr as ne
     transform_state = field._transform_state(dx.keys())
@@ -629,10 +644,10 @@ def linear_phase(field, dx):
     return exp_ikdx
 
 
-def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
-                               move_window=None,
-                               remove_antipropagating_waves=None,
-                               yield_zeroth_step=False):
+def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
+                                move_window=None,
+                                remove_antipropagating_waves=None,
+                                yield_zeroth_step=False):
     '''
     Evolve time on a field.
     This function checks the transform_state of the field and transforms first from spatial
@@ -761,29 +776,16 @@ def kspace_propagate_generator(kspace, dt, moving_window_vect=None,
             yield kspace
 
 
+@prepend_doc_of(_kspace_propagate_generator)
 def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
     '''
-    Evolve time on a field.
-    This function checks the transform_state of the field and transforms first from spatial
-    domain to frequency domain if necessary. In this case the inverse transform will also
-    be applied to the result before returning it. This works, however, only correctly with
-    fields that are the inverse transforms of a k-space reconstruction, i.e. with complex
-    fields.
-
-    dt: time in seconds
-
     nsteps: number of steps to take
 
     If nsteps == 1, this function will just return the result.
     If nsteps > 1, this function will return a generator that will generate the results.
     If you want a list, just put list(...) around the return value.
-
-    For additional arguments, see the documentation of kspace_propagate_generator, e.g.:
-
-    If yield_zeroth_step is True, then the kspace will also be yielded after removing the
-    antipropagating waves, but before the first actual step is done.
     '''
-    gen = kspace_propagate_generator(kspace, dt, **kwargs)
+    gen = _kspace_propagate_generator(kspace, dt, **kwargs)
 
     if nsteps == 1:
         return next(gen)
