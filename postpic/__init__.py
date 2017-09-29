@@ -27,7 +27,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from . import helper
 from . import datahandling
 from .datahandling import *
-from .helper import PhysicalConstants
+from .helper import *
 from .particles import *
 from . import datareader
 from .datareader import chooseCode, readDump, readSim
@@ -36,7 +36,7 @@ from . import _postpic_version
 
 __all__ = ['helper']
 __all__ += datahandling.__all__
-__all__ += ['PhysicalConstants']
+__all__ += helper.__all__
 __all__ += particles.__all__
 __all__ += ['datareader', 'plotting']
 # high level functions
