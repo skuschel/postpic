@@ -26,13 +26,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from . import helper
 from . import datahandling
+from . import particles
 from .datahandling import *
 from .helper import *
 from .particles import *
 from . import datareader
 from .datareader import chooseCode, readDump, readSim
 from . import plotting
-from . import _postpic_version
+from ._version import get_versions
 
 __all__ = ['helper']
 __all__ += datahandling.__all__
@@ -42,5 +43,6 @@ __all__ += ['datareader', 'plotting']
 # high level functions
 __all__ += ['chooseCode', 'readDump', 'readSim']
 
-
-__git_version__, __version__ = _postpic_version.getversion_package()
+__version__ = get_versions()['version']
+__git_version__ = get_versions()['full-revisionid']
+del get_versions
