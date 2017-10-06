@@ -272,7 +272,7 @@ class MatplotlibPlotter(object):
     def addField2d(figax, field, log10plot=True, interpolation='none',
                    contourlevels=np.array([]), saveandclose=True, xlim=None,
                    ylim=None, clim=None,
-                   savecsv=False, lineoutx=False, lineouty=False):
+                   savecsv=False, lineoutx=False, lineouty=False, **kwargs):
         field = field.squeeze()
         (fig, ax) = figax
         assert field.dimensions == 2, 'Field needs to be 2 dimensional'
@@ -280,22 +280,25 @@ class MatplotlibPlotter(object):
         ax.yaxis.set_major_formatter(MatplotlibPlotter.axesformattery)
         if log10plot and not any(field.matrix.flatten() < 0) and \
                 any(field.matrix.flatten() > 0):
+            if 'cmap' not in kwargs:
+                kwargs['cmap'] = 'jet'
             if field.islinear() and True:
                 ax.imshow(np.log10(field.matrix.T), origin='lower',
-                          aspect='auto', extent=field.extent, cmap='jet',
-                          interpolation=interpolation)
+                          aspect='auto', extent=field.extent,
+                          interpolation=interpolation, **kwargs)
             else:
                 print('using pcolormesh, this is experimental.')
                 x, y = field.grid()
-                ax.pcolormesh(x, y, np.log10(field.matrix.T), cmap='jet')
+                ax.pcolormesh(x, y, np.log10(field.matrix.T), **kwargs)
             fig.colorbar(ax.images[0], format='%3.1f')
             if clim:
                 ax.images[0].set_clim(clim)
         else:
             log10plot = False
+            if 'cmap' not in kwargs:
+                kwargs['cmap'] = MatplotlibPlotter.symmap
             ax.imshow(field.matrix.T, aspect='auto', origin='lower',
-                      extent=field.extent, cmap=MatplotlibPlotter.symmap,
-                      interpolation=interpolation)
+                      extent=field.extent, interpolation=interpolation, **kwargs)
             if clim:
                 ax.images[0].set_clim(clim)
             else:
