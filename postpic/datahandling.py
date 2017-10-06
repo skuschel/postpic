@@ -50,6 +50,7 @@ import os
 import numpy as np
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
+import scipy.integrate as spintegr
 
 
 try:
@@ -733,6 +734,10 @@ class Field(object):
         return ret
 
     def _integrate_constant(self, axes=None):
+        if not self.islinear():
+            warnings.warn("Using method='constant' in integrate which is only suitable "
+                          "for linear grids.")
+
         ret = self
         V = 1
 
@@ -742,11 +747,35 @@ class Field(object):
 
         return V * ret
 
-    def integrate(self, axes=None, method='constant'):
+    def _integrate_scipy(self, axes, method):
+        method_dict = dict(trapz=spintegr.trapz,
+                           simps=spintegr.simps)
+        method = method_dict[method]
+
+        ret = copy.copy(self)
+        for axis in reversed(sorted(axes)):
+            ret._matrix = method(ret, ret.axes[axis].grid, axis=axis)
+            del ret.axes[axis]
+
+        return ret
+
+    def _integrate_trapz(self, axes):
+        return self._integrate_scipy(axes, 'trapz')
+
+    def _integrate_simps(self, axes):
+        return self._integrate_scipy(axes, 'simps')
+
+    def integrate(self, axes=None, method='simps'):
         '''
-        Calculates the definite integral along the given axes
+        Calculates the definite integral along the given axes.
+
+        method: Choose the method to use. Available options:
+
+        'constant', 'simps' and 'trapz'.
         '''
-        methods = dict(constant=self._integrate_constant)
+        methods = dict(constant=self._integrate_constant,
+                       trapz=self._integrate_trapz,
+                       simps=self._integrate_simps)
         if method not in methods.keys():
             raise ValueError("Requested method {} is not supported".format(method))
 

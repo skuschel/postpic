@@ -265,7 +265,7 @@ class TestField(unittest.TestCase):
 
     def test_integrate(self):
         print('start f1d.integrate')
-        a = self.f1d.integrate()
+        a = self.f1d.integrate(method='constant')
 
         print('start f1d.mean * length')
         b = self.f1d.mean() * self.f1d.axes[0].physical_length
