@@ -570,7 +570,9 @@ class Field(object):
 
         return ret
 
-    def transform(self, newaxes, transform=None, complex_mode='polar', **kwargs):
+    def map_coordinates(self, newaxes, transform=None, complex_mode='polar',
+                        preserve_integral=True, jacobian_func=None,
+                        jacobian_determinant_func=None, **kwargs):
         '''
         Transform the Field to new coordinates
 
@@ -598,7 +600,17 @@ class Field(object):
          *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
          Skip unwrapping the phase, even if skimage.restoration is available
 
-        Additional keyword arguments are passed to scipy.ndimage.map_cordinates,
+        preserve_integral: If True (the default), the data will be multiplied with the
+        Jacobian determinant of the coordinate transformation such that the integral
+        over the data will be preserved.
+
+        jacobian_determinant_func: a callable that returns the jacobian determinant of
+        the transform. If given, this takes precedence over the following option.
+
+        jacobian_func: a callable that returns the jacobian of the transform. If this is
+        not given, the jacobian is numerically approximated.
+
+        Additional keyword arguments are passed to scipy.ndimage.map_coordinates,
         see the documentation for that function.
 
         '''
@@ -606,6 +618,15 @@ class Field(object):
         if transform is None:
             def transform(*x):
                 return x
+
+            def jacobian_determinant_func(*x):
+                return 1.0
+
+        if preserve_integral:
+            if jacobian_determinant_func is None:
+                if jacobian_func is None:
+                    jacobian_func = helper.approx_jacobian(transform)
+                jacobian_determinant_func = helper.jac_det(jacobian_func)
 
         do_unwrap_phase = True
         if complex_mode == 'polar-no-unwrap':
@@ -617,8 +638,11 @@ class Field(object):
         ret.axes = newaxes
         shape = [len(ax) for ax in newaxes]
 
+        # Calculate the output grid
+        out_coords = ret.meshgrid()
+
         # Calculate the source points for every point of the new mesh
-        coordinates_ax = transform(*ret.meshgrid())
+        coordinates_ax = transform(*out_coords)
 
         # Rescale the source coordinates to pixel coordinates
         coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
@@ -651,6 +675,9 @@ class Field(object):
                 ret._matrix = absval * np.exp(1.j * angle)
             else:
                 raise ValueError('Invalid value of complex_mode.')
+
+        if preserve_integral:
+            ret._matrix = ret._matrix * jacobian_determinant_func(*out_coords)
 
         # This info is invalidated
         ret.transformed_axes_origins = [None]*ret.dimensions
@@ -975,7 +1002,10 @@ class Field(object):
         theta.grid_node = theta.grid_node - angleoffset
 
         # Perform the transformation
-        ret = self.transform([theta, r], transform=helper.polar2linear, **kwargs)
+        ret = self.map_coordinates([theta, r],
+                                   transform=helper.polar2linear,
+                                   jacobian_determinant_func=helper.polar2linear_jacdet,
+                                   **kwargs)
 
         # Remove the angleoffset from the theta grid
         ret.axes[0].grid_node = theta.grid_node + angleoffset

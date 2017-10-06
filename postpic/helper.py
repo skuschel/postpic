@@ -322,10 +322,67 @@ def polar2linear(theta, r):
     return x, y
 
 
+def polar2linear_jac(theta, r):
+    x_theta = -r*np.sin(theta)
+    x_r = np.cos(theta)
+    y_theta = r*np.cos(theta)
+    y_r = np.sin(theta)
+    return [[x_theta, x_r], [y_theta, y_r]]
+
+
+def polar2linear_jacdet(theta, r):
+    return r
+
+
 def linear2polar(x, y):
     r = np.sqrt(x**2 + y**2)
     theta = np.arctan2(y, x)
     return theta, r
+
+
+def jac_det(jacobian_func):
+    '''Calculate the determinant of the jacobian as returned by jacobian_func.
+    Example:
+
+    def polar2linear_jac(theta, r):
+        x_theta = -r*np.sin(theta)
+        x_r = np.cos(theta)
+        y_theta = r*np.cos(theta)
+        y_r = np.sin(theta)
+        return [[x_theta, x_r], [y_theta, y_r]]
+
+    det_fun = jac_det(polar2linear_jac)
+    def = det_fun(theta, r)
+    '''
+    def fun(*coords):
+        jac = jacobian_func(*coords)
+        shape = np.broadcast(*coords).shape
+        jacarray = np.asarray([[np.broadcast_to(a, shape) for a in row] for row in jac])
+        jacarray = np.moveaxis(jacarray, [0, 1], [-2, -1])
+        return abs(npl.det(jacarray))
+    return fun
+
+
+def approx_jacobian(transform):
+    '''Approximate the jacobian of the transformation given by transform.
+    Example:
+
+    def polar2linear(theta, r):
+        x = r*np.cos(theta)
+        y = r*np.sin(theta)
+        return x, y
+
+    polar2linear_jac_approx = approx_jacobian(polar2linear)
+    jacobian = polar2linear_jac_approx(theta, r)
+    '''
+    def fun(*coords):
+        ravel_coords = [np.ravel(c) for c in coords]
+        shape = np.broadcast(*coords).shape
+        mapped_coords = transform(*coords)
+        mapped_coords = [np.broadcast_to(c, shape) for c in mapped_coords]
+        jac = [np.gradient(c, *ravel_coords) for c in mapped_coords]
+        return jac
+    return fun
 
 
 def histogramdd(data, **kwargs):
