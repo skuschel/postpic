@@ -1,5 +1,14 @@
 # Changelog of postpic
 
+## current master
+
+
+
+## v0.3.1
+2017-10-03
+
+Only internal changes. Versioning is handled by [versioneer](https://github.com/warner/python-versioneer).
+
 ## v0.3
 2017-09-28
 
@@ -25,7 +34,7 @@ In case you find particle scalar that you use regularly which is not in the list
 * List of new functions in `postpic` from `postpic.helper` (thanks to @Ablinne): `kspace_epoch_like`, `kspace`, `kspace_propagate`.
 * `Field.fft` function for fft optimized with pyfftw (thanks to @Ablinne).
 * `Field.__getitem__` to slice a Field object. If integers are provided, it will interpret them as gridpoints. If float are provided they are interpreted as the physical region of the data and slice along the corresponding axis positions (thanks to @Ablinne).
-* `Field` class has been massively impoved (thanks to @Ablinne): The operator overloading is now properly implemented and thanks to `__array__` method, it can be interpreted by numpy as an ndarray whenever neccessary.
+* `Field` class has been massively impoved (thanks to @Ablinne): The operator overloading is now properly implemented and thanks to `__array__` method, it can be interpreted by numpy as an ndarray whenever necessary.
 * List of new functions of the `Field` class (thanks to @Ablinne): `meshgrid`, `conj`, `replace_data`, `pad`, `transform`, `squeeze`, `integrate`, `fft`, `shift_grid_by`, `__getitem__`, `__setitem__`.
 * List of new properties of the `Field` class (thanks to @Ablinne): `matrix`, `real`, `imag`, `angle`.
 * Many performance optimizations using pyfftw library (optional) or numexpr (now required by postpic) or by avoiding in memory data copying.
