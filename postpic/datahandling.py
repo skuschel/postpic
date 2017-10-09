@@ -50,7 +50,7 @@ import os
 import numpy as np
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
-import scipy.integrate as spintegr
+import scipy.integrate
 
 
 try:
@@ -821,7 +821,7 @@ class Field(object):
 
         return ret
 
-    def _integrate_constant(self, axes=None):
+    def _integrate_constant(self, axes):
         if not self.islinear():
             raise ValueError("Using method='constant' in integrate which is only suitable "
                              "for linear grids.")
@@ -836,10 +836,6 @@ class Field(object):
         return V * ret
 
     def _integrate_scipy(self, axes, method):
-        method_dict = dict(trapz=spintegr.trapz,
-                           simps=spintegr.simps)
-        method = method_dict[method]
-
         ret = copy.copy(self)
         for axis in reversed(sorted(axes)):
             ret._matrix = method(ret, ret.axes[axis].grid, axis=axis)
@@ -847,24 +843,15 @@ class Field(object):
 
         return ret
 
-    def _integrate_trapz(self, axes):
-        return self._integrate_scipy(axes, 'trapz')
-
-    def _integrate_simps(self, axes):
-        return self._integrate_scipy(axes, 'simps')
-
-    def integrate(self, axes=None, method='simps'):
+    def integrate(self, axes=None, method=scipy.integrate.simps):
         '''
         Calculates the definite integral along the given axes.
 
         method: Choose the method to use. Available options:
 
-        'constant', 'simps' and 'trapz'.
+        'constant' or any function with the same signature as scipy.integrate.simps
         '''
-        methods = dict(constant=self._integrate_constant,
-                       trapz=self._integrate_trapz,
-                       simps=self._integrate_simps)
-        if method not in methods.keys():
+        if not callable(method) and method != 'constant':
             raise ValueError("Requested method {} is not supported".format(method))
 
         if axes is None:
@@ -873,7 +860,10 @@ class Field(object):
         if not isinstance(axes, collections.Iterable):
             axes = (axes,)
 
-        return methods[method](axes)
+        if method == 'constant':
+            return self._integrate_constant(axes)
+        else:
+            return self._integrate_scipy(axes, method)
 
     def _transform_state(self, axes=None):
         """
