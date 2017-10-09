@@ -341,7 +341,8 @@ def linear2polar(x, y):
 
 
 def jac_det(jacobian_func):
-    '''Calculate the determinant of the jacobian as returned by jacobian_func.
+    '''
+    Calculate the determinant of the jacobian as returned by jacobian_func.
     Example:
 
     def polar2linear_jac(theta, r):
@@ -364,7 +365,8 @@ def jac_det(jacobian_func):
 
 
 def approx_jacobian(transform):
-    '''Approximate the jacobian of the transformation given by transform.
+    '''
+    Approximate the jacobian of the transformation given by transform.
     Example:
 
     def polar2linear(theta, r):

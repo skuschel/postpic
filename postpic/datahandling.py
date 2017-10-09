@@ -571,32 +571,15 @@ class Field(object):
 
         return ret
 
-    def map_coordinates(self, newaxes, transform=None, complex_mode='polar',
-                        preserve_integral=True, jacobian_func=None,
-                        jacobian_determinant_func=None, **kwargs):
+    def _map_coordinates(self, newaxes, transform=None, complex_mode='polar',
+                         preserve_integral=True, jacobian_func=None,
+                         jacobian_determinant_func=None, **kwargs):
         '''
-        Transform the Field to new coordinates
-
-        newaxes: The new axes of the new coordinates
-
-        transform: a callable that takes the new coordinates as input and returns
-        the old coordinates from where to sample the Field.
-        It is basically the inverse of the transformation that you want to perform.
-        If transform is not given, the identity will be used. This is suitable for
-        simple interpolation to a new extent/shape.
-
-        Example for linear -> polar:
-
-        def transform(r, theta):
-            x = r*np.cos(theta)
-            y = r*np.sin(theta)
-            return x, y
-
         The complex_mode specifies how to proceed with complex data:
          *  complex_mode = 'cartesian' - interpolate real/imag part (fastest)
 
          *  complex_mode = 'polar' - interpolate abs/phase
-         If skimage.restoration is available, the phase will be unwrapped first
+         If skimage.restoration is available, the phase will be unwrapped first (default)
 
          *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
          Skip unwrapping the phase, even if skimage.restoration is available
@@ -604,6 +587,22 @@ class Field(object):
         preserve_integral: If True (the default), the data will be multiplied with the
         Jacobian determinant of the coordinate transformation such that the integral
         over the data will be preserved.
+
+        In general, you will want to do this, because the physical unit of the new Field will
+        correspond to the new axis of the Fields. Please note that Postpic, currently, does not
+        automatically change the unit members of the Axis and Field objects, this you will have
+        to do manually.
+
+        There are, however, exceptions to this rule. Most prominently, if you are converting to
+        polar coordinates it depends on what you are going to do with the transformed Field.
+        If you intend to do a Cartesian r-theta plot or are interested in a lineout for a single
+        value of theta, you do want to apply the Jacobian determinant. If you had a density in
+        e.g. J/m^2 than, in polar coordinates, you want to have a density in J/m/rad.
+        If you intend, on the other hand, to do a polar plot, you do not want to apply the
+        Jacobian. In a polar plot, the data points are plotted with variable density which
+        visually takes care of the Jacobian automatically. A polar plot of the polar data
+        should look like a Cartesian plot of the original data with just a peculiar coordinate
+        grid drawn over it.
 
         jacobian_determinant_func: a callable that returns the jacobian determinant of
         the transform. If given, this takes precedence over the following option.
@@ -613,7 +612,6 @@ class Field(object):
 
         Additional keyword arguments are passed to scipy.ndimage.map_coordinates,
         see the documentation for that function.
-
         '''
         # Instantiate an identity if no transformation function was given
         if transform is None:
@@ -685,6 +683,53 @@ class Field(object):
 
         return ret
 
+    @helper.append_doc_of(_map_coordinates)
+    def map_coordinates(self, newaxes, transform=None, complex_mode='polar',
+                        preserve_integral=True, jacobian_func=None,
+                        jacobian_determinant_func=None, **kwargs):
+        r'''
+        Transform the Field to new coordinates
+
+        newaxes: The new axes of the new coordinates
+
+        transform: a callable that takes the new coordinates as input and returns
+        the old coordinates from where to sample the Field.
+        It is basically the inverse of the transformation that you want to perform.
+        If transform is not given, the identity will be used. This is suitable for
+        simple interpolation to a new extent/shape.
+
+        Example for cartesian -> polar:
+
+        def T(r, theta):
+            x = r*np.cos(theta)
+            y = r*np.sin(theta)
+            return x, y
+
+        Note that this function actually computes the cartesian coordinates from the polar
+        coordinates, but stands for transforming a field in cartesian coordinates into a
+        field in polar coordinates.
+
+        However, in order to preserve the definite integral of
+        the field, it is necessary to multiply with the Jacobian determinant of T.
+
+        $$
+        \tilde{U}(r, \theta) = U(T(r, \theta)) \cdot \det
+        \frac{\partial (x, y)}{\partial (r, \theta)}
+        $$
+
+        such that
+
+        $$
+        \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
+        \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta} \tilde{U}(r,\theta)\,.
+        $$
+        '''
+        return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
+                                     preserve_integral=preserve_integral,
+                                     jacobian_func=jacobian_func,
+                                     jacobian_determinant_func=jacobian_determinant_func,
+                                     **kwargs)
+
     def autoreduce(self, maxlen=4000):
         '''
         Reduces the Grid to a maximum length of maxlen per dimension
@@ -735,8 +780,8 @@ class Field(object):
 
     def _integrate_constant(self, axes=None):
         if not self.islinear():
-            warnings.warn("Using method='constant' in integrate which is only suitable "
-                          "for linear grids.")
+            raise ValueError("Using method='constant' in integrate which is only suitable "
+                             "for linear grids.")
 
         ret = self
         V = 1
@@ -1000,12 +1045,20 @@ class Field(object):
 
         return methods[interpolation](dx)
 
+    @helper.append_doc_of(_map_coordinates)
     def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
-        remaps the current kartesian coordinates to polar coordinates
-        extent should be given as extent=(phimin, phimax, rmin, rmax)
+        Transform the Field to polar coordinates.
 
-        Additional kwargs are passed to the transform method.
+        This is a convenience wrapper for map_coordinates which will let you easily
+        define the desired grid in polar coordinates via the arguments
+
+        * extent,
+        which should be of the form extent=(phimin, phimax, rmin, rmax),
+        * shape,
+        which should be of the form shape=(N_phi, N_r),
+        * angleoffset,
+        which can be any real number and will rotate the zero-point of the angular axis.
         '''
         # Fill extent and shape with sensible defaults if nothing was passed
         if extent is None:

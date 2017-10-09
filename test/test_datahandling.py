@@ -261,7 +261,11 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(backcut.grid[1], self.f2d.grid[1])))
 
     def test_topolar(self):
-        polar = self.f2d.topolar()
+        polar = self.f2d.topolar(extent=(0, 2*np.pi, 0, 1.5), shape=(100,100))
+        a = self.f2d.integrate().matrix
+        b = polar.integrate().matrix
+        print(a, b)
+        self.assertTrue(np.isclose(a, b, rtol=0.01))
 
     def test_integrate(self):
         print('start f1d.integrate')
