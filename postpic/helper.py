@@ -387,6 +387,17 @@ def approx_jacobian(transform):
     return fun
 
 
+def approx_1d_jacobian_det(transform):
+    '''
+    Approximate the "Jacobian determinant" of a 1d transformation, which is basically
+    just the derivative.
+    '''
+    def fun(coords):
+        epsilon = np.sqrt(np.finfo(float).eps)
+        return abs((transform(coords + epsilon) - transform(coords - epsilon)) / (2.0 * epsilon))
+    return fun
+
+
 def histogramdd(data, **kwargs):
     '''
     automatically chooses the histogram function to be used.

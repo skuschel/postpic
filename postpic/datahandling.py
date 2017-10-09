@@ -571,6 +571,49 @@ class Field(object):
 
         return ret
 
+    def map_axis_grid(self, axis, transform, preserve_integral=True, jacobian_func=None):
+        '''
+        Transform the Field to new coordinates along one axis.
+
+        This function transforms the coordinates of one axis according to the function
+        transform and applies the jacobian to the data.
+
+        Please note that no interpolation is applied to the data, instead a non-linear
+        axis grid is produced. If you want to interpolate the data to a new (linear) grid,
+        use the method map_coordinates instead.
+
+        In contrast to map_coordinates the function transform is not used to pull the new data
+        points from the old grid, but is directly applied to the axis. This reverses the
+        direction of the transform. In this case, in order to preserve the integral,
+        it is necessary to divide by the Jacobian.
+
+        axis: the index or name of the axis you want to apply transform to
+
+        transform: the transformation function which takes the old coordinates as an input
+        and returns the new grid
+
+        preserve_integral: Divide by the jacobian of transform, in order to preserve the
+        integral.
+
+        jacobian_func: If given, this is expected to return the derivative of transform.
+        If not given, the derivative is numerically approximated.
+        '''
+        axis = helper.axesidentify[axis]
+
+        ret = copy.copy(self)
+
+        if jacobian_func is None:
+            jacobian_func = helper.approx_1d_jacobian_det(transform)
+
+        jac_shape = [1]*self.dimensions
+        jac_shape[axis] = len(ret.axes[axis])
+
+        ret.matrix = ret.matrix / np.reshape(jacobian_func(ret.axes[axis].grid),
+                                             jac_shape)
+        ret.axes[axis].grid = transform(ret.axes[axis].grid)
+
+        return ret
+
     def _map_coordinates(self, newaxes, transform=None, complex_mode='polar',
                          preserve_integral=True, jacobian_func=None,
                          jacobian_determinant_func=None, **kwargs):

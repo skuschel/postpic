@@ -267,6 +267,12 @@ class TestField(unittest.TestCase):
         print(a, b)
         self.assertTrue(np.isclose(a, b, rtol=0.01))
 
+    def test_map_axis_grid(self):
+        a = self.f2d.integrate().matrix
+        b = self.f2d.map_axis_grid(1, lambda x: 12*x).integrate().matrix
+        print(a, b)
+        self.assertTrue(np.isclose(a, b))
+
     def test_integrate(self):
         print('start f1d.integrate')
         a = self.f1d.integrate(method='constant')
