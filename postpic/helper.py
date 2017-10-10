@@ -394,7 +394,8 @@ def approx_1d_jacobian_det(transform):
     '''
     def fun(coords):
         epsilon = np.sqrt(np.finfo(float).eps)
-        return abs((transform(coords + epsilon) - transform(coords - epsilon)) / (2.0 * epsilon))
+        dx = epsilon + epsilon * coords
+        return abs((transform(coords + dx) - transform(coords - dx)) / (2.0 * dx))
     return fun
 
 

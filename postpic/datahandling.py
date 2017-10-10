@@ -610,7 +610,7 @@ class Field(object):
             jac_shape[axis] = len(ret.axes[axis])
 
             ret.matrix = ret.matrix / np.reshape(jacobian_func(ret.axes[axis].grid),
-                                                jac_shape)
+                                                 jac_shape)
 
         ret.axes[axis].grid = transform(ret.axes[axis].grid)
 
