@@ -969,6 +969,25 @@ class Field(object):
                 return b
         return None
 
+    def fft_autopad(self, axes=None):
+        if axes is None:
+            axes = range(self.dimensions)
+
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        pad = [0] * self.dimensions
+
+        for axis in axes:
+            ll = self.shape[axis]
+            pad0 = helper.fft_padsize(ll) - ll
+            pad1 = pad0 // 2
+            pad2 = pad0 - pad1
+            pad[axis] = [pad1, pad2]
+
+        return self.pad(pad)
+
+
     def fft(self, axes=None, exponential_signs='spatial', **kwargs):
         '''
         Performs Fourier transform on any number of axes.

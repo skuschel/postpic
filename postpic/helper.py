@@ -30,6 +30,7 @@ import numpy.linalg as npl
 import re
 import warnings
 import functools
+import math
 try:
     from . import cythonfunctions as cyf
     particleshapes = cyf.shapes
@@ -466,6 +467,35 @@ def max_frac_bounds(array, fraction):
     c = np.max(array)*fraction
     i = np.nonzero(array > c)[0]
     return i[0], i[-1]+1
+
+
+def product(iterable):
+    i = iter(iterable)
+    p = next(i)
+    for x in i:
+        p = p * x
+    return p
+
+
+class FFTW_Pad:
+    def __init__(self, fftsize_max=10000, factors=(2, 3, 5, 7), simultaneous_factors=2):
+        self.fftsize_max = fftsize_max
+        max_powers = [int(math.log(fftsize_max, i)) for i in factors]
+        powers_ranges = map(range, max_powers)
+        fftsizes = {product(f**p for f, p in zip(factors, powers))
+                    for powers
+                    in itertools.product(*powers_ranges)
+                    if sum(1 for p in powers if p > 0) <= simultaneous_factors}
+        self.fftsizes = np.array(list(sorted(filter(lambda x: x <= fftsize_max, fftsizes))))
+
+    def __call__(self, n):
+        if n > self.fftsize_max:
+            raise ValueError()
+        i = np.searchsorted(self.fftsizes, n)
+        return self.fftsizes[i]
+
+
+fft_padsize = FFTW_Pad()
 
 
 def omega_yee_factory(dx, dt):

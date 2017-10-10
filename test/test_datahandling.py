@@ -148,6 +148,10 @@ class TestField(unittest.TestCase):
         f2d_f_c = self.f2d_fine.autocutout(fractions=(0.01, 0.02))
         self.assertEqual(f2d_f_c.shape, (98,100))
 
+    def test_fft_autopad(self):
+        s = self.f2d_fine[1:,5:].fft_autopad()
+        self.assertEqual(s.shape, (100,96))
+
     def test_fourier_inverse(self):
         f1d_orig = copy.deepcopy(self.f1d)
         self.f1d.fft()
