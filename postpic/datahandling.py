@@ -602,14 +602,16 @@ class Field(object):
 
         ret = copy.copy(self)
 
-        if jacobian_func is None:
-            jacobian_func = helper.approx_1d_jacobian_det(transform)
+        if preserve_integral:
+            if jacobian_func is None:
+                jacobian_func = helper.approx_1d_jacobian_det(transform)
 
-        jac_shape = [1]*self.dimensions
-        jac_shape[axis] = len(ret.axes[axis])
+            jac_shape = [1]*self.dimensions
+            jac_shape[axis] = len(ret.axes[axis])
 
-        ret.matrix = ret.matrix / np.reshape(jacobian_func(ret.axes[axis].grid),
-                                             jac_shape)
+            ret.matrix = ret.matrix / np.reshape(jacobian_func(ret.axes[axis].grid),
+                                                jac_shape)
+
         ret.axes[axis].grid = transform(ret.axes[axis].grid)
 
         return ret
