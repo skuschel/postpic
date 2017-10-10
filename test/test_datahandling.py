@@ -144,6 +144,10 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d[0.5:, :, 0.5].matrix.shape, (2, 5, 1))
         self.assertEqual(self.f3d[0.5:, :, 0.5].squeeze().matrix.shape, (2, 5))
 
+    def test_autocutout(self):
+        f2d_f_c = self.f2d_fine.autocutout(fractions=(0.01, 0.02))
+        self.assertEqual(f2d_f_c.shape, (98,100))
+
     def test_fourier_inverse(self):
         f1d_orig = copy.deepcopy(self.f1d)
         self.f1d.fft()

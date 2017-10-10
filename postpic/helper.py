@@ -457,6 +457,17 @@ def find_nearest_index(array, value):
         return idx
 
 
+def max_frac_bounds(array, fraction):
+    """
+    For a 1d Array `array` this function gives indices `a`, `b` such that all values
+    `array[:a]` and `array[b:]` are smaller than `fraction*max(array)`
+    """
+    array = np.asarray(array)
+    c = np.max(array)*fraction
+    i = np.nonzero(array > c)[0]
+    return i[0], i[-1]+1
+
+
 def omega_yee_factory(dx, dt):
     """
     Return a function omega_yee that is suitable as input for kspace.

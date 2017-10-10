@@ -51,6 +51,8 @@ import numpy as np
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
 import scipy.integrate
+import scipy.signal as sps
+import numexpr as ne
 
 
 try:
@@ -793,6 +795,87 @@ class Field(object):
         '''
         slices = self._extent_to_slices(newextent)
         return self[slices]
+
+    def autocutout(self, axes=None, fractions=(0.001, 0.002)):
+        '''
+        Automatically cuts out the main feature of the field by removing border regions
+        that only contain small numbers.
+
+        This is done axis by axis. For each axis, the mean across all other axes is taken.
+        The maximum `max` of the remaining 1d-`array` is taken and searched for the outermost
+        boundaries a, d such that all values out of array[a:d] are smaller then fractions[0]*max.
+        A second set of boundaries b, c is searched such that all values out of array[b:c] are
+        smaller then fractions[1]*max.
+        Because fractions[1] should be larger than fractions[0], array[b:c] should be contained
+        completely in array[a:d].
+
+        A padding length x is chosen such that array[b-x:c+x] is entirely within array[a:d].
+
+        Then the corresponding axis of the field is sliced to [b-x:c+x] and multiplied with a
+        tukey-window such that the region [b:c] is left untouched and the field in the padding
+        region smoothly vanishes on the outer border.
+
+        This process is repeated for all axes in `axes` or for all axes if `axes` is None.
+        '''
+        field = self.squeeze()
+
+        if axes is None:
+            axes = range(field.dimensions)
+
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes, )
+
+        if len(axes) != len(set(axes)):
+            raise ValueError("This should be applied only once to each axis")
+
+        # collect the slices which we will apply to field
+        slices = [slice(None)]*field.dimensions
+
+        # collect the sparse window functions which we will all apply in the end using numexpr
+        windows = []
+
+        for axis in axes:
+            field_mean = abs(field)
+            for otheraxis in range(field.dimensions):
+                if otheraxis != axis:
+                    field_mean = field_mean.mean(otheraxis)
+
+            k = field_mean.shape[0]
+
+            # outer bounds for lower threshold
+            a, d = helper.max_frac_bounds(field_mean, fractions[0])
+
+            # inner bounds for higher threshold
+            b, c = helper.max_frac_bounds(field_mean, fractions[1])
+
+            # Above should result in a<=b<=c<=d
+            assert a <= b <= c <= d
+
+            # Length of inner region which will be passed through unchanged
+            ll = c-b
+
+            # length of remaining region befor/after inner region
+            x = max(d-c, b-a)
+            x = min(x, k-c, b)
+
+            # final indices of slice
+            e, f = b-x, c+x
+            slices[axis] = slice(e, f)
+
+            # new length of the axis
+            m = f-e
+
+            shape = [1]*field.dimensions
+            shape[axis] = m
+            windows.append(np.reshape(sps.tukey(m, 1-ll/m), shape))
+
+        field = field[slices]
+        varnames = "abcdefg"
+        expr = "*".join(varnames[:len(windows)+1])
+        local_dict = {v: w for v, w in zip(varnames[1:], windows)}
+        local_dict['a'] = field
+
+        return field.replace_data(ne.evaluate(expr, local_dict=local_dict, global_dict=None))
 
     def squeeze(self):
         '''
