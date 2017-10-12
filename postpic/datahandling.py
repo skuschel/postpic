@@ -987,7 +987,6 @@ class Field(object):
 
         return self.pad(pad)
 
-
     def fft(self, axes=None, exponential_signs='spatial', **kwargs):
         '''
         Performs Fourier transform on any number of axes.
