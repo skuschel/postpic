@@ -1111,7 +1111,7 @@ class Field(object):
             if extent is None:
                 extent = [-np.pi, np.pi, r_min, r_max]
             else:
-                extent = [*extent, r_min, r_max]
+                extent = [extent[0], extent[1], r_min, r_max]
         extent = np.asarray(extent)
         if shape is None:
             ptr_r = int((extent[3]-extent[2])/np.min(self.spacing))

@@ -5,6 +5,7 @@
 * `postpic.Field` method transform is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
 * `postpic.Field.integrate` now uses the simpson method by default
+* `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
 
 ## v0.3.1
