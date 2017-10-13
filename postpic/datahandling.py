@@ -457,6 +457,13 @@ class Field(object):
         return
 
     @property
+    def spacing(self):
+        '''
+        returns the grid spacings for all axis
+        '''
+        return np.array([ax.spacing for ax in self.axes])
+
+    @property
     def real(self):
         return self.replace_data(self.matrix.real)
 
@@ -1137,11 +1144,10 @@ class Field(object):
 
     def _shift_grid_by_linear(self, dx):
         axes = sorted(dx.keys())
-        gridspacing = np.array([ax.spacing for ax in self.axes])
         shift = np.zeros(len(self.axes))
         for i, d in dx.items():
             shift[i] = d
-        shift_px = shift/gridspacing
+        shift_px = shift/self.spacing
         ret = copy.copy(self)
         if np.isrealobj(self.matrix):
             ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
@@ -1190,19 +1196,30 @@ class Field(object):
         define the desired grid in polar coordinates via the arguments
 
         * extent,
-        which should be of the form extent=(phimin, phimax, rmin, rmax),
+        which should be of the form extent=(phimin, phimax, rmin, rmax) or
+        extent=(phimin, phimax),
         * shape,
         which should be of the form shape=(N_phi, N_r),
         * angleoffset,
         which can be any real number and will rotate the zero-point of the angular axis.
         '''
         # Fill extent and shape with sensible defaults if nothing was passed
-        if extent is None:
-            extent = [-np.pi, np.pi, 0, self.extent[1]]
+        if extent is None or len(extent) < 4:
+            r_min = np.sqrt(np.min(np.abs(self.grid[0]))**2 +
+                            np.min(np.abs(self.grid[1]))**2)
+            r_max = np.sqrt(np.max(np.abs(self.grid[0]))**2 +
+                            np.max(np.abs(self.grid[1]))**2)
+            if extent is None:
+                extent = [-np.pi, np.pi, r_min, r_max]
+            else:
+                extent = [*extent, r_min, r_max]
         extent = np.asarray(extent)
         if shape is None:
-            maxpt_r = min(int(np.min(self.shape) / 2), 1000)
-            shape = (1000, maxpt_r)
+            ptr_r = int((extent[3]-extent[2])/np.min(self.spacing))
+            ptr_r = min(1000, ptr_r)
+            ptr_t = int((extent[1]-extent[0])*(extent[2]+extent[3])/2.0/min(self.spacing))
+            ptr_t = min(1000, ptr_t)
+            shape = (ptr_t, ptr_r)
 
         # Create the new axes objects
         theta = Axis(name='theta', unit='rad')
