@@ -316,6 +316,9 @@ class TestField(unittest.TestCase):
     def test_topolar(self):
         a = self.f2d.integrate().matrix
 
+        #test if topolar runs with default args
+        polar = self.f2d.topolar()
+
         # this uses the analytically known jacobi determinant of the transform in question
         polar = self.f2d.topolar(extent=(0, 2*np.pi, 0, 1.5), shape=(100,100))
         b = polar.integrate().matrix
