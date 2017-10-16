@@ -5,6 +5,7 @@ import postpic.datahandling as dh
 import postpic.helper as helper
 import numpy as np
 import copy
+import scipy.integrate
 
 
 class TestAxis(unittest.TestCase):
@@ -84,7 +85,7 @@ class TestField(unittest.TestCase):
         m = np.reshape(np.arange(60), (4, 5, 3))
         self.f3d = dh.Field(m)
 
-        x, y = np.meshgrid(np.linspace(0,1,100), np.linspace(0,1,100), indexing='ij', sparse=True)
+        x, y = np.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
         self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
 
     def checkFieldConsistancy(self, field):
@@ -362,6 +363,12 @@ class TestField(unittest.TestCase):
         print('type(b.matrix)', type(b.matrix))
 
         self.assertTrue(np.isclose(a, b))
+
+        b = self.f2d_fine.integrate(method=scipy.integrate.simps)
+        c = self.f2d_fine.integrate(method=scipy.integrate.trapz)
+
+        self.assertTrue(np.isclose(b, 0))
+        self.assertTrue(np.isclose(c, 0))
 
     def test_arithmetic(self):
         c1d = self.f1d + 3j*self.f1d
