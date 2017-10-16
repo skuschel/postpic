@@ -2,11 +2,17 @@
 
 ## current master
 2017-10-10
+
+**Incompatible adjustments to last version**
 * `postpic.Field` method transform is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
-* `postpic.Field.integrate` now uses the simpson method by default
-* `postpic.Field.topolar` has new defaults for extent and shape
+
+In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
+
+**Other imrpovements and new features**
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
+* `postpic.Field.topolar` has new defaults for extent and shape
+* `postpic.Field.integrate` now uses the simpson method by default
 
 ## v0.3.1
 2017-10-03
