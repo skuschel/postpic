@@ -2,8 +2,10 @@
 
 import unittest
 import postpic.datahandling as dh
+import postpic.helper as helper
 import numpy as np
 import copy
+import scipy.integrate
 
 
 class TestAxis(unittest.TestCase):
@@ -82,6 +84,9 @@ class TestField(unittest.TestCase):
         self.f2d = dh.Field(m)
         m = np.reshape(np.arange(60), (4, 5, 3))
         self.f3d = dh.Field(m)
+
+        x, y = np.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
+        self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
 
     def checkFieldConsistancy(self, field):
         '''
@@ -260,12 +265,88 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(backcut.grid[0], self.f2d.grid[0])))
         self.assertTrue(np.all(np.isclose(backcut.grid[1], self.f2d.grid[1])))
 
+    def test_map_coordinates(self):
+        a = self.f2d.integrate().matrix
+
+        th_axis = dh.Axis()
+        th_axis.grid = np.linspace(0, 2*np.pi, 100)
+
+        r_axis = dh.Axis()
+        r_axis.grid = np.linspace(0, 1.5, 100)
+
+        # this calculates numerical approximation of jacobi determinant and thus also tests
+        # helper.jac_det and
+        # helper.approx_jacobian
+        polar = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear)
+        b = polar.integrate().matrix
+
+        print(a, b)
+        self.assertTrue(np.isclose(a, b, rtol=0.01))
+
+    def test_map_coordinates_2(self):
+        orig = self.f2d_fine
+
+        # This uses analytical Jacobian determinant
+        polar = orig.topolar(extent=(0, 2*np.pi, 0, 1.5), shape=(500,500))
+
+        # This numerically calculates the jacobian determinant of the inverse transform
+        backtransformed = polar.map_coordinates(orig.axes, transform=helper.linear2polar)
+
+        # Some border pixels may be wrong due to third order interpolation in combination with
+        # clipping, so compare only the inner part
+        a = orig[5:-5, 5:-5].matrix
+        b = backtransformed[5:-5, 5:-5].matrix
+        relerr = 2*abs(a-b)/(a+b)
+
+        i = np.argmax(relerr)
+        i = np.unravel_index(i, relerr.shape)
+        print(i, a[i], b[i], relerr[i])
+        maxrelerr = relerr[i]
+
+        testrelerr = 0.001
+
+        abserr = abs(a-b) - testrelerr*(a+b)/2
+
+        i = np.argmax(abserr)
+        i = np.unravel_index(i, abserr.shape)
+        print(i, a[i], b[i], abserr[i])
+
+        self.assertTrue(np.all(np.isclose(a, b, rtol=0.001, atol=0.001)))
+
+
     def test_topolar(self):
+        a = self.f2d.integrate().matrix
+
+        #test if topolar runs with default args
         polar = self.f2d.topolar()
+
+        # this uses the analytically known jacobi determinant of the transform in question
+        polar = self.f2d.topolar(extent=(0, 2*np.pi, 0, 1.5), shape=(100,100))
+        b = polar.integrate().matrix
+
+        print(a, b)
+        self.assertTrue(np.isclose(a, b, rtol=0.01))
+
+    def test_map_axis_grid(self):
+        a = self.f2d.integrate().matrix
+
+        # this calculates numerical approx of derivative and tests
+        # helper.approx_1d_jacobian_det
+        b = self.f2d.map_axis_grid(1, lambda x: 12*x).integrate().matrix
+        print(a, b)
+        self.assertTrue(np.isclose(a, b))
+
+        a = self.f2d.integrate().matrix
+
+        # this calculates numerical approx of derivative and tests
+        # helper.approx_1d_jacobian_det
+        b = self.f2d.map_axis_grid(1, lambda x: 20*x**2).integrate().matrix
+        print(a, b)
+        self.assertTrue(np.isclose(a, b, rtol=0.04))
 
     def test_integrate(self):
         print('start f1d.integrate')
-        a = self.f1d.integrate()
+        a = self.f1d.integrate(method='constant')
 
         print('start f1d.mean * length')
         b = self.f1d.mean() * self.f1d.axes[0].physical_length
@@ -274,6 +355,12 @@ class TestField(unittest.TestCase):
         print('type(b.matrix)', type(b.matrix))
 
         self.assertTrue(np.isclose(a, b))
+
+        b = self.f2d_fine.integrate(method=scipy.integrate.simps)
+        c = self.f2d_fine.integrate(method=scipy.integrate.trapz)
+
+        self.assertTrue(np.isclose(b, 0))
+        self.assertTrue(np.isclose(c, 0))
 
     def test_arithmetic(self):
         c1d = self.f1d + 3j*self.f1d

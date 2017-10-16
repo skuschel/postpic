@@ -50,6 +50,7 @@ import os
 import numpy as np
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
+import scipy.integrate
 
 
 try:
@@ -454,6 +455,13 @@ class Field(object):
         return
 
     @property
+    def spacing(self):
+        '''
+        returns the grid spacings for all axis
+        '''
+        return np.array([ax.spacing for ax in self.axes])
+
+    @property
     def real(self):
         return self.replace_data(self.matrix.real)
 
@@ -570,42 +578,106 @@ class Field(object):
 
         return ret
 
-    def transform(self, newaxes, transform=None, complex_mode='polar', **kwargs):
+    def map_axis_grid(self, axis, transform, preserve_integral=True, jacobian_func=None):
         '''
-        Transform the Field to new coordinates
+        Transform the Field to new coordinates along one axis.
 
-        newaxes: The new axes of the new coordinates
+        This function transforms the coordinates of one axis according to the function
+        transform and applies the jacobian to the data.
 
-        transform: a callable that takes the new coordinates as input and returns
-        the old coordinates from where to sample the Field.
-        It is basically the inverse of the transformation that you want to perform.
-        If transform is not given, the identity will be used. This is suitable for
-        simple interpolation to a new extent/shape.
+        Please note that no interpolation is applied to the data, instead a non-linear
+        axis grid is produced. If you want to interpolate the data to a new (linear) grid,
+        use the method map_coordinates instead.
 
-        Example for linear -> polar:
+        In contrast to map_coordinates the function transform is not used to pull the new data
+        points from the old grid, but is directly applied to the axis. This reverses the
+        direction of the transform. In this case, in order to preserve the integral,
+        it is necessary to divide by the Jacobian.
 
-        def transform(r, theta):
-            x = r*np.cos(theta)
-            y = r*np.sin(theta)
-            return x, y
+        axis: the index or name of the axis you want to apply transform to
 
+        transform: the transformation function which takes the old coordinates as an input
+        and returns the new grid
+
+        preserve_integral: Divide by the jacobian of transform, in order to preserve the
+        integral.
+
+        jacobian_func: If given, this is expected to return the derivative of transform.
+        If not given, the derivative is numerically approximated.
+        '''
+        axis = helper.axesidentify[axis]
+
+        ret = copy.copy(self)
+
+        if preserve_integral:
+            if jacobian_func is None:
+                jacobian_func = helper.approx_1d_jacobian_det(transform)
+
+            jac_shape = [1]*self.dimensions
+            jac_shape[axis] = len(ret.axes[axis])
+
+            ret.matrix = ret.matrix / np.reshape(jacobian_func(ret.axes[axis].grid),
+                                                 jac_shape)
+
+        ret.axes[axis].grid = transform(ret.axes[axis].grid)
+
+        return ret
+
+    def _map_coordinates(self, newaxes, transform=None, complex_mode='polar',
+                         preserve_integral=True, jacobian_func=None,
+                         jacobian_determinant_func=None, **kwargs):
+        '''
         The complex_mode specifies how to proceed with complex data:
          *  complex_mode = 'cartesian' - interpolate real/imag part (fastest)
 
          *  complex_mode = 'polar' - interpolate abs/phase
-         If skimage.restoration is available, the phase will be unwrapped first
+         If skimage.restoration is available, the phase will be unwrapped first (default)
 
          *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
          Skip unwrapping the phase, even if skimage.restoration is available
 
-        Additional keyword arguments are passed to scipy.ndimage.map_cordinates,
-        see the documentation for that function.
+        preserve_integral: If True (the default), the data will be multiplied with the
+        Jacobian determinant of the coordinate transformation such that the integral
+        over the data will be preserved.
 
+        In general, you will want to do this, because the physical unit of the new Field will
+        correspond to the new axis of the Fields. Please note that Postpic, currently, does not
+        automatically change the unit members of the Axis and Field objects, this you will have
+        to do manually.
+
+        There are, however, exceptions to this rule. Most prominently, if you are converting to
+        polar coordinates it depends on what you are going to do with the transformed Field.
+        If you intend to do a Cartesian r-theta plot or are interested in a lineout for a single
+        value of theta, you do want to apply the Jacobian determinant. If you had a density in
+        e.g. J/m^2 than, in polar coordinates, you want to have a density in J/m/rad.
+        If you intend, on the other hand, to do a polar plot, you do not want to apply the
+        Jacobian. In a polar plot, the data points are plotted with variable density which
+        visually takes care of the Jacobian automatically. A polar plot of the polar data
+        should look like a Cartesian plot of the original data with just a peculiar coordinate
+        grid drawn over it.
+
+        jacobian_determinant_func: a callable that returns the jacobian determinant of
+        the transform. If given, this takes precedence over the following option.
+
+        jacobian_func: a callable that returns the jacobian of the transform. If this is
+        not given, the jacobian is numerically approximated.
+
+        Additional keyword arguments are passed to scipy.ndimage.map_coordinates,
+        see the documentation for that function.
         '''
         # Instantiate an identity if no transformation function was given
         if transform is None:
             def transform(*x):
                 return x
+
+            def jacobian_determinant_func(*x):
+                return 1.0
+
+        if preserve_integral:
+            if jacobian_determinant_func is None:
+                if jacobian_func is None:
+                    jacobian_func = helper.approx_jacobian(transform)
+                jacobian_determinant_func = helper.jac_det(jacobian_func)
 
         do_unwrap_phase = True
         if complex_mode == 'polar-no-unwrap':
@@ -617,8 +689,11 @@ class Field(object):
         ret.axes = newaxes
         shape = [len(ax) for ax in newaxes]
 
+        # Calculate the output grid
+        out_coords = ret.meshgrid()
+
         # Calculate the source points for every point of the new mesh
-        coordinates_ax = transform(*ret.meshgrid())
+        coordinates_ax = transform(*out_coords)
 
         # Rescale the source coordinates to pixel coordinates
         coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
@@ -652,10 +727,60 @@ class Field(object):
             else:
                 raise ValueError('Invalid value of complex_mode.')
 
+        if preserve_integral:
+            ret._matrix = ret._matrix * jacobian_determinant_func(*out_coords)
+
         # This info is invalidated
         ret.transformed_axes_origins = [None]*ret.dimensions
 
         return ret
+
+    @helper.append_doc_of(_map_coordinates)
+    def map_coordinates(self, newaxes, transform=None, complex_mode='polar',
+                        preserve_integral=True, jacobian_func=None,
+                        jacobian_determinant_func=None, **kwargs):
+        r'''
+        Transform the Field to new coordinates
+
+        newaxes: The new axes of the new coordinates
+
+        transform: a callable that takes the new coordinates as input and returns
+        the old coordinates from where to sample the Field.
+        It is basically the inverse of the transformation that you want to perform.
+        If transform is not given, the identity will be used. This is suitable for
+        simple interpolation to a new extent/shape.
+
+        Example for cartesian -> polar:
+
+        def T(r, theta):
+            x = r*np.cos(theta)
+            y = r*np.sin(theta)
+            return x, y
+
+        Note that this function actually computes the cartesian coordinates from the polar
+        coordinates, but stands for transforming a field in cartesian coordinates into a
+        field in polar coordinates.
+
+        However, in order to preserve the definite integral of
+        the field, it is necessary to multiply with the Jacobian determinant of T.
+
+        $$
+        \tilde{U}(r, \theta) = U(T(r, \theta)) \cdot \det
+        \frac{\partial (x, y)}{\partial (r, \theta)}
+        $$
+
+        such that
+
+        $$
+        \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
+        \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta} \tilde{U}(r,\theta)\,.
+        $$
+        '''
+        return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
+                                     preserve_integral=preserve_integral,
+                                     jacobian_func=jacobian_func,
+                                     jacobian_determinant_func=jacobian_determinant_func,
+                                     **kwargs)
 
     def autoreduce(self, maxlen=4000):
         '''
@@ -705,7 +830,11 @@ class Field(object):
 
         return ret
 
-    def _integrate_constant(self, axes=None):
+    def _integrate_constant(self, axes):
+        if not self.islinear():
+            raise ValueError("Using method='constant' in integrate which is only suitable "
+                             "for linear grids.")
+
         ret = self
         V = 1
 
@@ -715,12 +844,23 @@ class Field(object):
 
         return V * ret
 
-    def integrate(self, axes=None, method='constant'):
+    def _integrate_scipy(self, axes, method):
+        ret = copy.copy(self)
+        for axis in reversed(sorted(axes)):
+            ret._matrix = method(ret, ret.axes[axis].grid, axis=axis)
+            del ret.axes[axis]
+
+        return ret
+
+    def integrate(self, axes=None, method=scipy.integrate.simps):
         '''
-        Calculates the definite integral along the given axes
+        Calculates the definite integral along the given axes.
+
+        method: Choose the method to use. Available options:
+
+        'constant' or any function with the same signature as scipy.integrate.simps
         '''
-        methods = dict(constant=self._integrate_constant)
-        if method not in methods.keys():
+        if not callable(method) and method != 'constant':
             raise ValueError("Requested method {} is not supported".format(method))
 
         if axes is None:
@@ -729,7 +869,10 @@ class Field(object):
         if not isinstance(axes, collections.Iterable):
             axes = (axes,)
 
-        return methods[method](axes)
+        if method == 'constant':
+            return self._integrate_constant(axes)
+        else:
+            return self._integrate_scipy(axes, method)
 
     def _transform_state(self, axes=None):
         """
@@ -900,11 +1043,10 @@ class Field(object):
 
     def _shift_grid_by_linear(self, dx):
         axes = sorted(dx.keys())
-        gridspacing = np.array([ax.spacing for ax in self.axes])
         shift = np.zeros(len(self.axes))
         for i, d in dx.items():
             shift[i] = d
-        shift_px = shift/gridspacing
+        shift_px = shift/self.spacing
         ret = copy.copy(self)
         if np.isrealobj(self.matrix):
             ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
@@ -944,20 +1086,39 @@ class Field(object):
 
         return methods[interpolation](dx)
 
+    @helper.append_doc_of(_map_coordinates)
     def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
-        remaps the current kartesian coordinates to polar coordinates
-        extent should be given as extent=(phimin, phimax, rmin, rmax)
+        Transform the Field to polar coordinates.
 
-        Additional kwargs are passed to the transform method.
+        This is a convenience wrapper for map_coordinates which will let you easily
+        define the desired grid in polar coordinates via the arguments
+
+        * extent,
+        which should be of the form extent=(phimin, phimax, rmin, rmax) or
+        extent=(phimin, phimax),
+        * shape,
+        which should be of the form shape=(N_phi, N_r),
+        * angleoffset,
+        which can be any real number and will rotate the zero-point of the angular axis.
         '''
         # Fill extent and shape with sensible defaults if nothing was passed
-        if extent is None:
-            extent = [-np.pi, np.pi, 0, self.extent[1]]
+        if extent is None or len(extent) < 4:
+            r_min = np.sqrt(np.min(np.abs(self.grid[0]))**2 +
+                            np.min(np.abs(self.grid[1]))**2)
+            r_max = np.sqrt(np.max(np.abs(self.grid[0]))**2 +
+                            np.max(np.abs(self.grid[1]))**2)
+            if extent is None:
+                extent = [-np.pi, np.pi, r_min, r_max]
+            else:
+                extent = [extent[0], extent[1], r_min, r_max]
         extent = np.asarray(extent)
         if shape is None:
-            maxpt_r = min(int(np.min(self.shape) / 2), 1000)
-            shape = (1000, maxpt_r)
+            ptr_r = int((extent[3]-extent[2])/np.min(self.spacing))
+            ptr_r = min(1000, ptr_r)
+            ptr_t = int((extent[1]-extent[0])*(extent[2]+extent[3])/2.0/min(self.spacing))
+            ptr_t = min(1000, ptr_t)
+            shape = (ptr_t, ptr_r)
 
         # Create the new axes objects
         theta = Axis(name='theta', unit='rad')
@@ -975,7 +1136,10 @@ class Field(object):
         theta.grid_node = theta.grid_node - angleoffset
 
         # Perform the transformation
-        ret = self.transform([theta, r], transform=helper.polar2linear, **kwargs)
+        ret = self.map_coordinates([theta, r],
+                                   transform=helper.polar2linear,
+                                   jacobian_determinant_func=helper.polar2linear_jacdet,
+                                   **kwargs)
 
         # Remove the angleoffset from the theta grid
         ret.axes[0].grid_node = theta.grid_node + angleoffset
