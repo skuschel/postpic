@@ -90,7 +90,11 @@ except ImportError:
 
 
 try:
-    from skimage.restoration import unwrap_phase
+    with warnings.catch_warnings():
+        # skimage produces a DeprecationWarning by importing `imp`. We will silence this warning
+        # as we have nothing to do with it
+        warnings.simplefilter("ignore", DeprecationWarning)
+        from skimage.restoration import unwrap_phase
 except ImportError:
     unwrap_phase = None
 
@@ -976,7 +980,23 @@ class Field(object):
                 return b
         return None
 
-    def fft_autopad(self, axes=None):
+    def fft_autopad(self, axes=None, fft_padsize=helper.fftw_padsize):
+        """
+        Automatically pad the array to a size such that computing its FFT using FFTW will be
+        quick.
+
+        The default for keyword argument `fft_padsize` is a callable, that is used to calculate
+        the padded size for a given size.
+
+        By default, this uses `fft_padsize=helper.fftw_padsize` which finds the next larger "good"
+        grid size according to what the FFTW documentation says.
+
+        However, the FFTW documentation also says:
+        "(...) Transforms whose sizes are powers of 2 are especially fast."
+
+        If you don't worry about the extra padding, you can pass
+        `fft_padsize=helper.fft_padsize_power2` and this method will pad to the next power of 2.
+        """
         if axes is None:
             axes = range(self.dimensions)
 
@@ -987,7 +1007,7 @@ class Field(object):
 
         for axis in axes:
             ll = self.shape[axis]
-            pad0 = helper.fft_padsize(ll) - ll
+            pad0 = fft_padsize(ll) - ll
             pad1 = pad0 // 2
             pad2 = pad0 - pad1
             pad[axis] = [pad1, pad2]

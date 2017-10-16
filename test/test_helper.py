@@ -120,11 +120,11 @@ class TestHelper(unittest.TestCase):
         pass
 
     def test_fftpadsize(self):
-        fft_padsize = pp.helper.FFTW_Pad(fftsize_max=10000, factors=(2, 3, 5, 7), simultaneous_factors=2)
+        fft_padsize = pp.helper.FFTW_Pad(fftsize_max=10000, factors=(2, 3, 5, 7, 11, 13))
         self.assertEqual(fft_padsize(223), 224)
         self.assertEqual(fft_padsize(224), 224)
         self.assertEqual(fft_padsize(250), 250)
-        self.assertEqual(fft_padsize(251), 256)
+        self.assertEqual(fft_padsize(251), 252)
 
 
 if __name__ == '__main__':

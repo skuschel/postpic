@@ -478,24 +478,47 @@ def product(iterable):
 
 
 class FFTW_Pad:
-    def __init__(self, fftsize_max=10000, factors=(2, 3, 5, 7), simultaneous_factors=2):
+    """
+    FFTW_Pad is a class whichs objects are callables that are suitable as `fft_padsize`
+    arguments to `Field.fft_autopad` and calculate optimal padding sizes for FFTW.
+    """
+    def __init__(self, fftsize_max=10000, factors=(2, 3, 5, 7, 11, 13)):
+        '''
+        Calculate all 'good' sizes up to fftsize_max, using the given factors.
+        While at it, make sure that at most one factor 11 or 13 exists.
+
+        FFTW documentation says: "FFTW is best at handling sizes of the form 2^a 3^b 5^c
+        7^d 11^e 13^f, where e+f is either 0 or 1, and the other exponents are arbitrary."
+        '''
         self.fftsize_max = fftsize_max
         max_powers = [int(math.log(fftsize_max, i)) for i in factors]
         powers_ranges = map(range, max_powers)
         fftsizes = {product(f**p for f, p in zip(factors, powers))
                     for powers
-                    in itertools.product(*powers_ranges)
-                    if sum(1 for p in powers if p > 0) <= simultaneous_factors}
+                    in itertools.product(*powers_ranges)  # builds any combination of powers
+                    if sum(p for i, p in enumerate(powers)
+                           if factors[i] == 11 or factors[i] == 13
+                           ) <= 1  # sum calculates e+f
+                    }
         self.fftsizes = np.array(list(sorted(filter(lambda x: x <= fftsize_max, fftsizes))))
 
     def __call__(self, n):
+        '''
+        In the list of sizes calculated at initialization, find the next good value equal
+        or larger than a given `n`.
+        '''
         if n > self.fftsize_max:
-            raise ValueError()
+            raise ValueError("Given grid is larger then {}. Please use a custom object of "
+                             "the class helper.FFTW_Pad.".format(self.fftsize_max))
         i = np.searchsorted(self.fftsizes, n)
         return self.fftsizes[i]
 
 
-fft_padsize = FFTW_Pad()
+fftw_padsize = FFTW_Pad()
+
+
+def fft_padsize_power2(n):
+    return 1 << n.bit_length()
 
 
 def omega_yee_factory(dx, dt):
