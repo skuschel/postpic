@@ -19,7 +19,7 @@
 """
 Some experimental algorithms for your reference. Please note that these algorithms
 are not meant to be used as is and may need adjustment in order to be applicable
-to a wider range of cases
+to a wider range of cases.
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 

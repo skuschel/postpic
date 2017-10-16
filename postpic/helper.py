@@ -490,16 +490,23 @@ class FFTW_Pad:
         FFTW documentation says: "FFTW is best at handling sizes of the form 2^a 3^b 5^c
         7^d 11^e 13^f, where e+f is either 0 or 1, and the other exponents are arbitrary."
         '''
+        extra_factors = [1]
+        factors = list(factors)
+        for x in (11, 13):
+            if x in factors:
+                extra_factors.append(x)
+                factors.remove(x)
+
         self.fftsize_max = fftsize_max
-        max_powers = [int(math.log(fftsize_max, i)) for i in factors]
-        powers_ranges = map(range, max_powers)
-        fftsizes = {product(f**p for f, p in zip(factors, powers))
-                    for powers
-                    in itertools.product(*powers_ranges)  # builds any combination of powers
-                    if sum(p for i, p in enumerate(powers)
-                           if factors[i] == 11 or factors[i] == 13
-                           ) <= 1  # sum calculates e+f
-                    }
+        fftsizes = []
+        for extra_factor in extra_factors:
+            max_powers = [int(math.log(fftsize_max/extra_factor+1, i))+1 for i in factors]
+            powers_ranges = map(range, max_powers)
+            fftsizes.extend(extra_factor*product(f**p for f, p in zip(factors, powers))
+                            for powers
+                            in itertools.product(*powers_ranges)  # build all combination of pwrs
+                            )
+
         self.fftsizes = np.array(list(sorted(filter(lambda x: x <= fftsize_max, fftsizes))))
 
     def __call__(self, n):
