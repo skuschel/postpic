@@ -114,6 +114,12 @@ class TestKspace(unittest.TestCase):
         kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
         pp.helper.kspace_propagate(kspace, 0.1, moving_window_vect=(1,0))
 
+    def test_time_profile_at_plane(self):
+        dr = pp.readDump(10000, dimensions=3)
+        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+        complex_ex = kspace.fft()
+        pp.helper.time_profile_at_plane(complex_ex, axis='z', value=1.0, dir=-1)
+
 
 class TestHelper(unittest.TestCase):
     def setUp(self):
