@@ -905,7 +905,9 @@ class Field(object):
 
     def transpose(self, *axes):
         '''
-        transpose method similar to numpy
+        transpose method equivalent to numpy.ndarray.transpose. If axes is empty, the order of the
+        axes will be reversed. Otherwise axes[i] == j means that the i'th axis of the returned
+        Field will be the j'th axis of the input Field.
         '''
         if not axes:
             axes = list(reversed(range(self.dimensions)))
@@ -924,6 +926,10 @@ class Field(object):
 
     @property
     def T(self):
+        """
+        Return the Field with the order of axes reversed. In 2D this is the usual matrix
+        transpose operation.
+        """
         return self.transpose()
 
     def swapaxes(self, axis1, axis2):
