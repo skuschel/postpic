@@ -903,6 +903,38 @@ class Field(object):
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
 
+    def transpose(self, *axes):
+        '''
+        transpose method similar to numpy
+        '''
+        if not axes:
+            axes = list(reversed(range(self.dimensions)))
+        elif len(axes) == self.dimensions:
+            pass
+        else:
+            axes = axes[0]
+
+        if len(axes) != self.dimensions:
+            raise ValueError('Invalid axes argument')
+
+        ret = copy.copy(self)
+        ret.axes = [ret.axes[i] for i in axes]
+        ret._matrix = ret._matrix.transpose(*axes)
+        return ret
+
+    @property
+    def T(self):
+        return self.transpose()
+
+    def swapaxes(self, axis1, axis2):
+        '''
+        Swaps the axes `axis1` and `axis2`, equivalent to the numpy function with the same name.
+        '''
+        axes = list(range(self.dimensions))
+        axes[axis1] = axis2
+        axes[axis2] = axis1
+        return self.transpose(*axes)
+
     def mean(self, axis=-1):
         '''
         takes the mean along the given axis.

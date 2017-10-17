@@ -145,6 +145,30 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d[0.5:, :, 0.5].matrix.shape, (2, 5, 1))
         self.assertEqual(self.f3d[0.5:, :, 0.5].squeeze().matrix.shape, (2, 5))
 
+    def test_transpose(self):
+        f3d_T = self.f3d.T
+        c, b, a = self.f3d.shape
+        self.assertEqual((a,b,c), f3d_T.shape)
+        self.assertEqual(len(self.f3d.axes[0]), len(f3d_T.axes[2]))
+        self.assertEqual(len(self.f3d.axes[1]), len(f3d_T.axes[1]))
+        self.assertEqual(len(self.f3d.axes[2]), len(f3d_T.axes[0]))
+
+        f3d_T = self.f3d.transpose(0,2,1)
+        a, c, b = self.f3d.shape
+        self.assertEqual((a,b,c), f3d_T.shape)
+        self.assertEqual(len(self.f3d.axes[0]), len(f3d_T.axes[0]))
+        self.assertEqual(len(self.f3d.axes[1]), len(f3d_T.axes[2]))
+        self.assertEqual(len(self.f3d.axes[2]), len(f3d_T.axes[1]))
+
+    def test_swapaxes(self):
+        f2d_swapped = self.f2d.swapaxes(0,1)
+        b, a = self.f2d.shape
+        self.assertEqual((a,b), f2d_swapped.shape)
+        self.assertEqual(self.f2d.axes[0].extent, f2d_swapped.axes[1].extent)
+        self.assertEqual(self.f2d.axes[1].extent, f2d_swapped.axes[0].extent)
+        self.assertEqual(len(self.f2d.axes[0]), len(f2d_swapped.axes[1]))
+        self.assertEqual(len(self.f2d.axes[1]), len(f2d_swapped.axes[0]))
+
     def test_autocutout(self):
         f2d_f_c = self.f2d_fine.autocutout(fractions=(0.01, 0.02))
         self.assertEqual(f2d_f_c.shape, (98,100))
