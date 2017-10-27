@@ -483,7 +483,7 @@ class FFTW_Pad:
     FFTW_Pad is a class whichs objects are callables that are suitable as `fft_padsize`
     arguments to `Field.fft_autopad` and calculate optimal padding sizes for FFTW.
     """
-    def __init__(self, fftsize_max=10000, factors=(2, 3, 5, 7, 11, 13)):
+    def __init__(self, fftsize_max=None, factors=(2, 3, 5, 7, 11, 13)):
         '''
         Calculate all 'good' sizes up to fftsize_max, using the given factors.
         While at it, make sure that at most one factor 11 or 13 exists.
@@ -491,14 +491,24 @@ class FFTW_Pad:
         FFTW documentation says: "FFTW is best at handling sizes of the form 2^a 3^b 5^c
         7^d 11^e 13^f, where e+f is either 0 or 1, and the other exponents are arbitrary."
         '''
+        self.factors = factors
+        self.fftsize_max = 0 if fftsize_max is None else fftsize_max
+
+    @property
+    def fftsize_max(self):
+        return self._fftsize_max
+
+    @fftsize_max.setter
+    def fftsize_max(self, fftsize_max):
+        self._fftsize_max = fftsize_max
+
         extra_factors = [1]
-        factors = list(factors)
+        factors = list(self.factors)
         for x in (11, 13):
             if x in factors:
                 extra_factors.append(x)
                 factors.remove(x)
 
-        self.fftsize_max = fftsize_max
         fftsizes = []
         for extra_factor in extra_factors:
             max_powers = [int(math.log(fftsize_max/extra_factor+1, i))+1 for i in factors]
@@ -507,7 +517,6 @@ class FFTW_Pad:
                             for powers
                             in itertools.product(*powers_ranges)  # build all combination of pwrs
                             )
-
         self.fftsizes = np.array(list(sorted(filter(lambda x: x <= fftsize_max, fftsizes))))
 
     def __call__(self, n):
@@ -515,9 +524,10 @@ class FFTW_Pad:
         In the list of sizes calculated at initialization, find the next good value equal
         or larger than a given `n`.
         '''
-        if n > self.fftsize_max:
-            raise ValueError("Given grid is larger then {}. Please use a custom object of "
-                             "the class helper.FFTW_Pad.".format(self.fftsize_max))
+        if n > self.fftsizes[-1]:
+            # make sure values are calculated, such that a good fftsize
+            # larger than n can be found. +10000 sould be safe for that purpose
+            self.fftsize_max = n + 10000
         i = np.searchsorted(self.fftsizes, n)
         return self.fftsizes[i]
 
@@ -1068,4 +1078,3 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
         return k_transverse_tprofile.fft(otheraxes)
     else:
         return k_transverse_tprofile
-
