@@ -478,7 +478,7 @@ def product(iterable):
     return p
 
 
-class FFTW_Pad:
+class FFTW_Pad(object):
     """
     FFTW_Pad is a class whichs objects are callables that are suitable as `fft_padsize`
     arguments to `Field.fft_autopad` and calculate optimal padding sizes for FFTW.
