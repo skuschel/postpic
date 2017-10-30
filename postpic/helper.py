@@ -492,7 +492,7 @@ class FFTW_Pad:
         7^d 11^e 13^f, where e+f is either 0 or 1, and the other exponents are arbitrary."
         '''
         self.factors = factors
-        self.fftsize_max = 0 if fftsize_max is None else fftsize_max
+        self.fftsize_max = 1 if fftsize_max is None else fftsize_max
 
     @property
     def fftsize_max(self):
