@@ -9,7 +9,7 @@
 
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
 
-**Other imrpovements and new features**
+**Other improvements and new features**
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
