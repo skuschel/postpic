@@ -129,7 +129,7 @@ class Axis(object):
         Checks if the axis has a linear grid.
         """
         if self._linear is None or force:
-            self._linear = np.var(np.diff(self._grid_node))/np.mean(abs(self._grid_node)) < 1e-7
+            self._linear = helper.islinear(self._grid_node)
         return self._linear
 
     @property

@@ -366,6 +366,10 @@ def jac_det(jacobian_func):
     return fun
 
 
+def islinear(grid):
+    return np.var(np.diff(grid))/np.mean(abs(grid)) < 1e-7
+
+
 def approx_jacobian(transform):
     '''
     Approximate the jacobian of the transformation given by transform.
@@ -381,6 +385,14 @@ def approx_jacobian(transform):
     '''
     def fun(*coords):
         ravel_coords = [np.ravel(c) for c in coords]
+
+        from pkg_resources import parse_version
+        if parse_version(np.__version__) < parse_version('1.13'):
+            if not all(islinear(r) for r in ravel_coords):
+                raise NotImplemented('Numerically approximating the Jacobian on a transform to a '
+                                     'non-equidistant grid is not implemented for numpy < 1.13.')
+            ravel_coords = [(r[-1]-r[0])/(len(r)-1) for r in ravel_coords]
+
         shape = np.broadcast(*coords).shape
         mapped_coords = transform(*coords)
         mapped_coords = [np.broadcast_to(c, shape) for c in mapped_coords]
