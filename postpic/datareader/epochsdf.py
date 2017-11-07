@@ -36,8 +36,22 @@ from . import Simulationreader_ifc
 import numpy as np
 import re
 from .. import helper
+from warnings import warn
 
 __all__ = ['Sdfreader', 'Visitreader']
+
+
+# The default staggering of the Grid.
+# Newer versions of EPOCH dump it (certainly v4.9.2)
+# older versions dont. The defaults will only be used,
+# if the stagger was not found in the dump.
+_default_stagger = {'Electric Field/Ex': 1,
+                    'Electric Field/Ey': 2,
+                    'Electric Field/Ez': 4,
+                    'Electric Field/Bx': 6,
+                    'Electric Field/By': 5,
+                    'Electric Field/Bz': 3}
+_default_stagger.update({k+'_averaged': v for k, v in _default_stagger.items()})
 
 
 class Sdfreader(Dumpreader_ifc):
@@ -84,7 +98,18 @@ class Sdfreader(Dumpreader_ifc):
     def gridoffset(self, key, axis):
         axid = helper.axesidentify[axis]
         dx = self.gridspacing(key, axis)
-        if hasattr(self[key], 'stagger') and (self[key].stagger & (1 << axid)):
+        if hasattr(self[key], 'stagger'):
+            # best case: stagger is saved
+            stagger = self[key].stagger
+        elif key in _default_stagger:
+            stagger = _default_stagger[key]
+        else:
+            warn('Stagger of "{:}" could not be found. \
+                  Assuming no stagger.'.format(key))
+            stagger = 0
+
+        staggered = stagger & (1 << axid)
+        if staggered:
             return self[key].grid_mid.data[axid][0] - dx/2.0
         else:
             return self[key].grid.data[axid][0] - dx/2.0
