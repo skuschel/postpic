@@ -1014,6 +1014,34 @@ class Field(object):
 
         return ret
 
+    def ensure_transform_state(self, transform_states):
+        """
+        Makes sure that the field has the given transform_states. `transform_states` might be
+        a single boolean, indicating the same desired transform_state for all axes.
+        It may be a list of the desired transform states for all the axes or a dictionary
+        indicating the desired transform states of specific axes.
+        """
+        if not isinstance(transform_states, collections.Mapping):
+            if not isinstance(transform_states, collections.Iterable):
+                transform_states = [transform_states] * self.dimensions
+            transform_states = dict(enumerate(transform_states))
+
+        transform_axes = []
+        for axid in sorted(transform_states.keys()):
+            if self.axes_transform_state[axid] != transform_states[axid]:
+                transform_axes.append(axid)
+
+        if len(transform_axes) == 0:
+            return self
+
+        return self.fft(tuple(transform_axes))
+
+    def ensure_spatial_domain(self):
+        return self.ensure_transform_state(False)
+
+    def ensure_frequency_domain(self):
+        return self.ensure_transform_state(True)
+
     def _apply_linear_phase(self, dx):
         '''
         Apply a linear phase as part of translating the grid points.
