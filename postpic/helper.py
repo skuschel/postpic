@@ -508,6 +508,7 @@ def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to=
 
     # apply extent to all fields
     if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
         fields = _kspace_helper_cutfields(component, fields, extent)
 
     if polfield == align_to:
@@ -574,6 +575,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
     # apply extent to all fields
     if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
         fields = _kspace_helper_cutfields(component, fields, extent)
 
     # polarization axis
@@ -589,17 +591,20 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     except KeyError:
         raise ValueError("Required field {} not present in fields".format(component))
 
+    # Change to frequency domain
+    result = result.ensure_frequency_domain()
+
+    result_spatial_grid = result._conjugate_grid()
+    result_spatial_grid = [result_spatial_grid[k] for k in sorted(result_spatial_grid.keys())]
+
     # remember the origins of result's axes to compare with other fields
-    result_origin = [a.grid_node[0] for a in result.axes]
+    result_origin = [g[0] for g in result_spatial_grid]
 
     # store box size of input field
-    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in result.axes])
+    Dx = np.array([g[-1] - g[0] for g in result_spatial_grid])
 
     # store grid spacing of input field
-    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in result.axes])
-
-    # Change to frequency domain
-    result = result.fft()
+    dx = np.array([g[1] - g[0] for g in result_spatial_grid])
 
     # calculate the k mesh and k^2
     mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
@@ -636,9 +641,24 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
             except KeyError as e:
                 raise ValueError("Required field {} not present in fields".format(e.message))
 
-            # remember the origin and box size of the field
-            field_origin = [a.grid_node[0] for a in field.axes]
-            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
+            if field._transform_state is True:
+                field_spatial_grid = field._conjugate_grid()
+                field_spatial_grid = [field_spatial_grid[k] for k in
+                                      sorted(field_spatial_grid.keys())]
+
+                # remember the origins of result's axes to compare with other fields
+                field_origin = [g[0] for g in field_spatial_grid]
+
+                # store box size of input field
+                oDx = np.array([g[-1] - g[0] for g in field_spatial_grid])
+
+                # store grid spacing of input field
+                # odx = np.array([g[1] - g[0] for g in field_spatial_grid])
+            else:
+                field_origin = [a.grid[0] for a in field.axes]
+
+                # remember the origin and box size of the field
+                oDx = np.array([a.grid[-1] - a.grid[0] for a in field.axes])
 
             # Test if all fields have the same number of grid points
             if not field.shape == result.shape:
@@ -674,9 +694,10 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
             # linear interpolation is applied before the fft
             if interpolation == 'linear':
-                field = field.shift_grid_by(grid_shift, interpolation='linear')
+                field = field.ensure_spatial_domain().shift_grid_by(grid_shift,
+                                                                    interpolation='linear')
 
-            field = field.fft()
+            field = field.ensure_frequency_domain()
 
             # fourier interpolation is done after the fft by applying a linear phase
             if interpolation == 'fourier':
