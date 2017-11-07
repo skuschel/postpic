@@ -897,6 +897,30 @@ class Field(object):
                 return b
         return None
 
+    def _conjugate_grid(self, axes=None):
+        """
+        Calculate the new grid that will emerge when a FFT would be transformed.
+        """
+        # If axes is None, transform all axes
+        if axes is None:
+            axes = range(self.dimensions)
+
+        # If axes is not a tuple, make it a one-tuple
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        dx = {i: self.axes[i].spacing for i in axes}
+        new_axes = {
+            i: fft.fftshift(2*np.pi*fft.fftfreq(self.shape[i], dx[i]))
+            for i in axes
+        }
+
+        for i in axes:
+            # restore original axes origins
+            if self.transformed_axes_origins[i]:
+                new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
+        return new_axes
+
     def fft(self, axes=None, exponential_signs='spatial', **kwargs):
         '''
         Performs Fourier transform on any number of axes.
@@ -956,12 +980,6 @@ class Field(object):
         # normalization factor ensuring Parseval's Theorem
         fftnorm = np.sqrt(V/Vk)
 
-        # new axes in conjugate space
-        new_axes = {
-            i: fft.fftshift(2*np.pi*fft.fftfreq(self.shape[i], dx[i]))
-            for i in axes
-        }
-
         my_fft_args = fft_kwargs.copy()
         my_fft_args.update(kwargs)
 
@@ -999,11 +1017,8 @@ class Field(object):
         ret.matrix = mat
 
         # Update axes objects
+        new_axes = self._conjugate_grid(axes)
         for i in axes:
-            # restore original axes origins
-            if self.transformed_axes_origins[i]:
-                new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
-
             # update axes objects
             new_axesobjs[i].grid = new_axes[i]
             ret.setaxisobj(i, new_axesobjs[i])
