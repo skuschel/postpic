@@ -732,6 +732,10 @@ class Field(object):
 
         # This info is invalidated
         ret.transformed_axes_origins = [None]*ret.dimensions
+        transform_state = self._transform_state()
+        if transform_state is None:
+            transform_state = False
+        ret.axes_transform_state = [transform_state]*ret.dimensions
 
         return ret
 
