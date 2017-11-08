@@ -55,7 +55,7 @@ def run_autopep8(args):
         print('$ ' + ' '.join(argv))
         autopep8.main(argv)
 
-def run_alltests(python='python'):
+def run_alltests(python='python', fast=False):
     '''
     runs all tests on postpic. This function has to exit without error on every commit!
     '''
@@ -80,11 +80,13 @@ def run_alltests(python='python'):
 
     cmds = [python + '-m nose',
             python + '-m ' + pycodestylecmd + ' postpic --statistics --count --show-source '
-            '--ignore=W391,E123,E226,E24 --max-line-length=99',
-            python + os.path.join('examples', 'simpleexample.py'),
+            '--ignore=W391,E123,E226,E24 --max-line-length=99']
+    cmdo = [python + os.path.join('examples', 'simpleexample.py'),
             python + os.path.join('examples', 'particleshapedemo.py'),
             python + os.path.join('examples', 'time_cythonfunctions.py'),
             python + os.path.join('examples', 'openPMD.py')]
+    if not fast:
+        cmds += cmdo
     for cmd in cmds:
         runcmd(cmd)
 
@@ -101,6 +103,8 @@ def main():
         Use "--autopep8" to preview changes. To apply them, use
         "--autopep8 fix"
         ''')
+    parser.add_argument('--fast', action='store_true', default=False,
+                        help='Only run a subset of tests. Used for commit hook.')
     pyversiongroup = parser.add_mutually_exclusive_group(required=False)
     pyversiongroup.add_argument('--pycmd', default='python',
                                 help='use "PYCMD" as python interpreter for all subcommands. '
@@ -115,7 +119,7 @@ def main():
         run_autopep8(args)
         exit()
 
-    run_alltests(args.pycmd)
+    run_alltests(args.pycmd, fast=args.fast)
 
 if __name__ == '__main__':
     main()
