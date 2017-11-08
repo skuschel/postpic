@@ -758,7 +758,15 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_
             except KeyError as e:
                 raise ValueError("Required field {} not present in fields".format(e.message))
 
-            if field._transform_state() is True:
+            field_transform_state = field._transform_state()
+            if field_transform_state is None:
+                if interpolation == 'linear':
+                    field = field.ensure_spatial_domain()
+                else:
+                    field = field.ensure_frequency_domain()
+
+            field_transform_state = field._transform_state()
+            if field_transform_state is True:
                 field_spatial_grid = field._conjugate_grid()
                 field_spatial_grid = [field_spatial_grid[k] for k in
                                       sorted(field_spatial_grid.keys())]
