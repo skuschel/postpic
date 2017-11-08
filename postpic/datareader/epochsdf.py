@@ -50,7 +50,10 @@ _default_stagger = {'Electric Field/Ex': 1,
                     'Electric Field/Ez': 4,
                     'Electric Field/Bx': 6,
                     'Electric Field/By': 5,
-                    'Electric Field/Bz': 3}
+                    'Electric Field/Bz': 3,
+                    'Current/Jx': 1,
+                    'Current/Jy': 2,
+                    'Current/Jz': 4}
 _default_stagger.update({k+'_averaged': v for k, v in _default_stagger.items()})
 
 
@@ -103,9 +106,12 @@ class Sdfreader(Dumpreader_ifc):
             stagger = self[key].stagger
         elif key in _default_stagger:
             stagger = _default_stagger[key]
+        elif key.startswith('Derived/'):
+            # c_stagger_cell_centre in EPOCH code
+            stagger = 0
         else:
             warn('Stagger of "{:}" could not be found. \
-                  Assuming no stagger.'.format(key))
+                  Assuming no stagger (that is cell center).'.format(key))
             stagger = 0
 
         staggered = stagger & (1 << axid)
