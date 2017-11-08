@@ -30,6 +30,19 @@ __all__ = ['kspace_propagate_adaptive']
 
 def _kspace_propagate_adaptive_generator(field_in, axis=0,
                                          yield_zeroth_step=False):
+    """
+    An adaptive method to use Fourier propagation (provided by the function
+    `helper.kspace_propagate`) to get far field data.
+    The field is padded, propagated and automatically sliced in repeating steps.
+
+    Note that this method is highly experimental and should not be trusted as is:
+    It is merely meant as a recipe so you don't have to write your own function from scratch!
+
+    `field_in`: input field in either spatial or frequency domain
+    `axis`: The direction in which to propagate. Currently only propagation parallel to the
+    positive x, y or z direction is implemented.
+    `yield_zeroth_step`: boolean that determines if the initial step is also output.
+    """
     transform_state = field_in._transform_state()
     if transform_state is None:
         raise ValueError("kspace must have the same transform_state on all axes. "
@@ -93,7 +106,11 @@ def _kspace_propagate_adaptive_generator(field_in, axis=0,
             yield t, complex_ex
 
 
+@helper.prepend_doc_of(_kspace_propagate_adaptive_generator)
 def kspace_propagate_adaptive(field_in, axis=0, t_final=None, **kwargs):
+    """
+    `t_final`: The time at which to stop the adaptive propagation.
+    """
     gen = _kspace_propagate_adaptive_generator(field_in, axis=axis, **kwargs)
     while True:
         t, f = next(gen)

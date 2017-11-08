@@ -483,6 +483,13 @@ def max_frac_bounds(array, fraction):
 
 
 def product(iterable):
+    """
+    Calculate the cumulative product of objects from iterable.
+    This uses the first object from the iterable as a starting point and thus the iterable
+    must have at least one object in it, otherwise the function will fail.
+
+    Example: product(range(n)) == math.factorial(n)
+    """
     i = iter(iterable)
     p = next(i)
     for x in i:
