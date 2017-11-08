@@ -145,6 +145,17 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d[0.5:, :, 0.5].matrix.shape, (2, 5, 1))
         self.assertEqual(self.f3d[0.5:, :, 0.5].squeeze().matrix.shape, (2, 5))
 
+    def test_conjugate_grid(self):
+        f1d_grid = self.f1d.grid
+        f1d_grid2 = self.f1d.ensure_frequency_domain()._conjugate_grid()
+        self.assertTrue(np.all(np.isclose(f1d_grid, f1d_grid2[0])))
+
+        f2d_grid = self.f2d.grid
+        f2d_grid2 = self.f2d.fft()._conjugate_grid()
+        for k, v in f2d_grid2.items():
+            print(f2d_grid[k], v)
+            self.assertTrue(np.all(np.isclose(f2d_grid[k], v)))
+
     def test_fourier_inverse(self):
         f1d_orig = copy.deepcopy(self.f1d)
         self.f1d.fft()

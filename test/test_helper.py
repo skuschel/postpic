@@ -106,7 +106,10 @@ class TestKspace(unittest.TestCase):
         pp.chooseCode('dummy')
         for d in (1,2,3):
             dr = pp.readDump(10000, dimensions=d)
-            kspace = pp.helper.kspace_epoch_like("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+            fields = dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz())
+            for k, v in fields.items():
+                print(k, v.extent)
+            kspace = pp.helper.kspace_epoch_like("Ex", fields, 0.1)
 
     def test_kspace_propagate(self):
         pp.chooseCode('dummy')

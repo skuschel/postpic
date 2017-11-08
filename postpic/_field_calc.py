@@ -177,16 +177,16 @@ class FieldAnalyzer(object):
             return helper.kspace(component, fields, interpolation='fourier', **kwargs)
 
         if alignment.startswith('epoch'):
+            dt = self.time()/self.timestep()
             if 'omega_func' not in kwargs and solver == 'yee':
                 dx = [self.simgridspacing(axis) for axis in range(self.simdimensions())]
-                dt = self.time()/self.timestep()
                 kwargs['omega_func'] = helper.omega_yee_factory(dx, dt)
 
         if alignment == 'epoch':
-            return helper.kspace_epoch_like(component, fields, align_to='B', **kwargs)
+            return helper.kspace_epoch_like(component, fields, dt, align_to='B', **kwargs)
 
         if alignment == 'epoch-final':
-            return helper.kspace_epoch_like(component, fields, align_to='E', **kwargs)
+            return helper.kspace_epoch_like(component, fields, dt, align_to='E', **kwargs)
 
     def kspace_Ex(self, **kwargs):
         fields = dict()

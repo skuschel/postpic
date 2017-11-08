@@ -485,18 +485,34 @@ def omega_yee_factory(dx, dt):
     return omega_yee
 
 
+def omega_free(mesh):
+    """
+    Calculate the free space (vacuum) dispersion relation on the k-mesh `mesh`.
+
+    `mesh`: a mesh grid of the k vector space, typically a sparse grid as provided by
+    Field.meshgrid().
+    """
+    k2 = sum(ki**2 for ki in mesh)
+    return PhysicalConstants.c * np.sqrt(k2)
+
+
 def _kspace_helper_cutfields(component, fields, extent):
     slices = fields[component]._extent_to_slices(extent)
     return {k: f[slices] for k, f in fields.items()}
 
 
-def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to='B'):
+@deprecated("This function is left in postpic only for comparison. Use `kspace_epoch_like` "
+            "for real work.")
+def kspace_epoch_like_old(component, fields, extent=None, omega_func=omega_free, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
 
     This will choose the alignment of the fields in a way to improve
-    accuracy on EPOCH-like staggered dumps
+    accuracy on EPOCH-like staggered dumps.
+
+    This is the old version of the function and will be removed once the new method
+    is sufficiently tested
 
     For the current version of EPOCH, v4.9, use the following:
     align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
@@ -506,6 +522,7 @@ def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to=
 
     # apply extent to all fields
     if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
         fields = _kspace_helper_cutfields(component, fields, extent)
 
     if polfield == align_to:
@@ -525,7 +542,102 @@ def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to=
     return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
 
 
-def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
+def _linear_interpolation_frequency_response(dt, a=0.5):
+    """
+    Calculate the frequency response of a convolution with a [1-a, a] kernel, which is
+    basically a linear interpolation.
+    Assume a grid-step of `dt` and use a grid which `n` points.
+
+    `dt`: physical grid-step on which linear interpolation is done
+    `a`: shift distance of the linear interpolation in units of dt
+
+    Returns a function which takes omega as an input.
+    """
+    def f(omega):
+        return (1-a)+a*np.exp(1j*dt*omega)
+
+    return f
+
+
+def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, omega_func):
+    """
+    Remap the frequency response `lin_response_omega` from frequencies to wave-vectors.
+
+    `lin_response_omega`: frequency response function depending on omega, e.g. output of
+                          `_linear_interpolation_frequency_response`.
+    `k_axes`: A list of axes objects to map the response to, e.g. Field.axes
+    `omega_func`: The dispersion relation used to map k vectors to omega, e.g.
+                  `omega_yee_factory(dx, dt)`.
+
+    Returns the function f(k) as a Field object.
+    """
+    from . import datahandling
+
+    kmesh = np.meshgrid(*[ax.grid for ax in k_axes], indexing='ij', sparse=True)
+
+    resp_mat = abs(lin_response_omega(omega_func(kmesh)))
+
+    lin_res_k = datahandling.Field(resp_mat, name='f')
+    for i, ax in enumerate(k_axes):
+        lin_res_k.setaxisobj(i, copy.copy(ax))
+
+    return lin_res_k
+
+
+def kspace_epoch_like(component, fields, dt, extent=None, omega_func=omega_free, align_to='B'):
+    '''
+    Reconstruct the physical kspace of one polarization component
+    See documentation of kspace
+
+    This function will use special care to make sure, that the implicit linear interpolation
+    introduced by Epochs half-steps will not impede the accuracy of the reconstructed k-space.
+    The frequency response of the linear interpolation is modelled and removed from the
+    interpolated fields.
+
+    `dt`: time-step of the simulation, this is used to calculate the frequency response due
+    to the linear interpolated half-steps
+
+    For the current version of EPOCH, v4.9, use the following:
+    align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
+    '''
+    polfield = component[0]
+    polaxis = axesidentify[component[1]]
+
+    main_field_key = component
+    other_field_keys = list(fields.keys())
+    other_field_keys.remove(main_field_key)
+
+    # apply extent to all fields
+    if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
+        fields = _kspace_helper_cutfields(component, fields, extent)
+
+    # for k, v in fields.items():
+    #     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])
+
+    fields = {k: v.ensure_frequency_domain() for k, v in fields.items()}
+
+    lin_res = _linear_interpolation_frequency_response(dt)
+    lin_res_k = _linear_interpolation_frequency_response_on_k(lin_res, fields[main_field_key].axes,
+                                                              omega_func)
+
+    if polfield != align_to:
+        for c in other_field_keys:
+            # print('apply lin_response to ', c, 'transform_state is',
+            #       fields[c]._transform_state())
+            fields[c] = fields[c] / lin_res_k
+    else:
+        # print('apply lin_response to ', main_field_key, 'transform_state is',
+        #       fields[main_field_key]._transform_state())
+        fields[main_field_key] = fields[main_field_key] / lin_res_k
+
+    # for k, v in fields.items():
+    #     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])
+
+    return kspace(component, fields, interpolation='fourier')
+
+
+def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_free):
     '''
     Reconstruct the physical kspace of one polarization component
     This function basically computes one component of
@@ -572,6 +684,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
     # apply extent to all fields
     if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
         fields = _kspace_helper_cutfields(component, fields, extent)
 
     # polarization axis
@@ -587,27 +700,29 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     except KeyError:
         raise ValueError("Required field {} not present in fields".format(component))
 
+    # Change to frequency domain
+    result = result.ensure_frequency_domain()
+
+    result_spatial_grid = result._conjugate_grid()
+    result_spatial_grid = [result_spatial_grid[k] for k in sorted(result_spatial_grid.keys())]
+
     # remember the origins of result's axes to compare with other fields
-    result_origin = [a.grid_node[0] for a in result.axes]
+    result_origin = [g[0] for g in result_spatial_grid]
 
     # store box size of input field
-    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in result.axes])
+    Dx = np.array([g[-1] - g[0] for g in result_spatial_grid])
 
     # store grid spacing of input field
-    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in result.axes])
+    dx = np.array([g[1] - g[0] for g in result_spatial_grid])
 
-    # Change to frequency domain
-    result = result.fft()
+    # print('result_origin', result_origin, Dx, dx)
 
     # calculate the k mesh and k^2
     mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
     k2 = sum(ki**2 for ki in mesh)
 
     # calculate omega, either using the vacuum expression or omega_func()
-    if omega_func is None:
-        omega = PhysicalConstants.c * np.sqrt(k2)
-    else:
-        omega = omega_func(mesh)
+    omega = omega_func(mesh)
 
     # calculate the prefactor in front of the cross product
     # this will produce nan/inf in specific places, which are replaced by 0
@@ -634,9 +749,32 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
             except KeyError as e:
                 raise ValueError("Required field {} not present in fields".format(e.message))
 
-            # remember the origin and box size of the field
-            field_origin = [a.grid_node[0] for a in field.axes]
-            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
+            field_transform_state = field._transform_state()
+            if field_transform_state is None:
+                if interpolation == 'linear':
+                    field = field.ensure_spatial_domain()
+                else:
+                    field = field.ensure_frequency_domain()
+
+            field_transform_state = field._transform_state()
+            if field_transform_state is True:
+                field_spatial_grid = field._conjugate_grid()
+                field_spatial_grid = [field_spatial_grid[k] for k in
+                                      sorted(field_spatial_grid.keys())]
+
+                # remember the origins of result's axes to compare with other fields
+                field_origin = [g[0] for g in field_spatial_grid]
+
+                # store box size of input field
+                oDx = np.array([g[-1] - g[0] for g in field_spatial_grid])
+
+                # store grid spacing of input field
+                # odx = np.array([g[1] - g[0] for g in field_spatial_grid])
+            else:
+                field_origin = [a.grid[0] for a in field.axes]
+
+                # remember the origin and box size of the field
+                oDx = np.array([a.grid[-1] - a.grid[0] for a in field.axes])
 
             # Test if all fields have the same number of grid points
             if not field.shape == result.shape:
@@ -646,6 +784,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
             # Test if the axes of all fields have the same lengths
             if not np.all(np.isclose(Dx, oDx)):
+                # print(Dx, oDx)
                 raise ValueError("The axes of all given Fields must have the same length. "
                                  "Field {} has a different extent than {}.".format(field_key,
                                                                                    component))
@@ -672,15 +811,18 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
             # linear interpolation is applied before the fft
             if interpolation == 'linear':
-                field = field.shift_grid_by(grid_shift, interpolation='linear')
+                field = field.ensure_spatial_domain().shift_grid_by(grid_shift,
+                                                                    interpolation='linear')
 
-            field = field.fft()
+            field = field.ensure_frequency_domain()
 
             # fourier interpolation is done after the fft by applying a linear phase
             if interpolation == 'fourier':
+                # print('apply linear phase')
                 field = field._apply_linear_phase(dict(enumerate(grid_shift)))
 
             # add the field to the result with the appropriate prefactor
+            # print('add component', field_key)
             result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
 
     return result
