@@ -39,10 +39,9 @@ if git diff-index --quiet HEAD --; then
     exitcode=0
 else
     git stash -q --keep-index
-    ./run-tests.py
+    ./run-tests.py --fast
     exitcode=$?
     git reset --hard -q && git stash apply --index -q && git stash drop -q
 fi
 
 exit $exitcode
-
