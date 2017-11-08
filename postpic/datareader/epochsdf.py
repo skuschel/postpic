@@ -177,7 +177,7 @@ class Sdfreader(Dumpreader_ifc):
     def listSpecies(self):
         ret = set()
         for key in list(self.keys()):
-            match = re.match('Particles/\w+/(\w+(/\w+)?)', key)
+            match = re.match('Particles/\w+/([\w-]+(/[\w-]+)?)', key)
             if match:
                 ret.add(match.group(1))
         ret = list(ret)
