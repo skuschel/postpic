@@ -10,9 +10,14 @@
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
 
 **Other improvements and new features**
+* `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
+* `postpic.Field` has methods `.swapaxes`, `.transpose` and property `.T` compatible to numpy.ndarray
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
+* `postpic.Field` has a new method `autocutout` used to slice away close-to-zero regions from the borders
+* `postpic.Field` has a new method `fft_autopad` used to pad a small number of grid points to each axis such that the dimensions of the Field are favourable to FFTW
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
+* New module `postpic.experimental` to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.
 * k-space reconstruction from EPOCH dumps has greatly improved accuracy due to a new algorithm correctly incorporating the frequency response of the implicit linear interpolation performed by EPOCH's half-steps
 
 ## v0.3.1

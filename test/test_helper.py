@@ -117,5 +117,24 @@ class TestKspace(unittest.TestCase):
         kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
         pp.helper.kspace_propagate(kspace, 0.1, moving_window_vect=(1,0))
 
+    def test_time_profile_at_plane(self):
+        dr = pp.readDump(10000, dimensions=3)
+        kspace = pp.helper.kspace("Ex", fields=dict(Ex=dr.Ex(), By=dr.By(), Bz=dr.Bz()))
+        complex_ex = kspace.fft()
+        pp.helper.time_profile_at_plane(complex_ex, axis='z', value=1.0, dir=-1)
+
+
+class TestHelper(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_fftpadsize(self):
+        fft_padsize = pp.helper.FFTW_Pad(fftsize_max=10000, factors=(2, 3, 5, 7, 11, 13))
+        self.assertEqual(fft_padsize(223), 224)
+        self.assertEqual(fft_padsize(224), 224)
+        self.assertEqual(fft_padsize(250), 250)
+        self.assertEqual(fft_padsize(251), 252)
+
+
 if __name__ == '__main__':
     unittest.main()

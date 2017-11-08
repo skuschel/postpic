@@ -51,6 +51,8 @@ import numpy as np
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
 import scipy.integrate
+import scipy.signal as sps
+import numexpr as ne
 
 
 try:
@@ -88,7 +90,11 @@ except ImportError:
 
 
 try:
-    from skimage.restoration import unwrap_phase
+    with warnings.catch_warnings():
+        # skimage produces a DeprecationWarning by importing `imp`. We will silence this warning
+        # as we have nothing to do with it
+        warnings.simplefilter("ignore", DeprecationWarning)
+        from skimage.restoration import unwrap_phase
 except ImportError:
     unwrap_phase = None
 
@@ -805,6 +811,87 @@ class Field(object):
         slices = self._extent_to_slices(newextent)
         return self[slices]
 
+    def autocutout(self, axes=None, fractions=(0.001, 0.002)):
+        '''
+        Automatically cuts out the main feature of the field by removing border regions
+        that only contain small numbers.
+
+        This is done axis by axis. For each axis, the mean across all other axes is taken.
+        The maximum `max` of the remaining 1d-`array` is taken and searched for the outermost
+        boundaries a, d such that all values out of array[a:d] are smaller then fractions[0]*max.
+        A second set of boundaries b, c is searched such that all values out of array[b:c] are
+        smaller then fractions[1]*max.
+        Because fractions[1] should be larger than fractions[0], array[b:c] should be contained
+        completely in array[a:d].
+
+        A padding length x is chosen such that array[b-x:c+x] is entirely within array[a:d].
+
+        Then the corresponding axis of the field is sliced to [b-x:c+x] and multiplied with a
+        tukey-window such that the region [b:c] is left untouched and the field in the padding
+        region smoothly vanishes on the outer border.
+
+        This process is repeated for all axes in `axes` or for all axes if `axes` is None.
+        '''
+        field = self.squeeze()
+
+        if axes is None:
+            axes = range(field.dimensions)
+
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes, )
+
+        if len(axes) != len(set(axes)):
+            raise ValueError("This should be applied only once to each axis")
+
+        # collect the slices which we will apply to field
+        slices = [slice(None)]*field.dimensions
+
+        # collect the sparse window functions which we will all apply in the end using numexpr
+        windows = []
+
+        for axis in axes:
+            field_mean = abs(field)
+            for otheraxis in range(field.dimensions):
+                if otheraxis != axis:
+                    field_mean = field_mean.mean(otheraxis)
+
+            k = field_mean.shape[0]
+
+            # outer bounds for lower threshold
+            a, d = helper.max_frac_bounds(field_mean, fractions[0])
+
+            # inner bounds for higher threshold
+            b, c = helper.max_frac_bounds(field_mean, fractions[1])
+
+            # Above should result in a<=b<=c<=d
+            assert a <= b <= c <= d
+
+            # Length of inner region which will be passed through unchanged
+            ll = c-b
+
+            # length of remaining region befor/after inner region
+            x = max(d-c, b-a)
+            x = min(x, k-c, b)
+
+            # final indices of slice
+            e, f = b-x, c+x
+            slices[axis] = slice(e, f)
+
+            # new length of the axis
+            m = f-e
+
+            shape = [1]*field.dimensions
+            shape[axis] = m
+            windows.append(np.reshape(sps.tukey(m, 1-ll/m), shape))
+
+        field = field[slices]
+        varnames = "abcdefg"
+        expr = "*".join(varnames[:len(windows)+1])
+        local_dict = {v: w for v, w in zip(varnames[1:], windows)}
+        local_dict['a'] = field
+
+        return field.replace_data(ne.evaluate(expr, local_dict=local_dict, global_dict=None))
+
     def squeeze(self):
         '''
         removes axes that have length 1, reducing self.dimensions
@@ -819,6 +906,44 @@ class Field(object):
         ret._matrix = np.squeeze(ret.matrix)
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
+
+    def transpose(self, *axes):
+        '''
+        transpose method equivalent to numpy.ndarray.transpose. If axes is empty, the order of the
+        axes will be reversed. Otherwise axes[i] == j means that the i'th axis of the returned
+        Field will be the j'th axis of the input Field.
+        '''
+        if not axes:
+            axes = list(reversed(range(self.dimensions)))
+        elif len(axes) == self.dimensions:
+            pass
+        else:
+            axes = axes[0]
+
+        if len(axes) != self.dimensions:
+            raise ValueError('Invalid axes argument')
+
+        ret = copy.copy(self)
+        ret.axes = [ret.axes[i] for i in axes]
+        ret._matrix = ret._matrix.transpose(*axes)
+        return ret
+
+    @property
+    def T(self):
+        """
+        Return the Field with the order of axes reversed. In 2D this is the usual matrix
+        transpose operation.
+        """
+        return self.transpose()
+
+    def swapaxes(self, axis1, axis2):
+        '''
+        Swaps the axes `axis1` and `axis2`, equivalent to the numpy function with the same name.
+        '''
+        axes = list(range(self.dimensions))
+        axes[axis1] = axis2
+        axes[axis2] = axis1
+        return self.transpose(*axes)
 
     def mean(self, axis=-1):
         '''
@@ -896,6 +1021,40 @@ class Field(object):
             if all(self.axes_transform_state[i] == b for i in axes):
                 return b
         return None
+
+    def fft_autopad(self, axes=None, fft_padsize=helper.fftw_padsize):
+        """
+        Automatically pad the array to a size such that computing its FFT using FFTW will be
+        quick.
+
+        The default for keyword argument `fft_padsize` is a callable, that is used to calculate
+        the padded size for a given size.
+
+        By default, this uses `fft_padsize=helper.fftw_padsize` which finds the next larger "good"
+        grid size according to what the FFTW documentation says.
+
+        However, the FFTW documentation also says:
+        "(...) Transforms whose sizes are powers of 2 are especially fast."
+
+        If you don't worry about the extra padding, you can pass
+        `fft_padsize=helper.fft_padsize_power2` and this method will pad to the next power of 2.
+        """
+        if axes is None:
+            axes = range(self.dimensions)
+
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        pad = [0] * self.dimensions
+
+        for axis in axes:
+            ll = self.shape[axis]
+            pad0 = fft_padsize(ll) - ll
+            pad1 = pad0 // 2
+            pad2 = pad0 - pad1
+            pad[axis] = [pad1, pad2]
+
+        return self.pad(pad)
 
     def _conjugate_grid(self, axes=None):
         """

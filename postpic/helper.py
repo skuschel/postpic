@@ -30,6 +30,8 @@ import numpy.linalg as npl
 import re
 import warnings
 import functools
+import math
+import numexpr as ne
 try:
     from . import cythonfunctions as cyf
     particleshapes = cyf.shapes
@@ -41,7 +43,7 @@ except(ImportError):
 
 
 __all__ = ['PhysicalConstants', 'kspace_epoch_like', 'kspace',
-           'kspace_propagate']
+           'kspace_propagate', 'time_profile_at_plane']
 
 
 def isnotebook():
@@ -467,6 +469,93 @@ def find_nearest_index(array, value):
         return idx
 
 
+def max_frac_bounds(array, fraction):
+    """
+    For a 1d Array `array` this function gives indices `a`, `b` such that all values
+    `array[:a]` and `array[b:]` are smaller than `fraction*max(array)`
+    """
+    array = np.asarray(array)
+    c = np.max(array)*fraction
+    i = np.nonzero(array > c)[0]
+    return i[0], i[-1]+1
+
+
+def product(iterable):
+    """
+    Calculate the cumulative product of objects from iterable.
+    This uses the first object from the iterable as a starting point and thus the iterable
+    must have at least one object in it, otherwise the function will fail.
+
+    Example: product(range(n)) == math.factorial(n)
+    """
+    i = iter(iterable)
+    p = next(i)
+    for x in i:
+        p = p * x
+    return p
+
+
+class FFTW_Pad(object):
+    """
+    FFTW_Pad is a class whichs objects are callables that are suitable as `fft_padsize`
+    arguments to `Field.fft_autopad` and calculate optimal padding sizes for FFTW.
+    """
+    def __init__(self, fftsize_max=None, factors=(2, 3, 5, 7, 11, 13)):
+        '''
+        Calculate all 'good' sizes up to fftsize_max, using the given factors.
+        While at it, make sure that at most one factor 11 or 13 exists.
+
+        FFTW documentation says: "FFTW is best at handling sizes of the form 2^a 3^b 5^c
+        7^d 11^e 13^f, where e+f is either 0 or 1, and the other exponents are arbitrary."
+        '''
+        self.factors = factors
+        self.fftsize_max = 1 if fftsize_max is None else fftsize_max
+
+    @property
+    def fftsize_max(self):
+        return self._fftsize_max
+
+    @fftsize_max.setter
+    def fftsize_max(self, fftsize_max):
+        self._fftsize_max = fftsize_max
+
+        extra_factors = [1]
+        factors = list(self.factors)
+        for x in (11, 13):
+            if x in factors:
+                extra_factors.append(x)
+                factors.remove(x)
+
+        fftsizes = []
+        for extra_factor in extra_factors:
+            max_powers = [int(math.log(fftsize_max/extra_factor+1, i))+1 for i in factors]
+            powers_ranges = map(range, max_powers)
+            fftsizes.extend(extra_factor*product(f**p for f, p in zip(factors, powers))
+                            for powers
+                            in itertools.product(*powers_ranges)  # build all combination of pwrs
+                            )
+        self.fftsizes = np.array(list(sorted(filter(lambda x: x <= fftsize_max, fftsizes))))
+
+    def __call__(self, n):
+        '''
+        In the list of sizes calculated at initialization, find the next good value equal
+        or larger than a given `n`.
+        '''
+        if n > self.fftsizes[-1]:
+            # make sure values are calculated, such that a good fftsize
+            # larger than n can be found. +10000 sould be safe for that purpose
+            self.fftsize_max = n + 10000
+        i = np.searchsorted(self.fftsizes, n)
+        return self.fftsizes[i]
+
+
+fftw_padsize = FFTW_Pad()
+
+
+def fft_padsize_power2(n):
+    return 1 << n.bit_length()
+
+
 def omega_yee_factory(dx, dt):
     """
     Return a function omega_yee that is suitable as input for kspace.
@@ -822,8 +911,11 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_
                 field = field._apply_linear_phase(dict(enumerate(grid_shift)))
 
             # add the field to the result with the appropriate prefactor
-            # print('add component', field_key)
-            result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
+            # result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix
+            mesh_mesh_i = mesh[mesh_i]
+            rm = result.matrix
+            fm = field.matrix
+            result.matrix = ne.evaluate('rm + (-1)**(i-1) * prefactor * mesh_mesh_i * fm')
 
     return result
 
@@ -833,7 +925,6 @@ def linear_phase(field, dx):
     Calculates the linear phase as used in Field._apply_linear_phase and
     _kspace_propagate_generator.
     '''
-    import numexpr as ne
     transform_state = field._transform_state(dx.keys())
     axes = [ax.grid for ax in field.axes]  # each axis object returns new numpy array
     for i in range(len(axes)):
@@ -870,7 +961,8 @@ def linear_phase(field, dx):
 def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
                                 move_window=None,
                                 remove_antipropagating_waves=None,
-                                yield_zeroth_step=False):
+                                yield_zeroth_step=False,
+                                use_numexpr_in_inner_loop=True):
     '''
     Evolve time on a field.
     This function checks the transform_state of the field and transforms first from spatial
@@ -904,8 +996,6 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
     If remove_antipropagating_waves is None, the deletion of the antipropagating modes
     is automatically enabled if moving_window_vect is given.
     '''
-    import numexpr as ne
-
     transform_state = kspace._transform_state()
     if transform_state is None:
         raise ValueError("kspace must have the same transform_state on all axes. "
@@ -979,19 +1069,26 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
         if moving_window_vect is None:
             raise ValueError("Missing required argument moving_window_vect.")
         exp_ikdx = linear_phase(kspace, moving_window_dict)
+        exp_ikdx_iwt = ne.evaluate('exp_iwt * exp_ikdx')
 
     while True:
         if move_window:
             # Apply the phase due the propagation via the dispersion relation omega
             # and apply the linear phase due to the moving window
-            kspace = kspace.replace_data(ne.evaluate('kspace * exp_ikdx * exp_iwt'))
+            if use_numexpr_in_inner_loop:
+                kspace = kspace.replace_data(ne.evaluate('kspace * exp_ikdx_iwt'))
+            else:
+                kspace = kspace * exp_ikdx_iwt
 
             for i in moving_window_dict.keys():
                 kspace.transformed_axes_origins[i] += moving_window_dict[i]
 
         else:
             # Apply the phase due the propagation via the dispersion relation omega
-            kspace = kspace.replace_data(ne.evaluate('kspace * exp_iwt'))
+            if use_numexpr_in_inner_loop:
+                kspace = kspace.replace_data(ne.evaluate('kspace * exp_iwt'))
+            else:
+                kspace = kspace * exp_iwt
 
         if do_fft:
             yield kspace.fft()
@@ -1014,3 +1111,128 @@ def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
         return next(gen)
 
     return itertools.islice(gen, nsteps)
+
+
+def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, **kwargs):
+    '''
+    'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
+
+    The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.
+
+    `axis` specifies the axis perpendicular to the measurement plane.
+
+    `dir=1` specifies propagation towards positive `axis`, `dir=-1` specifies the opposite
+    direction of propagation.
+
+    `value` specifies the position of the plane along `axis`. If `value=None,` a default is chosen,
+    depending on `dir`.
+
+    If `dir=-1`, the starting point of the axis is used, which lies at the 0-component of the
+    inverse transform.
+
+    If `dir=1`, the end point of the axis + one axis spacing is used, which, via periodic boundary
+    conditions of the fft, also lies at the 0-component of the inverse transform.
+
+    If the given `value` differs from these defaults, an initial propagation with moving window
+    will be performed, such that the desired plane lies in the default position.
+
+    For example `axis='x'` and `value=0.0` specifies the 'x=0.0' plane while `dir=1` specifies
+    propagation towards positive 'x' values. The 'x' axis starts at 2e-5 and ends at 6e-5 with
+    a grid spacing of 1e-6. The default value for the measurement plane would have been 6.1e-5
+    so an initial backward propagation with dt = -6.1e-5/c is performed to move the pulse in front
+    of the'x=0.0 plane.
+
+    Additional `kwargs` are passed to kspace_propagate if they are not overridden by this function.
+    '''
+    # can't import this at top of module because this would create a circular import
+    # importing here is ok, because helper and datahandling are both already interpreted
+    from . import datahandling
+
+    transform_state = kspace_or_complex_field._transform_state()
+    if transform_state is None:
+        raise ValueError("kspace_or_complex_field must have the same transform_state on all axes. "
+                         "Please make sure that either all axes 'live' in spatial domain or all "
+                         "axes 'live' in frequency domain.")
+
+    do_fft = not transform_state
+
+    if do_fft:
+        kspace = kspace_or_complex_field.fft()
+        complex_field = kspace_or_complex_field
+    else:
+        kspace = kspace_or_complex_field
+        complex_field = kspace_or_complex_field.fft()
+
+    # interpret axis
+    axis = axesidentify[axis]
+    otheraxes = list(range(kspace.dimensions))
+    otheraxes.remove(axis)
+
+    dr = complex_field.axes[axis].spacing
+    dt = dr/PhysicalConstants.c
+
+    dV = kspace.axes[axis].spacing
+    N = kspace.shape[axis]
+    V = dV*N
+    Vk = 2*np.pi/dV
+    fftnorm = np.sqrt(V/Vk) / np.sqrt(N)
+
+    # apply the fft norm just once
+    kspace = kspace * fftnorm
+
+    # updating the kwargs for kspace_propagate
+    kwargs['moving_window_vect'] = [0]*kspace.dimensions
+    kwargs['moving_window_vect'][axis] = dir
+    kwargs['move_window'] = True
+
+    # only remove backwards-propagating waves:
+    kwargs['nsteps'] = 1
+    kwargs['yield_zeroth_step'] = False
+
+    initial_dt = 0.0
+    # do an initial propagation with moving window to align the data with the measuring plane
+    if value is not None:
+        if dir > 0:
+            # measuring at the 0-component is just like measuring at the end of the grid + one
+            # axis spacing if propagating is assumed to be in positive axis direction
+            r = complex_field.axes[axis].grid[-1] + complex_field.axes[axis].spacing
+        else:
+            # measuring at the 0-component is just like measuring at the beginning of the grid
+            # if propagating is assumed to be in negative axis direction
+
+            r = complex_field.axes[axis].grid[0]
+
+        # do propagating of initial_dt such that the measurement plane is at `value`
+        initial_dt = (value-r) / PhysicalConstants.c
+
+    kspace = kspace_propagate(kspace, initial_dt, **kwargs)
+
+    # setup a generator for the propagated kspaces
+    kwargs['nsteps'] = len(complex_field.axes[axis])
+    kwargs['move_window'] = False
+    kwargs['yield_zeroth_step'] = False
+    gen = kspace_propagate(kspace, dt, **kwargs)
+
+    # initialize an empty matrix
+    newmat = np.empty_like(kspace.matrix)
+    slices = [slice(None)] * kspace.dimensions
+    expr = 'sum(km, {})'.format(axis)
+    for i, kspace_prop in enumerate(gen):
+        # fill the new matrix line by line by calculating the 0-component of the inverse
+        # transform after each propagation step
+        slices[axis] = i
+        km = kspace_prop.matrix
+        # newmat[slices] = np.sum(kspace_prop.matrix, axis=axis)
+        newmat[slices] = ne.evaluate(expr)
+
+    k_transverse_tprofile = kspace.replace_data(newmat)
+    t_axis = datahandling.Axis(name='t', unit='s')
+    t_axis.grid = np.linspace(0, (N-1)*dt, N)
+    k_transverse_tprofile.setaxisobj(axis, t_axis)
+    k_transverse_tprofile.axes_transform_state[axis] = False
+    k_transverse_tprofile.transformed_axes_origins[axis] = None
+
+    if do_fft:
+        return k_transverse_tprofile.fft(otheraxes)
+    else:
+        return k_transverse_tprofile

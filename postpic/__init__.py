@@ -27,6 +27,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from . import helper
 from . import datahandling
 from . import particles
+from . import experimental
 from .datahandling import *
 from .helper import *
 from .particles import *
