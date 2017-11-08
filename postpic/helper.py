@@ -488,6 +488,12 @@ def omega_yee_factory(dx, dt):
 
 
 def omega_free(mesh):
+    """
+    Calculate the free space (vacuum) dispersion relation on the k-mesh `mesh`.
+
+    `mesh`: a mesh grid of the k vector space, typically a sparse grid as provided by
+    Field.meshgrid().
+    """
     k2 = sum(ki**2 for ki in mesh)
     return PhysicalConstants.c * np.sqrt(k2)
 
@@ -497,6 +503,8 @@ def _kspace_helper_cutfields(component, fields, extent):
     return {k: f[slices] for k, f in fields.items()}
 
 
+@deprecated("This function is left in postpic only for comparison. Use `kspace_epoch_like` "
+            "for real work.")
 def kspace_epoch_like_old(component, fields, extent=None, omega_func=omega_free, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
@@ -537,6 +545,17 @@ def kspace_epoch_like_old(component, fields, extent=None, omega_func=omega_free,
 
 
 def _linear_interpolation_frequency_response(dt, a=0.5, n=128):
+    """
+    Calculate the frequency response of a convolution with a [1-a, a] kernel, which is
+    basically a linear interpolation.
+    Assume a grid-step of `dt` and use a grid which `n` points.
+
+    `dt`: physical grid-step on which linear interpolation is done
+    `a`: shift distance of the linear interpolation in units of dt
+    `n`: number of points used in calculation
+
+    Returns the function f(omega) as a Field object.
+    """
     from . import datahandling
 
     b = np.zeros(n)
@@ -555,6 +574,17 @@ def _linear_interpolation_frequency_response(dt, a=0.5, n=128):
 
 
 def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, omega_func):
+    """
+    Remap the frequency response `lin_response_omega` from frequencies to wave-vectors.
+
+    `lin_response_omega`: frequency response function depending on omega, e.g. output of
+                          `_linear_interpolation_frequency_response`.
+    `k_axes`: A list of axes objects to map the response to, e.g. Field.axes
+    `omega_func`: The dispersion relation used to map k vectors to omega, e.g.
+                  `omega_yee_factory(dx, dt)`.
+
+    Returns the function f(k) as a Field object.
+    """
     def map_k_omega(*kmesh):
         return (omega_func(kmesh), )
 
@@ -568,11 +598,13 @@ def kspace_epoch_like(component, fields, dt, extent=None, omega_func=omega_free,
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
 
+    This function will use special care to make sure, that the implicit linear interpolation
+    introduced by Epochs half-steps will not impede the accuracy of the reconstructed k-space.
+    The frequency response of the linear interpolation is modelled and removed from the
+    interpolated fields.
+
     `dt`: time-step of the simulation, this is used to calculate the frequency response due
     to the linear interpolated half-steps
-
-    This will choose the alignment of the fields in a way to improve
-    accuracy on EPOCH-like staggered dumps
 
     For the current version of EPOCH, v4.9, use the following:
     align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
