@@ -203,8 +203,13 @@ class SpeciesIdentifier(PhysicalConstants):
                  'gold20': _specdict(1836.2 * 197, 20, True)}
 
     #  unit: amu
-    _masslistelement = {'H': 1, 'He': 4, 'Li': 6.9, 'C': 12, 'N': 14, 'O': 16, 'F': 19,
-                        'Ne': 20.2, 'Al': 27, 'Si': 28, 'Ar': 40, 'Rb': 85.5, 'Au': 197}
+    _masslistelement = {'H': 1, 'He': 4,
+                        'Li': 6.9, 'C': 12, 'N': 14, 'O': 16, 'F': 19, 'Ne': 20.2,
+                        'Na': 23, 'Al': 27, 'Si': 28, 'S': 32, 'Cl': 35.5, 'Ar': 40,
+                        'Ti': 47.9, 'Cr': 52, 'Fe': 55.8, 'Cu': 63.5, 'Zn': 65.4, 'Kr': 83.8,
+                        'Rb': 85.5, 'Zr': 91.2, 'Pd': 106.4, 'Ag': 107.8, 'Sn': 118.7,
+                        'Xe': 131.3,
+                        'W': 183.8, 'Pt': 195, 'Au': 197, 'Hg': 200.6, 'Pb': 207.2}
 
     @staticmethod
     def isejected(species):
