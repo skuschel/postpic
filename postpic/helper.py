@@ -176,40 +176,42 @@ class SpeciesIdentifier(PhysicalConstants):
     can be used as a mixin.
     '''
 
-    # unit: electronmass
-    _masslist = {'electrongold': 1, 'proton': 1836.2 * 1,
-                 'ionp': 1836.2, 'ion': 1836.2 * 12, 'c6': 1836.2 * 12,
-                 'ionf': 1836.2 * 19, 'Palladium': 1836.2 * 106,
-                 'Palladium1': 1836.2 * 106, 'Palladium2': 1836.2 * 106,
-                 'Ion': 1836.2, 'Photon': 0, 'Positron': 1, 'positron': 1,
-                 'gold1': 1836.2 * 197, 'gold2': 1836.2 * 197,
-                 'gold3': 1836.2 * 197, 'gold4': 1836.2 * 197,
-                 'gold7': 1836.2 * 197, 'gold10': 1836.2 * 197,
-                 'gold20': 1836.2 * 197}
+    def _specdict(mass, charge, ision):
+        return dict(mass=mass * PhysicalConstants.me,
+                    charge=charge * PhysicalConstants.qe,
+                    ision=ision)
 
-    # unit: elementary charge
-    _chargelist = {'electrongold': -1, 'proton': 1,
-                   'ionp': 1, 'ion': 1, 'c6': 6,
-                   'ionf': 1, 'Palladium': 0,
-                   'Palladium1': 1, 'Palladium2': 2,
-                   'Ion': 1, 'Photon': 0, 'Positron': 1, 'positron': 1,
-                   'gold1': 1, 'gold2': 2, 'gold3': 3,
-                   'gold4': 4, 'gold7': 7, 'gold10': 10,
-                   'gold20': 20}
-
-    _isionlist = {'electrongold': False, 'proton': True,
-                  'ionp': True, 'ion': True, 'c6': True,
-                  'ionf': True, 'f9': True, 'Palladium': True,
-                  'Palladium1': True, 'Palladium2': True,
-                  'Ion': True, 'Photon': False, 'Positron': False,
-                  'positron': False,
-                  'gold1': True, 'gold2': True, 'gold3': True,
-                  'gold4': True, 'gold7': True, 'gold10': True,
-                  'gold20': True}
+    # if in default, use this
+    _defaults = {'electrongold': _specdict(1, -1, False),
+                 'proton': _specdict(1836.2 * 1, 1, True),
+                 'Proton': _specdict(1836.2 * 1, 1, True),
+                 'ionp': _specdict(1836.2, 1, True),
+                 'ion': _specdict(1836.2 * 12, 1, True),
+                 'c6': _specdict(1836.2 * 12, 1, True),
+                 'ionf': _specdict(1836.2 * 19, 1, True),
+                 'Palladium': _specdict(1836.2 * 106, 0, True),
+                 'Palladium1': _specdict(1836.2 * 106, 1, True),
+                 'Palladium2': _specdict(1836.2 * 106, 2, True),
+                 'Ion': _specdict(1836.2, 1, True),
+                 'Photon': _specdict(0, 0, False),
+                 'Positron': _specdict(1, 1, False),
+                 'positron': _specdict(1, 1, False),
+                 'gold1': _specdict(1836.2 * 197, 1, True),
+                 'gold3': _specdict(1836.2 * 197, 3, True),
+                 'gold4': _specdict(1836.2 * 197, 4, True),
+                 'gold2': _specdict(1836.2 * 197, 2, True),
+                 'gold7': _specdict(1836.2 * 197, 7, True),
+                 'gold10': _specdict(1836.2 * 197, 10, True),
+                 'gold20': _specdict(1836.2 * 197, 20, True)}
 
     #  unit: amu
-    _masslistelement = {'H': 1, 'He': 4, 'Li': 6.9, 'C': 12, 'N': 14, 'O': 16, 'F': 19,
-                        'Ne': 20.2, 'Al': 27, 'Si': 28, 'Ar': 40, 'Rb': 85.5, 'Au': 197}
+    _masslistelement = {'H': 1, 'He': 4,
+                        'Li': 6.9, 'C': 12, 'N': 14, 'O': 16, 'F': 19, 'Ne': 20.2,
+                        'Na': 23, 'Al': 27, 'Si': 28, 'S': 32, 'Cl': 35.5, 'Ar': 40,
+                        'Ti': 47.9, 'Cr': 52, 'Fe': 55.8, 'Cu': 63.5, 'Zn': 65.4, 'Kr': 83.8,
+                        'Rb': 85.5, 'Zr': 91.2, 'Pd': 106.4, 'Ag': 107.8, 'Sn': 118.7,
+                        'Xe': 131.3,
+                        'W': 183.8, 'Pt': 195, 'Au': 197, 'Hg': 200.6, 'Pb': 207.2}
 
     @staticmethod
     def isejected(species):
@@ -242,6 +244,12 @@ class SpeciesIdentifier(PhysicalConstants):
         """
         ret = {'tracer': False, 'ejected': False, 'name': species}
         s = species.replace('/', '_')
+
+        if s in cls._defaults:
+            # if species name is found in cls._defaults use it and
+            # return result.
+            ret.update(cls._defaults[s])
+            return ret
 
         # Regex for parsing ion species name.
         # See docsting for valid examples
@@ -300,16 +308,6 @@ class SpeciesIdentifier(PhysicalConstants):
             ret['mass'] = cls.me
             ret['charge'] = -1 * cls.qe
             ret['ision'] = False
-
-        # simply added to _masslist and _chargelist
-        # this should not be used anymore
-        # set only if property is not already set
-        if 'mass' not in ret and regexdict['suffix'] in cls._masslist:
-            ret['mass'] = float(cls._masslist[regexdict['suffix']]) * cls.me
-        if 'charge' not in ret and regexdict['suffix'] in cls._chargelist:
-            ret['charge'] = float(cls._chargelist[regexdict['suffix']] * cls.qe)
-        if 'ision' not in ret and regexdict['suffix'] in cls._isionlist:
-            ret['ision'] = cls._isionlist[regexdict['suffix']]
 
         if not (('mass' in ret) and ('charge' in ret) and ('ision' in ret)):
             raise Exception('species ' + species + ' not recognized.')
@@ -576,18 +574,34 @@ def omega_yee_factory(dx, dt):
     return omega_yee
 
 
+def omega_free(mesh):
+    """
+    Calculate the free space (vacuum) dispersion relation on the k-mesh `mesh`.
+
+    `mesh`: a mesh grid of the k vector space, typically a sparse grid as provided by
+    Field.meshgrid().
+    """
+    k2 = sum(ki**2 for ki in mesh)
+    return PhysicalConstants.c * np.sqrt(k2)
+
+
 def _kspace_helper_cutfields(component, fields, extent):
     slices = fields[component]._extent_to_slices(extent)
     return {k: f[slices] for k, f in fields.items()}
 
 
-def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to='B'):
+@deprecated("This function is left in postpic only for comparison. Use `kspace_epoch_like` "
+            "for real work.")
+def kspace_epoch_like_old(component, fields, extent=None, omega_func=omega_free, align_to='B'):
     '''
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
 
     This will choose the alignment of the fields in a way to improve
-    accuracy on EPOCH-like staggered dumps
+    accuracy on EPOCH-like staggered dumps.
+
+    This is the old version of the function and will be removed once the new method
+    is sufficiently tested
 
     For the current version of EPOCH, v4.9, use the following:
     align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
@@ -597,6 +611,7 @@ def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to=
 
     # apply extent to all fields
     if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
         fields = _kspace_helper_cutfields(component, fields, extent)
 
     if polfield == align_to:
@@ -616,7 +631,102 @@ def kspace_epoch_like(component, fields, extent=None, omega_func=None, align_to=
     return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
 
 
-def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
+def _linear_interpolation_frequency_response(dt, a=0.5):
+    """
+    Calculate the frequency response of a convolution with a [1-a, a] kernel, which is
+    basically a linear interpolation.
+    Assume a grid-step of `dt` and use a grid which `n` points.
+
+    `dt`: physical grid-step on which linear interpolation is done
+    `a`: shift distance of the linear interpolation in units of dt
+
+    Returns a function which takes omega as an input.
+    """
+    def f(omega):
+        return (1-a)+a*np.exp(1j*dt*omega)
+
+    return f
+
+
+def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, omega_func):
+    """
+    Remap the frequency response `lin_response_omega` from frequencies to wave-vectors.
+
+    `lin_response_omega`: frequency response function depending on omega, e.g. output of
+                          `_linear_interpolation_frequency_response`.
+    `k_axes`: A list of axes objects to map the response to, e.g. Field.axes
+    `omega_func`: The dispersion relation used to map k vectors to omega, e.g.
+                  `omega_yee_factory(dx, dt)`.
+
+    Returns the function f(k) as a Field object.
+    """
+    from . import datahandling
+
+    kmesh = np.meshgrid(*[ax.grid for ax in k_axes], indexing='ij', sparse=True)
+
+    resp_mat = abs(lin_response_omega(omega_func(kmesh)))
+
+    lin_res_k = datahandling.Field(resp_mat, name='f')
+    for i, ax in enumerate(k_axes):
+        lin_res_k.setaxisobj(i, copy.copy(ax))
+
+    return lin_res_k
+
+
+def kspace_epoch_like(component, fields, dt, extent=None, omega_func=omega_free, align_to='B'):
+    '''
+    Reconstruct the physical kspace of one polarization component
+    See documentation of kspace
+
+    This function will use special care to make sure, that the implicit linear interpolation
+    introduced by Epochs half-steps will not impede the accuracy of the reconstructed k-space.
+    The frequency response of the linear interpolation is modelled and removed from the
+    interpolated fields.
+
+    `dt`: time-step of the simulation, this is used to calculate the frequency response due
+    to the linear interpolated half-steps
+
+    For the current version of EPOCH, v4.9, use the following:
+    align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
+    '''
+    polfield = component[0]
+    polaxis = axesidentify[component[1]]
+
+    main_field_key = component
+    other_field_keys = list(fields.keys())
+    other_field_keys.remove(main_field_key)
+
+    # apply extent to all fields
+    if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
+        fields = _kspace_helper_cutfields(component, fields, extent)
+
+    # for k, v in fields.items():
+    #     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])
+
+    fields = {k: v.ensure_frequency_domain() for k, v in fields.items()}
+
+    lin_res = _linear_interpolation_frequency_response(dt)
+    lin_res_k = _linear_interpolation_frequency_response_on_k(lin_res, fields[main_field_key].axes,
+                                                              omega_func)
+
+    if polfield != align_to:
+        for c in other_field_keys:
+            # print('apply lin_response to ', c, 'transform_state is',
+            #       fields[c]._transform_state())
+            fields[c] = fields[c] / lin_res_k
+    else:
+        # print('apply lin_response to ', main_field_key, 'transform_state is',
+        #       fields[main_field_key]._transform_state())
+        fields[main_field_key] = fields[main_field_key] / lin_res_k
+
+    # for k, v in fields.items():
+    #     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])
+
+    return kspace(component, fields, interpolation='fourier')
+
+
+def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_free):
     '''
     Reconstruct the physical kspace of one polarization component
     This function basically computes one component of
@@ -663,6 +773,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
     # apply extent to all fields
     if extent is not None:
+        fields = {k: v.ensure_spatial_domain() for k, v in fields.items()}
         fields = _kspace_helper_cutfields(component, fields, extent)
 
     # polarization axis
@@ -678,27 +789,29 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
     except KeyError:
         raise ValueError("Required field {} not present in fields".format(component))
 
+    # Change to frequency domain
+    result = result.ensure_frequency_domain()
+
+    result_spatial_grid = result._conjugate_grid()
+    result_spatial_grid = [result_spatial_grid[k] for k in sorted(result_spatial_grid.keys())]
+
     # remember the origins of result's axes to compare with other fields
-    result_origin = [a.grid_node[0] for a in result.axes]
+    result_origin = [g[0] for g in result_spatial_grid]
 
     # store box size of input field
-    Dx = np.array([a.grid_node[-1] - a.grid_node[0] for a in result.axes])
+    Dx = np.array([g[-1] - g[0] for g in result_spatial_grid])
 
     # store grid spacing of input field
-    dx = np.array([a.grid_node[1] - a.grid_node[0] for a in result.axes])
+    dx = np.array([g[1] - g[0] for g in result_spatial_grid])
 
-    # Change to frequency domain
-    result = result.fft()
+    # print('result_origin', result_origin, Dx, dx)
 
     # calculate the k mesh and k^2
     mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
     k2 = sum(ki**2 for ki in mesh)
 
     # calculate omega, either using the vacuum expression or omega_func()
-    if omega_func is None:
-        omega = PhysicalConstants.c * np.sqrt(k2)
-    else:
-        omega = omega_func(mesh)
+    omega = omega_func(mesh)
 
     # calculate the prefactor in front of the cross product
     # this will produce nan/inf in specific places, which are replaced by 0
@@ -725,9 +838,32 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
             except KeyError as e:
                 raise ValueError("Required field {} not present in fields".format(e.message))
 
-            # remember the origin and box size of the field
-            field_origin = [a.grid_node[0] for a in field.axes]
-            oDx = np.array([a.grid_node[-1] - a.grid_node[0] for a in field.axes])
+            field_transform_state = field._transform_state()
+            if field_transform_state is None:
+                if interpolation == 'linear':
+                    field = field.ensure_spatial_domain()
+                else:
+                    field = field.ensure_frequency_domain()
+
+            field_transform_state = field._transform_state()
+            if field_transform_state is True:
+                field_spatial_grid = field._conjugate_grid()
+                field_spatial_grid = [field_spatial_grid[k] for k in
+                                      sorted(field_spatial_grid.keys())]
+
+                # remember the origins of result's axes to compare with other fields
+                field_origin = [g[0] for g in field_spatial_grid]
+
+                # store box size of input field
+                oDx = np.array([g[-1] - g[0] for g in field_spatial_grid])
+
+                # store grid spacing of input field
+                # odx = np.array([g[1] - g[0] for g in field_spatial_grid])
+            else:
+                field_origin = [a.grid[0] for a in field.axes]
+
+                # remember the origin and box size of the field
+                oDx = np.array([a.grid[-1] - a.grid[0] for a in field.axes])
 
             # Test if all fields have the same number of grid points
             if not field.shape == result.shape:
@@ -737,6 +873,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
             # Test if the axes of all fields have the same lengths
             if not np.all(np.isclose(Dx, oDx)):
+                # print(Dx, oDx)
                 raise ValueError("The axes of all given Fields must have the same length. "
                                  "Field {} has a different extent than {}.".format(field_key,
                                                                                    component))
@@ -763,12 +900,14 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=None):
 
             # linear interpolation is applied before the fft
             if interpolation == 'linear':
-                field = field.shift_grid_by(grid_shift, interpolation='linear')
+                field = field.ensure_spatial_domain().shift_grid_by(grid_shift,
+                                                                    interpolation='linear')
 
-            field = field.fft()
+            field = field.ensure_frequency_domain()
 
             # fourier interpolation is done after the fft by applying a linear phase
             if interpolation == 'fourier':
+                # print('apply linear phase')
                 field = field._apply_linear_phase(dict(enumerate(grid_shift)))
 
             # add the field to the result with the appropriate prefactor

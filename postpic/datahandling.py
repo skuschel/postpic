@@ -738,6 +738,10 @@ class Field(object):
 
         # This info is invalidated
         ret.transformed_axes_origins = [None]*ret.dimensions
+        transform_state = self._transform_state()
+        if transform_state is None:
+            transform_state = False
+        ret.axes_transform_state = [transform_state]*ret.dimensions
 
         return ret
 
@@ -1052,6 +1056,30 @@ class Field(object):
 
         return self.pad(pad)
 
+    def _conjugate_grid(self, axes=None):
+        """
+        Calculate the new grid that will emerge when a FFT would be transformed.
+        """
+        # If axes is None, transform all axes
+        if axes is None:
+            axes = range(self.dimensions)
+
+        # If axes is not a tuple, make it a one-tuple
+        if not isinstance(axes, collections.Iterable):
+            axes = (axes,)
+
+        dx = {i: self.axes[i].spacing for i in axes}
+        new_axes = {
+            i: fft.fftshift(2*np.pi*fft.fftfreq(self.shape[i], dx[i]))
+            for i in axes
+        }
+
+        for i in axes:
+            # restore original axes origins
+            if self.transformed_axes_origins[i]:
+                new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
+        return new_axes
+
     def fft(self, axes=None, exponential_signs='spatial', **kwargs):
         '''
         Performs Fourier transform on any number of axes.
@@ -1111,12 +1139,6 @@ class Field(object):
         # normalization factor ensuring Parseval's Theorem
         fftnorm = np.sqrt(V/Vk)
 
-        # new axes in conjugate space
-        new_axes = {
-            i: fft.fftshift(2*np.pi*fft.fftfreq(self.shape[i], dx[i]))
-            for i in axes
-        }
-
         my_fft_args = fft_kwargs.copy()
         my_fft_args.update(kwargs)
 
@@ -1154,11 +1176,8 @@ class Field(object):
         ret.matrix = mat
 
         # Update axes objects
+        new_axes = self._conjugate_grid(axes)
         for i in axes:
-            # restore original axes origins
-            if self.transformed_axes_origins[i]:
-                new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
-
             # update axes objects
             new_axesobjs[i].grid = new_axes[i]
             ret.setaxisobj(i, new_axesobjs[i])
@@ -1168,6 +1187,34 @@ class Field(object):
             ret.transformed_axes_origins[i] = new_origins[i]
 
         return ret
+
+    def ensure_transform_state(self, transform_states):
+        """
+        Makes sure that the field has the given transform_states. `transform_states` might be
+        a single boolean, indicating the same desired transform_state for all axes.
+        It may be a list of the desired transform states for all the axes or a dictionary
+        indicating the desired transform states of specific axes.
+        """
+        if not isinstance(transform_states, collections.Mapping):
+            if not isinstance(transform_states, collections.Iterable):
+                transform_states = [transform_states] * self.dimensions
+            transform_states = dict(enumerate(transform_states))
+
+        transform_axes = []
+        for axid in sorted(transform_states.keys()):
+            if self.axes_transform_state[axid] != transform_states[axid]:
+                transform_axes.append(axid)
+
+        if len(transform_axes) == 0:
+            return self
+
+        return self.fft(tuple(transform_axes))
+
+    def ensure_spatial_domain(self):
+        return self.ensure_transform_state(False)
+
+    def ensure_frequency_domain(self):
+        return self.ensure_transform_state(True)
 
     def _apply_linear_phase(self, dx):
         '''
