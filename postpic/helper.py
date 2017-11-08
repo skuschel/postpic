@@ -544,7 +544,7 @@ def kspace_epoch_like_old(component, fields, extent=None, omega_func=omega_free,
     return kspace(component, fields, interpolation='fourier', omega_func=omega_func)
 
 
-def _linear_interpolation_frequency_response(dt, a=0.5, n=128):
+def _linear_interpolation_frequency_response(dt, a=0.5):
     """
     Calculate the frequency response of a convolution with a [1-a, a] kernel, which is
     basically a linear interpolation.
@@ -552,25 +552,13 @@ def _linear_interpolation_frequency_response(dt, a=0.5, n=128):
 
     `dt`: physical grid-step on which linear interpolation is done
     `a`: shift distance of the linear interpolation in units of dt
-    `n`: number of points used in calculation
 
-    Returns the function f(omega) as a Field object.
+    Returns a function which takes omega as an input.
     """
-    from . import datahandling
+    def f(omega):
+        return (1-a)+a*np.exp(1j*dt*omega)
 
-    b = np.zeros(n)
-    b[0:2] = [1-a, a]
-
-    b = datahandling.Field(b, xedges=np.linspace(start=-dt/2, stop=n*dt-dt/2, num=n+1))
-    b.axes[0].name = 't'
-    b.axes[0].unit = 's'
-
-    bf_high = b.fft()
-
-    bf_high /= bf_high[0.0]
-    bf_high.name = 'f'
-
-    return bf_high
+    return f
 
 
 def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, omega_func):
@@ -585,11 +573,16 @@ def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, om
 
     Returns the function f(k) as a Field object.
     """
-    def map_k_omega(*kmesh):
-        return (omega_func(kmesh), )
+    from . import datahandling
 
-    lin_res_k = abs(lin_response_omega).map_coordinates(k_axes, transform=map_k_omega,
-                                                        preserve_integral=False)
+    kmesh = np.meshgrid(*[ax.grid for ax in k_axes], indexing='ij', sparse=True)
+
+    resp_mat = abs(lin_response_omega(omega_func(kmesh)))
+
+    lin_res_k = datahandling.Field(resp_mat, name='f')
+    for i, ax in enumerate(k_axes):
+        lin_res_k.setaxisobj(i, copy.copy(ax))
+
     return lin_res_k
 
 
