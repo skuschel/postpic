@@ -174,36 +174,33 @@ class SpeciesIdentifier(PhysicalConstants):
     can be used as a mixin.
     '''
 
-    # unit: electronmass
-    _masslist = {'electrongold': 1, 'proton': 1836.2 * 1,
-                 'ionp': 1836.2, 'ion': 1836.2 * 12, 'c6': 1836.2 * 12,
-                 'ionf': 1836.2 * 19, 'Palladium': 1836.2 * 106,
-                 'Palladium1': 1836.2 * 106, 'Palladium2': 1836.2 * 106,
-                 'Ion': 1836.2, 'Photon': 0, 'Positron': 1, 'positron': 1,
-                 'gold1': 1836.2 * 197, 'gold2': 1836.2 * 197,
-                 'gold3': 1836.2 * 197, 'gold4': 1836.2 * 197,
-                 'gold7': 1836.2 * 197, 'gold10': 1836.2 * 197,
-                 'gold20': 1836.2 * 197}
+    def _specdict(mass, charge, ision):
+        return dict(mass=mass * PhysicalConstants.me,
+                    charge=charge * PhysicalConstants.qe,
+                    ision=ision)
 
-    # unit: elementary charge
-    _chargelist = {'electrongold': -1, 'proton': 1,
-                   'ionp': 1, 'ion': 1, 'c6': 6,
-                   'ionf': 1, 'Palladium': 0,
-                   'Palladium1': 1, 'Palladium2': 2,
-                   'Ion': 1, 'Photon': 0, 'Positron': 1, 'positron': 1,
-                   'gold1': 1, 'gold2': 2, 'gold3': 3,
-                   'gold4': 4, 'gold7': 7, 'gold10': 10,
-                   'gold20': 20}
-
-    _isionlist = {'electrongold': False, 'proton': True,
-                  'ionp': True, 'ion': True, 'c6': True,
-                  'ionf': True, 'f9': True, 'Palladium': True,
-                  'Palladium1': True, 'Palladium2': True,
-                  'Ion': True, 'Photon': False, 'Positron': False,
-                  'positron': False,
-                  'gold1': True, 'gold2': True, 'gold3': True,
-                  'gold4': True, 'gold7': True, 'gold10': True,
-                  'gold20': True}
+    # if in default, use this
+    _defaults = {'electrongold': _specdict(1, -1, False),
+                 'proton': _specdict(1836.2 * 1, 1, True),
+                 'Proton': _specdict(1836.2 * 1, 1, True),
+                 'ionp': _specdict(1836.2, 1, True),
+                 'ion': _specdict(1836.2 * 12, 1, True),
+                 'c6': _specdict(1836.2 * 12, 1, True),
+                 'ionf': _specdict(1836.2 * 19, 1, True),
+                 'Palladium': _specdict(1836.2 * 106, 0, True),
+                 'Palladium1': _specdict(1836.2 * 106, 1, True),
+                 'Palladium2': _specdict(1836.2 * 106, 2, True),
+                 'Ion': _specdict(1836.2, 1, True),
+                 'Photon': _specdict(0, 0, False),
+                 'Positron': _specdict(1, 1, False),
+                 'positron': _specdict(1, 1, False),
+                 'gold1': _specdict(1836.2 * 197, 1, True),
+                 'gold3': _specdict(1836.2 * 197, 3, True),
+                 'gold4': _specdict(1836.2 * 197, 4, True),
+                 'gold2': _specdict(1836.2 * 197, 2, True),
+                 'gold7': _specdict(1836.2 * 197, 7, True),
+                 'gold10': _specdict(1836.2 * 197, 10, True),
+                 'gold20': _specdict(1836.2 * 197, 20, True)}
 
     #  unit: amu
     _masslistelement = {'H': 1, 'He': 4, 'Li': 6.9, 'C': 12, 'N': 14, 'O': 16, 'F': 19,
@@ -240,6 +237,12 @@ class SpeciesIdentifier(PhysicalConstants):
         """
         ret = {'tracer': False, 'ejected': False, 'name': species}
         s = species.replace('/', '_')
+
+        if s in cls._defaults:
+            # if species name is found in cls._defaults use it and
+            # return result.
+            ret.update(cls._defaults[s])
+            return ret
 
         # Regex for parsing ion species name.
         # See docsting for valid examples
@@ -298,16 +301,6 @@ class SpeciesIdentifier(PhysicalConstants):
             ret['mass'] = cls.me
             ret['charge'] = -1 * cls.qe
             ret['ision'] = False
-
-        # simply added to _masslist and _chargelist
-        # this should not be used anymore
-        # set only if property is not already set
-        if 'mass' not in ret and regexdict['suffix'] in cls._masslist:
-            ret['mass'] = float(cls._masslist[regexdict['suffix']]) * cls.me
-        if 'charge' not in ret and regexdict['suffix'] in cls._chargelist:
-            ret['charge'] = float(cls._chargelist[regexdict['suffix']] * cls.qe)
-        if 'ision' not in ret and regexdict['suffix'] in cls._isionlist:
-            ret['ision'] = cls._isionlist[regexdict['suffix']]
 
         if not (('mass' in ret) and ('charge' in ret) and ('ision' in ret)):
             raise Exception('species ' + species + ' not recognized.')
