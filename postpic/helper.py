@@ -568,6 +568,9 @@ def kspace_epoch_like(component, fields, dt, extent=None, omega_func=omega_free,
     Reconstruct the physical kspace of one polarization component
     See documentation of kspace
 
+    `dt`: time-step of the simulation, this is used to calculate the frequency response due
+    to the linear interpolated half-steps
+
     This will choose the alignment of the fields in a way to improve
     accuracy on EPOCH-like staggered dumps
 
@@ -595,15 +598,15 @@ def kspace_epoch_like(component, fields, dt, extent=None, omega_func=omega_free,
     lin_res_k = _linear_interpolation_frequency_response_on_k(lin_res, fields[main_field_key].axes,
                                                               omega_func)
 
-    if polfield == align_to:
+    if polfield != align_to:
         for c in other_field_keys:
             # print('apply lin_response to ', c, 'transform_state is',
             #       fields[c]._transform_state())
-            fields[c] = fields[c] * lin_res_k
+            fields[c] = fields[c] / lin_res_k
     else:
         # print('apply lin_response to ', main_field_key, 'transform_state is',
         #       fields[main_field_key]._transform_state())
-        fields[main_field_key] = fields[main_field_key] * lin_res_k
+        fields[main_field_key] = fields[main_field_key] / lin_res_k
 
     # for k, v in fields.items():
     #     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])
