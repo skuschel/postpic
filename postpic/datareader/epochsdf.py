@@ -48,9 +48,9 @@ __all__ = ['Sdfreader', 'Visitreader']
 _default_stagger = {'Electric Field/Ex': 1,
                     'Electric Field/Ey': 2,
                     'Electric Field/Ez': 4,
-                    'Electric Field/Bx': 6,
-                    'Electric Field/By': 5,
-                    'Electric Field/Bz': 3,
+                    'Magnetic Field/Bx': 6,
+                    'Magnetic Field/By': 5,
+                    'Magnetic Field/Bz': 3,
                     'Current/Jx': 1,
                     'Current/Jy': 2,
                     'Current/Jz': 4}
