@@ -62,11 +62,12 @@ class _SingleSpecies(object):
     used by the MultiSpecies class only.
     The _SingleSpecies will return atomic particle properties
     (see list below) as given by the dumpreader. Each property can thus
-    return
+    return:
     1) a list (one value for each particle)
-    2) a siingle scalar value if this property is equal for the entire
+    2) a single scalar value if this property is equal for the entire
     species (as usual for 'mass' or 'charge').
     3) raise a KeyError on request if the property wasnt dumped.
+    This class is immutable.
     """
     # List of atomic particle properties. Those will be requested from the dumpreader
     # All other particle properties will be calculated from these.
@@ -80,8 +81,9 @@ class _SingleSpecies(object):
             raise(KeyError('species "{:}" does not exist in {:}'.format(species, dumpreader)))
         self.species = species
         self._dumpreader = dumpreader
-        self.uncompress()
-        # Variables will be read and added to self._cache when needed.
+        self.compresslog = []
+        self._compressboollist = None
+        self._cache = {}
 
         # create a method for every _atomicprops item.
         def makefunc(_self, key):
@@ -90,6 +92,19 @@ class _SingleSpecies(object):
             return ret
         for key in self._atomicprops:
             setattr(_SingleSpecies, key, makefunc(self, key))
+
+    def __copy__(self):
+        '''
+        returns a shallow copy of the object.
+        This method is called by `copy.copy(obj)`.
+        '''
+        cls = type(self)
+        ret = cls.__new__(cls)
+        ret.__dict__.update(self.__dict__)
+        # the content of _cache will be updated in the compress function,
+        # But the copy needs its own dictionary
+        ret._cache = copy.copy(self._cache)
+        return ret
 
     @property
     def dumpreader(self):
@@ -140,7 +155,7 @@ class _SingleSpecies(object):
         cond = self(condition)
         if name is None:
             name = condition.expr if condition.name is None else condition.name
-        self.compress(cond, name=name)
+        return self.compress(cond, name=name)
 
     def compress(self, condition, name='unknown condition'):
         """
@@ -168,14 +183,16 @@ class _SingleSpecies(object):
                 raise ValueError('number of particles ({:7n}) has to match'
                                  'length of condition ({:7n})'
                                  ''.format(len(self), len(condition)))
-            if self._compressboollist is None:
-                self._compressboollist = condition
+            ret = copy.copy(self)
+            if ret._compressboollist is None:
+                ret._compressboollist = condition
             else:
-                self._compressboollist[self._compressboollist] = condition
-            for key in self._cache:
-                if self._cache[key].shape is not ():
-                    self._cache[key] = self._cache[key][condition]
-            self.compresslog = np.append(self.compresslog, name)
+                ret._compressboollist[ret._compressboollist] = condition
+            for key in ret._cache:
+                if ret._cache[key].shape is not ():
+                    ret._cache[key] = ret._cache[key][condition]
+            ret.compresslog = np.append(self.compresslog, name)
+            return ret
         else:
             # Case 2:
             # condition is list of particle IDs to use
@@ -188,15 +205,13 @@ class _SingleSpecies(object):
             idx = np.searchsorted(condition, ids)
             idx[idx == len(condition)] = 0
             bools = condition[idx] == ids
-            self.compress(bools, name=name)
+            return self.compress(bools, name=name)
 
     def uncompress(self):
         """
         Discard all previous runs of 'compress'
         """
-        self.compresslog = []
-        self._compressboollist = None
-        self._cache = {}
+        return type(self)(self.dumpreader, self.species)
 
     # --- Only very basic functions
 
@@ -445,8 +460,7 @@ class MultiSpecies(object):
             sp = condition
         else:
             sp = particle_scalars(condition)
-        for ssa in self._ssas:
-            ssa.filter(sp, name=name)
+        self._ssas = [ssa.filter(sp, name=name) for ssa in self._ssas]
         self._compresslog = np.append(self._compresslog, str(condition))
 
     def compress(self, condition, name='unknown condition'):
@@ -473,13 +487,14 @@ class MultiSpecies(object):
         """
         condition = np.asarray(condition)
         i = 0
-        for ssa in self._ssas:  # condition is list of booleans
+        self._ssas = copy.copy(self._ssas)
+        for ssai, ssa in enumerate(self._ssas):  # condition is list of booleans
             if condition.dtype == np.dtype('bool'):
                 n = len(ssa)
-                ssa.compress(condition[i:i + n], name=name)
+                self._ssas[ssai] = ssa.compress(condition[i:i + n], name=name)
                 i += n
             else:  # condition is list of particle IDs
-                ssa.compress(condition, name=name)
+                self._ssas[ssai] = ssa.compress(condition, name=name)
         self._compresslog = np.append(self._compresslog, name)
 
     # --- user friendly functions
