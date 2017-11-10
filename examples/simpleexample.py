@@ -116,11 +116,11 @@ def main():
             # cf.name = 'x>0.0'
             # pa.compress(cf)
             # nicer is the new filter function, which does exactly the same:
-            pa.filter('x>0')
+            pf = pa.filter('x>0')
             # plot 15, compare with plot 10
-            plotter.plotField(pa.createField('x', 'y', optargsh={'bins': [1000,1000]}))
+            plotter.plotField(pf.createField('x', 'y', optargsh={'bins': [1000,1000]}))
             # plot 16, compare with plot 12
-            plotter.plotField(pa.createField('p_perp', 'r_xy', optargsh={'bins':[400,400]}))
+            plotter.plotField(pf.createField('p_perp', 'r_xy', optargsh={'bins':[400,400]}))
 
             plotter.plotField(dr.divE())  # plot 13
 

@@ -298,6 +298,18 @@ class MultiSpecies(object):
         for s in speciess:
             self.add(dumpreader, s, **kwargs)
 
+    def __copy__(self):
+        '''
+        returns a shallow copy of the object.
+        This method is called by `copy.copy(obj)`.
+        '''
+        cls = type(self)
+        ret = cls.__new__(cls)
+        ret.__dict__.update(self.__dict__)
+        ret._ssas = copy.copy(self._ssas)
+        ret._compresslog = copy.copy(self._compresslog)
+        return ret
+
     def __str__(self):
         return '<MultiSpecies including ' + str(self.species) \
             + '(' + str(len(self)) + ')>'
@@ -391,6 +403,7 @@ class MultiSpecies(object):
     def add(self, dumpreader, species, ignore_missing_species=False):
         '''
         adds a species to this MultiSpecies.
+        This function modifies the current Object.
 
         Attributes
         ----------
@@ -443,6 +456,9 @@ class MultiSpecies(object):
         [1,2,3,[4,5]]
         a=[1,2,3]; a += [4,5]; print a
         [1,2,3,4,5]
+        This function modifies the current object. Same as
+        a = [1,2]; b = a; b+=[7,8]; print(a,b)
+        [1, 2, 7, 8] [1, 2, 7, 8]
         '''
         for ssa in other._ssas:
             self._ssas.append(copy.copy(ssa))
@@ -460,8 +476,10 @@ class MultiSpecies(object):
             sp = condition
         else:
             sp = particle_scalars(condition)
-        self._ssas = [ssa.filter(sp, name=name) for ssa in self._ssas]
-        self._compresslog = np.append(self._compresslog, str(condition))
+        ret = copy.copy(self)
+        ret._ssas = [ssa.filter(sp, name=name) for ssa in self._ssas]
+        ret._compresslog = np.append(self._compresslog, str(condition))
+        return ret
 
     def compress(self, condition, name='unknown condition'):
         """
@@ -487,15 +505,16 @@ class MultiSpecies(object):
         """
         condition = np.asarray(condition)
         i = 0
-        self._ssas = copy.copy(self._ssas)
+        ret = copy.copy(self)
         for ssai, ssa in enumerate(self._ssas):  # condition is list of booleans
             if condition.dtype == np.dtype('bool'):
                 n = len(ssa)
-                self._ssas[ssai] = ssa.compress(condition[i:i + n], name=name)
+                ret._ssas[ssai] = ssa.compress(condition[i:i + n], name=name)
                 i += n
             else:  # condition is list of particle IDs
-                self._ssas[ssai] = ssa.compress(condition, name=name)
-        self._compresslog = np.append(self._compresslog, name)
+                ret._ssas[ssai] = ssa.compress(condition, name=name)
+        ret._compresslog = np.append(self._compresslog, name)
+        return ret
 
     # --- user friendly functions
 
@@ -509,15 +528,16 @@ class MultiSpecies(object):
         '''
         if hasattr(conditionf, 'name'):
             name = conditionf.name
-        self.compress(conditionf(self), name=name)
+        return self.compress(conditionf(self), name=name)
 
     def uncompress(self):
         '''
         undo all previous calls of "compress".
         '''
-        self._compresslog = []
-        for s in self._ssas:
-            s.uncompress()
+        ret = copy.copy(self)
+        ret._compresslog = []
+        ret._ssas = [s.uncompress for s in self._ssas]
+        return ret
 
     def getcompresslog(self):
         ret = {'all': self._compresslog}
