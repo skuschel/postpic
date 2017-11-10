@@ -6,7 +6,7 @@
 * `postpic.Field` method `transform` is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
-* The functions `MultiSpecies.compress`, `MultiSpecies.filter` and `MultiSpecies.uncompress` return a new MultiSpecies object. Before this release, they modified the current object. Assuming  `ms` is a `MultiSpecies` object, the corresponding adjustemens read:  
+* The functions `MultiSpecies.compress`, `MultiSpecies.filter`, `MultiSpecies.uncompress` and `ParticleHistory.skip` return a new object now. Before this release, they modified the current object. Assuming  `ms` is a `MultiSpecies` object, the corresponding adjustemens read:  
 **old**: `ms.filter('gamma > 2')`  
 **new**: `ms = ms.filter('gamma > 2')`
 

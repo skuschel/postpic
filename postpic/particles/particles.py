@@ -1286,6 +1286,17 @@ class ParticleHistory(object):
         # lookup dict used by collect
         self._updatelookupdict()
 
+    def __copy__(self):
+        '''
+        returns a shallow copy of the object.
+        This method is called by `copy.copy(obj)`.
+        '''
+        cls = type(self)
+        ret = cls.__new__(cls)
+        ret.__dict__.update(self.__dict__)
+        # _updatelookupdict creates a new _id2i dictionary. Therefore no need to copy that here.
+        return ret
+
     def _updatelookupdict(self):
         '''
         updates `self._id2i`.
@@ -1330,8 +1341,10 @@ class ParticleHistory(object):
         '''
         takes only everth (n+1)-th particle
         '''
-        self.ids = self.ids[::n+1]
-        self._updatelookupdict()
+        ret = copy.copy(self)
+        ret.ids = self.ids[::n+1]
+        ret._updatelookupdict()
+        return ret
 
     def collect(self, *scalarfs):
         '''
