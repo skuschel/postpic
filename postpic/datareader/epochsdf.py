@@ -204,7 +204,7 @@ class Sdfreader(Dumpreader_ifc):
         try:
             ret = options[attribid](species)
         except(IndexError):
-            raise KeyError
+            raise KeyError('Attribute "{}" of species "{}" not found.'.format(attrib, species))
         return ret
 
     def getderived(self):
