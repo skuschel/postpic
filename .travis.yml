@@ -16,6 +16,10 @@ python:
   - "3.5"
   - "3.6"
 
+matrix:
+  allow_failures:
+    - python: "3.5"
+
 # Install conda
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
