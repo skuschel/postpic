@@ -536,7 +536,7 @@ class MultiSpecies(object):
         '''
         ret = copy.copy(self)
         ret._compresslog = []
-        ret._ssas = [s.uncompress for s in self._ssas]
+        ret._ssas = [s.uncompress() for s in self._ssas]
         return ret
 
     def getcompresslog(self):
