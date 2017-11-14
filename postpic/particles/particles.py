@@ -230,6 +230,15 @@ class _SingleSpecies(object):
                 pass
         return ret
 
+    def initial_npart(self):
+        '''
+        return the original number of particles.
+        '''
+        if self._compressboollist is None:
+            return len(self)
+        else:
+            return len(self._compressboollist)
+
     # --- The Interface for particle properties using __call__ ---
 
     def _eval_single_sp(self, sp, _vars=None):
@@ -311,8 +320,14 @@ class MultiSpecies(object):
         return ret
 
     def __str__(self):
-        return '<MultiSpecies including ' + str(self.species) \
-            + '(' + str(len(self)) + ')>'
+        n = len(self)
+        i = self.initial_npart
+        if n == i:
+            return '<MultiSpecies including "' + str(self.species) + '"' \
+                + '({})>'.format(n)
+        else:
+            return '<MultiSpecies including "' + str(self.species) + '"' \
+                + '({}/{} -- {:.2f}%)>'.format(n, i, n/i*100)
 
     @property
     def dumpreader(self):
@@ -357,6 +372,16 @@ class MultiSpecies(object):
         ret = 0
         for ssa in self._ssas:
             ret += len(ssa)
+        return ret
+
+    @property
+    def initial_npart(self):
+        '''
+        Original number of particles (before the use of compression or filter).
+        '''
+        ret = 0
+        for ssa in self._ssas:
+            ret += ssa.initial_npart()
         return ret
 
     @property
