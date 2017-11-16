@@ -16,6 +16,14 @@ python:
   - "3.5"
   - "3.6"
 
+env:
+  - MATPLOTLIB_V=2*
+  - MATPLOTLIB_V=2.0.2
+
+matrix:
+  allow_failures:
+    - env: MATPLOTLIB_V=2*
+
 # Install conda
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -26,8 +34,8 @@ before_install:
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
-# - conda update --yes conda
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose cython h5py numexpr
+  - conda update --yes conda;
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib=$MATPLOTLIB_V nose cython h5py numexpr
 
 install:
   - pip install -r pip-requirements.txt
