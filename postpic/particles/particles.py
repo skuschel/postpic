@@ -429,7 +429,7 @@ class MultiSpecies(object):
     def add(self, dumpreader, species, ignore_missing_species=False):
         '''
         adds a species to this MultiSpecies.
-        This function modifies the current Object.
+        This function modifies the current Object and always returns None.
 
         Attributes
         ----------
@@ -497,6 +497,8 @@ class MultiSpecies(object):
         like compress, but takes a ScalarProperty or a str, which are required to
         evaluate to a boolean list to filter particles. This is the preferred method to
         filter particles by a value of their property.
+
+        Returns a new MultiSpecies instance.
         '''
         if isinstance(condition, ScalarProperty):
             sp = condition
@@ -510,6 +512,8 @@ class MultiSpecies(object):
     def compress(self, condition, name='unknown condition'):
         """
         works like numpy.compress.
+        Returns a new MultiSpecies instance.
+
         Additionaly you can specify a name, that gets saved in the compresslog.
 
         condition has to be one out of:
@@ -548,6 +552,8 @@ class MultiSpecies(object):
         '''
         like "compress", but accepts a function.
 
+        Returns a new MultiSpecies instance.
+
         **kwargs
         --------
         name -- name the condition.
@@ -558,7 +564,8 @@ class MultiSpecies(object):
 
     def uncompress(self):
         '''
-        undo all previous calls of "compress".
+        Returns a new MultiSpecies instance, with all previous calls of
+        "compress" or "filter" undone.
         '''
         ret = copy.copy(self)
         ret._compresslog = []
