@@ -17,12 +17,13 @@ python:
   - "3.6"
 
 env:
-  - MATPLOTLIB_V=2*
-  - MATPLOTLIB_V=2.0.2
+  - MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
+  - MATPLOTLIB_V=2.0.2 NUMPY_V=* SCIPY_V=* CYTHON_V=*
+  - MATPLOTLIB_V=1.5.1 NUMPY_V=1.11.0 SCIPY_V=0.17.0 CYTHON_V=0.23.4 # ubuntu 16.04.3 LTS
 
 matrix:
   allow_failures:
-    - env: MATPLOTLIB_V=2*
+    - env: MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
 
 # Install conda
 before_install:
@@ -35,7 +36,7 @@ before_install:
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
   - conda update --yes conda;
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib=$MATPLOTLIB_V nose cython h5py numexpr
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy=$NUMPY_V scipy=$SCIPY_V matplotlib=$MATPLOTLIB_V nose cython=$CYTHON_V h5py numexpr
 
 install:
   - pip install -r pip-requirements.txt
