@@ -1,13 +1,14 @@
 # Changelog of postpic
 
 ## current master
-2017-10-10
 
-**Incompatible adjustments to last version**
-* `postpic.Field` method transform is renamed to `map_coordinates`, matching the underlying scipy-function.
+**Incompatible adjustments to previous version**
+* `postpic.Field` method `transform` is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
-
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
+* The functions `MultiSpecies.compress`, `MultiSpecies.filter`, `MultiSpecies.uncompress` and `ParticleHistory.skip` return a new object now. Before this release, they modified the current object. Assuming  `ms` is a `MultiSpecies` object, the corresponding adjustemens read:<br>
+old: `ms.filter('gamma > 2')`<br>
+new: `ms = ms.filter('gamma > 2')`
 
 **Other improvements and new features**
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
@@ -36,7 +37,7 @@ Many improvements in terms of speed and features. Unfortunately some changes are
 * `postpic.Field` properly handles operator overloading and slicing. Slicing can be index based (integers) or referring the actual physical extent on the axis of a Field object (using floats).
 * Expression based interface to particle properties (see below)
 
-**Incompatible adjustments to last version**
+**Incompatible adjustments to previous version**
 * New dependency: Postpic requires the `numexpr` package to be installed now.
 * Expression based interface of for particles: If `ms` is a `postpic.MultiSpecies` object, then the call `ms.X()` has been deprecated. Use `ms('x')` instead. This new particle interface can handle expressions that the `numexpr` package understands. Also `ms('sqrt(x**2 + gamma - id)')` is valid. This interface is easier to use, has better functionality and is faster due to `numexpr`.
 The list of known per particle scalars and their definitions is available at `postpic.particle_scalars`. In addition all constants of `scipy.constants.*` can be used.

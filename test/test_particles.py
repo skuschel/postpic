@@ -33,19 +33,16 @@ class TestMultiSpecies(unittest.TestCase):
     def test_compress(self):
         def cf(ms):
             return ms('x>0')
-        self.p.compressfn(cf)
-        lencf = len(self.p)
-        self.p.uncompress()
-        self.p.filter('x>0')
-        lenf = len(self.p)
-        self.p.uncompress()
+        p2 = self.p.compressfn(cf)
+        lencf = len(p2)
+        p3 = self.p.filter('x>0')
+        lenf = len(p3)
         self.assertEqual(lencf, lenf)
 
     def test_compress_ids(self):
         ids = [1,5,10]
-        self.p.compress(ids)
-        lenc = len(self.p)
-        self.p.uncompress()
+        p2 = self.p.compress(ids)
+        lenc = len(p2)
         self.assertEqual(lenc, 3)
 
 if __name__ == '__main__':
