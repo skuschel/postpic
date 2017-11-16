@@ -67,7 +67,8 @@ class _SingleSpecies(object):
     2) a single scalar value if this property is equal for the entire
     species (as usual for 'mass' or 'charge').
     3) raise a KeyError on request if the property wasnt dumped.
-    This class is immutable.
+    Once initiated, all implemented methods leave the object unchanged.
+    A new instance is returned if needed.
     """
     # List of atomic particle properties. Those will be requested from the dumpreader
     # All other particle properties will be calculated from these.
