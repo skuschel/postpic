@@ -16,9 +16,9 @@ python:
   - "3.5"
   - "3.6"
 
-matrix:
-  allow_failures:
-    - python: "3.5"
+#matrix:
+#  allow_failures:
+#    - python: "3.5"
 
 # Install conda
 before_install:
@@ -27,15 +27,11 @@ before_install:
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi;
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      echo "not updating"
-    else
-      conda update --yes conda;
-    fi;
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose cython h5py numexpr
+  - conda update --yes conda;
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib=2.0.2 nose cython h5py numexpr
 
 install:
   - pip install -r pip-requirements.txt
