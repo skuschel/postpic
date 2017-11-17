@@ -85,7 +85,7 @@ class TestField(unittest.TestCase):
         m = np.reshape(np.arange(60), (4, 5, 3))
         self.f3d = dh.Field(m)
 
-        x, y = np.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
+        x, y = helper.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
         self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
 
     def checkFieldConsistancy(self, field):
