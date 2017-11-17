@@ -705,7 +705,7 @@ class Field(object):
         coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
 
         # Broadcast all coordinate arrays to the new shape
-        coordinates_px = [np.broadcast_to(c, shape) for c in coordinates_px]
+        coordinates_px = [helper.broadcast_to(c, shape) for c in coordinates_px]
 
         # Map the matrix using scipy.ndimage.map_coordinates
         if np.isrealobj(self.matrix):

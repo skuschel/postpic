@@ -331,6 +331,15 @@ def meshgrid(*args, **kwargs):
     return np.meshgrid(*args, **kwargs)
 
 
+def broadcast_to(*args, **kwargs):
+    from pkg_resources import parse_version
+    if parse_version(np.__version__) < parse_version('1.10'):
+        array, shape = args
+        a, b = np.broadcast_arrays(array, np.empty(shape), **kwargs)
+        return a
+    return np.broadcast_to(*args, **kwargs)
+
+
 def _tukey_replacement_old_scipy(M, alpha=0.5, sym=True):
     """
     Copied from scipy commit 870abd2f1fcc1fcf491324cdf5f78b4310c84446
@@ -371,7 +380,7 @@ def _tukey_replacement_old_scipy(M, alpha=0.5, sym=True):
 
 def tukey(*args, **kwargs):
     from pkg_resources import parse_version
-    if len(args) < 2 and parse_version(sp.__version__) < parse_version('2.16'):
+    if parse_version(sp.__version__) < parse_version('0.16'):
         return _tukey_replacement_old_scipy(*args, **kwargs)
     return sps.tukey(*args, **kwargs)
 
@@ -418,7 +427,7 @@ def jac_det(jacobian_func):
     def fun(*coords):
         jac = jacobian_func(*coords)
         shape = np.broadcast(*coords).shape
-        jacarray = np.asarray([[np.broadcast_to(a, shape) for a in row] for row in jac])
+        jacarray = np.asarray([[broadcast_to(a, shape) for a in row] for row in jac])
         jacarray = np.moveaxis(jacarray, [0, 1], [-2, -1])
         return abs(npl.det(jacarray))
     return fun
@@ -453,7 +462,7 @@ def approx_jacobian(transform):
 
         shape = np.broadcast(*coords).shape
         mapped_coords = transform(*coords)
-        mapped_coords = [np.broadcast_to(c, shape) for c in mapped_coords]
+        mapped_coords = [broadcast_to(c, shape) for c in mapped_coords]
         jac = [np.gradient(c, *ravel_coords) for c in mapped_coords]
         return jac
     return fun
