@@ -26,6 +26,8 @@ import copy
 import itertools
 import numbers
 import numpy as np
+import scipy as sp
+import scipy.signal as sps
 import numpy.linalg as npl
 import re
 import warnings
@@ -327,6 +329,51 @@ def meshgrid(*args, **kwargs):
             return (args[0].copy(),)
         return (args[0].view(),)
     return np.meshgrid(*args, **kwargs)
+
+
+def _tukey_replacement_old_scipy(M, alpha=0.5, sym=True):
+    """
+    Copied from scipy commit 870abd2f1fcc1fcf491324cdf5f78b4310c84446
+    and replaced some functions by their implementation
+    """
+    if int(M) != M or M < 0:
+        raise ValueError('Window length M must be a non-negative integer')
+    if M <= 1:
+        return np.ones(M)
+
+    if alpha <= 0:
+        return np.ones(M, 'd')
+    elif alpha >= 1.0:
+        return hann(M, sym=sym)
+
+    if not sym:
+        M, needs_trunc = M + 1, True
+    else:
+        M, needs_trunc = M, False
+
+    n = np.arange(0, M)
+    width = int(np.floor(alpha*(M-1)/2.0))
+    n1 = n[0:width+1]
+    n2 = n[width+1:M-width-1]
+    n3 = n[M-width-1:]
+
+    w1 = 0.5 * (1 + np.cos(np.pi * (-1 + 2.0*n1/alpha/(M-1))))
+    w2 = np.ones(n2.shape)
+    w3 = 0.5 * (1 + np.cos(np.pi * (-2.0/alpha + 1 + 2.0*n3/alpha/(M-1))))
+
+    w = np.concatenate((w1, w2, w3))
+
+    if needs_trunc:
+        return w[:-1]
+    else:
+        return w
+
+
+def tukey(*args, **kwargs):
+    from pkg_resources import parse_version
+    if len(args) < 2 and parse_version(sp.__version__) < parse_version('2.16'):
+        return _tukey_replacement_old_scipy(*args, **kwargs)
+    return sps.tukey(*args, **kwargs)
 
 
 def polar2linear(theta, r):

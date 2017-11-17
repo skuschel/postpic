@@ -882,7 +882,7 @@ class Field(object):
 
             shape = [1]*field.dimensions
             shape[axis] = m
-            windows.append(np.reshape(sps.tukey(m, 1-ll/m), shape))
+            windows.append(np.reshape(helper.tukey(m, 1-ll/m), shape))
 
         field = field[slices]
         varnames = "abcdefg"
