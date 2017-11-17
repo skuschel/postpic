@@ -11,31 +11,38 @@ notifications:
     on_failure: change
 
 python:
-  - "2.7"
-# - "3.4"
-  - "3.5"
-  - "3.6"
+  - 2.7
+  - 3.5
+  - 3.6
 
 env:
-  - MATPLOTLIB_V=2*
-  - MATPLOTLIB_V=2.0.2
+  - MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
+  - MATPLOTLIB_V=2.0.2 NUMPY_V=* SCIPY_V=* CYTHON_V=*
 
 matrix:
   allow_failures:
-    - env: MATPLOTLIB_V=2*
+    # have this allowed as there is a bug in matplotlib 2.1.0
+    - env: MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
+  include:
+    # ubuntu 14.04.5 LTS:
+    # python 2.6 is explicitly NOT supported!
+    - python: 3.4
+      env: MATPLOTLIB_V=1.3.1 NUMPY_V=1.8.1 SCIPY_V=0.13.3 CYTHON_V=0.20.1 EXTRAPACK="libgfortran==1"
+    # ubuntu 16.04.3 LTS:
+    - python: 2.7
+      env: MATPLOTLIB_V=1.5.1 NUMPY_V=1.11.0 SCIPY_V=0.17.0 CYTHON_V=0.23.4
+    - python: 3.5
+      env: MATPLOTLIB_V=1.5.1 NUMPY_V=1.11.0 SCIPY_V=0.17.0 CYTHON_V=0.23.4
 
 # Install conda
 before_install:
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi;
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
   - conda update --yes conda;
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib=$MATPLOTLIB_V nose cython h5py numexpr
+  - conda create -yn pyenv python=$TRAVIS_PYTHON_VERSION atlas numpy=$NUMPY_V scipy=$SCIPY_V matplotlib=$MATPLOTLIB_V nose cython=$CYTHON_V h5py numexpr $EXTRAPACK
+  - source activate pyenv
 
 install:
   - pip install -r pip-requirements.txt
