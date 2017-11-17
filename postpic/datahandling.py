@@ -1139,8 +1139,21 @@ class Field(object):
         # normalization factor ensuring Parseval's Theorem
         fftnorm = np.sqrt(V/Vk)
 
+        # compile fft arguments, starting from default arguments `fft_kwargs` ...
         my_fft_args = fft_kwargs.copy()
+        # ... and adding the user supplied `kwargs`
         my_fft_args.update(kwargs)
+        # ... and also norm = 'ortho'
+        my_fft_args['norm'] = 'ortho'
+
+        # Workaround for missing `fft` argument `norm='ortho'`
+        from pkg_resources import parse_version
+        if parse_version(np.__version__) < parse_version('1.10'):
+            del my_fft_args['norm']
+            if transform_state is False:
+                fftnorm /= np.sqrt(N)
+            elif transform_state is True:
+                fftnorm *= np.sqrt(N)
 
         mat = self.matrix
 
@@ -1155,8 +1168,7 @@ class Field(object):
                 for i in axes
             }
             mat = fftnorm \
-                * fft.fftshift(fft.fftn(mat, axes=axes, norm='ortho', **my_fft_args),
-                               axes=axes)
+                * fft.fftshift(fft.fftn(mat, axes=axes, **my_fft_args), axes=axes)
 
         # ... or transforming from frequency domain to spatial domain
         elif transform_state is True:
@@ -1166,8 +1178,7 @@ class Field(object):
                 for i in axes
             }
             mat = fftnorm \
-                * fft.ifftn(fft.ifftshift(mat, axes=axes), axes=axes, norm='ortho',
-                            **my_fft_args)
+                * fft.ifftn(fft.ifftshift(mat, axes=axes), axes=axes, **my_fft_args)
 
         if exponential_signs == 'temporal':
             mat = np.conjugate(mat)
