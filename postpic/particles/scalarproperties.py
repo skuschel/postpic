@@ -145,7 +145,9 @@ class ScalarPropertyContext(collections.Mapping):
         self._mapping.update({sp.symbol: sp})
 
     def __str__(self):
-        s = [str(k) + ' = ' + self[k].expr for k in self]
+        # order alphabetically to increase readability
+        scalars = sorted(list(self))
+        s = [str(k) + ' = ' + self[k].expr for k in scalars]
         s.append('--> {} known particle scalars.'.format(len(s)))
         return '\n'.join(s)
 
