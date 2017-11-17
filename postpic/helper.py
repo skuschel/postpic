@@ -316,6 +316,19 @@ class SpeciesIdentifier(PhysicalConstants):
 
 
 # Some static functions
+def meshgrid(*args, **kwargs):
+    from pkg_resources import parse_version
+    if len(args) < 2 and parse_version(np.__version__) < parse_version('1.9'):
+        if len(args) == 0:
+            return tuple()
+
+        # if we are here, that means len(args)==1
+        if kwargs.get('copy', False):
+            return (args[0].copy(),)
+        return (args[0].view(),)
+    return np.meshgrid(*args, **kwargs)
+
+
 def polar2linear(theta, r):
     x = r*np.cos(theta)
     y = r*np.sin(theta)
@@ -662,7 +675,7 @@ def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, om
     """
     from . import datahandling
 
-    kmesh = np.meshgrid(*[ax.grid for ax in k_axes], indexing='ij', sparse=True)
+    kmesh = meshgrid(*[ax.grid for ax in k_axes], indexing='ij', sparse=True)
 
     resp_mat = abs(lin_response_omega(omega_func(kmesh)))
 
@@ -807,7 +820,7 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_
     # print('result_origin', result_origin, Dx, dx)
 
     # calculate the k mesh and k^2
-    mesh = np.meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
+    mesh = meshgrid(*[ax.grid for ax in result.axes], indexing='ij', sparse=True)
     k2 = sum(ki**2 for ki in mesh)
 
     # calculate omega, either using the vacuum expression or omega_func()
@@ -937,7 +950,7 @@ def linear_phase(field, dx):
             axes[i] -= axes[i][0]
 
     # build mesh
-    mesh = np.meshgrid(*axes, indexing='ij', sparse=True)
+    mesh = meshgrid(*axes, indexing='ij', sparse=True)
 
     # prepare mesh for numexpr-dict
     kdict = {'k{}'.format(i): k for i, k in enumerate(mesh)}

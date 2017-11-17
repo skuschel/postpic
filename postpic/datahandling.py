@@ -422,7 +422,7 @@ class Field(object):
         return np.squeeze([a.grid for a in self.axes])
 
     def meshgrid(self, sparse=True):
-        return np.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
+        return helper.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
 
     @property
     def dimensions(self):
