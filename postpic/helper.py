@@ -24,6 +24,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 import copy
 import itertools
+import collections
 import numbers
 import numpy as np
 import scipy as sp
@@ -385,6 +386,28 @@ def tukey(*args, **kwargs):
     return sps.tukey(*args, **kwargs)
 
 
+def moveaxis(*args, **kwargs):
+    from pkg_resources import parse_version
+    if parse_version(np.__version__) < parse_version('1.11'):
+        a, source, destination = args
+
+        # twice a quick implementation of numpy.numeric.normalize_axis_tuple
+        if not isinstance(source, collections.Iterable):
+            source = (source,)
+        if not isinstance(destination, collections.Iterable):
+            destination = (destination,)
+        source = [s % a.ndim for s in source]
+        destination = [d % a.ndim for d in destination]
+
+        # the real work copied from np.moveaxis
+        order = [n for n in range(a.ndim) if n not in source]
+        for dest, src in sorted(zip(destination, source)):
+            order.insert(dest, src)
+
+        return np.transpose(a, order)
+    return np.moveaxis(*args, **kwargs)
+
+
 def polar2linear(theta, r):
     x = r*np.cos(theta)
     y = r*np.sin(theta)
@@ -428,7 +451,7 @@ def jac_det(jacobian_func):
         jac = jacobian_func(*coords)
         shape = np.broadcast(*coords).shape
         jacarray = np.asarray([[broadcast_to(a, shape) for a in row] for row in jac])
-        jacarray = np.moveaxis(jacarray, [0, 1], [-2, -1])
+        jacarray = moveaxis(jacarray, [0, 1], [-2, -1])
         return abs(npl.det(jacarray))
     return fun
 
