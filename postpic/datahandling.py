@@ -46,8 +46,10 @@ import collections
 import copy
 import warnings
 import os
+import numbers
 
 import numpy as np
+import numpy.lib.mixins
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
 import scipy.integrate
@@ -268,7 +270,9 @@ def _updatename(operator, reverse=False):
     return ret
 
 
-class Field(object):
+# The NDArrayOperatorsMixin implements all arithmetic special functions through numpy
+# ufuncs
+class Field(numpy.lib.mixins.NDArrayOperatorsMixin):
     '''
     The Field Object carries a data matrix together with as many Axis
     Objects as the data matrix's dimensions. Additionaly the Field object
@@ -332,14 +336,53 @@ class Field(object):
         ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
+    # Stuff related with compatibility to Numpy's ufuncs starts here.
+
+    # make sure that np.array() * Field() returns a Field and not a plain array
+    __array_priority__ = 1
+
     def __array__(self, dtype=None):
         '''
         will be called by numpy function in case an numpy array is needed.
         '''
-        return np.asarray(self.matrix, dtype=dtype)
+        return np.asanyarray(self.matrix, dtype=dtype)
 
-    # make sure that np.array() * Field() returns a Field and not a plain array
-    __array_priority__ = 1
+    # What kind of other objects do we support? so far any kind of numpy array or scalar number
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    # handle ufuncs, new interface.
+    # see https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/[...]
+    # [...]/numpy.lib.mixins.NDArrayOperatorsMixin.html#numpy.lib.mixins.NDArrayOperatorsMixin
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method != '__call__':
+            return NotImplemented
+
+        out = kwargs.get('out', ())
+        for x in inputs + out:
+            # Only support operations with instances of _HANDLED_TYPES.
+            if not isinstance(x, self._HANDLED_TYPES + (type(self),)):
+                return NotImplemented
+
+        # Defer to the implementation of the ufunc on unwrapped values.
+        inputs = tuple(np.array(x) if isinstance(x, type(self)) else x for x in inputs)
+        if out:
+            kwargs['out'] = tuple(
+                np.array(x) if isinstance(x, type(self)) else x for x in out)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        if type(result) is tuple:
+            # multiple return values
+            return tuple(self.replace_data(x) for x in result)
+        elif method == 'at':
+            # no return value
+            return None
+        else:
+            # one return value
+            return self.replace_data(result)
+
+    # wrap ufunc results from old numpy as Fields
+    def __array_wrap__(self, array, context=None):
+        return self.replace_data(array)
 
     def _addaxisobj(self, axisobj):
         '''
@@ -1417,89 +1460,3 @@ class Field(object):
     def __setitem__(self, key, other):
         key = self._normalize_slices(key)
         self._matrix[key] = other
-
-    @_updatename('+')
-    def __iadd__(self, other):
-        self.matrix += np.asarray(other)
-        return self
-
-    def __add__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix + np.asarray(other)
-        return ret
-    __radd__ = _updatename('+', reverse=True)(__add__)
-    __add__ = _updatename('+', reverse=False)(__add__)
-
-    def __neg__(self):
-        ret = copy.copy(self)
-        ret.matrix = -self.matrix
-        ret.name = '-' + ret.name
-        return ret
-
-    @_updatename('-')
-    def __isub__(self, other):
-        self.matrix -= np.asarray(other)
-        return self
-
-    @_updatename('-')
-    def __sub__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix - np.asarray(other)
-        return ret
-
-    @_updatename('-', reverse=True)
-    def __rsub__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) - ret.matrix
-        return ret
-
-    @_updatename('^')
-    def __pow__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = self.matrix ** np.asarray(other)
-        return ret
-
-    @_updatename('^', reverse=True)
-    def __rpow__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) ** self.matrix
-        return ret
-
-    @_updatename('*')
-    def __imul__(self, other):
-        self.matrix *= np.asarray(other)
-        return self
-
-    def __mul__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix * np.asarray(other)
-        return ret
-    __rmul__ = _updatename('*', reverse=True)(__mul__)
-    __mul__ = _updatename('*', reverse=False)(__mul__)
-
-    def __abs__(self):
-        ret = copy.copy(self)
-        ret.matrix = np.abs(ret.matrix)
-        ret.name = '|{}|'.format(ret.name)
-        return ret
-
-    @_updatename('/')
-    def __itruediv__(self, other):
-        self.matrix /= np.asarray(other)
-        return self
-
-    @_updatename('/')
-    def __truediv__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix / np.asarray(other)
-        return ret
-
-    @_updatename('/', reverse=True)
-    def __rtruediv__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) / ret.matrix
-        return ret
-
-    # python 2
-    __idiv__ = __itruediv__
-    __div__ = __truediv__
