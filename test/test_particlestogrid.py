@@ -19,7 +19,7 @@
 # Copyright Stephan Kuschel, 2015
 
 import unittest
-import postpic.cythonfunctions as cf
+import postpic.particles._particlestogrid as cf
 import numpy as np
 
 class TestHistogram(unittest.TestCase):

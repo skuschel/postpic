@@ -25,8 +25,8 @@ import copy
 import warnings
 from ..helper import PhysicalConstants as pc
 import scipy.constants
-from ..helper import SpeciesIdentifier, histogramdd, append_doc_of
-from ..helper import deprecated
+from ._routines import SpeciesIdentifier, histogramdd
+from ..helper import deprecated, append_doc_of
 from ..datahandling import *
 from .scalarproperties import ScalarProperty, ScalarPropertyContext, createdefaultscalarcontext
 
