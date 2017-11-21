@@ -131,6 +131,11 @@ class Axis(object):
 
         if self._grid is None:
             self._grid = np.convolve(self._grid_node, np.ones(2) / 2.0, mode='valid')
+        else:
+            if not np.all(self._grid > self._grid_node[:-1]) and \
+               np.all(self._grid < self._grid_node[1:]):
+                    raise ValueError("Points of passed grid are not within corresponding "
+                                     "grid_nodes.")
 
         if self._extent is None:
             self._extent = [self._grid_node[0], self._grid_node[-1]]
@@ -242,7 +247,10 @@ class Axis(object):
         if sl.step is not None:
             raise ValueError("Slices with step!=None not supported")
         grid = self.grid[sl]
-        sln = slice(sl.start if sl.start else None, sl.stop+1 if sl.stop else None)
+        stop = sl.stop
+        if stop is not None and stop > 0:
+            stop += 1
+        sln = slice(sl.start if sl.start else None, stop)
         grid_node = self.grid_node[sln]
         ax = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
         return ax
