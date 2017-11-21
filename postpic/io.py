@@ -26,11 +26,6 @@ def _export_field_npy(field, filename, compressed=True):
     The file will be in the numpy binary format (npz).
     '''
 
-    savefunc = np.savez_compressed
-
-    if not compressed:
-        savefunc = np.savez
-
     # collect all metadata into arrays
     # axes objects
     naxes = len(field.axes)
@@ -53,6 +48,7 @@ def _export_field_npy(field, filename, compressed=True):
                           str(field.infostring)])
 
     # save all the data in one file
+    savefunc = np.savez_compressed if compressed else np.savez
     savefunc(filename, matrix=field.matrix, meta_field=meta_field,
              meta_ax_edges=meta_ax_edges, meta_ax_names=meta_ax_names,
              meta_ax_units=meta_ax_units,
