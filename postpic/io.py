@@ -19,7 +19,12 @@
 import numpy as np
 from .datahandling import Axis, Field
 
-def _export_field_npy(field, filename, compressed=False):
+def _export_field_npy(field, filename, compressed=True):
+
+    savefunc = np.savez_compressed
+
+    if not compressed:
+        savefunc = np.savez
 
     # collect all metadata into arrays
     # axes objects
@@ -45,7 +50,7 @@ def _export_field_npy(field, filename, compressed=False):
         str(field.infostring)])
 
     # save all the data in one file
-    np.savez(filename, matrix=field.matrix, meta_field=meta_field,
+    savefunc(filename, matrix=field.matrix, meta_field=meta_field,
         meta_ax_edges=meta_ax_edges, meta_ax_names=meta_ax_names,
         meta_ax_units=meta_ax_units,
         meta_length_edges=length_edges)
