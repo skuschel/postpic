@@ -283,11 +283,13 @@ class Field(object):
     @classmethod
     def importFromFile(cls, filename):
         '''
-        construct a new field object from file
+        construct a new field object from file. currently, the following file
+        formats are supported:
+        *.npz
         '''
 
-        if not filename[-3::] == 'npz':
-            raise OSError('File format not recognized')
+        if not filename.endswith('npz'):
+            raise Exception('File format of filename {0} not recognized.'.format(filename))
 
         return io._import_field_npy(filename)
 
@@ -1379,14 +1381,16 @@ class Field(object):
     def export(self, filename):
         '''
         export Field object as a file. Format depends on the extention
-        of the filename.
+        of the filename. Currently supported are:
+        *.npz
+        *.csv
         '''
-        if filename[-3::] == 'npz':
+        if filename.endswith('npz'):
             io._export_field_npy(self, filename)
-        elif filename[-3::] == 'csv':
+        elif filename.endswith('csv'):
             io._export_field_csv(self, filename)
         else:
-            raise OSError('File format not recognized.')
+            raise Exception('File format of filename {0} not recognized.'.format(filename))
 
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
