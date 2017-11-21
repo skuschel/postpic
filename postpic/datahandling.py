@@ -372,17 +372,24 @@ class Field(NDArrayOperatorsMixin):
 
         if type(result) is tuple:
             # multiple return values
-            return tuple(self.replace_data(x) for x in result)
+            return tuple(self._wrap(x) for x in result)
         elif method == 'at':
             # no return value
             return None
         else:
             # one return value
-            return self.replace_data(result)
+            return self._wrap(result)
 
     # wrap ufunc results from old numpy as Fields
     def __array_wrap__(self, array, context=None):
-        return self.replace_data(array)
+        return self._wrap(array)
+
+    def _wrap(self, other):
+        # wrap other as a Field with same axes as self if it is not a Field,
+        # leave as is if it already is a Field.
+        if isinstance(other, type(self)):
+            return other
+        return self.replace_data(other)
 
     def _addaxisobj(self, axisobj):
         '''
