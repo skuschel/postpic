@@ -181,6 +181,9 @@ class NDArrayOperatorsMixin(object):
 
     # unary methods
     __neg__ = _unary_method(um.negative, 'neg')
-    __pos__ = _unary_method(um.positive, 'pos')
+
+    if hasattr(um, 'positive'):
+        __pos__ = _unary_method(um.positive, 'pos')
+
     __abs__ = _unary_method(um.absolute, 'abs')
     __invert__ = _unary_method(um.invert, 'invert')
