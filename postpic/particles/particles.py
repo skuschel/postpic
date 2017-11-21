@@ -1175,7 +1175,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         h, edges = self._createHistgram1d(spx, **kwargs)
-        ret = Field(h, edges)
+        ret = Field(h, xedges=edges)
         ret.name = name + ' ' + self.species
         ret.label = self.species
         if title:
@@ -1209,7 +1209,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
-        ret = Field(h, xedges, yedges)
+        ret = Field(h, xedges=xedges, yedges=yedges)
         ret.name = name + self.species
         ret.label = self.species
         if title:
@@ -1247,7 +1247,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
-        ret = Field(h, xedges, yedges, zedges)
+        ret = Field(h, xedges=xedges, yedges=yedges, zedges=zedges)
         ret.name = name + self.species
         ret.label = self.species
         if title:

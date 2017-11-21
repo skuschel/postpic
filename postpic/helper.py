@@ -475,9 +475,7 @@ def _linear_interpolation_frequency_response_on_k(lin_response_omega, k_axes, om
 
     resp_mat = abs(lin_response_omega(omega_func(kmesh)))
 
-    lin_res_k = datahandling.Field(resp_mat, name='f')
-    for i, ax in enumerate(k_axes):
-        lin_res_k.setaxisobj(i, copy.copy(ax))
+    lin_res_k = datahandling.Field(resp_mat, name='f', axes=k_axes)
 
     return lin_res_k
 
