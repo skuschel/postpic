@@ -137,7 +137,8 @@ class Axis(object):
                     # of this class
                     raise ValueError("Missing required arguments for Axis construction.")
                 # only extent and n have been passed, use that to create a linear grid_node
-                self._grid_node = np.linspace(*self._extent, self._n+1, endpoint=True)
+                self._grid_node = np.linspace(self._extent[0], self._extent[-1], self._n+1,
+                                              endpoint=True)
             else:
                 # grid has been passed, create grid_node from grid.
                 gn = np.convolve(self._grid, np.ones(2) / 2.0, mode='full')
@@ -414,7 +415,7 @@ class Field(object):
         self.axes.append(axisobj)
 
     def _addaxisnodes(self, grid_node, **kwargs):
-        ax = Axis(**kwargs, grid_node=grid_node)
+        ax = Axis(grid_node=grid_node, **kwargs)
         self._addaxisobj(ax)
         return
 
@@ -423,7 +424,7 @@ class Field(object):
         adds a new axis that is supported by the matrix.
         '''
         matrixpts = self.shape[len(self.axes)]
-        ax = Axis(**kwargs, extent=extent, n=matrixpts)
+        ax = Axis(extent=extent, n=matrixpts, **kwargs)
         self._addaxisobj(ax)
 
     def setaxisobj(self, axis, axisobj):
