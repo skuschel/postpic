@@ -4,3 +4,4 @@ mock
 pep8
 nose
 cython>=0.18
+recommonmark

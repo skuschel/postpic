@@ -10,11 +10,11 @@ Welcome to postpic's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   readme
-   
-   contributing
+   CONTRIBUTING
 
-   getstarted   
+   CHANGELOG
+
+   getstarted
 
    apidoc/modules
 
