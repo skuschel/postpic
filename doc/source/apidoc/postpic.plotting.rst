@@ -1,6 +1,11 @@
 postpic\.plotting package
 =========================
 
+.. automodule:: postpic.plotting
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -13,10 +18,3 @@ postpic\.plotting\.plotter\_matplotlib module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: postpic.plotting
-    :members:
-    :undoc-members:
-    :show-inheritance:

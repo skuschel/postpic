@@ -1,6 +1,11 @@
 postpic\.datareader package
 ===========================
 
+.. automodule:: postpic.datareader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -45,10 +50,3 @@ postpic\.datareader\.vsimhdf5 module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: postpic.datareader
-    :members:
-    :undoc-members:
-    :show-inheritance:

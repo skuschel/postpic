@@ -1,6 +1,11 @@
 postpic package
 ===============
 
+.. automodule:: postpic
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
@@ -38,10 +43,3 @@ postpic\.helper module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: postpic
-    :members:
-    :undoc-members:
-    :show-inheritance:

@@ -1,6 +1,11 @@
 postpic\.particles package
 ==========================
 
+.. automodule:: postpic.particles
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -21,10 +26,3 @@ postpic\.particles\.scalarproperties module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: postpic.particles
-    :members:
-    :undoc-members:
-    :show-inheritance:

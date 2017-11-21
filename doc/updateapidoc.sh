@@ -10,4 +10,4 @@
 # Stephan Kuschel, 2017
 
 rm source/apidoc/*
-sphinx-apidoc -o source/apidoc ../postpic -f 
+sphinx-apidoc -o source/apidoc ../postpic -M
