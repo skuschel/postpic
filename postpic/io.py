@@ -17,7 +17,7 @@
 # Stefan Tietze, 2017
 
 import numpy as np
-from .datahandling import Axis, Field
+from . import datahandling
 
 
 def _export_field_npy(field, filename, compressed=True):
@@ -69,13 +69,14 @@ def _import_field_npy(filename):
 
     # field
     meta_field = import_file['meta_field']
-    import_field = Field(matrix=import_file['matrix'], name=meta_field[0], unit=meta_field[1])
+    import_field = datahandling.Field(matrix=import_file['matrix'],
+                                      name=meta_field[0], unit=meta_field[1])
     import_field.label = meta_field[2]
     import_field.infostring = meta_field[3]
 
     # attach Axis objects to field
     for nax in range(0, len(length_edges)):
-        ax = Axis(name=meta_ax_names[nax], unit=meta_ax_units[nax])
+        ax = datahandling.Axis(name=meta_ax_names[nax], unit=meta_ax_units[nax])
         ax.grid_node = meta_ax_edges[nax, 0:length_edges[nax]]
         import_field.setaxisobj(nax, ax)
 

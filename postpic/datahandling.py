@@ -55,6 +55,7 @@ import scipy.signal as sps
 import numexpr as ne
 
 from ._compat import tukey, meshgrid, broadcast_to
+from . import io
 
 try:
     import psutil
@@ -1375,6 +1376,16 @@ class Field(object):
         else:
             raise Exception('Not Implemented')
         return
+
+    def export(self, filename):
+        '''
+        export Field object as a file. Format depends on the extention
+        of the filename.
+        '''
+        if filename[-3::] == 'npz':
+            io._export_field_npy(self, filename)
+        else:
+            raise OSError('File format not recognized.')
 
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
