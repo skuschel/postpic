@@ -3,7 +3,7 @@
 ## current master
 
 **Incompatible adjustments to previous version**
-* `postpic.Field` works with all numpy ufuncs, however subtle changes in behaviour might cause incompatibilities with your code.
+* `postpic.Field` works now with all numpy ufuncs.
 * `postpic.Field` method `transform` is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.

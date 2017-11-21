@@ -88,6 +88,12 @@ class TestField(unittest.TestCase):
         x, y = helper.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
         self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
 
+    def assertClose(self, a, b):
+        self.assertTrue(np.all(np.isclose(a, b)))
+
+    def assertAllEqual(self, a, b):
+        self.assertTrue(np.all( a == b ))
+
     def checkFieldConsistancy(self, field):
         '''
         general consistancy check. must never fail.
@@ -412,6 +418,32 @@ class TestField(unittest.TestCase):
         i1d = c1d.imag
         a1d = c1d.angle
         cc1d = c1d.conj()
+        self.assertClose(cc1d.matrix, (c1d-2j*i1d).matrix)
+
+    def test_operators(self):
+        # test unary operators
+        a = self.f2d
+
+        self.assertAllEqual((-a).matrix, -(a.matrix))
+
+        # f1d_neg contains negative numbers
+        b = a - np.mean(a.matrix)
+
+        # avoid runtime errors
+        b.matrix[b==0] = 1
+
+        self.assertAllEqual(abs(b).matrix, abs(b.matrix))
+
+        #test binary operators
+        self.assertAllEqual((a+b).matrix, a.matrix + b.matrix)
+        self.assertAllEqual((a*b).matrix, a.matrix * b.matrix)
+        self.assertAllEqual((a/b).matrix, a.matrix / b.matrix)
+        self.assertAllEqual((b**a).matrix, b.matrix ** a.matrix)
+        self.assertAllEqual((b<=a).matrix, b.matrix <= a.matrix)
+
+        #test other ufuncs
+        self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
+        self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
 
 
 if __name__ == '__main__':

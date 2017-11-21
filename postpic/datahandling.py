@@ -530,7 +530,7 @@ class Field(NDArrayOperatorsMixin):
         return self.replace_data(np.angle(self))
 
     def conj(self):
-        return self.replace_data(np.conjugate(self))
+        return np.conj(self)
 
     def replace_data(self, other):
         ret = copy.copy(self)
