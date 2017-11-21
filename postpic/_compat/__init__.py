@@ -1,6 +1,7 @@
 
 from .functions import replacements
 import pkg_resources as pr
+import numpy
 
 __all__ = []
 for repl in replacements:
@@ -11,3 +12,9 @@ for repl in replacements:
 
     __all__.append(repl.name)
 
+if pr.parse_version(numpy.__version__) < pr.parse_version('1.13'):
+    from mixins import NDArrayOperatorsMixin
+else:
+    from numpy.lib.mixins import NDArrayOperatorsMixin
+
+__all__.append('NDArrayOperatorsMixin')

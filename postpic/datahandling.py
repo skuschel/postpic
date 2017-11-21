@@ -56,7 +56,7 @@ import scipy.integrate
 import scipy.signal as sps
 import numexpr as ne
 
-from ._compat import tukey, meshgrid, broadcast_to
+from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
 
 try:
     import psutil
@@ -272,7 +272,7 @@ def _updatename(operator, reverse=False):
 
 # The NDArrayOperatorsMixin implements all arithmetic special functions through numpy
 # ufuncs
-class Field(numpy.lib.mixins.NDArrayOperatorsMixin):
+class Field(NDArrayOperatorsMixin):
     '''
     The Field Object carries a data matrix together with as many Axis
     Objects as the data matrix's dimensions. Additionaly the Field object
