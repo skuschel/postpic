@@ -28,8 +28,8 @@ import collections
 import numbers
 import numpy as np
 import scipy as sp
-import scipy.signal as sps
 import numpy.linalg as npl
+from ._compat import meshgrid, moveaxis, broadcast_to
 import re
 import warnings
 import functools
@@ -319,95 +319,6 @@ class SpeciesIdentifier(PhysicalConstants):
 
 
 # Some static functions
-def meshgrid(*args, **kwargs):
-    from pkg_resources import parse_version
-    if len(args) < 2 and parse_version(np.__version__) < parse_version('1.9'):
-        if len(args) == 0:
-            return tuple()
-
-        # if we are here, that means len(args)==1
-        if kwargs.get('copy', False):
-            return (args[0].copy(),)
-        return (args[0].view(),)
-    return np.meshgrid(*args, **kwargs)
-
-
-def broadcast_to(*args, **kwargs):
-    from pkg_resources import parse_version
-    if parse_version(np.__version__) < parse_version('1.10'):
-        array, shape = args
-        a, b = np.broadcast_arrays(array, np.empty(shape), **kwargs)
-        return a
-    return np.broadcast_to(*args, **kwargs)
-
-
-def _tukey_replacement_old_scipy(M, alpha=0.5, sym=True):
-    """
-    Copied from scipy commit 870abd2f1fcc1fcf491324cdf5f78b4310c84446
-    and replaced some functions by their implementation
-    """
-    if int(M) != M or M < 0:
-        raise ValueError('Window length M must be a non-negative integer')
-    if M <= 1:
-        return np.ones(M)
-
-    if alpha <= 0:
-        return np.ones(M, 'd')
-    elif alpha >= 1.0:
-        return hann(M, sym=sym)
-
-    if not sym:
-        M, needs_trunc = M + 1, True
-    else:
-        M, needs_trunc = M, False
-
-    n = np.arange(0, M)
-    width = int(np.floor(alpha*(M-1)/2.0))
-    n1 = n[0:width+1]
-    n2 = n[width+1:M-width-1]
-    n3 = n[M-width-1:]
-
-    w1 = 0.5 * (1 + np.cos(np.pi * (-1 + 2.0*n1/alpha/(M-1))))
-    w2 = np.ones(n2.shape)
-    w3 = 0.5 * (1 + np.cos(np.pi * (-2.0/alpha + 1 + 2.0*n3/alpha/(M-1))))
-
-    w = np.concatenate((w1, w2, w3))
-
-    if needs_trunc:
-        return w[:-1]
-    else:
-        return w
-
-
-def tukey(*args, **kwargs):
-    from pkg_resources import parse_version
-    if parse_version(sp.__version__) < parse_version('0.16'):
-        return _tukey_replacement_old_scipy(*args, **kwargs)
-    return sps.tukey(*args, **kwargs)
-
-
-def moveaxis(*args, **kwargs):
-    from pkg_resources import parse_version
-    if parse_version(np.__version__) < parse_version('1.11'):
-        a, source, destination = args
-
-        # twice a quick implementation of numpy.numeric.normalize_axis_tuple
-        if not isinstance(source, collections.Iterable):
-            source = (source,)
-        if not isinstance(destination, collections.Iterable):
-            destination = (destination,)
-        source = [s % a.ndim for s in source]
-        destination = [d % a.ndim for d in destination]
-
-        # the real work copied from np.moveaxis
-        order = [n for n in range(a.ndim) if n not in source]
-        for dest, src in sorted(zip(destination, source)):
-            order.insert(dest, src)
-
-        return np.transpose(a, order)
-    return np.moveaxis(*args, **kwargs)
-
-
 def polar2linear(theta, r):
     x = r*np.cos(theta)
     y = r*np.sin(theta)

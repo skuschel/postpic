@@ -54,6 +54,7 @@ import scipy.integrate
 import scipy.signal as sps
 import numexpr as ne
 
+from ._compat import tukey, meshgrid, broadcast_to
 
 try:
     import psutil
@@ -422,7 +423,7 @@ class Field(object):
         return np.squeeze([a.grid for a in self.axes])
 
     def meshgrid(self, sparse=True):
-        return helper.meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
+        return meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
 
     @property
     def dimensions(self):
@@ -705,7 +706,7 @@ class Field(object):
         coordinates_px = [ax.value_to_index(x) for ax, x in zip(self.axes, coordinates_ax)]
 
         # Broadcast all coordinate arrays to the new shape
-        coordinates_px = [helper.broadcast_to(c, shape) for c in coordinates_px]
+        coordinates_px = [broadcast_to(c, shape) for c in coordinates_px]
 
         # Map the matrix using scipy.ndimage.map_coordinates
         if np.isrealobj(self.matrix):
@@ -882,7 +883,7 @@ class Field(object):
 
             shape = [1]*field.dimensions
             shape[axis] = m
-            windows.append(np.reshape(helper.tukey(m, 1-ll/m), shape))
+            windows.append(np.reshape(tukey(m, 1-ll/m), shape))
 
         field = field[slices]
         varnames = "abcdefg"
