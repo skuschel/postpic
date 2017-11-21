@@ -1035,8 +1035,8 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
         newmat[slices] = ne.evaluate(expr)
 
     k_transverse_tprofile = kspace.replace_data(newmat)
-    t_axis = datahandling.Axis(name='t', unit='s')
-    t_axis.grid = np.linspace(0, (N-1)*dt, N)
+    t_axis = datahandling.Axis(name='t', unit='s',
+                               grid=np.linspace(0, (N-1)*dt, N))
     k_transverse_tprofile.setaxisobj(axis, t_axis)
     k_transverse_tprofile.axes_transform_state[axis] = False
     k_transverse_tprofile.transformed_axes_origins[axis] = None

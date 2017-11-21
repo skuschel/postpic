@@ -73,8 +73,7 @@ class FieldAnalyzer(object):
         returns an Axis object for the "axis" and the grid defined by "gridkey".
         '''
         name = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
-        ax = Axis(name=name, unit='m')
-        ax.grid_node = self.gridnode(gridkey, axis)
+        ax = Axis(name=name, unit='m', grid_node=self.gridnode(gridkey, axis))
         return ax
 
     def setgridtofield(self, field, gridkey):
