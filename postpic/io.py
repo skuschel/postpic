@@ -20,6 +20,10 @@ import numpy as np
 from .datahandling import Axis, Field
 
 def _export_field_npy(field, filename, compressed=True):
+    '''
+    Export a Field object including all metadata and axes to a file.
+    The file will be in the numpy binary format (npz).
+    '''
 
     savefunc = np.savez_compressed
 
@@ -56,6 +60,9 @@ def _export_field_npy(field, filename, compressed=True):
         meta_length_edges=length_edges)
 
 def _import_field_npy(filename):
+    '''
+    import a field object from a file written by _export_field_npy()
+    '''
     import_file = np.load(filename)
 
     # Axes Objects
