@@ -59,10 +59,10 @@ def main():
     # --- 1D visualization of particle contributions ---
 
     def particleshapedemo(shape):
-        import postpic.cythonfunctions as cf
+        from postpic.particles import histogramdd
         import matplotlib.pyplot as plt
         ptclpos = np.array([4.5, 9.75, 15.0, 20.25])
-        y, edges = cf.histogram(ptclpos, bins=25, range=(0,25), shape=shape)
+        y, edges = histogramdd(ptclpos, bins=25, range=(0,25), shape=shape)
         x = np.convolve(edges, [0.5, 0.5], mode='valid')
         fig = plt.figure()
         fig.suptitle('ParticleShape: {:s}'.format(str(shape)))
