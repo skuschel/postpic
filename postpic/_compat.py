@@ -123,4 +123,3 @@ for repl in replacements:
         vars()[repl.name] = getattr(repl.originalmodule, repl.name)
 
     __all__.append(repl.name)
-

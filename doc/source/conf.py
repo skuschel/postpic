@@ -21,6 +21,27 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
 
+
+from mock import Mock as MagicMock
+
+class Mock(MagicMock):
+    pi = 3.141592653589793
+    @classmethod
+    def __getattr__(cls, name):
+            return MagicMock()
+
+MOCK_MODULES = ['argparse',
+                'scipy', 'scipy.signal', 'scipy.ndimage', 'scipy.interpolate',
+                'scipy.integrate', 'scipy.constants',
+                'skimage.restoration',
+                'h5py',
+                'matplotlib.colors', 'matplotlib.pyplot', 'matplotlib', 'matplotlib.ticker',
+                'numpy', 'numpy.fft', 'numpy.linalg',
+                'pyfftw', 'pyfftw.interfaces.cache', 'pyfftw.interfaces.numpy_fft',
+                'numexpr',
+                'postpic.particles._particlestogrid', 'postpic._compat']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 import postpic as pp
 
 # -- General configuration ------------------------------------------------
