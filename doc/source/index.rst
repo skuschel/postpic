@@ -7,14 +7,21 @@ Welcome to postpic's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Contents:
+   :maxdepth: 4
+   :caption: Contents
 
-   CONTRIBUTING
+   introduction
+
+   getstarted
 
    CHANGELOG
 
-   getstarted
+   CONTRIBUTING
+
+Postpic API Documentation
+=========================
+
+.. toctree::
 
    apidoc/modules
 
