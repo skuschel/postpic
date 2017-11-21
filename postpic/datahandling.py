@@ -144,6 +144,8 @@ class Axis(object):
                 gn = np.convolve(self._grid, np.ones(2) / 2.0, mode='full')
                 if self._extent is not None:
                     # extent has been passed, use this for the end points of grid_node
+                    if self._extent[0] >= self._grid[0] or self._extent[-1] <= self._grid[-1]:
+                        raise ValueError("Passed invalid extent.")
                     gn[0] = self._extent[0]
                     gn[-1] = self._extent[-1]
                 else:
