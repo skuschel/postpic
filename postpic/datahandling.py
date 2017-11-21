@@ -298,6 +298,41 @@ def _updatename(operator, reverse=False):
     return ret
 
 
+def _reducing_numpy_method(method):
+    @functools.wraps(method)
+    def new_method(self, axis=None, out=None, keepdims=None, **kwargs):
+        axisiter = axis
+        if axisiter is None:
+            axisiter = tuple(range(self.dimensions))
+        if not isinstance(axisiter, collections.Iterable):
+            axisiter = (axis,)
+
+        if out is None:
+            axes = copy.copy(self.axes)
+            tao = copy.copy(self.transformed_axes_origins)
+            ats = copy.copy(self.axes_transform_state)
+            if keepdims:
+                for i in axisiter:
+                    axes[i] = Axis(axes[i].name, axes[i].unit, extent=axes[i].extent, n=1)
+            else:
+                for i in reversed(sorted(axisiter)):
+                    del axes[i]
+                    del tao[i]
+                    del ats[i]
+
+        if keepdims is not None:
+            kwargs['keepdims'] = keepdims
+        o = method(self.matrix, axis=axis, out=out, **kwargs)
+
+        if out:
+            return out
+
+        ret = type(self)(o, self.name, self.unit, axes=axes,
+                         axes_transform_state=ats, transformed_axes_origins=tao)
+        return ret
+    return new_method
+
+
 # The NDArrayOperatorsMixin implements all arithmetic special functions through numpy
 # ufuncs
 class Field(NDArrayOperatorsMixin):
@@ -1091,19 +1126,16 @@ class Field(NDArrayOperatorsMixin):
         axes[axis2] = axis1
         return self.transpose(*axes)
 
-    def mean(self, axis=-1):
-        '''
-        takes the mean along the given axis.
-        '''
-        ret = copy.copy(self)
-        if self.dimensions == 0:
-            return self
-        ret._matrix = np.mean(ret.matrix, axis=axis)
-        ret.axes.pop(axis)
-        ret.transformed_axes_origins.pop(axis)
-        ret.axes_transform_state.pop(axis)
-
-        return ret
+    all = _reducing_numpy_method(np.all)
+    any = _reducing_numpy_method(np.any)
+    amax = _reducing_numpy_method(np.amax)
+    amin = _reducing_numpy_method(np.amin)
+    prod = _reducing_numpy_method(np.prod)
+    sum = _reducing_numpy_method(np.sum)
+    ptp = _reducing_numpy_method(np.ptp)
+    std = _reducing_numpy_method(np.std)
+    mean = _reducing_numpy_method(np.mean)
+    var = _reducing_numpy_method(np.var)
 
     def _integrate_constant(self, axes):
         if not self.islinear():
