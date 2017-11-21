@@ -1137,6 +1137,12 @@ class Field(NDArrayOperatorsMixin):
     mean = _reducing_numpy_method(np.mean)
     var = _reducing_numpy_method(np.var)
 
+    def clip(self, a_min, a_max, out=None):
+        o = np.clip(self.matrix, a_min, a_max, out=out)
+        if out:
+            return out
+        return self.replace_data(o)
+
     def _integrate_constant(self, axes):
         if not self.islinear():
             raise ValueError("Using method='constant' in integrate which is only suitable "
