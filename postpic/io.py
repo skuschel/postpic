@@ -22,6 +22,10 @@ from . import datahandling
 
 
 def _export_field_csv(field, filename):
+    '''
+    Export the data of a Field object as a CSV file.
+    The extent will be given in the comments of that file.
+    '''
     if field.dimensions == 1:
         data = np.asarray(field.matrix)
         extent = field.extent
