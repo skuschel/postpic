@@ -41,21 +41,24 @@ def histogramdd(data, **kwargs):
     dimensions of the histogram returned.
     '''
     [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
-    if len(data) > 3:
-        raise ValueError('{} is larger than the max number of dimensions '
-                         'allowed (3)'.format(len(data)))
-    if len(data) == 1:
+    data = np.asarray(data)
+    if len(data.shape) == 1:  # [1,2,3]
+        h, xedges = ptg.histogram(np.float64(data), **kwargs)
+        return h, xedges
+    if len(data) == 1 and len(data.shape) == 2:  # [[1,2,3]]
         h, xedges = ptg.histogram(np.float64(data[0]), **kwargs)
         return h, xedges
-    if len(data) == 2:
+    if len(data) == 2 and len(data.shape) == 2:  # [[1,2,3], [4,5,6]]
         h, xedges, yedges = ptg.histogram2d(np.float64(data[0]),
                                             np.float64(data[1]), **kwargs)
         return h, xedges, yedges
-    if len(data) == 3:
+    if len(data) == 3 and len(data.shape) == 2:  # [[1,2,3], [4,5,6], [7,8,9]]
         h, xe, ye, ze = ptg.histogram3d(np.float64(data[0]),
                                         np.float64(data[1]),
                                         np.float64(data[2]), **kwargs)
         return h, xe, ye, ze
+    else:
+        raise ValueError('Data with shape {:} not supported'.format(data.shape))
 
 
 class SpeciesIdentifier(PhysicalConstants):
