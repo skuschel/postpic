@@ -19,6 +19,7 @@
 import numpy as np
 from .datahandling import Axis, Field
 
+
 def _export_field_npy(field, filename, compressed=True):
     '''
     Export a Field object including all metadata and axes to a file.
@@ -35,8 +36,6 @@ def _export_field_npy(field, filename, compressed=True):
     naxes = len(field.axes)
 
     length_edges = [len(ax.grid_node) for ax in field.axes]
-
-
     max_length = np.max(length_edges)
 
     meta_ax_edges = np.zeros([naxes, max_length])
@@ -51,13 +50,14 @@ def _export_field_npy(field, filename, compressed=True):
 
     # field metadata
     meta_field = np.array([str(field.name), str(field.unit), str(field.label),
-        str(field.infostring)])
+                          str(field.infostring)])
 
     # save all the data in one file
     savefunc(filename, matrix=field.matrix, meta_field=meta_field,
-        meta_ax_edges=meta_ax_edges, meta_ax_names=meta_ax_names,
-        meta_ax_units=meta_ax_units,
-        meta_length_edges=length_edges)
+             meta_ax_edges=meta_ax_edges, meta_ax_names=meta_ax_names,
+             meta_ax_units=meta_ax_units,
+             meta_length_edges=length_edges)
+
 
 def _import_field_npy(filename):
     '''
