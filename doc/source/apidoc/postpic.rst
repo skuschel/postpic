@@ -7,39 +7,32 @@ Subpackages
 .. toctree::
 
     postpic.datareader
+    postpic.particles
     postpic.plotting
 
 Submodules
 ----------
 
-postpic.cythonfunctions module
-------------------------------
-
-.. automodule:: postpic.cythonfunctions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-postpic.datahandling module
----------------------------
+postpic\.datahandling module
+----------------------------
 
 .. automodule:: postpic.datahandling
     :members:
     :undoc-members:
     :show-inheritance:
 
-postpic.helper module
----------------------
+postpic\.experimental module
+----------------------------
 
-.. automodule:: postpic.helper
+.. automodule:: postpic.experimental
     :members:
     :undoc-members:
     :show-inheritance:
 
-postpic.particles module
-------------------------
+postpic\.helper module
+----------------------
 
-.. automodule:: postpic.particles
+.. automodule:: postpic.helper
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,11 +1,11 @@
-postpic.plotting package
-========================
+postpic\.plotting package
+=========================
 
 Submodules
 ----------
 
-postpic.plotting.plotter_matplotlib module
-------------------------------------------
+postpic\.plotting\.plotter\_matplotlib module
+---------------------------------------------
 
 .. automodule:: postpic.plotting.plotter_matplotlib
     :members:
