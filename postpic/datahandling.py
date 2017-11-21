@@ -1376,18 +1376,6 @@ class Field(object):
 
         return ret
 
-    def exporttocsv(self, filename):
-        if self.dimensions == 1:
-            data = np.asarray(self.matrix)
-            x = np.linspace(self.extent[0], self.extent[1], len(data))
-            np.savetxt(filename, np.transpose([x, data]), delimiter=' ')
-        elif self.dimensions == 2:
-            export = np.asarray(self.matrix)
-            np.savetxt(filename, export)
-        else:
-            raise Exception('Not Implemented')
-        return
-
     def export(self, filename):
         '''
         export Field object as a file. Format depends on the extention
@@ -1395,6 +1383,8 @@ class Field(object):
         '''
         if filename[-3::] == 'npz':
             io._export_field_npy(self, filename)
+        elif filename[-3::] == 'csv':
+            io._export_field_csv(self, filename)
         else:
             raise OSError('File format not recognized.')
 
