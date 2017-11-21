@@ -280,6 +280,17 @@ class Field(object):
     made to work with np.histogram oder np.histogram2d.
     '''
 
+    @classmethod
+    def importFromFile(cls, filename):
+        '''
+        construct a new field object from file
+        '''
+
+        if not filename[-3::] == 'npz':
+            raise OSError('File format not recognized')
+
+        return io._import_field_npy(filename)
+
     def __init__(self, matrix, xedges=None, yedges=None, zedges=None, name='', unit=''):
         if xedges is not None:
             self._matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
