@@ -49,7 +49,6 @@ import os
 import numbers
 
 import numpy as np
-import numpy.lib.mixins
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
 import scipy.integrate
@@ -364,10 +363,10 @@ class Field(NDArrayOperatorsMixin):
                 return NotImplemented
 
         # Defer to the implementation of the ufunc on unwrapped values.
-        inputs = tuple(np.array(x) if isinstance(x, type(self)) else x for x in inputs)
+        inputs = tuple(x.matrix if isinstance(x, type(self)) else x for x in inputs)
         if out:
             kwargs['out'] = tuple(
-                np.array(x) if isinstance(x, type(self)) else x for x in out)
+                x.matrix if isinstance(x, type(self)) else x for x in out)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
         if type(result) is tuple:
