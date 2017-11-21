@@ -179,16 +179,6 @@ class Axis(object):
 
         self._linear = None
 
-    def __copy__(self):
-        '''
-        returns a shallow copy of the object.
-        This method is called by `copy.copy(obj)`.
-        '''
-        cls = type(self)
-        ret = cls.__new__(cls)
-        ret.__dict__.update(self.__dict__)
-        return ret
-
     def islinear(self, force=False):
         """
         Checks if the axis has a linear grid.
