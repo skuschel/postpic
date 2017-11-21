@@ -318,6 +318,17 @@ class Field(NDArrayOperatorsMixin):
         # recreate the correct axis interval upon inverse transform
         self.transformed_axes_origins = [None] * len(self.shape)
 
+    @classmethod
+    def Field(cls, matrix, axes, axes_transform_state=None, transformed_axes_origins=None):
+        """this is basically what the constructor should have been"""
+        field = cls(matrix)
+        field.axes = [copy.copy(a) for a in axes]
+        if axes_transform_state is not None:
+            field.axes_transform_state = copy.copy(axes_transform_state)
+        if transformed_axes_origins is not None:
+            field.transformed_axes_origins = copy.copy(transformed_axes_origins)
+        return field
+
     def __copy__(self):
         '''
         returns a shallow copy of the object.
@@ -353,7 +364,9 @@ class Field(NDArrayOperatorsMixin):
     # see https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/[...]
     # [...]/numpy.lib.mixins.NDArrayOperatorsMixin.html#numpy.lib.mixins.NDArrayOperatorsMixin
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        if method != '__call__':
+        # Have implemented neither 'reduceat' because it is crazy nor
+        # 'inner' because it is not documented
+        if method not in ['__call__', 'reduce', 'outer', 'at', 'accumulate']:
             return NotImplemented
 
         out = kwargs.get('out', ())
@@ -362,6 +375,31 @@ class Field(NDArrayOperatorsMixin):
             if not isinstance(x, self._HANDLED_TYPES + (type(self),)):
                 return NotImplemented
 
+        # If out-argument set, an output Field was already created. Do not wworry
+        # about axes in that case
+        if not out:
+            if method in ['__call__', 'accumulate']:
+                axes = self.axes
+            elif method == 'reduce':
+                axes = copy.copy(self.axes)
+                reduceaxis = kwargs.get('axis', 0)
+                if not isinstance(reduceaxis, collections.Iterable):
+                    reduceaxis = (reduceaxis,)
+                for axis in reversed(sorted(set(reduceaxis))):
+                    del axes[axis]
+            elif method == 'outer':
+                axes = []
+                for i in inputs:
+                    if isinstance(i, type(self)):
+                        axes.extend(i.axes)
+                    elif isinstance(i, np.ndarray):
+                        for j in range(i.ndim):
+                            a = Axis()
+                            a.setextent(0, 1, j.shape[j])
+                            axes.append(a)
+            elif method == 'at':
+                axes = None
+
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x.matrix if isinstance(x, type(self)) else x for x in inputs)
         if out:
@@ -369,26 +407,40 @@ class Field(NDArrayOperatorsMixin):
                 x.matrix if isinstance(x, type(self)) else x for x in out)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
+        # If out-argument set, just return the output Field
+        if out:
+            return out
+
+        # Otherwise, the ufunc has returned one or more simple array(s). Wrap this/these
+        # with the `axes`
         if type(result) is tuple:
             # multiple return values
-            return tuple(self._wrap(x) for x in result)
+            return tuple(type(self).Field(x, axes,
+                                          self.axes_transform_state, self.transformed_axes_origins)
+                         for x in result)
         elif method == 'at':
             # no return value
             return None
         else:
             # one return value
-            return self._wrap(result)
+            return type(self).Field(result, axes,
+                                    self.axes_transform_state, self.transformed_axes_origins)
 
     # wrap ufunc results from old numpy as Fields
+    # this is not intended to be perfect because it is barely possible to get it right with
+    # with the old interface
     def __array_wrap__(self, array, context=None):
-        return self._wrap(array)
+        # this is a Field already, leave it as is
+        if isinstance(array, type(self)):
+            return array
 
-    def _wrap(self, other):
-        # wrap other as a Field with same axes as self if it is not a Field,
-        # leave as is if it already is a Field.
-        if isinstance(other, type(self)):
-            return other
-        return self.replace_data(other)
+        if array.ndim == len(self.axes):
+            # axes should probably be the same as those from self,
+            return type(self).Field(array, self.axes,
+                                    self.axes_transform_state, self.transformed_axes_origins)
+
+        # Have no Idea what the axes should be. Return plain `ndarray`.
+        return array
 
     def _addaxisobj(self, axisobj):
         '''
@@ -1298,6 +1350,8 @@ class Field(NDArrayOperatorsMixin):
         ret = self * exp_ikdx
 
         for i in dx.keys():
+            print(ret.transformed_axes_origins)
+            print(dx)
             ret.transformed_axes_origins[i] += dx[i]
 
         return ret
