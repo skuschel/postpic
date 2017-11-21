@@ -12,8 +12,8 @@ class TestIO(unittest.TestCase):
     def setUp(self):
         pp.chooseCode('DUMMY')
         self.dump = pp.datareader.readDump(100)
-        self.testfield = dump.Ey()
-        io._export_field_npy(testfield, 'test.npz')
+        self.testfield = self.dump.Ey()
+        io._export_field_npy(self.testfield, 'test.npz')
         self.testfield2 = io._import_field_npy('test.npz')
 
     def test_data(self):
