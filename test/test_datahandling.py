@@ -11,14 +11,13 @@ import scipy.integrate
 class TestAxis(unittest.TestCase):
 
     def setUp(self):
-        self.ax = dh.Axis(name='name', unit='unit')
+        self.ax = dh.Axis(name='name', unit='unit', extent=[-1,1], n=101)
 
     def test_simple(self):
         self.assertEqual(self.ax.name, 'name')
         self.assertEqual(self.ax.unit, 'unit')
 
     def test_grid_general(self):
-        self.ax.setextent([-1, 1], 101)
         self.assertEqual(self.ax.extent, [-1, 1])
         self.assertEqual(len(self.ax), 101)
         self.assertEqual(len(self.ax.grid), 101)
@@ -29,48 +28,45 @@ class TestAxis(unittest.TestCase):
         self.assertTrue(self.ax.islinear(force=True))
 
     def test_initiate(self):
-        ax = dh.Axis()
+        ax = dh.Axis(extent=(-1,1), n=101)
         self.assertEqual(ax.name, '')
         self.assertEqual(ax.unit, '')
 
     def test_getitem(self):
         # even number of grid points
-        self.ax.setextent((-1, 1), 100)
-        ax = self.ax[0.0:1.0]
+        ax = dh.Axis(extent=(-1,1), n=100)
+        ax = ax[0.0:1.0]
         self.assertEqual(len(ax), 50)
         self.assertEqual(ax.grid_node[0], 0)
         # odd number of grid points
-        self.ax.setextent((-1, 1), 101)
-        ax = self.ax[-0.01: 1]
+        ax = dh.Axis(extent=(-1,1), n=101)
+        ax = ax[-0.01: 1]
         self.assertEqual(len(ax), 51)
         self.assertEqual(ax.grid[0], 0)
 
     def test_half_resolution(self):
         # even number of grid points
-        self.ax.setextent((10, 20), 100)
-        ax = self.ax.half_resolution()
+        ax = dh.Axis(extent=(10, 20), n=100)
+        ax = ax.half_resolution()
         self.assertEqual(len(ax), 50)
         # odd number of grid points
-        self.ax.setextent((10, 20), 101)
-        ax = self.ax.half_resolution()
+        ax = dh.Axis(extent=(10, 20), n=101)
+        ax = ax.half_resolution()
         self.assertEqual(len(ax), 50)
 
     def test_extent(self):
-        self.assertTrue(self.ax.extent is None)
-        self.ax.grid_node = [1]
-        self.assertTrue(self.ax.extent is None)
-        self.ax.grid_node = [1, 2.7]
-        self.assertEqual(self.ax.extent, [1, 2.7])
+        ax = dh.Axis(grid_node = [1, 2.7])
+        self.assertEqual(ax.extent, [1, 2.7])
 
     def test_grid(self):
-        self.ax.grid = [5, 6]
-        self.assertEqual(self.ax.grid[0], 5)
-        self.assertEqual(self.ax.grid[1], 6)
+        ax = dh.Axis(grid = [5, 6])
+        self.assertEqual(ax.grid[0], 5)
+        self.assertEqual(ax.grid[1], 6)
 
     def test_grid_node(self):
-        self.ax.grid_node = [5, 6]
-        self.assertEqual(self.ax.grid[0], 5.5)
-        self.assertTrue(all(self.ax.grid_node == [5, 6]))
+        ax = dh.Axis(grid_node = [5, 6])
+        self.assertEqual(ax.grid[0], 5.5)
+        self.assertTrue(ax.grid_node == [5, 6])
 
 
 class TestField(unittest.TestCase):
@@ -313,11 +309,9 @@ class TestField(unittest.TestCase):
     def test_map_coordinates(self):
         a = self.f2d.integrate().matrix
 
-        th_axis = dh.Axis()
-        th_axis.grid = np.linspace(0, 2*np.pi, 100)
+        th_axis = dh.Axis(grid = np.linspace(0, 2*np.pi, 100))
 
-        r_axis = dh.Axis()
-        r_axis.grid = np.linspace(0, 1.5, 100)
+        r_axis = dh.Axis(grid = np.linspace(0, 1.5, 100))
 
         # this calculates numerical approximation of jacobi determinant and thus also tests
         # helper.jac_det and

@@ -720,7 +720,7 @@ class MultiSpecies(object):
     @deprecated('Use self("x_um") instead.')
     def X_um(self):
         return self('x_um')
-    X_um.unit = '$\mu m$'
+    X_um.unit = r'$\mu m$'
     X_um.name = 'X'
 
     @deprecated('Use self("y") instead.')
@@ -732,7 +732,7 @@ class MultiSpecies(object):
     @deprecated('Use self("Y_mu") instead.')
     def Y_um(self):
         return self('y_um')
-    Y_um.unit = '$\mu m$'
+    Y_um.unit = r'$\mu m$'
     Y_um.name = 'Y'
 
     @deprecated('Use self("z") instead.')
@@ -744,7 +744,7 @@ class MultiSpecies(object):
     @deprecated('Use self("z_um") instead.')
     def Z_um(self):
         return self('z_um')
-    Z_um.unit = '$\mu m$'
+    Z_um.unit = r'$\mu m$'
     Z_um.name = 'Z'
 
     @deprecated('Use self("{name}") instead.')
@@ -1175,8 +1175,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         h, edges = self._createHistgram1d(spx, **kwargs)
-        ret = Field(h, edges)
-        ret.axes[0].grid_node = edges
+        ret = Field(h, xedges=edges)
         ret.name = name + ' ' + self.species
         ret.label = self.species
         if title:
@@ -1210,9 +1209,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
-        ret = Field(h, xedges, yedges)
-        ret.axes[0].grid_node = xedges
-        ret.axes[1].grid_node = yedges
+        ret = Field(h, xedges=xedges, yedges=yedges)
         ret.name = name + self.species
         ret.label = self.species
         if title:
@@ -1250,10 +1247,7 @@ class MultiSpecies(object):
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
         h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
-        ret = Field(h, xedges, yedges, zedges)
-        ret.axes[0].grid_node = xedges
-        ret.axes[1].grid_node = yedges
-        ret.axes[2].grid_node = yedges
+        ret = Field(h, xedges=xedges, yedges=yedges, zedges=zedges)
         ret.name = name + self.species
         ret.label = self.species
         if title:
