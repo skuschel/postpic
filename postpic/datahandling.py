@@ -515,7 +515,8 @@ class Field(NDArrayOperatorsMixin):
         # with the `axes`
         if type(result) is tuple:
             # multiple return values
-            return tuple(type(self)(x, axes=axes, axes_transform_state=self.axes_transform_state,
+            return tuple(type(self)(x, self.name, self.unit, axes=axes,
+                                    axes_transform_state=self.axes_transform_state,
                                     transformed_axes_origins=self.transformed_axes_origins)
                          for x in result)
         elif method == 'at':
@@ -523,7 +524,8 @@ class Field(NDArrayOperatorsMixin):
             return None
         else:
             # one return value
-            obj = type(self)(result, axes=axes, axes_transform_state=self.axes_transform_state,
+            obj = type(self)(result, self.name, self.unit, axes=axes,
+                             axes_transform_state=self.axes_transform_state,
                              transformed_axes_origins=self.transformed_axes_origins)
             return obj
 
@@ -537,7 +539,7 @@ class Field(NDArrayOperatorsMixin):
 
         if array.ndim == len(self.axes):
             # axes should probably be the same as those from self,
-            return type(self)(array, axes=self.axes,
+            return type(self)(array, self.name, self.unit, axes=self.axes,
                               axes_transform_state=self.axes_transform_state,
                               transformed_axes_origins=self.transformed_axes_origins)
 
