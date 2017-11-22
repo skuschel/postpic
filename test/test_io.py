@@ -23,12 +23,12 @@ class TestIO(unittest.TestCase):
     def test_metadata(self):
         self.assertEqual(self.testfield.name, self.testfield2.name)
         self.assertEqual(self.testfield.unit, self.testfield2.unit)
-        self.assertEqual(np.all(self.testfield.axes_transform_state),
-                         np.all(self.testfield2.axes_transform_state))
-        self.assertEqual(np.all(self.testfield.transformed_axes_origins),
-                         np.all(self.testfield2.transformed_axes_origins))
+        self.assertTrue(np.all(self.testfield.axes_transform_state == self.testfield2.axes_transform_state))
+        self.assertTrue(np.all(self.testfield.transformed_axes_origins == self.testfield2.transformed_axes_origins))
 
 
     def test_axes(self):
         for n in range(0, len(self.testfield.axes)):
             self.assertEqual(len(self.testfield.axes[n]), len(self.testfield2.axes[n]))
+            self.assertTrue(np.all(np.isclose(self.testfield.axes[n].grid_node,
+                                              self.testfield2.axes[n].grid_node)))
