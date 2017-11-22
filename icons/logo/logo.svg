@@ -16,7 +16,10 @@
    version="1.1"
    id="svg8"
    inkscape:version="0.92.2 5c3e80d, 2017-08-06"
-   sodipodi:docname="Entwurf.svg">
+   sodipodi:docname="Entwurf.svg"
+   inkscape:export-filename="/home/alex/Physik/Postpic/Logo/Entwurf.72.png"
+   inkscape:export-xdpi="192"
+   inkscape:export-ydpi="192">
   <defs
      id="defs2">
     <marker
@@ -124,12 +127,12 @@
      pagecolor="#ffffff"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="11.2"
-     inkscape:cx="8.2819794"
-     inkscape:cy="18.744642"
-     inkscape:document-units="mm"
+     inkscape:cx="-8.9883782"
+     inkscape:cy="9.3281833"
+     inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      fit-margin-top="0"
@@ -141,8 +144,9 @@
      inkscape:window-x="68"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     showguides="false"
-     units="px" />
+     showguides="true"
+     units="px"
+     inkscape:guide-bbox="true" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -525,16 +529,16 @@
          id="rect4602"
          style="fill:none;stroke:#000000;stroke-width:0.26458335;stroke-miterlimit:4;stroke-dasharray:none" />
       <circle
-         cy="24.816591"
-         cx="40.911747"
+         cy="24.83325"
+         cx="40.939919"
          id="path5322"
          style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.23620337;stroke-miterlimit:4;stroke-dasharray:none"
          r="0.067106649" />
       <circle
          style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.23620337;stroke-miterlimit:4;stroke-dasharray:none"
          id="circle5324"
-         cx="42.197983"
-         cy="28.023825"
+         cx="42.262836"
+         cy="28.008249"
          r="0.067106649" />
     </g>
     <path
