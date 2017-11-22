@@ -41,7 +41,8 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import functools
+import sys
+
 import collections
 import copy
 import warnings
@@ -56,6 +57,12 @@ import scipy.signal as sps
 import numexpr as ne
 
 from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
+from . import helper
+
+if sys.version[0] == '2':
+    import functools32 as functools
+else:
+    import functools
 
 try:
     import psutil
@@ -100,7 +107,6 @@ try:
 except ImportError:
     unwrap_phase = None
 
-from . import helper
 
 __all__ = ['Field', 'Axis']
 
@@ -303,7 +309,6 @@ def _reducing_numpy_method(method):
     This function produces methods that are suitable for the `Field` class
     that reproduce the behaviour of the corresponding numpy `method`
     """
-
     @functools.wraps(getattr(np.ndarray, method))
     def new_method(self, axis=None, out=None, keepdims=None, **kwargs):
         # we need to interpret the axis object and create an iterable axisiter
