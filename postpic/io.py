@@ -120,7 +120,7 @@ def _import_field_npy(filename):
 
 def export_scalar_vtk(scalarfields, filename):
     if not isinstance(scalarfields, collections.Iterable):
-        if not isinstance(scalarfields, datahandling.Field):
+        if not isinstance(scalarfields, postpic.Field):
             raise Exception('scalarfields must be one or more Field objects.')
         else:
             scalarfields = [scalarfields]
@@ -139,7 +139,7 @@ def export_scalar_vtk(scalarfields, filename):
 
     grid = pyvtk.StructuredPoints(dimensions=lengths,origin=starts,spacing=increments)
 
-    scalar_list = [pyvtk.Scalars(scalars=f.matrix.T.flatten(),name=f.name) for f in scalarfields]
+    scalar_list = [pyvtk.Scalars(scalars=np.asarray(f).T.flatten(),name=f.name) for f in scalarfields]
     pointData = pyvtk.PointData(*scalar_list)
 
     vtk = pyvtk.VtkData(grid,pointData)
