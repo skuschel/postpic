@@ -17,7 +17,8 @@ class TestIO(unittest.TestCase):
         self.testfield2 = io._import_field_npy('test.npz')
 
     def test_data(self):
-        assert np.all(np.isclose(self.testfield.matrix, self.testfield2.matrix))
+        self.assertTrue(np.all(np.isclose(self.testfield.matrix,
+                                          self.testfield2.matrix)))
 
     def test_metadata(self):
         self.assertEqual(self.testfield.name, self.testfield2.name)
