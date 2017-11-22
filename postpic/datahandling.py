@@ -299,14 +299,23 @@ def _updatename(operator, reverse=False):
 
 
 def _reducing_numpy_method(method):
+    """
+    This function produces methods that are suitable for the `Field class
+    that reproduce the behaviour of the corresponding numpy `method`
+    """
+
     @functools.wraps(method)
     def new_method(self, axis=None, out=None, keepdims=None, **kwargs):
+        # we need to interpret the axis object and create an iterable axisiter
+        # in order to iterate over the affected axes
         axisiter = axis
         if axisiter is None:
             axisiter = tuple(range(self.dimensions))
         if not isinstance(axisiter, collections.Iterable):
             axisiter = (axis,)
 
+        # no `out` argument supplied, we need to figure out the axes of the result
+        # and deal with other state of the Field
         if out is None:
             axes = copy.copy(self.axes)
             tao = copy.copy(self.transformed_axes_origins)
@@ -320,21 +329,35 @@ def _reducing_numpy_method(method):
                     del tao[i]
                     del ats[i]
 
+        # If the supplied `out` argument is a Field, we need to extract the plain array
+        # from it in order to pass to the real method
         real_out = out
         if isinstance(out, type(self)):
             real_out = out.matrix
         elif isinstance(out, tuple):
             real_out = tuple(o.matrix if isinstance(o, type(self)) else o)
 
+        # call the underlying method and pass on `keepdims` if it is different from
+        # None. Passing on `None` does not work because the default value is a special
+        # object, see <https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/
+        # numpy.all.html#numpy.all>
         if keepdims is not None:
             kwargs['keepdims'] = keepdims
         o = method(self.matrix, axis=axis, out=real_out, **kwargs)
 
+        # if an `out` argument was supplied, just return it
         if out:
             return out
 
-        ret = type(self)(o, self.name, self.unit, axes=axes,
-                         axes_transform_state=ats, transformed_axes_origins=tao)
+        # create and return a Field object from the result.
+        if isinstance(o, tuple):
+            ret = tuple(type(self)(a, self.name, self.unit, axes=axes,
+                                   axes_transform_state=ats, transformed_axes_origins=tao)
+                        for a in o
+                        )
+        else:
+            ret = type(self)(o, self.name, self.unit, axes=axes,
+                             axes_transform_state=ats, transformed_axes_origins=tao)
         return ret
     return new_method
 
@@ -471,7 +494,11 @@ class Field(NDArrayOperatorsMixin):
         for x in inputs + out:
             # Only support operations with instances of _HANDLED_TYPES.
             if not isinstance(x, self._HANDLED_TYPES + (type(self),)):
+                # Any unsupported operation should return NotImplemented such that
+                # numpy can continue to look for other methods that might support it
                 return NotImplemented
+
+        # TODO: add check of Axes extent and unit here
 
         # If out-argument set, an output Field was already created. Do not wworry
         # about axes in that case
@@ -529,8 +556,10 @@ class Field(NDArrayOperatorsMixin):
                              transformed_axes_origins=self.transformed_axes_origins)
             return obj
 
-    # wrap ufunc results from old numpy as Fields
-    # this is not intended to be perfect because it is barely possible to get it right with
+    # wrap ufunc results from numpy < 1.13 as Fields.
+    # This is also used for __add__ and so on as they are implemented through ufuncs via
+    # NDArrayOperatorsMixin.
+    # This is not intended to be perfect because it is barely possible to get it right
     # with the old interface
     def __array_wrap__(self, array, context=None):
         # this is a Field already, leave it as is
@@ -538,7 +567,7 @@ class Field(NDArrayOperatorsMixin):
             return array
 
         if array.ndim == len(self.axes):
-            # axes should probably be the same as those from self,
+            # axes should probably be the same as those from self
             return type(self)(array, self.name, self.unit, axes=self.axes,
                               axes_transform_state=self.axes_transform_state,
                               transformed_axes_origins=self.transformed_axes_origins)
