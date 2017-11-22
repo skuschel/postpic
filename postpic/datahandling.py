@@ -55,7 +55,6 @@ import scipy.signal as sps
 import numexpr as ne
 
 from ._compat import tukey, meshgrid, broadcast_to
-from . import io
 
 try:
     import psutil
@@ -313,7 +312,8 @@ class Field(object):
         formats are supported:
         *.npz
         '''
-
+        # leave import here. Older python versions can't handle circular imports
+        from . import io
         if not filename.endswith('npz'):
             raise Exception('File format of filename {0} not recognized.'.format(filename))
 
@@ -1442,6 +1442,8 @@ class Field(object):
         *.npz
         *.csv
         '''
+        # leave import here. Older python versions can't handle circular imports
+        from . import io
         if filename.endswith('npz'):
             io._export_field_npy(self, filename)
         elif filename.endswith('csv'):
