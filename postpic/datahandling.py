@@ -300,11 +300,11 @@ def _updatename(operator, reverse=False):
 
 def _reducing_numpy_method(method):
     """
-    This function produces methods that are suitable for the `Field class
+    This function produces methods that are suitable for the `Field` class
     that reproduce the behaviour of the corresponding numpy `method`
     """
 
-    @functools.wraps(method)
+    @functools.wraps(getattr(np.ndarray, method))
     def new_method(self, axis=None, out=None, keepdims=None, **kwargs):
         # we need to interpret the axis object and create an iterable axisiter
         # in order to iterate over the affected axes
@@ -343,7 +343,7 @@ def _reducing_numpy_method(method):
         # numpy.all.html#numpy.all>
         if keepdims is not None:
             kwargs['keepdims'] = keepdims
-        o = method(self.matrix, axis=axis, out=real_out, **kwargs)
+        o = getattr(self.matrix, method)(axis=axis, out=real_out, **kwargs)
 
         # if an `out` argument was supplied, just return it
         if out:
@@ -1180,16 +1180,16 @@ class Field(NDArrayOperatorsMixin):
         axes[axis2] = axis1
         return self.transpose(*axes)
 
-    all = _reducing_numpy_method(np.all)
-    any = _reducing_numpy_method(np.any)
-    amax = _reducing_numpy_method(np.amax)
-    amin = _reducing_numpy_method(np.amin)
-    prod = _reducing_numpy_method(np.prod)
-    sum = _reducing_numpy_method(np.sum)
-    ptp = _reducing_numpy_method(np.ptp)
-    std = _reducing_numpy_method(np.std)
-    mean = _reducing_numpy_method(np.mean)
-    var = _reducing_numpy_method(np.var)
+    all = _reducing_numpy_method("all")
+    any = _reducing_numpy_method("any")
+    max = _reducing_numpy_method("max")
+    min = _reducing_numpy_method("min")
+    prod = _reducing_numpy_method("prod")
+    sum = _reducing_numpy_method("sum")
+    ptp = _reducing_numpy_method("ptp")
+    std = _reducing_numpy_method("std")
+    mean = _reducing_numpy_method("mean")
+    var = _reducing_numpy_method("var")
 
     def clip(self, a_min, a_max, out=None):
         o = np.clip(self.matrix, a_min, a_max, out=out)
