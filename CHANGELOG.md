@@ -3,6 +3,7 @@
 ## current master
 
 **Incompatible adjustments to previous version**
+* `postpic.Field` method `exporttocsv` is removed. Use `export` instead.
 * `postpic.Field` method `transform` is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
@@ -11,6 +12,7 @@ old: `ms.filter('gamma > 2')`<br>
 new: `ms = ms.filter('gamma > 2')`
 
 **Other improvements and new features**
+* `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files in addition.
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
 * `postpic.Field` has methods `.swapaxes`, `.transpose` and property `.T` compatible to numpy.ndarray
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
