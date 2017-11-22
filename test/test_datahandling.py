@@ -455,6 +455,14 @@ class TestField(unittest.TestCase):
         np.std(self.f2d, out=a, keepdims=True)
         self.assertEqual(a.matrix[0,0], 5.766281297335398)
 
+    def test_numpy_ufuncs(self):
+        a = np.add.reduce(self.f2d, axis=1)
+        self.assertTrue(a.axes[0] is self.f2d.axes[0])
+        self.assertAllEqual(a.matrix, np.add.reduce(self.f2d.matrix, axis=1))
+
+        b = np.multiply.outer(self.f1d, self.f2d)
+        self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
+        self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
 
 
 if __name__ == '__main__':
