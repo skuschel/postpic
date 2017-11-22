@@ -81,7 +81,7 @@ attribidentify.update({'PX': 3, 'Px': 3, 'px': 3, 3: 3,
                        'charge': 12, 'c': 12, 'Charge': 12, 'q': 12})
 
 
-def deprecated(msg):
+def deprecated(msg, v='unknown'):
     '''
     Mark functions as deprecated by using this decorator.
     msg is an additioanl message that will be displayed.
@@ -91,13 +91,18 @@ def deprecated(msg):
         if msg is None:
             s = 'The function {name} is deprecated.'.format(**d)
         else:
-            # format 2 times, so {name} can be used within msg
+            # format 2 times, so {name} can be used within {msg}
             s = "The function {name} is deprecated. {msg}".format(**d).format(**d)
+        deprdoc = '''
+                .. deprecated:: {}
+                    {}
+                '''.format(v, s)
 
         @functools.wraps(func)
         def ret(*args, **kwargs):
             warnings.warn(s, category=DeprecationWarning)
             return func(*args, **kwargs)
+        ret.__doc__ = deprdoc if ret.__doc__ is None else ret.__doc__ + deprdoc
         return ret
     return _deprecated
 
