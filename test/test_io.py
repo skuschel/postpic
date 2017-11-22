@@ -24,6 +24,5 @@ class TestIO(unittest.TestCase):
         self.assertEqual(self.testfield.unit, self.testfield2.unit)
 
     def test_axes(self):
-        self.assertEqual(len(self.testfield.axes), len(self.testfield2.name))
         for n in range(0, len(self.testfield.axes)):
             self.assertEqual(len(self.testfield.axes[n]), len(self.testfield2.axes[n]))

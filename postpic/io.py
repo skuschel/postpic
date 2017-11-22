@@ -90,17 +90,18 @@ def _import_field_npy(filename):
     meta_ax_names = import_file['meta_ax_names']
     meta_ax_units = import_file['meta_ax_units']
 
+    axes = []
+    for nax in range(0, len(length_edges)):
+        axes.append(datahandling.Axis(name=meta_ax_names[nax],
+                                      unit=meta_ax_units[nax],
+                                      grid_node=meta_ax_edges[nax, 0:length_edges[nax]]))
+
     # field
     meta_field = import_file['meta_field']
     import_field = datahandling.Field(matrix=import_file['matrix'],
-                                      name=meta_field[0], unit=meta_field[1])
+                                      name=meta_field[0], unit=meta_field[1],
+                                      axes=axes)
     import_field.label = meta_field[2]
     import_field.infostring = meta_field[3]
-
-    # attach Axis objects to field
-    for nax in range(0, len(length_edges)):
-        ax = datahandling.Axis(name=meta_ax_names[nax], unit=meta_ax_units[nax])
-        ax.grid_node = meta_ax_edges[nax, 0:length_edges[nax]]
-        import_field.setaxisobj(nax, ax)
 
     return import_field
