@@ -145,13 +145,13 @@ class SpeciesIdentifier(PhysicalConstants):
 
         # Regex for parsing ion species name.
         # See docsting for valid examples
-        regex = '(?P<prae>(.*_)*)' \
-                '((?P<elem>((?!El)[A-Z][a-z]?))(?P<elem_c>\d*)|' \
-                '(?P<ionmc>(ionc(?P<c1>\d+)m(?P<m2>\d+)|ionm(?P<m1>\d+)c(?P<c2>\d+)))' \
-                ')?' \
-                '(?P<plus>(Plus)*)' \
-                '(?P<electron>[Ee]le[ck])?' \
-                '(?P<suffix>\w*?)$'
+        regex = r'(?P<prae>(.*_)*)' \
+                r'((?P<elem>((?!El)[A-Z][a-z]?))(?P<elem_c>\d*)|' \
+                r'(?P<ionmc>(ionc(?P<c1>\d+)m(?P<m2>\d+)|ionm(?P<m1>\d+)c(?P<c2>\d+)))' \
+                r')?' \
+                r'(?P<plus>(Plus)*)' \
+                r'(?P<electron>[Ee]le[ck])?' \
+                r'(?P<suffix>\w*?)$'
         r = re.match(regex, s)
         if r is None:
             raise Exception('Species ' + str(s) +
