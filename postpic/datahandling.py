@@ -307,7 +307,7 @@ class Field(object):
     '''
 
     @classmethod
-    def importFromFile(cls, filename):
+    def loadfrom(cls, filename):
         '''
         construct a new field object from file. currently, the following file
         formats are supported:
@@ -1446,6 +1446,16 @@ class Field(object):
             io._export_field_npy(self, filename)
         elif filename.endswith('csv'):
             io._export_field_csv(self, filename)
+        else:
+            raise Exception('File format of filename {0} not recognized.'.format(filename))
+
+    def saveto(self, filename):
+        '''
+        Save a Field object as a file. Use loadfrom() to load Field objects.
+        Currently, only *.npz files are supported.
+        '''
+        if filename.endswith('npz'):
+            self.export(filename)
         else:
             raise Exception('File format of filename {0} not recognized.'.format(filename))
 
