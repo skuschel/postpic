@@ -6,6 +6,7 @@ import postpic.helper as helper
 import numpy as np
 import copy
 import scipy.integrate
+import pkg_resources as pr
 
 
 class TestAxis(unittest.TestCase):
@@ -83,6 +84,12 @@ class TestField(unittest.TestCase):
 
         x, y = helper.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
         self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
+
+    def assertClose(self, a, b):
+        self.assertTrue(np.all(np.isclose(a, b)))
+
+    def assertAllEqual(self, a, b):
+        self.assertTrue(np.all( a == b ))
 
     def checkFieldConsistancy(self, field):
         '''
@@ -243,9 +250,12 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(np.roll(f.matrix, -1), f2.matrix)))
         self.assertTrue(f.matrix is not f2.matrix)
 
+        print('self.f2d.axes', self.f2d.axes)
         f = self.f2d.fft()
+        print('f.axes', f.axes)
         dk = [ax.grid[1]-ax.grid[0] for ax in f.axes]
         f2 = f.shift_grid_by(dk)
+        print('f2.axes', f2.axes)
         self.assertTrue(np.all(np.isclose(np.roll(
             np.roll(f.matrix, -1, axis=0), -1, axis=1),
         f2.matrix)))
@@ -406,6 +416,59 @@ class TestField(unittest.TestCase):
         i1d = c1d.imag
         a1d = c1d.angle
         cc1d = c1d.conj()
+        self.assertClose(cc1d.matrix, (c1d-2j*i1d).matrix)
+
+    def test_operators(self):
+        # test unary operators
+        a = self.f2d
+
+        self.assertAllEqual((-a).matrix, -(a.matrix))
+
+        # f1d_neg contains negative numbers
+        b = a - np.mean(a.matrix)
+
+        # avoid runtime errors
+        b.matrix[b==0] = 1
+
+        self.assertAllEqual(abs(b).matrix, abs(b.matrix))
+
+        #test binary operators
+        self.assertAllEqual((a+b).matrix, a.matrix + b.matrix)
+        self.assertAllEqual((a*b).matrix, a.matrix * b.matrix)
+        self.assertAllEqual((a/b).matrix, a.matrix / b.matrix)
+        self.assertAllEqual((b**a).matrix, b.matrix ** a.matrix)
+        self.assertAllEqual((b<=a).matrix, b.matrix <= a.matrix)
+
+        #test other ufuncs
+        self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
+        self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
+
+    def test_numpy_methods_1(self):
+        a = np.ptp(self.f2d)
+        self.assertEqual(a.matrix, 19)
+
+        b = np.std(self.f2d)
+        self.assertTrue(np.isclose(b.matrix, 5.766281297335398))
+
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.13"),
+                     "This behaviour is not supported for numpy older than 1.13")
+    def test_numpy_methods_2(self):
+        a = np.mean(self.f2d, keepdims=True)
+        self.assertEqual(a.matrix[0,0], 9.5)
+
+        np.std(self.f2d, out=a, keepdims=True)
+        self.assertEqual(a.matrix[0,0], 5.766281297335398)
+
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.13"),
+                     "This behaviour is not supported for numpy older than 1.13")
+    def test_numpy_ufuncs(self):
+        a = np.add.reduce(self.f2d, axis=1)
+        self.assertTrue(a.axes[0] is self.f2d.axes[0])
+        self.assertAllEqual(a.matrix, np.add.reduce(self.f2d.matrix, axis=1))
+
+        b = np.multiply.outer(self.f1d, self.f2d)
+        self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
+        self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
 
 
 if __name__ == '__main__':

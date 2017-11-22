@@ -25,7 +25,6 @@ were not present in older versions of these libraries
 import numpy as np
 import scipy as sp
 import scipy.signal as sps
-import pkg_resources as pr
 import collections
 
 
@@ -108,18 +107,10 @@ ReplacementFunction = collections.namedtuple('ReplacementFunction', ['name', 'or
                                                                      'replacement', 'lib',
                                                                      'minver'])
 
+
 replacements = [
     ReplacementFunction('meshgrid', np, np_meshgrid, np, '1.9'),
     ReplacementFunction('broadcast_to', np, np_broadcast_to, np, '1.10'),
     ReplacementFunction('moveaxis', np, np_moveaxis, np, '1.11'),
     ReplacementFunction('tukey', sps, sps_tukey, sp, '0.16')
 ]
-
-__all__ = []
-for repl in replacements:
-    if pr.parse_version(repl.lib.__version__) < pr.parse_version(repl.minver):
-        vars()[repl.name] = repl.replacement
-    else:
-        vars()[repl.name] = getattr(repl.originalmodule, repl.name)
-
-    __all__.append(repl.name)
