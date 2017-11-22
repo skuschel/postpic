@@ -41,11 +41,13 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import functools
+import sys
+
 import collections
 import copy
 import warnings
 import os
+import numbers
 
 import numpy as np
 import scipy.ndimage as spnd
@@ -54,7 +56,13 @@ import scipy.integrate
 import scipy.signal as sps
 import numexpr as ne
 
-from ._compat import tukey, meshgrid, broadcast_to
+from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
+from . import helper
+
+if sys.version[0] == '2':
+    import functools32 as functools
+else:
+    import functools
 
 try:
     import psutil
@@ -99,7 +107,6 @@ try:
 except ImportError:
     unwrap_phase = None
 
-from . import helper
 
 __all__ = ['Field', 'Axis']
 
@@ -297,7 +304,72 @@ def _updatename(operator, reverse=False):
     return ret
 
 
-class Field(object):
+def _reducing_numpy_method(method):
+    """
+    This function produces methods that are suitable for the `Field` class
+    that reproduce the behaviour of the corresponding numpy `method`
+    """
+    @functools.wraps(getattr(np.ndarray, method))
+    def new_method(self, axis=None, out=None, keepdims=None, **kwargs):
+        # we need to interpret the axis object and create an iterable axisiter
+        # in order to iterate over the affected axes
+        axisiter = axis
+        if axisiter is None:
+            axisiter = tuple(range(self.dimensions))
+        if not isinstance(axisiter, collections.Iterable):
+            axisiter = (axis,)
+
+        # no `out` argument supplied, we need to figure out the axes of the result
+        # and deal with other state of the Field
+        if out is None:
+            axes = copy.copy(self.axes)
+            tao = copy.copy(self.transformed_axes_origins)
+            ats = copy.copy(self.axes_transform_state)
+            if keepdims:
+                for i in axisiter:
+                    axes[i] = Axis(axes[i].name, axes[i].unit, extent=axes[i].extent, n=1)
+            else:
+                for i in reversed(sorted(axisiter)):
+                    del axes[i]
+                    del tao[i]
+                    del ats[i]
+
+        # If the supplied `out` argument is a Field, we need to extract the plain array
+        # from it in order to pass to the real method
+        real_out = out
+        if isinstance(out, type(self)):
+            real_out = out.matrix
+        elif isinstance(out, tuple):
+            real_out = tuple(o.matrix if isinstance(o, type(self)) else o)
+
+        # call the underlying method and pass on `keepdims` if it is different from
+        # None. Passing on `None` does not work because the default value is a special
+        # object, see <https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/
+        # numpy.all.html#numpy.all>
+        if keepdims is not None:
+            kwargs['keepdims'] = keepdims
+        o = getattr(self.matrix, method)(axis=axis, out=real_out, **kwargs)
+
+        # if an `out` argument was supplied, just return it
+        if out:
+            return out
+
+        # create and return a Field object from the result.
+        if isinstance(o, tuple):
+            ret = tuple(type(self)(a, self.name, self.unit, axes=axes,
+                                   axes_transform_state=ats, transformed_axes_origins=tao)
+                        for a in o
+                        )
+        else:
+            ret = type(self)(o, self.name, self.unit, axes=axes,
+                             axes_transform_state=ats, transformed_axes_origins=tao)
+        return ret
+    return new_method
+
+
+# The NDArrayOperatorsMixin implements all arithmetic special functions through numpy
+# ufuncs
+class Field(NDArrayOperatorsMixin):
     '''
     The Field Object carries a data matrix together with as many Axis
     Objects as the data matrix's dimensions. Additionally the Field object
@@ -400,14 +472,113 @@ class Field(object):
         ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
+    # Stuff related with compatibility to Numpy's ufuncs starts here.
+
+    # make sure that np.array() * Field() returns a Field and not a plain array
+    __array_priority__ = 1
+
     def __array__(self, dtype=None):
         '''
         will be called by numpy function in case an numpy array is needed.
         '''
-        return np.asarray(self.matrix, dtype=dtype)
+        return np.asanyarray(self.matrix, dtype=dtype)
 
-    # make sure that np.array() * Field() returns a Field and not a plain array
-    __array_priority__ = 1
+    # What kind of other objects do we support? so far any kind of numpy array or scalar number
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    # handle ufuncs, new interface.
+    # see https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/[...]
+    # [...]/numpy.lib.mixins.NDArrayOperatorsMixin.html#numpy.lib.mixins.NDArrayOperatorsMixin
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # Have implemented neither 'reduceat' because it is crazy nor
+        # 'inner' because it is not documented
+        if method not in ['__call__', 'reduce', 'outer', 'at', 'accumulate']:
+            return NotImplemented
+
+        out = kwargs.get('out', ())
+        for x in inputs + out:
+            # Only support operations with instances of _HANDLED_TYPES.
+            if not isinstance(x, self._HANDLED_TYPES + (type(self),)):
+                # Any unsupported operation should return NotImplemented such that
+                # numpy can continue to look for other methods that might support it
+                return NotImplemented
+
+        # TODO: add check of Axes extent and unit here
+
+        # If out-argument set, an output Field was already created. Do not wworry
+        # about axes in that case
+        if not out:
+            if method in ['__call__', 'accumulate']:
+                axes = self.axes
+            elif method == 'reduce':
+                axes = copy.copy(self.axes)
+                reduceaxis = kwargs.get('axis', 0)
+                if not isinstance(reduceaxis, collections.Iterable):
+                    reduceaxis = (reduceaxis,)
+                for axis in reversed(sorted(set(reduceaxis))):
+                    del axes[axis]
+            elif method == 'outer':
+                axes = []
+                for i in inputs:
+                    if isinstance(i, type(self)):
+                        axes.extend(i.axes)
+                    elif isinstance(i, np.ndarray):
+                        for j in range(i.ndim):
+                            a = Axis()
+                            a.setextent(0, 1, j.shape[j])
+                            axes.append(a)
+            elif method == 'at':
+                axes = None
+        # Defer to the implementation of the ufunc on unwrapped values.
+        inputs = tuple(x.matrix if isinstance(x, type(self)) else x for x in inputs)
+        if out:
+            if isinstance(out, type(self)):
+                kwargs['out'] = out.matrix
+            elif isinstance(out, tuple):
+                kwargs['out'] = tuple(
+                    x.matrix if isinstance(x, type(self)) else x for x in out)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        # If out-argument set, just return the output Field
+        if out:
+            return out
+
+        # Otherwise, the ufunc has returned one or more simple array(s). Wrap this/these
+        # with the `axes`
+        if type(result) is tuple:
+            # multiple return values
+            return tuple(type(self)(x, self.name, self.unit, axes=axes,
+                                    axes_transform_state=self.axes_transform_state,
+                                    transformed_axes_origins=self.transformed_axes_origins)
+                         for x in result)
+        elif method == 'at':
+            # no return value
+            return None
+        else:
+            # one return value
+            obj = type(self)(result, self.name, self.unit, axes=axes,
+                             axes_transform_state=self.axes_transform_state,
+                             transformed_axes_origins=self.transformed_axes_origins)
+            return obj
+
+    # wrap ufunc results from numpy < 1.13 as Fields.
+    # This is also used for __add__ and so on as they are implemented through ufuncs via
+    # NDArrayOperatorsMixin.
+    # This is not intended to be perfect because it is barely possible to get it right
+    # with the old interface
+    def __array_wrap__(self, array, context=None):
+        # this is a Field already, leave it as is
+        if isinstance(array, type(self)):
+            return array
+
+        if array.ndim == len(self.axes):
+            # axes should probably be the same as those from self
+            return type(self)(array, self.name, self.unit, axes=self.axes,
+                              axes_transform_state=self.axes_transform_state,
+                              transformed_axes_origins=self.transformed_axes_origins)
+
+        # Have no Idea what the axes should be. Return plain `ndarray`.
+        return array
 
     def _addaxisobj(self, axisobj):
         '''
@@ -546,7 +717,7 @@ class Field(object):
         return self.replace_data(np.angle(self))
 
     def conj(self):
-        return self.replace_data(np.conjugate(self))
+        return np.conj(self)
 
     def replace_data(self, other):
         ret = copy.copy(self)
@@ -1014,33 +1185,43 @@ class Field(object):
         axes[axis2] = axis1
         return self.transpose(*axes)
 
-    def mean(self, axis=-1):
-        '''
-        takes the mean along the given axis.
-        '''
-        ret = copy.copy(self)
-        if self.dimensions == 0:
-            return self
-        ret._matrix = np.mean(ret.matrix, axis=axis)
-        ret.axes.pop(axis)
-        ret.transformed_axes_origins.pop(axis)
-        ret.axes_transform_state.pop(axis)
+    all = _reducing_numpy_method("all")
+    any = _reducing_numpy_method("any")
+    max = _reducing_numpy_method("max")
+    min = _reducing_numpy_method("min")
+    prod = _reducing_numpy_method("prod")
+    sum = _reducing_numpy_method("sum")
+    ptp = _reducing_numpy_method("ptp")
+    std = _reducing_numpy_method("std")
+    mean = _reducing_numpy_method("mean")
+    var = _reducing_numpy_method("var")
 
-        return ret
+    def clip(self, a_min, a_max, out=None):
+        o = np.clip(self.matrix, a_min, a_max, out=out)
+        if out:
+            return out
+        return self.replace_data(o)
 
     def _integrate_constant(self, axes):
-        if not self.islinear():
-            raise ValueError("Using method='constant' in integrate which is only suitable "
-                             "for linear grids.")
+        '''
+        Integrate by assuming constant value across each grid cell, even for uneven grids.
+        This effectively assumes cell-oriented data where each data point already represents
+        an average over its cell
+        '''
+        axes = tuple(sorted(set(axes)))
 
         ret = self
-        V = 1
 
-        for axis in reversed(sorted(axes)):
-            V *= ret.axes[axis].physical_length
-            ret = ret.mean(axis)
+        for axis in reversed(axes):
+            box_sizes = self.axes[axis].grid_node[1:] - self.axes[axis].grid_node[:-1]
+            shape = [1] * self.dimensions
+            shape[axis] = len(box_sizes)
+            box_sizes = np.reshape(box_sizes, shape)
+            ret = ret * box_sizes
 
-        return V * ret
+        ret = ret.sum(axes)
+
+        return ret
 
     def _integrate_scipy(self, axes, method):
         ret = copy.copy(self)
@@ -1502,89 +1683,3 @@ class Field(object):
     def __setitem__(self, key, other):
         key = self._normalize_slices(key)
         self._matrix[key] = other
-
-    @_updatename('+')
-    def __iadd__(self, other):
-        self.matrix += np.asarray(other)
-        return self
-
-    def __add__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix + np.asarray(other)
-        return ret
-    __radd__ = _updatename('+', reverse=True)(__add__)
-    __add__ = _updatename('+', reverse=False)(__add__)
-
-    def __neg__(self):
-        ret = copy.copy(self)
-        ret.matrix = -self.matrix
-        ret.name = '-' + ret.name
-        return ret
-
-    @_updatename('-')
-    def __isub__(self, other):
-        self.matrix -= np.asarray(other)
-        return self
-
-    @_updatename('-')
-    def __sub__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix - np.asarray(other)
-        return ret
-
-    @_updatename('-', reverse=True)
-    def __rsub__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) - ret.matrix
-        return ret
-
-    @_updatename('^')
-    def __pow__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = self.matrix ** np.asarray(other)
-        return ret
-
-    @_updatename('^', reverse=True)
-    def __rpow__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) ** self.matrix
-        return ret
-
-    @_updatename('*')
-    def __imul__(self, other):
-        self.matrix *= np.asarray(other)
-        return self
-
-    def __mul__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix * np.asarray(other)
-        return ret
-    __rmul__ = _updatename('*', reverse=True)(__mul__)
-    __mul__ = _updatename('*', reverse=False)(__mul__)
-
-    def __abs__(self):
-        ret = copy.copy(self)
-        ret.matrix = np.abs(ret.matrix)
-        ret.name = '|{}|'.format(ret.name)
-        return ret
-
-    @_updatename('/')
-    def __itruediv__(self, other):
-        self.matrix /= np.asarray(other)
-        return self
-
-    @_updatename('/')
-    def __truediv__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix / np.asarray(other)
-        return ret
-
-    @_updatename('/', reverse=True)
-    def __rtruediv__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) / ret.matrix
-        return ret
-
-    # python 2
-    __idiv__ = __itruediv__
-    __div__ = __truediv__
