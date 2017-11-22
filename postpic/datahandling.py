@@ -306,7 +306,6 @@ class Field(object):
     the plot. It will also suggest a content based filename for saving.
     '''
 
-    
     @classmethod
     def importFromFile(cls, filename):
         '''
@@ -319,8 +318,7 @@ class Field(object):
             raise Exception('File format of filename {0} not recognized.'.format(filename))
 
         return io._import_field_npy(filename)
-      
-      
+
     def __init__(self, matrix, name='', unit='', **kwargs):
         """
         Create a Field object from scratch. The only required argument is `matrix` which
