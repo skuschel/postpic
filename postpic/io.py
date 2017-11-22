@@ -19,6 +19,8 @@
 import numpy as np
 import postpic
 from . import datahandling
+import collections
+import pyvtk
 
 
 def _export_field_csv(field, filename):
@@ -115,3 +117,32 @@ def _import_field_npy(filename):
     import_field.infostring = meta_field[3]
 
     return import_field
+
+def export_scalar_vtk(scalarfields, filename):
+    if not isinstance(scalarfields, collections.Iterable):
+        if not isinstance(scalarfields, datahandling.Field):
+            raise Exception('scalarfields must be one or more Field objects.')
+        else:
+            scalarfields = [scalarfields]
+
+    lengths = [len(ax.grid) for ax in scalarfields[0].axes]
+    increments = [ax.spacing for ax in scalarfields[0].axes]
+    if scalarfields[0].dimensions == 3:
+        starts = [scalarfields[0].extent[0], scalarfields[0].extent[2], scalarfields[0].extent[4]]
+    elif scalarfields[0].dimensions == 2:
+        starts = [scalarfields[0].extent[0], scalarfields[0].extent[2], 0.0]
+        lengths.append(1)
+        increments.append(1)
+    else:
+        raise Exception('Only 2D or 3D fields are supported.')
+
+
+    grid = pyvtk.StructuredPoints(dimensions=lengths,origin=starts,spacing=increments)
+
+    scalar_list = [pyvtk.Scalars(scalars=f.matrix.T.flatten(),name=f.name) for f in scalarfields]
+    pointData = pyvtk.PointData(*scalar_list)
+
+    vtk = pyvtk.VtkData(grid,pointData)
+    vtk.tofile(filename)
+
+    return
