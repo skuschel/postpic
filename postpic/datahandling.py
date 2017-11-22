@@ -110,21 +110,75 @@ class Axis(object):
     Axis handling for a single Axis.
     '''
 
-    def __init__(self, name='', unit=''):
+    def __init__(self, name='', unit='', **kwargs):
+        """
+        Create an Axis object from scratch.
+
+        The least required arguments are any of
+        * grid
+        * grid_node
+        * extent _and_ n
+
+        The remaining fields will be deduced from the givens.
+
+        More arguments may be supplied, as long as they are compatible.
+        """
         self.name = name
         self.unit = unit
-        self._grid_node = np.array([])
-        self._linear = None
 
-    def __copy__(self):
-        '''
-        returns a shallow copy of the object.
-        This method is called by `copy.copy(obj)`.
-        '''
-        cls = type(self)
-        ret = cls.__new__(cls)
-        ret.__dict__.update(self.__dict__)
-        return ret
+        self._grid_node = kwargs.get('grid_node', None)
+        self._grid = kwargs.get('grid', None)
+        self._extent = kwargs.get('extent', None)
+        self._n = kwargs.get('n', None)
+
+        if self._grid_node is None:
+            if self._grid is None:
+                if self._extent is None or self._n is None:
+                    # If we are here really nothing has been passed, like with the old version
+                    # of this class
+                    raise ValueError("Missing required arguments for Axis construction.")
+                # only extent and n have been passed, use that to create a linear grid_node
+                self._grid_node = np.linspace(self._extent[0], self._extent[-1], self._n+1,
+                                              endpoint=True)
+            else:
+                # grid has been passed, create grid_node from grid.
+                gn = np.convolve(self._grid, np.ones(2) / 2.0, mode='full')
+                if self._extent is not None:
+                    # extent has been passed, use this for the end points of grid_node
+                    if self._extent[0] >= self._grid[0] or self._extent[-1] <= self._grid[-1]:
+                        raise ValueError("Passed invalid extent.")
+                    gn[0] = self._extent[0]
+                    gn[-1] = self._extent[-1]
+                else:
+                    # estimate end points of grid_node as in the old grid.setter
+                    gn[0] = self._grid[0] + (self._grid[0] - gn[1])
+                    gn[-1] = self._grid[-1] + (self._grid[-1] - gn[-2])
+                self._grid_node = gn
+
+        # now we are garantueed to have a grid_node
+        if self._grid is None:
+            # create grid from grid_node like in the old grid.getter
+            self._grid = np.convolve(self._grid_node, np.ones(2) / 2.0, mode='valid')
+        else:
+            # check if grid and grid_node are compatible
+            if not np.all(self._grid > self._grid_node[:-1]) and \
+               np.all(self._grid < self._grid_node[1:]):
+                    raise ValueError("Points of passed grid are not within corresponding "
+                                     "grid_nodes.")
+
+        # set extent if not given or check if compatible with grid_node
+        if self._extent is None:
+            self._extent = [self._grid_node[0], self._grid_node[-1]]
+        elif self._extent[0] != self._grid_node[0] or self._extent[-1] != self._grid_node[-1]:
+            raise ValueError("Passed invalid extent.")
+
+        # set n if not given or check if compatible with grid
+        if self._n is None:
+            self._n = len(self._grid)
+        elif self._n != len(self._grid):
+            raise ValueError("Passed invalid value of n.")
+
+        self._linear = None
 
     def islinear(self, force=False):
         """
@@ -138,25 +192,9 @@ class Axis(object):
     def grid_node(self):
         return self._grid_node
 
-    @grid_node.setter
-    def grid_node(self, value):
-        gn = np.float64(value)
-        if len(gn.shape) != 1:
-            raise TypeError('Only 1 dimensional arrays can be assigend.')
-        self._grid_node = gn
-        self._linear = None
-
     @property
     def grid(self):
-        return np.convolve(self.grid_node, np.ones(2) / 2.0, mode='valid')
-
-    @grid.setter
-    def grid(self, grid):
-        gn = np.convolve(grid, np.ones(2) / 2.0, mode='full')
-        gn[0] = grid[0] + (grid[0] - gn[1])
-        gn[-1] = grid[-1] + (grid[-1] - gn[-2])
-        self.grid_node = gn
-        self._linear = None
+        return self._grid
 
     @property
     def spacing(self):
@@ -166,15 +204,11 @@ class Axis(object):
 
     @property
     def extent(self):
-        if len(self._grid_node) < 2:
-            ret = None
-        else:
-            ret = [self._grid_node[0], self._grid_node[-1]]
-        return ret
+        return self._extent
 
     @property
     def physical_length(self):
-        return self._grid_node[-1] - self._grid_node[0]
+        return self._extent[1] - self._extent[0]
 
     @property
     def label(self):
@@ -192,23 +226,13 @@ class Axis(object):
         lg = len(self)
         return (value-a)/(b-a) * lg - 0.5
 
-    def setextent(self, extent, n):
-        '''
-        creates a linear grid with the given extent and n grid points
-        (thus n+1 grid_node)
-        '''
-        if n == 1 and type(extent) is int:
-            gn = np.array([extent - 0.5, extent + 0.5])
-        else:
-            gn = np.linspace(extent[0], extent[-1], n + 1)
-        self.grid_node = gn
-
     def half_resolution(self):
         '''
         removes every second grid_node.
         '''
-        ret = copy.copy(self)
-        ret.grid_node = ret.grid_node[::2]
+        grid_node = self.grid_node[::2]
+        grid = 0.5 * (self.grid[:-1:2] + self.grid[1::2])
+        ret = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
         return ret
 
     def _extent_to_slice(self, extent):
@@ -240,18 +264,23 @@ class Axis(object):
         Returns an Axis which consists of a sub-part of this object defined by
         a slice containing floats or integers or a float or an integer
         """
-        ax = copy.copy(self)
-        ax.grid = ax.grid[self._normalize_slice(key)]
+        sl = self._normalize_slice(key)
+        if sl.step is not None:
+            raise ValueError("Slices with step!=None not supported")
+        grid = self.grid[sl]
+        stop = sl.stop
+        if stop is not None and stop > 0:
+            stop += 1
+        sln = slice(sl.start if sl.start else None, stop)
+        grid_node = self.grid_node[sln]
+        ax = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
         return ax
 
     def __len__(self):
-        ret = len(self._grid_node) - 1
-        ret = 0 if ret < 0 else ret
-        return ret
+        return self._n
 
     def __str__(self):
-        return '<Axis "' + str(self.name) + \
-               '" (' + str(len(self)) + ' grid points)'
+        return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)'
 
 
 def _updatename(operator, reverse=False):
@@ -272,14 +301,12 @@ def _updatename(operator, reverse=False):
 class Field(object):
     '''
     The Field Object carries a data matrix together with as many Axis
-    Objects as the data matrix's dimensions. Additionaly the Field object
+    Objects as the data matrix's dimensions. Additionally the Field object
     provides any information that is necessary to plot _and_ annotate
     the plot. It will also suggest a content based filename for saving.
-
-    {x,y,z}edges can be the edges or grid_nodes given for each dimension. This is
-    made to work with np.histogram oder np.histogram2d.
     '''
 
+    
     @classmethod
     def importFromFile(cls, filename):
         '''
@@ -292,42 +319,69 @@ class Field(object):
             raise Exception('File format of filename {0} not recognized.'.format(filename))
 
         return io._import_field_npy(filename)
+      
+      
+    def __init__(self, matrix, name='', unit='', **kwargs):
+        """
+        Create a Field object from scratch. The only required argument is `matrix` which
+        contains the actual data.
 
-    def __init__(self, matrix, xedges=None, yedges=None, zedges=None, name='', unit=''):
-        if xedges is not None:
+        A `name` and a `unit` may be supplied.
+
+        The axis may be specified in different ways:
+        * by passing a list of Axis object as `axes`
+        * by passing arrays with the grid_nodes as `xedges`, `yedges` and `zedges`
+        * by not passing anything which will create default axes from 0 to 0
+        """
+        if 'xedges' in kwargs or 'axes' in kwargs:
+            # Some axes have been passed, let length-1-dimensions alone
             self._matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
         else:
+            # No axes have been passed. Squeeze away length-1-dimensions.
             self._matrix = np.squeeze(matrix)
+
         self.name = name
         self.unit = unit
         self.axes = []
         self.infostring = ''
         self.infos = []
         self._label = None  # autogenerated if None
-        if xedges is not None:
-            self._addaxisnodes(xedges, name='x')
-        elif self.dimensions > 0:
-            self._addaxis((0, 1), name='x')
-        if yedges is not None:
-            self._addaxisnodes(yedges, name='y')
-        elif self.dimensions > 1:
-            self._addaxis((0, 1), name='y')
-        if zedges is not None:
-            self._addaxisnodes(zedges, name='z')
-        elif self.dimensions > 2:
-            self._addaxis((0, 1), name='z')
+
+        if 'axes' in kwargs:
+            for i, ax in enumerate(kwargs['axes']):
+                self.axes = [None] * len(self.matrix.shape)
+                self.setaxisobj(i, ax)
+        else:
+            if 'xedges' in kwargs:
+                self._addaxisnodes(kwargs['xedges'], name='x')
+            elif self.dimensions > 0:
+                self._addaxis((0, 1), name='x')
+            if 'yedges' in kwargs:
+                self._addaxisnodes(kwargs['yedges'], name='y')
+            elif self.dimensions > 1:
+                self._addaxis((0, 1), name='y')
+            if 'zedges' in kwargs:
+                self._addaxisnodes(kwargs['zedges'], name='z')
+            elif self.dimensions > 2:
+                self._addaxis((0, 1), name='z')
 
         # Additions due to FFT capabilities
 
         # self.axes_transform_state is False for axes which live in spatial domain
         # and it is True for axes which live in frequency domain
         # This assumes that fields are initially created in spatial domain.
-        self.axes_transform_state = [False] * len(self.shape)
+        if 'axes_transform_state' in kwargs:
+            self.axes_transform_state = kwargs['axes_transform_state']
+        else:
+            self.axes_transform_state = [False] * len(self.shape)
 
         # self.transformed_axes_origins stores the starting values of the grid
         # from before the last transform was executed, this is used to
         # recreate the correct axis interval upon inverse transform
-        self.transformed_axes_origins = [None] * len(self.shape)
+        if 'transformed_axes_origins' in kwargs:
+            self.transformed_axes_origins = kwargs['transformed_axes_origins']
+        else:
+            self.transformed_axes_origins = [None] * len(self.shape)
 
     def __copy__(self):
         '''
@@ -369,8 +423,7 @@ class Field(object):
         self.axes.append(axisobj)
 
     def _addaxisnodes(self, grid_node, **kwargs):
-        ax = Axis(**kwargs)
-        ax.grid_node = grid_node
+        ax = Axis(grid_node=grid_node, **kwargs)
         self._addaxisobj(ax)
         return
 
@@ -379,8 +432,7 @@ class Field(object):
         adds a new axis that is supported by the matrix.
         '''
         matrixpts = self.shape[len(self.axes)]
-        ax = Axis(**kwargs)
-        ax.setextent(extent, matrixpts)
+        ax = Axis(extent=extent, n=matrixpts, **kwargs)
         self._addaxisobj(ax)
 
     def setaxisobj(self, axis, axisobj):
@@ -469,9 +521,8 @@ class Field(object):
         if not self.dimensions * 2 == len(newextent):
             raise TypeError('size of newextent doesnt match self.dimensions * 2')
         for i in range(len(self.axes)):
-            newax = copy.copy(self.axes[i])
-            newax.setextent(newextent[2 * i:2 * i + 2],
-                            self.shape[i])
+            newax = Axis(self.axes[i].name, self.axes[i].unit,
+                         extent=newextent[2 * i:2 * i + 2], n=self.shape[i])
             self.setaxisobj(i, newax)
         return
 
@@ -561,7 +612,7 @@ class Field(object):
                 newextent = [extent[0] - axis_pad[0]*dx, extent[1] + axis_pad[1]*dx]
                 gridpoints = len(axis.grid_node) - 1 + axis_pad[0] + axis_pad[1]
 
-                axis.setextent(newextent, gridpoints)
+                ret.axes[i] = Axis(axis.name, axis.unit, extent=newextent, n=gridpoints)
 
         ret._matrix = np.pad(self, pad_width_numpy, mode, **kwargs)
 
@@ -640,7 +691,10 @@ class Field(object):
             ret.matrix = ret.matrix / np.reshape(jacobian_func(ret.axes[axis].grid),
                                                  jac_shape)
 
-        ret.axes[axis].grid = transform(ret.axes[axis].grid)
+        grid = transform(ret.axes[axis].grid)
+        grid_node = transform(ret.axes[axis].grid_node)
+        ret.axes[axis] = Axis(ret.axes[axis].name, ret.axes[axis].unit,
+                              grid=grid, grid_node=grid_node)
 
         return ret
 
@@ -1175,11 +1229,14 @@ class Field(object):
         if exponential_signs == 'temporal':
             mat = np.conjugate(mat)
 
+        new_axes = self._conjugate_grid(axes)
+
         # Transforming from spatial domain to frequency domain ...
         if transform_state is False:
             new_axesobjs = {
                 i: Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
-                        '1/'+self.axes[i].unit)
+                        '1/'+self.axes[i].unit,
+                        grid=new_axes[i])
                 for i in axes
             }
             mat = fftnorm \
@@ -1189,7 +1246,8 @@ class Field(object):
         elif transform_state is True:
             new_axesobjs = {
                 i: Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
-                        self.axes[i].unit.lstrip('1/'))
+                        self.axes[i].unit.lstrip('1/'),
+                        grid=new_axes[i])
                 for i in axes
             }
             mat = fftnorm \
@@ -1202,10 +1260,9 @@ class Field(object):
         ret.matrix = mat
 
         # Update axes objects
-        new_axes = self._conjugate_grid(axes)
+
         for i in axes:
             # update axes objects
-            new_axesobjs[i].grid = new_axes[i]
             ret.setaxisobj(i, new_axesobjs[i])
 
             # update transform state and record axes origins
@@ -1353,28 +1410,28 @@ class Field(object):
             shape = (ptr_t, ptr_r)
 
         # Create the new axes objects
-        theta = Axis(name='theta', unit='rad')
-        theta.grid = np.linspace(extent[0], extent[1], shape[0])
+        theta = Axis(name='theta', unit='rad',
+                     grid=np.linspace(extent[0], extent[1], shape[0]))
+
+        theta_offset = Axis(name='theta', unit='rad',
+                            grid=np.linspace(extent[0], extent[1], shape[0]) - angleoffset)
 
         if self.axes[0].name.startswith('k'):
             rname = 'k'
         else:
             rname = 'r'
 
-        r = Axis(name=rname, unit=self.axes[0].unit)
-        r.grid = np.linspace(extent[2], extent[3], shape[1])
-
-        # Apply the angleoffset to the theta grid
-        theta.grid_node = theta.grid_node - angleoffset
+        r = Axis(name=rname, unit=self.axes[0].unit,
+                 grid=np.linspace(extent[2], extent[3], shape[1]))
 
         # Perform the transformation
-        ret = self.map_coordinates([theta, r],
+        ret = self.map_coordinates([theta_offset, r],
                                    transform=helper.polar2linear,
                                    jacobian_determinant_func=helper.polar2linear_jacdet,
                                    **kwargs)
 
         # Remove the angleoffset from the theta grid
-        ret.axes[0].grid_node = theta.grid_node + angleoffset
+        ret.setaxisobj(0, theta)
 
         return ret
 

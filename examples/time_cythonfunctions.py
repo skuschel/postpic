@@ -27,12 +27,12 @@ def main():
 def time_histogram():
     import timeit
     import numpy as np
-    import postpic.cythonfunctions as cf
+    from postpic.particles import histogramdd
 
     # --- 1D
 
     def time1D(data, bins, weights, shape, tn):
-        t = timeit.Timer(lambda: cf.histogram(data, range=(0.001,0.999), bins=bins, weights=weights, shape=shape))
+        t = timeit.Timer(lambda: histogramdd(data, range=(0.001,0.999), bins=bins, weights=weights, shape=shape))
         tc = t.timeit(number=5)/5.0
         ws = '       ' if weights is None else 'weights'
         print('1D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc))
@@ -59,7 +59,7 @@ def time_histogram():
     # --- 2D
 
     def time2D(datax, datay, bins, weights, shape, tn):
-        t = timeit.Timer(lambda: cf.histogram2d(datax, datay, range=((0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, shape=shape))
+        t = timeit.Timer(lambda: histogramdd((datax, datay), range=((0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, shape=shape))
         tc = t.timeit(number=3)/3.0
         ws = '       ' if weights is None else 'weights'
         print('2D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc))
@@ -88,7 +88,7 @@ def time_histogram():
     # --- 3D
 
     def time3D(datax, datay, dataz, bins, weights, shape, tn):
-        t = timeit.Timer(lambda: cf.histogram3d(datax, datay, dataz, range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, shape=shape))
+        t = timeit.Timer(lambda: histogramdd((datax, datay, dataz), range=((0.01,0.99),(0.01,0.99),(0.01,0.99)), bins=bins, weights=weights, shape=shape))
         tc = t.timeit(number=1)/1.0
         ws = '       ' if weights is None else 'weights'
         print('3D, {:d} shape, {:s}: {:0.2e} sec -> factor {:5.2f} faster'.format(shape, ws, tc, tn/tc))

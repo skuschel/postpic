@@ -22,10 +22,14 @@ from . import particles
 from .particles import *
 from . import scalarproperties
 from .scalarproperties import ScalarProperty
+from . import _routines
+from ._routines import *
+from ._routines import particleshapes
 
 
 __all__ = ['ScalarProperty']
 __all__ += particles.__all__
+__all__ += _routines.__all__
 
 
 if sys.version_info[0] == 2:
