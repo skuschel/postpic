@@ -6,6 +6,7 @@ import postpic.helper as helper
 import numpy as np
 import copy
 import scipy.integrate
+import pkg_resources as pr
 
 
 class TestAxis(unittest.TestCase):
@@ -442,19 +443,24 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
         self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
 
-    def test_numpy_methods(self):
+    def test_numpy_methods_1(self):
         a = np.ptp(self.f2d)
         self.assertEqual(a.matrix, 19)
-
-        a = np.mean(self.f2d, keepdims=True)
-        self.assertEqual(a.matrix[0,0], 9.5)
 
         b = np.std(self.f2d)
         self.assertTrue(np.isclose(b.matrix, 5.766281297335398))
 
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.13"),
+                     "This behaviour is not supported for numpy older than 1.13")
+    def test_numpy_methods_2(self):
+        a = np.mean(self.f2d, keepdims=True)
+        self.assertEqual(a.matrix[0,0], 9.5)
+
         np.std(self.f2d, out=a, keepdims=True)
         self.assertEqual(a.matrix[0,0], 5.766281297335398)
 
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.13"),
+                     "This behaviour is not supported for numpy older than 1.13")
     def test_numpy_ufuncs(self):
         a = np.add.reduce(self.f2d, axis=1)
         self.assertTrue(a.axes[0] is self.f2d.axes[0])
