@@ -371,10 +371,22 @@ def _reducing_numpy_method(method):
 # ufuncs
 class Field(NDArrayOperatorsMixin):
     '''
-    The Field Object carries a data matrix together with as many Axis
-    Objects as the data matrix's dimensions. Additionally the Field object
+    The Field Object carries data in form of an `numpy.ndarray` together with as many Axis
+    objects as the data's dimensions. Additionaly the Field object
     provides any information that is necessary to plot _and_ annotate
-    the plot. It will also suggest a content based filename for saving.
+    the plot.
+
+    Create a Field object from scratch. The only required argument is `matrix` which
+    contains the actual data.
+
+    A `name` and a `unit` may be supplied.
+
+    The axis may be specified in different ways:
+
+    * by passing a list of Axis object as `axes`
+    * by passing arrays with the grid_nodes as `xedges`, `yedges` and `zedges`.
+      This is intended to work with `np.histogram`.
+    * by not passing anything, which will create default axes from 0 to 1.
     '''
 
     @classmethod
@@ -687,7 +699,7 @@ class Field(NDArrayOperatorsMixin):
     @extent.setter
     def extent(self, newextent):
         '''
-        sets the new extent to the specific values
+        sets the new extent to the specific values.
         '''
         if not self.dimensions * 2 == len(newextent):
             raise TypeError('size of newextent doesnt match self.dimensions * 2')
@@ -700,7 +712,7 @@ class Field(NDArrayOperatorsMixin):
     @property
     def spacing(self):
         '''
-        returns the grid spacings for all axis
+        returns the grid spacings for all axis.
         '''
         return np.array([ax.spacing for ax in self.axes])
 
@@ -726,13 +738,13 @@ class Field(NDArrayOperatorsMixin):
 
     def pad(self, pad_width, mode='constant', **kwargs):
         '''
-        Pads the matrix using np.pad and takes care of the axes.
-        See documentation of np.pad.
+        Pads the data using `np.pad` and takes care of the axes.
+        See documentation of `numpy.pad`.
 
-        In contrast to np.pad, pad_width may be given as integers, which will be interpreted
+        In contrast to `np.pad`, `pad_width` may be given as integers, which will be interpreted
         as pixels, or as floats, which will be interpreted as distance along the appropriate axis.
 
-        All other parameters are passed to np.pad unchanged.
+        All other parameters are passed to `np.pad` unchanged.
         '''
         ret = copy.copy(self)
         if not self.islinear():
@@ -796,11 +808,16 @@ class Field(NDArrayOperatorsMixin):
     def half_resolution(self, axis):
         '''
         Halfs the resolution along the given axis by removing
-        every second grid_node and averaging every second data point into one.
+        every second `grid_node` and averaging every second data point into one.
 
-        if there is an odd number of grid points, the last point will
-        be ignored. (that means, the extent will change by the size of
-        the last grid cell)
+        If there is an odd number of grid points, the last point will
+        be ignored (that means, the extent will change by the size of
+        the last grid cell).
+
+        Returns
+        -------
+        Field:
+            the modified `Field`.
         '''
         axis = helper.axesidentify[axis]
         ret = copy.copy(self)
@@ -826,27 +843,34 @@ class Field(NDArrayOperatorsMixin):
         Transform the Field to new coordinates along one axis.
 
         This function transforms the coordinates of one axis according to the function
-        transform and applies the jacobian to the data.
+        `transform` and applies the jacobian to the data.
 
         Please note that no interpolation is applied to the data, instead a non-linear
         axis grid is produced. If you want to interpolate the data to a new (linear) grid,
-        use the method map_coordinates instead.
+        use the method :meth:`map_coordinates` instead.
 
-        In contrast to map_coordinates the function transform is not used to pull the new data
+        In contrast to :meth:`map_coordinates`,
+        the function transform is not used to pull the new data
         points from the old grid, but is directly applied to the axis. This reverses the
-        direction of the transform. In this case, in order to preserve the integral,
+        direction of the transform. Therfore, in order to preserve the integral,
         it is necessary to divide by the Jacobian.
 
-        axis: the index or name of the axis you want to apply transform to
+        Parameters
+        ----------
+        axis: int
+            the index or name of the axis you want to apply transform to.
 
-        transform: the transformation function which takes the old coordinates as an input
-        and returns the new grid
+        transform: callable
+            the transformation function which takes the old coordinates as an input
+            and returns the new grid
 
-        preserve_integral: Divide by the jacobian of transform, in order to preserve the
-        integral.
+        preserve_integral: bool
+            Divide by the jacobian of transform, in order to preserve the
+            integral.
 
-        jacobian_func: If given, this is expected to return the derivative of transform.
-        If not given, the derivative is numerically approximated.
+        jacobian_func: callable
+            If given, this is expected to return the derivative of transform.
+            If not given, the derivative is numerically approximated.
         '''
         axis = helper.axesidentify[axis]
 
@@ -873,43 +897,49 @@ class Field(NDArrayOperatorsMixin):
                          preserve_integral=True, jacobian_func=None,
                          jacobian_determinant_func=None, **kwargs):
         '''
-        The complex_mode specifies how to proceed with complex data:
-         *  complex_mode = 'cartesian' - interpolate real/imag part (fastest)
+        complex_mode:
+            The complex_mode specifies how to proceed with complex data.
 
-         *  complex_mode = 'polar' - interpolate abs/phase
-         If skimage.restoration is available, the phase will be unwrapped first (default)
+            * complex_mode = 'cartesian' - interpolate real/imag part (fastest)
+            * complex_mode = 'polar' - interpolate abs/phase \
+            If skimage.restoration is available, the phase will be unwrapped first (default)
+            * complex_mode = 'polar-no-unwrap' - interpolate abs/phase \
+            Skip unwrapping the phase, even if skimage.restoration is available
 
-         *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
-         Skip unwrapping the phase, even if skimage.restoration is available
+        preserve_integral: bool
+            If True (the default), the data will be multiplied with the
+            Jacobian determinant of the coordinate transformation such that the integral
+            over the data will be preserved.
 
-        preserve_integral: If True (the default), the data will be multiplied with the
-        Jacobian determinant of the coordinate transformation such that the integral
-        over the data will be preserved.
+            In general, you will want to do this, because the physical unit of the new Field will
+            correspond to the new axis of the Fields. Please note that Postpic, currently, does not
+            automatically change the unit members of the Axis and Field objects, this you will have
+            to do manually.
 
-        In general, you will want to do this, because the physical unit of the new Field will
-        correspond to the new axis of the Fields. Please note that Postpic, currently, does not
-        automatically change the unit members of the Axis and Field objects, this you will have
-        to do manually.
+            There are, however, exceptions to this rule. Most prominently, if you are converting to
+            polar coordinates,
+            it depends on what you are going to do with the transformed Field.
+            If you intend to do a Cartesian r-theta plot or are interested in a lineout
+            for a single value of theta, you do want to apply the Jacobian determinant.
+            If you had a density in
+            e.g. J/m^2 than, in polar coordinates, you want to have a density in J/m/rad.
+            If you intend, on the other hand, to do a polar plot, you do not want to apply the
+            Jacobian. In a polar plot, the data points are plotted with variable density which
+            visually takes care of the Jacobian automatically. A polar plot of the polar data
+            should look like a Cartesian plot of the original data with just a peculiar coordinate
+            grid drawn over it.
 
-        There are, however, exceptions to this rule. Most prominently, if you are converting to
-        polar coordinates it depends on what you are going to do with the transformed Field.
-        If you intend to do a Cartesian r-theta plot or are interested in a lineout for a single
-        value of theta, you do want to apply the Jacobian determinant. If you had a density in
-        e.g. J/m^2 than, in polar coordinates, you want to have a density in J/m/rad.
-        If you intend, on the other hand, to do a polar plot, you do not want to apply the
-        Jacobian. In a polar plot, the data points are plotted with variable density which
-        visually takes care of the Jacobian automatically. A polar plot of the polar data
-        should look like a Cartesian plot of the original data with just a peculiar coordinate
-        grid drawn over it.
+        jacobian_determinant_func: callable
+            A callable that returns the jacobian determinant of
+            the transform. If given, this takes precedence over the following option.
 
-        jacobian_determinant_func: a callable that returns the jacobian determinant of
-        the transform. If given, this takes precedence over the following option.
+        jacobian_func: callable
+            a callable that returns the jacobian of the transform. If this is
+            not given, the jacobian is numerically approximated.
 
-        jacobian_func: a callable that returns the jacobian of the transform. If this is
-        not given, the jacobian is numerically approximated.
-
-        Additional keyword arguments are passed to scipy.ndimage.map_coordinates,
-        see the documentation for that function.
+        **kwargs:
+            Additional keyword arguments are passed to `scipy.ndimage.map_coordinates`,
+            see the documentation of that function.
         '''
         # Instantiate an identity if no transformation function was given
         if transform is None:
@@ -990,41 +1020,42 @@ class Field(NDArrayOperatorsMixin):
                         preserve_integral=True, jacobian_func=None,
                         jacobian_determinant_func=None, **kwargs):
         r'''
-        Transform the Field to new coordinates
+        Transform the Field to new coordinates.
 
-        newaxes: The new axes of the new coordinates
+        Parameters
+        ----------
+        newaxes: list
+            The new axes of the new coordinates.
 
-        transform: a callable that takes the new coordinates as input and returns
-        the old coordinates from where to sample the Field.
-        It is basically the inverse of the transformation that you want to perform.
-        If transform is not given, the identity will be used. This is suitable for
-        simple interpolation to a new extent/shape.
+        transform: callable
+            a callable that takes the new coordinates as input and returns
+            the old coordinates from where to sample the Field.
+            It is basically the inverse of the transformation that you want to perform.
+            If transform is not given, the identity will be used. This is suitable for
+            simple interpolation to a new extent/shape.
+            Example for cartesian -> polar:
 
-        Example for cartesian -> polar:
+            >>> def T(r, theta):
+            >>>    x = r * np.cos(theta)
+            >>>    y = r * np.sin(theta)
+            >>>    return x, y
 
-        def T(r, theta):
-            x = r*np.cos(theta)
-            y = r*np.sin(theta)
-            return x, y
+            Note that this function actually computes the cartesian coordinates from the polar
+            coordinates, but stands for transforming a field in cartesian coordinates into a
+            field in polar coordinates.
 
-        Note that this function actually computes the cartesian coordinates from the polar
-        coordinates, but stands for transforming a field in cartesian coordinates into a
-        field in polar coordinates.
+            However, in order to preserve the definite integral of
+            the field, it is necessary to multiply with the Jacobian determinant of T.
 
-        However, in order to preserve the definite integral of
-        the field, it is necessary to multiply with the Jacobian determinant of T.
+            .. math::
+                \tilde{U}(r, \theta) = U(T(r, \theta)) \cdot \det
+                \frac{\partial (x, y)}{\partial (r, \theta)}
+            such that
 
-        $$
-        \tilde{U}(r, \theta) = U(T(r, \theta)) \cdot \det
-        \frac{\partial (x, y)}{\partial (r, \theta)}
-        $$
-
-        such that
-
-        $$
-        \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
-        \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta} \tilde{U}(r,\theta)\,.
-        $$
+            .. math::
+                \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
+                \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta}
+                \tilde{U}(r,\theta)\,.
         '''
         return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
                                      preserve_integral=preserve_integral,
@@ -1046,7 +1077,7 @@ class Field(NDArrayOperatorsMixin):
 
     def cutout(self, newextent):
         '''
-        only keeps that part of the matrix, that belongs to newextent.
+        only keeps that part of the data, that belongs to newextent.
         '''
         slices = self._extent_to_slices(newextent)
         return self[slices]
@@ -1134,7 +1165,9 @@ class Field(NDArrayOperatorsMixin):
 
     def squeeze(self):
         '''
-        removes axes that have length 1, reducing self.dimensions
+        removes axes that have length 1, reducing self.dimensions.
+
+        Same as `numpy.squeeze`.
         '''
         ret = copy.copy(self)
         retained_axes = [i for i in range(self.dimensions) if len(self.axes[i]) > 1]
@@ -1149,7 +1182,8 @@ class Field(NDArrayOperatorsMixin):
 
     def transpose(self, *axes):
         '''
-        transpose method equivalent to numpy.ndarray.transpose. If axes is empty, the order of the
+        transpose method equivalent to `numpy.ndarray.transpose`. If `axes` is empty,
+        the order of the
         axes will be reversed. Otherwise axes[i] == j means that the i'th axis of the returned
         Field will be the j'th axis of the input Field.
         '''
@@ -1178,7 +1212,7 @@ class Field(NDArrayOperatorsMixin):
 
     def swapaxes(self, axis1, axis2):
         '''
-        Swaps the axes `axis1` and `axis2`, equivalent to the numpy function with the same name.
+        Swaps the axes `axis1` and `axis2`, equivalent to `numpy.swapaxes`.
         '''
         axes = list(range(self.dimensions))
         axes[axis1] = axis2
@@ -1235,9 +1269,13 @@ class Field(NDArrayOperatorsMixin):
         '''
         Calculates the definite integral along the given axes.
 
-        method: Choose the method to use. Available options:
+        Parameters
+        ----------
+        method: callable
+            Choose the method to use. Available options:
 
-        'constant' or any function with the same signature as scipy.integrate.simps
+            * 'constant'
+            * any function with the same signature as scipy.integrate.simps (default).
         '''
         if not callable(method) and method != 'constant':
             raise ValueError("Requested method {} is not supported".format(method))
@@ -1255,12 +1293,14 @@ class Field(NDArrayOperatorsMixin):
 
     def _transform_state(self, axes=None):
         """
-        Returns the collective transform state of the given axes
+        Returns the collective transform state of the given axes.
 
-        If all mentioned axis i have self.axes_transform_state[i]==True return True
-        (All axes live in frequency domain)
+        If all mentioned axis i have `self.axes_transform_state[i]==True` return True
+        (All axes live in frequency domain).
+
         If all mentioned axis i have self.axes_transform_state[i]==False return False
         (All axes live in spatial domain)
+
         Else return None
         (Axes have mixed transform_state)
         """
@@ -1274,20 +1314,24 @@ class Field(NDArrayOperatorsMixin):
 
     def fft_autopad(self, axes=None, fft_padsize=helper.fftw_padsize):
         """
-        Automatically pad the array to a size such that computing its FFT using FFTW will be
-        quick.
+        Automatically pad the array to a size such that computing its FFT using FFTW will be fast.
 
-        The default for keyword argument `fft_padsize` is a callable, that is used to calculate
-        the padded size for a given size.
+        Parameters
+        ----------
+        fft_padsize: callable
+            The default for keyword argument `fft_padsize` is a callable,
+            that is used to calculate the padded size for a given size.
 
-        By default, this uses `fft_padsize=helper.fftw_padsize` which finds the next larger "good"
-        grid size according to what the FFTW documentation says.
+            By default, this uses `fft_padsize=helper.fftw_padsize`
+            which finds the next larger "good"
+            grid size according to what the FFTW documentation says.
 
-        However, the FFTW documentation also says:
-        "(...) Transforms whose sizes are powers of 2 are especially fast."
+            However, the FFTW documentation also says:
+            "(...) Transforms whose sizes are powers of 2 are especially fast."
 
-        If you don't worry about the extra padding, you can pass
-        `fft_padsize=helper.fft_padsize_power2` and this method will pad to the next power of 2.
+            If you don't worry about the extra padding, you can pass
+            `fft_padsize=helper.fft_padsize_power2`
+            and this method will pad to the next power of 2.
         """
         if axes is None:
             axes = range(self.dimensions)
@@ -1337,13 +1381,20 @@ class Field(NDArrayOperatorsMixin):
         The argument axis is either an integer indicating the axis to be transformed
         or a tuple giving the axes that should be transformed. Automatically determines
         forward/inverse transform. Transform is only applied if all mentioned axes are
-        in the same space. If an axis is transformed twice, the origin of the axis is restored.
+        in the same transform state.
+        If an axis is transformed twice, the origin of the axis is restored.
 
-        exponential_signs configures the sign convention of the exponential
-        exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
-        exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+        Parameters
+        ----------
 
-        keyword-arguments are passed to the underlying fft implementation.
+        exponential_signs:
+            configures the sign convention of the exponential.
+
+            * exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
+            * exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+
+        **kwargs:
+            keyword-arguments are passed to the underlying fft implementation.
         '''
         # If axes is None, transform all axes
         if axes is None:
@@ -1454,7 +1505,7 @@ class Field(NDArrayOperatorsMixin):
 
     def ensure_transform_state(self, transform_states):
         """
-        Makes sure that the field has the given transform_states. `transform_states` might be
+        Makes sure that the field has the given transform_states. `transform_states` may be
         a single boolean, indicating the same desired transform_state for all axes.
         It may be a list of the desired transform states for all the axes or a dictionary
         indicating the desired transform states of specific axes.
@@ -1533,14 +1584,14 @@ class Field(NDArrayOperatorsMixin):
 
     def shift_grid_by(self, dx, interpolation='fourier'):
         '''
-        Translate the Grid by dx.
+        Translate the Grid by `dx`.
         This is useful to remove the grid stagger of field components.
 
-        If all axis will be shifted, dx may be a list.
+        If all axis will be shifted, `dx` may be a list.
         Otherwise dx should be a mapping from axis to translation distance.
 
         The keyword-argument interpolation indicates the method to be used and
-        may be one of ['linear', 'fourier'].
+        may be one of `['linear', 'fourier']`.
         In case of interpolation = 'fourier' all axes must have same transform_state.
         '''
         methods = dict(fourier=self._shift_grid_by_fourier,
@@ -1561,16 +1612,18 @@ class Field(NDArrayOperatorsMixin):
         '''
         Transform the Field to polar coordinates.
 
-        This is a convenience wrapper for map_coordinates which will let you easily
-        define the desired grid in polar coordinates via the arguments
+        This is a convenience wrapper for :meth:`map_coordinates` which will let you easily
+        define the desired grid in polar coordinates.
 
-        * extent,
-        which should be of the form extent=(phimin, phimax, rmin, rmax) or
-        extent=(phimin, phimax),
-        * shape,
-        which should be of the form shape=(N_phi, N_r),
-        * angleoffset,
-        which can be any real number and will rotate the zero-point of the angular axis.
+        Parameters
+        ----------
+        extent:
+            should be of the form `extent=(phimin, phimax, rmin, rmax)` or
+            `extent=(phimin, phimax)`
+        shape:
+            should be of the form `shape=(N_phi, N_r)`,
+        angleoffset:
+            can be any real number and will rotate the zero-point of the angular axis.
         '''
         # Fill extent and shape with sensible defaults if nothing was passed
         if extent is None or len(extent) < 4:

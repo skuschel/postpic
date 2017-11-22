@@ -1229,20 +1229,20 @@ class MultiSpecies(object):
 
         Attributes
         ----------
-        spx : str or ScalarProperty or function acting on a MultiSpecies object
+        spx: str, ScalarProperty, function acting on a MultiSpecies object
             returns a list of scalar values for the x axis.
-        spy : str or ScalarProperty or function acting on a MultiSpecies object
+        spy: str, ScalarProperty, function acting on a MultiSpecies object
             returns a list of scalar values for the y axis.
-        spz : str or ScalarProperty or function acting on a MultiSpecies object
+        spz: str, ScalarProperty, function acting on a MultiSpecies object
             returns a list of scalar values for the z axis.
-        name : string, optional
+        name: string, optional
             addes a name. usually used for generating savenames.
             Defaults to "distfn".
         title: string, options
             overrides the title. Autocreated if title==None.
             Defaults to None.
         **kwargs
-            given to createHistgram2d.
+            given to _createHistgram3d.
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
@@ -1267,7 +1267,7 @@ class MultiSpecies(object):
         Creates an n-d Histogram enclosed in a Field object.
         Try using this function first.
 
-        Attributes
+        Parameters
         ----------
         *args
             list of scalarfunctions that should be used for the axis.
@@ -1294,11 +1294,15 @@ class ParticleHistory(object):
 
     Parameters
     ----------
-    sr : a collection of datareader to use. Usually a Simulationreader object
-    speciess : a species name or a list of species names. Those particles can be included
-               into the history.
-    ids : list of ids to use (default: None). If this is None all particles in speciess will
-          be tracked. If a list of ids is given, these ids will be serached in speciess only.
+    sr:
+        a collection of datareader to use. Usually a Simulationreader object
+
+    speciess:
+        a species name or a list of species names. Those particles can be included
+         into the history.
+    ids:
+        list of ids to use (default: None). If this is None all particles in speciess will
+        be tracked. If a list of ids is given, these ids will be serached in speciess only.
     '''
 
     def __init__(self, sr, speciess, ids=None):

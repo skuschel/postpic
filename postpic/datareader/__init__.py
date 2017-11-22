@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014
+# Stephan Kuschel 2014-2017
 '''
 The Datareader package contains methods and interfaces to read data from
 any Simulation.
@@ -45,7 +45,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from .datareader import *
 
-__all__ = ['chooseCode', 'readDump', 'readSim']
+__all__ = ['chooseCode', 'readDump', 'readSim', 'setdumpreadercls', 'setsimreadercls']
 __all__ += datareader.__all__
 
 _dumpreadercls = None
@@ -54,8 +54,17 @@ _simreadercls = None
 
 def setdumpreadercls(dumpreadercls):
     '''
-    Sets the class that is used for reading dumps.
-    dumpreadercls needs to be subclass of "Dumpreader_ifc".
+    Sets the class that is used for reading dumps on later calls of :func:`postpic.readDump`.
+
+    Parameters
+    ----------
+    dumpreadercls : Dumpreader_ifc
+
+    Note
+    ----
+        This should only be used, for testing.
+        A set of presets is provided by
+        :func:`postpic.chooseCode`.
     '''
     if issubclass(dumpreadercls, Dumpreader_ifc):
         global _dumpreadercls
@@ -67,8 +76,17 @@ def setdumpreadercls(dumpreadercls):
 
 def setsimreadercls(simreadercls):
     '''
-    Sets the class that is used for reading dumps.
-    simreadercls needs to be subclass of "Simulationreader_ifc".
+    Sets the class that is used for reading a simulation on later calls of :func:`postpic.readSim`.
+
+    Parameters
+    ----------
+    simreadercls : Simulationreader_ifc
+
+    Note
+    ----
+        This should only be used, for testing.
+        A set of presets is provided by
+        :func:`postpic.chooseCode`.
     '''
     if issubclass(simreadercls, Simulationreader_ifc):
         global _simreadercls
@@ -80,6 +98,24 @@ def setsimreadercls(simreadercls):
 
 
 def readDump(dumpidentifier, **kwargs):
+    '''
+    After using the fucntion :func:`postpic.chooseCode`, this function should
+    be the main function for reading a dump into postpic.
+
+    Parameters
+    ----------
+    dumpidentifier : str
+        Identifies the dump. For most dumpreaders this is a string
+        poining to the file or folder. See what the specific
+        reader of your format expects.
+    **kwargs
+        will be forwarded to the dumpreader.
+
+    Returns
+    -------
+    Dumpreader
+        the dumpreader for this specific data dump.
+    '''  # numpy like docstring
     global _dumpreadercls
     if _dumpreadercls is None:
         raise Exception('Specify dumpreaderclass first.')
@@ -87,6 +123,22 @@ def readDump(dumpidentifier, **kwargs):
 
 
 def readSim(simidentifier, **kwargs):
+    '''
+    After using the function :func:`postpic.chooseCode`, this function should
+    be the main function for reading a simulation into postpic.
+    A simulation is equivalent to a series of dumps in a specific order
+    (not neccessarily time order).
+
+    Args:
+        simidentifier (str): Identifies the simulation.
+            For EPOCH this should be a string pointing to a `.visit` file.
+            Specifics depend on the current simreader class,
+            as set by `chooseCode`.
+        **kwargs: will be forwarded to the simreader.
+
+    Returns:
+        the Simulationreader
+    '''  # google like docstring
     global _simreadercls
     if _simreadercls is None:
         raise Exception('Specify simreaderclass first.')
@@ -96,20 +148,24 @@ def readSim(simidentifier, **kwargs):
 def chooseCode(code):
     '''
     Chooses appropriate reader for the given simulation code.
+    After choosing a preset of the correct reader, the functions
+    :func:`postpic.readDump` and :func:`postpic.readSim` are setup for this preset.
 
-    Args:
+    Parameters
+    ----------
       code : string
         Possible options are:
           - "DUMMY": dummy class creating fake data.
           - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
           - "openPMD": .h5 files written in openPMD Standard
+          - "piconGPU": same as "openPMD"
           - "VSIM": .hdf5 files written by VSim.
     '''
     if code.lower() in ['epoch', 'epoch1d', 'epoch2d', 'epoch3d']:
         from .epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
-    elif code.lower() in ['openpmd', 'openpmdh5']:
+    elif code.lower() in ['openpmd', 'openpmdh5', 'picongpu']:
         from .openPMDh5 import OpenPMDreader, FileSeries
         setdumpreadercls(OpenPMDreader)
         setsimreadercls(FileSeries)
@@ -126,17 +182,3 @@ def chooseCode(code):
         setsimreadercls(Dummysim)
     else:
         raise TypeError('Code "' + str(code) + '" not recognized.')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
