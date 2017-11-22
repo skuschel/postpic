@@ -1144,18 +1144,25 @@ class Field(NDArrayOperatorsMixin):
         return self.replace_data(o)
 
     def _integrate_constant(self, axes):
-        if not self.islinear():
-            raise ValueError("Using method='constant' in integrate which is only suitable "
-                             "for linear grids.")
+        '''
+        Integrate by assuming constant value across each grid cell, even for uneven grids.
+        This effectively assumes cell-oriented data where each data point already represents
+        an average over its cell
+        '''
+        axes = tuple(sorted(set(axes)))
 
         ret = self
-        V = 1
 
-        for axis in reversed(sorted(axes)):
-            V *= ret.axes[axis].physical_length
-            ret = ret.mean(axis)
+        for axis in reversed(axes):
+            box_sizes = self.axes[axis].grid_node[1:] - self.axes[axis].grid_node[:-1]
+            shape = [1] * self.dimensions
+            shape[axis] = len(box_sizes)
+            box_sizes = np.reshape(box_sizes, shape)
+            ret = ret * box_sizes
 
-        return V * ret
+        ret = ret.sum(axes)
+
+        return ret
 
     def _integrate_scipy(self, axes, method):
         ret = copy.copy(self)
