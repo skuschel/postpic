@@ -349,6 +349,20 @@ class Field(NDArrayOperatorsMixin):
     the plot. It will also suggest a content based filename for saving.
     '''
 
+    @classmethod
+    def loadfrom(cls, filename):
+        '''
+        construct a new field object from file. currently, the following file
+        formats are supported:
+        *.npz
+        '''
+        # leave import here. Older python versions can't handle circular imports
+        from . import io
+        if not filename.endswith('npz'):
+            raise Exception('File format of filename {0} not recognized.'.format(filename))
+
+        return io._import_field_npy(filename)
+
     def __init__(self, matrix, name='', unit='', **kwargs):
         """
         Create a Field object from scratch. The only required argument is `matrix` which
@@ -1566,17 +1580,31 @@ class Field(NDArrayOperatorsMixin):
 
         return ret
 
-    def exporttocsv(self, filename):
-        if self.dimensions == 1:
-            data = np.asarray(self.matrix)
-            x = np.linspace(self.extent[0], self.extent[1], len(data))
-            np.savetxt(filename, np.transpose([x, data]), delimiter=' ')
-        elif self.dimensions == 2:
-            export = np.asarray(self.matrix)
-            np.savetxt(filename, export)
+    def export(self, filename):
+        '''
+        export Field object as a file. Format depends on the extention
+        of the filename. Currently supported are:
+        *.npz
+        *.csv
+        '''
+        # leave import here. Older python versions can't handle circular imports
+        from . import io
+        if filename.endswith('npz'):
+            io._export_field_npy(self, filename)
+        elif filename.endswith('csv'):
+            io._export_field_csv(self, filename)
         else:
-            raise Exception('Not Implemented')
-        return
+            raise Exception('File format of filename {0} not recognized.'.format(filename))
+
+    def saveto(self, filename):
+        '''
+        Save a Field object as a file. Use loadfrom() to load Field objects.
+        Currently, only *.npz files are supported.
+        '''
+        if filename.endswith('npz'):
+            self.export(filename)
+        else:
+            raise Exception('File format of filename {0} not recognized.'.format(filename))
 
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.shape) + '>'

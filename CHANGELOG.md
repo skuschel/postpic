@@ -3,6 +3,7 @@
 ## current master
 
 **Incompatible adjustments to previous version**
+* `postpic.Field` method `exporttocsv` is removed. Use `export` instead.
 * `postpic.Field` method `transform` is renamed to `map_coordinates`, matching the underlying scipy-function.
 * `postpic.Field` method `mean` has now an interface matching `ndarray.mean`. This means that, if the `axis` argument is not given, it averages across all axes instead the last axis.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
@@ -12,6 +13,7 @@ old: `ms.filter('gamma > 2')`<br>
 new: `ms = ms.filter('gamma > 2')`
 
 **Other improvements and new features**
+* `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files in addition.
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
 * `postpic.Field` works now with all numpy ufuncs, also with `ufunc.reduce`, `ufunc.outer`, `ufunc.accumulate` and `ufunc.at`
 * `postpic.Field` has methods `.swapaxes`, `.transpose` and property `.T` compatible to numpy.ndarray
