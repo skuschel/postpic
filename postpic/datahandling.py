@@ -320,9 +320,15 @@ def _reducing_numpy_method(method):
                     del tao[i]
                     del ats[i]
 
+        real_out = out
+        if isinstance(out, type(self)):
+            real_out = out.matrix
+        elif isinstance(out, tuple):
+            real_out = tuple(o.matrix if isinstance(o, type(self)) else o)
+
         if keepdims is not None:
             kwargs['keepdims'] = keepdims
-        o = method(self.matrix, axis=axis, out=out, **kwargs)
+        o = method(self.matrix, axis=axis, out=real_out, **kwargs)
 
         if out:
             return out
@@ -480,8 +486,11 @@ class Field(NDArrayOperatorsMixin):
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x.matrix if isinstance(x, type(self)) else x for x in inputs)
         if out:
-            kwargs['out'] = tuple(
-                x.matrix if isinstance(x, type(self)) else x for x in out)
+            if isinstance(out, type(self)):
+                kwargs['out'] = out.matrix
+            elif isinstance(out, tuple):
+                kwargs['out'] = tuple(
+                    x.matrix if isinstance(x, type(self)) else x for x in out)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
         # If out-argument set, just return the output Field

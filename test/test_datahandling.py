@@ -442,6 +442,20 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
         self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
 
+    def test_numpy_methods(self):
+        a = np.ptp(self.f2d)
+        self.assertEqual(a.matrix, 19)
+
+        a = np.mean(self.f2d, keepdims=True)
+        self.assertEqual(a.matrix[0,0], 9.5)
+
+        b = np.std(self.f2d)
+        self.assertTrue(np.isclose(b.matrix, 5.766281297335398))
+
+        np.std(self.f2d, out=a, keepdims=True)
+        self.assertEqual(a.matrix[0,0], 5.766281297335398)
+
+
 
 if __name__ == '__main__':
     unittest.main()
