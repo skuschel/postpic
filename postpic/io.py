@@ -59,6 +59,8 @@ def _export_field_npy(field, filename, compressed=True):
     meta_ax_edges = np.zeros([naxes, max_length])
     meta_ax_names = np.array(['']*naxes)
     meta_ax_units = np.array(['']*naxes)
+    meta_ax_transform_state = np.array([False]*naxes)
+    meta_ax_transformed_origins = np.array([False]*naxes)
 
     for nax in range(0, naxes):
         ax = field.axes[nax]
@@ -69,13 +71,17 @@ def _export_field_npy(field, filename, compressed=True):
     # field metadata
     meta_field = np.array([str(field.name), str(field.unit), str(field.label),
                           str(field.infostring)])
+    meta_ax_transform_state = field.axes_transform_state
+    meta_ax_transformed_origins = field.transformed_axes_origins
 
     # save all the data in one file
     savefunc = np.savez_compressed if compressed else np.savez
     savefunc(filename, matrix=field.matrix, meta_field=meta_field,
              meta_ax_edges=meta_ax_edges, meta_ax_names=meta_ax_names,
              meta_ax_units=meta_ax_units,
-             meta_length_edges=length_edges)
+             meta_length_edges=length_edges,
+             meta_ax_transform_state=meta_ax_transform_state,
+             meta_ax_transformed_origins=meta_ax_transformed_origins)
 
 
 def _import_field_npy(filename):
@@ -89,6 +95,8 @@ def _import_field_npy(filename):
     meta_ax_edges = import_file['meta_ax_edges']
     meta_ax_names = import_file['meta_ax_names']
     meta_ax_units = import_file['meta_ax_units']
+    meta_ax_transform_state = import_file['meta_ax_transform_state']
+    meta_ax_transformed_origins = import_file['meta_ax_transformed_origins']
 
     axes = []
     for nax in range(0, len(length_edges)):
@@ -100,7 +108,9 @@ def _import_field_npy(filename):
     meta_field = import_file['meta_field']
     import_field = datahandling.Field(matrix=import_file['matrix'],
                                       name=meta_field[0], unit=meta_field[1],
-                                      axes=axes)
+                                      axes=axes,
+                                      axes_transform_state=meta_ax_transform_state,
+                                      transformed_axes_origins=meta_ax_transformed_origins)
     import_field.label = meta_field[2]
     import_field.infostring = meta_field[3]
 
