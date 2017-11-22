@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import unittest
 import postpic as pp
 from postpic import io
 import numpy as np
-
+import os
 
 
 class TestIO(unittest.TestCase):
@@ -13,8 +13,15 @@ class TestIO(unittest.TestCase):
         pp.chooseCode('DUMMY')
         self.dump = pp.datareader.readDump(100)
         self.testfield = self.dump.Ey()
-        io._export_field_npy(self.testfield, 'test.npz')
-        self.testfield2 = io._import_field_npy('test.npz')
+        import tempfile
+        f = tempfile.mkstemp(suffix='.npz')[1]
+        print('filename is {}'.format(f))
+        self.f = f
+        io._export_field_npy(self.testfield, f)
+        self.testfield2 = io._import_field_npy(f)
+
+    def tearDown(self):
+        os.remove(self.f)
 
     def test_data(self):
         self.assertTrue(np.all(np.isclose(self.testfield.matrix,
@@ -32,3 +39,6 @@ class TestIO(unittest.TestCase):
             self.assertEqual(len(self.testfield.axes[n]), len(self.testfield2.axes[n]))
             self.assertTrue(np.all(np.isclose(self.testfield.axes[n].grid_node,
                                               self.testfield2.axes[n].grid_node)))
+
+if __name__ == '__main__':
+    unittest.main()
