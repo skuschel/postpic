@@ -94,7 +94,6 @@ try:
 except ImportError:
     # pyFFTW is not available, just import numpys fft
     import numpy.fft as fft
-    using_pyfftw = False
     fft_kwargs = dict()
 
 
