@@ -26,6 +26,7 @@ from mock import Mock as MagicMock
 
 class Mock(MagicMock):
     pi = 3.141592653589793
+    __version__ = '0.0.0'
     @classmethod
     def __getattr__(cls, name):
             return MagicMock()
@@ -36,10 +37,10 @@ MOCK_MODULES = ['argparse',
                 'skimage.restoration',
                 'h5py',
                 'matplotlib.colors', 'matplotlib.pyplot', 'matplotlib', 'matplotlib.ticker',
-                'numpy', 'numpy.fft', 'numpy.linalg',
+                'numpy', 'numpy.fft', 'numpy.linalg', 'numpy.core', 'numpy.core.umath'
                 'pyfftw', 'pyfftw.interfaces.cache', 'pyfftw.interfaces.numpy_fft',
                 'numexpr',
-                'postpic.particles._particlestogrid', 'postpic._compat']
+                'postpic.particles._particlestogrid']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 import postpic as pp
@@ -59,6 +60,10 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon']  # napoleon allows numpy like docstrings
+
+
+# private-members, special-members
+autodoc_default_flags = ['members', 'inherited_members']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
