@@ -33,14 +33,13 @@ from .helper import *
 from .particles import *
 from . import datareader
 from .datareader import chooseCode, readDump, readSim
-from . import plotting
 from ._version import get_versions
 
 __all__ = ['helper']
 __all__ += datahandling.__all__
 __all__ += helper.__all__
 __all__ += particles.__all__
-__all__ += ['datareader', 'plotting']
+__all__ += ['datareader']
 # high level functions
 __all__ += ['chooseCode', 'readDump', 'readSim']
 

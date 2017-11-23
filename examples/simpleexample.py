@@ -41,6 +41,7 @@ def main():
 
     # initialze the plotter object.
     # project name will be prepended to all output names
+    import postpic.plotting
     plotter = pp.plotting.plottercls(dr, outdir=savedir, autosave=True, project='simpleexample')
 
     # we will need a refrence to the MultiSpecies quite often
