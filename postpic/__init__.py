@@ -28,6 +28,7 @@ from . import helper
 from . import datahandling
 from . import particles
 from . import experimental
+from . import plotting
 from .datahandling import *
 from .helper import *
 from .particles import *
@@ -39,7 +40,7 @@ __all__ = ['helper']
 __all__ += datahandling.__all__
 __all__ += helper.__all__
 __all__ += particles.__all__
-__all__ += ['datareader']
+__all__ += ['datareader', 'plotting']
 # high level functions
 __all__ += ['chooseCode', 'readDump', 'readSim']
 
