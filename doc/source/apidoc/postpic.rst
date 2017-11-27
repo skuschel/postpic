@@ -13,6 +13,7 @@ Subpackages
 
     postpic.datareader
     postpic.particles
+    postpic.plotting
 
 Submodules
 ----------

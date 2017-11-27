@@ -22,14 +22,14 @@ import sys
 sys.path.insert(0, os.path.abspath('../'))
 
 # numpy and scipy are installed on readthedocs.org
-autodoc_mock_imports = ['skimage', 'matplotlib', 'numexpr', 'pyfftw'
+autodoc_mock_imports = ['skimage', 'pyfftw',
                         'h5py', 'argparse']
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-needs_sphinx = '1.6'  # because of auto_mock_imports, see
+needs_sphinx = '1.3'  # because of auto_mock_imports, see
 # http://www.sphinx-doc.org/en/stable/ext/autodoc.html
 
 # Add any Sphinx extension module names here, as strings. They can be
