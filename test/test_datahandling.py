@@ -453,11 +453,13 @@ class TestField(unittest.TestCase):
 
         # test broadcasting with equal dimensions
         c = a+b
-        self.assertEqual(a.axes, c.axes)
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[1]))
         self.assertAllEqual(c.matrix, a.matrix + b.matrix)
 
         c = b+a
-        self.assertEqual(a.axes, c.axes)
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[1]))
         self.assertAllEqual(c.matrix, a.matrix + b.matrix)
 
         # test broadcasting with missing dimensions
@@ -465,11 +467,13 @@ class TestField(unittest.TestCase):
         self.assertEqual(b.shape, (5,))
 
         c = a+b
-        self.assertEqual(a.axes, c.axes)
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[0]))
         self.assertAllEqual(c.matrix, a.matrix + b.matrix)
 
         c = b+a
-        self.assertEqual(a.axes, c.axes)
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[0]))
         self.assertAllEqual(c.matrix, a.matrix + b.matrix)
 
 

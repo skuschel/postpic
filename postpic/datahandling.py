@@ -64,6 +64,12 @@ if sys.version[0] == '2':
 else:
     import functools
 
+if sys.version[0] == '2':
+    from itertools import izip_longest as zip_longest
+else:
+    from itertools import zip_longest
+
+
 try:
     import psutil
     nproc = psutil.cpu_count(logical=False)
@@ -485,6 +491,72 @@ class Field(NDArrayOperatorsMixin):
         return ret
 
     # Stuff related with compatibility to Numpy's ufuncs starts here.
+    def _get_axes_ats_tao_binary_ufunc_broadcasting(self, other):
+        """
+        compute the axes, axes_transform_state and transformed_axes_origins for the result
+        of a binary ufunc operation between self and other
+        """
+        if isinstance(other, numbers.Number):
+            return self.axes, self.axes_transform_state, self.transformed_axes_origins
+
+        axes1 = self.axes
+        ats1 = self.axes_transform_state
+        tao1 = self.transformed_axes_origins
+
+        if not isinstance(other, Field):
+            axes2 = [None]*other.ndim
+            ats2 = [None]*other.ndim
+            tao2 = [None]*other.ndim
+        else:
+            axes2 = other.axes
+            ats2 = other.axes_transform_state
+            tao2 = other.transformed_axes_origins
+
+        # print("_get_axes_ats_tao_binary_ufunc_broadcasting self:", axes1, ats1, tao1)
+        # print("_get_axes_ats_tao_binary_ufunc_broadcasting other:", axes2, ats2, tao2)
+
+        total_dim = max(len(axes1), len(axes2))
+
+        axes1 = list(enumerate(axes1))
+        axes2 = list(enumerate(axes2))
+
+        axes = []
+        axes_transform_state = []
+        transformed_axes_origins = []
+        for (i1, ax1), (i2, ax2) in zip_longest(reversed(axes1), reversed(axes2),
+                                                fillvalue=(None, None)):
+            if ax1 is None:
+                axes.append(ax2)
+                axes_transform_state.append(ats2[i2])
+                transformed_axes_origins.append(tao2[i2])
+            elif ax2 is None:
+                axes.append(ax1)
+                axes_transform_state.append(ats1[i1])
+                transformed_axes_origins.append(tao1[i1])
+            elif len(ax1) == len(ax2):
+                # print(len(ax1), len(ax2), ats1[i1], tao1[i1], ats2[i2], tao2[i2])
+                axes.append(ax1)
+
+                # we are not sure from which axis we should take ats and tao. guess...
+                if tao2[i2] is None and i1 is not None:
+                    axes_transform_state.append(ats1[i1])
+                    transformed_axes_origins.append(tao1[i1])
+                else:
+                    axes_transform_state.append(ats2[i2])
+                    transformed_axes_origins.append(tao2[i2])
+            elif len(ax1) == 1:
+                axes.append(ax2)
+                axes_transform_state.append(ats2[i2])
+                transformed_axes_origins.append(tao2[i2])
+            elif len(ax2) == 1:
+                axes.append(ax1)
+                axes_transform_state.append(ats1[i1])
+                transformed_axes_origins.append(tao1[i1])
+            else:
+                raise ValueError("Incompatible shapes for broadcasting")
+
+        return list(reversed(axes)), list(reversed(axes_transform_state)), \
+            list(reversed(transformed_axes_origins))
 
     # make sure that np.array() * Field() returns a Field and not a plain array
     __array_priority__ = 1
@@ -520,25 +592,50 @@ class Field(NDArrayOperatorsMixin):
         # If out-argument set, an output Field was already created. Do not wworry
         # about axes in that case
         if not out:
-            if method in ['__call__', 'accumulate']:
+            if method == '__call__':
+                if len(inputs) == 1:
+                    axes = self.axes
+                    ats = self.axes_transform_state
+                    tao = self.transformed_axes_origins
+                elif len(inputs) == 2:
+                    a, b = inputs
+                    if isinstance(a, type(self)):
+                        axes, ats, tao = a._get_axes_ats_tao_binary_ufunc_broadcasting(b)
+                    elif isinstance(b, type(self)):
+                        axes, ats, tao = b._get_axes_ats_tao_binary_ufunc_broadcasting(a)
+                else:
+                    raise NotImplemented
+            elif method == 'accumulate':
                 axes = self.axes
+                ats = self.axes_transform_state
+                tao = self.transformed_axes_origins
             elif method == 'reduce':
                 axes = copy.copy(self.axes)
+                ats = self.axes_transform_state[:]
+                tao = self.transformed_axes_origins[:]
                 reduceaxis = kwargs.get('axis', 0)
                 if not isinstance(reduceaxis, collections.Iterable):
                     reduceaxis = (reduceaxis,)
                 for axis in reversed(sorted(set(reduceaxis))):
                     del axes[axis]
+                    del ats[axis]
+                    del tao[axis]
             elif method == 'outer':
                 axes = []
+                ats = []
+                tao = []
                 for i in inputs:
                     if isinstance(i, type(self)):
                         axes.extend(i.axes)
+                        ats.extend(i.axes_transform_state)
+                        tao.extend(i.transformed_axes_origins)
                     elif isinstance(i, np.ndarray):
                         for j in range(i.ndim):
                             a = Axis()
                             a.setextent(0, 1, j.shape[j])
                             axes.append(a)
+                            ats.append(False)
+                            tao.append(None)
             elif method == 'at':
                 axes = None
         # Defer to the implementation of the ufunc on unwrapped values.
@@ -560,8 +657,7 @@ class Field(NDArrayOperatorsMixin):
         if type(result) is tuple:
             # multiple return values
             return tuple(type(self)(x, self.name, self.unit, axes=axes,
-                                    axes_transform_state=self.axes_transform_state,
-                                    transformed_axes_origins=self.transformed_axes_origins)
+                                    axes_transform_state=ats, transformed_axes_origins=tao)
                          for x in result)
         elif method == 'at':
             # no return value
@@ -569,8 +665,7 @@ class Field(NDArrayOperatorsMixin):
         else:
             # one return value
             obj = type(self)(result, self.name, self.unit, axes=axes,
-                             axes_transform_state=self.axes_transform_state,
-                             transformed_axes_origins=self.transformed_axes_origins)
+                             axes_transform_state=ats, transformed_axes_origins=tao)
             return obj
 
     # wrap ufunc results from numpy < 1.13 as Fields.
@@ -583,11 +678,25 @@ class Field(NDArrayOperatorsMixin):
         if isinstance(array, type(self)):
             return array
 
-        if array.ndim == len(self.axes):
-            # axes should probably be the same as those from self
-            return type(self)(array, self.name, self.unit, axes=self.axes,
-                              axes_transform_state=self.axes_transform_state,
-                              transformed_axes_origins=self.transformed_axes_origins)
+        # fallback defaults
+        axes = self.axes
+        ats = self.axes_transform_state
+        tao = self.transformed_axes_origins
+
+        # if we have `context`, there might be a chance...
+        if context:
+            f, inputs, d = context
+            if len(inputs) == 2:
+                a, b = inputs
+                if isinstance(a, type(self)):
+                    axes, ats, tao = a._get_axes_ats_tao_binary_ufunc_broadcasting(b)
+                elif isinstance(b, type(self)):
+                    axes, ats, tao = b._get_axes_ats_tao_binary_ufunc_broadcasting(a)
+
+        if array.ndim == len(axes):
+            # we might have gotten `axes` right...
+            return type(self)(array, self.name, self.unit, axes=axes,
+                              axes_transform_state=ats, transformed_axes_origins=tao)
 
         # Have no Idea what the axes should be. Return plain `ndarray`.
         return array
