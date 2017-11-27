@@ -16,6 +16,7 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files in addition.
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
 * `postpic.Field` works now with all numpy ufuncs, also with `ufunc.reduce`, `ufunc.outer`, `ufunc.accumulate` and `ufunc.at`
+* `postpic.Field` now supports broadcasting like numpy arrays, for binary operators as well as binary ufunc operations
 * `postpic.Field` has methods `.swapaxes`, `.transpose` and property `.T` compatible to numpy.ndarray
 * `postpic.Field` has methods `all`, `any`, `max`, `min`, `prod`, `sum`, `ptp`, `std`, `var`, `mean`, `clip` compatible to numpy.ndarray
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
