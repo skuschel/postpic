@@ -494,16 +494,20 @@ class Field(NDArrayOperatorsMixin):
     def _get_axes_ats_tao_binary_ufunc_broadcasting(self, other):
         """
         compute the axes, axes_transform_state and transformed_axes_origins for the result
-        of a binary ufunc operation between self and other
+        of a binary ufunc __call__ operation between self and other
         """
         if isinstance(other, numbers.Number):
+            # if other is just a number, all properties should be inherited from self
             return self.axes, self.axes_transform_state, self.transformed_axes_origins
 
+        # some short hands...
         axes1 = self.axes
         ats1 = self.axes_transform_state
         tao1 = self.transformed_axes_origins
 
+        # create short hands for the properties of other
         if not isinstance(other, Field):
+            # if other is a plain array, fill everything with None
             axes2 = [None]*other.ndim
             ats2 = [None]*other.ndim
             tao2 = [None]*other.ndim
@@ -515,25 +519,33 @@ class Field(NDArrayOperatorsMixin):
         # print("_get_axes_ats_tao_binary_ufunc_broadcasting self:", axes1, ats1, tao1)
         # print("_get_axes_ats_tao_binary_ufunc_broadcasting other:", axes2, ats2, tao2)
 
+        # resulting array has total_dim dimensions
         total_dim = max(len(axes1), len(axes2))
 
+        # enumerate axes objects and convert to a list, to support reverse iteration
         axes1 = list(enumerate(axes1))
         axes2 = list(enumerate(axes2))
 
         axes = []
         axes_transform_state = []
         transformed_axes_origins = []
+        # collect result properties starting from the last axis, as broadcasting logic
+        # of numpy also starts with last axis
         for (i1, ax1), (i2, ax2) in zip_longest(reversed(axes1), reversed(axes2),
                                                 fillvalue=(None, None)):
             if ax1 is None:
+                # ax1 is None, just use ax2
                 axes.append(ax2)
                 axes_transform_state.append(ats2[i2])
                 transformed_axes_origins.append(tao2[i2])
             elif ax2 is None:
+                # ax2 is None, just use ax1
                 axes.append(ax1)
                 axes_transform_state.append(ats1[i1])
                 transformed_axes_origins.append(tao1[i1])
             elif len(ax1) == len(ax2):
+                # both axes have same length, both should be valid.
+                # TODO: Check if axes are really equal
                 # print(len(ax1), len(ax2), ats1[i1], tao1[i1], ats2[i2], tao2[i2])
                 axes.append(ax1)
 
@@ -545,10 +557,12 @@ class Field(NDArrayOperatorsMixin):
                     axes_transform_state.append(ats2[i2])
                     transformed_axes_origins.append(tao2[i2])
             elif len(ax1) == 1:
+                # ax1 has length 1, use ax2
                 axes.append(ax2)
                 axes_transform_state.append(ats2[i2])
                 transformed_axes_origins.append(tao2[i2])
             elif len(ax2) == 1:
+                # ax2 has length 1, use ax1
                 axes.append(ax1)
                 axes_transform_state.append(ats1[i1])
                 transformed_axes_origins.append(tao1[i1])
@@ -594,10 +608,12 @@ class Field(NDArrayOperatorsMixin):
         if not out:
             if method == '__call__':
                 if len(inputs) == 1:
+                    # unary operation, leave everything as it is
                     axes = self.axes
                     ats = self.axes_transform_state
                     tao = self.transformed_axes_origins
                 elif len(inputs) == 2:
+                    # binary operation, use Field._get_axes_ats_tao_binary_ufunc_broadcasting
                     a, b = inputs
                     if isinstance(a, type(self)):
                         axes, ats, tao = a._get_axes_ats_tao_binary_ufunc_broadcasting(b)
@@ -687,6 +703,7 @@ class Field(NDArrayOperatorsMixin):
         if context:
             f, inputs, d = context
             if len(inputs) == 2:
+                # binary operation, use Field._get_axes_ats_tao_binary_ufunc_broadcasting
                 a, b = inputs
                 if isinstance(a, type(self)):
                     axes, ats, tao = a._get_axes_ats_tao_binary_ufunc_broadcasting(b)
