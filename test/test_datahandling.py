@@ -443,6 +443,40 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
         self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
 
+
+    def test_operators_broadcasting(self):
+        a = self.f2d
+        b = self.f2d[0.5, :]
+
+        self.assertEqual(a.shape, (4,5))
+        self.assertEqual(b.shape, (1,5))
+
+        # test broadcasting with equal dimensions
+        c = a+b
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[1]))
+        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+
+        c = b+a
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[1]))
+        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+
+        # test broadcasting with missing dimensions
+        b = b.squeeze()
+        self.assertEqual(b.shape, (5,))
+
+        c = a+b
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[0]))
+        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+
+        c = b+a
+        self.assertEqual(c.axes[0], a.axes[0])
+        self.assertTrue(c.axes[1] in (a.axes[1], b.axes[0]))
+        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+
+
     def test_numpy_methods_1(self):
         a = np.ptp(self.f2d)
         self.assertEqual(a.matrix, 19)
