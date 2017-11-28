@@ -1,4 +1,0 @@
--r pip-requirements.txt
-
-recommonmark
-sphinx>=1.6

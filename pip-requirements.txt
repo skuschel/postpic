@@ -3,3 +3,7 @@
 pep8
 nose
 cython>=0.18
+
+# required for building the docs
+sphinx>=1.3
+recommonmark

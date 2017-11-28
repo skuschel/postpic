@@ -37,7 +37,7 @@ setup(name='postpic',
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
       setup_requires=['cython>=0.18'],
-      install_requires=['matplotlib', 'numpy>=1.8', 'scipy', 'future', 'urllib3', 'numexpr',
+      install_requires=['matplotlib>=1.3', 'numpy>=1.8', 'scipy', 'future', 'urllib3', 'numexpr',
                         'cython>=0.18', 'functools32;python_version<"3.0"'],
       extras_require = {
         'h5 reader for openPMD support':  ['h5py'],
