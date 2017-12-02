@@ -296,21 +296,6 @@ class Axis(object):
         return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)'
 
 
-def _updatename(operator, reverse=False):
-    def ret(func):
-        @functools.wraps(func)
-        def f(s, o):
-            res = func(s, o)
-            try:
-                (a, b) = (o, s) if reverse else (s, o)
-                res.name = a.name + ' ' + operator + ' ' + b.name
-            except AttributeError:
-                pass
-            return res
-        return f
-    return ret
-
-
 def _reducing_numpy_method(method):
     """
     This function produces methods that are suitable for the `Field` class
