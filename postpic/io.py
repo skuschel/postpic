@@ -17,8 +17,10 @@
 # Stefan Tietze, 2017
 
 import numpy as np
-import postpic
 from . import datahandling
+
+
+__all__ = []
 
 
 def _export_field_csv(field, filename):
@@ -26,16 +28,17 @@ def _export_field_csv(field, filename):
     Export the data of a Field object as a CSV file.
     The extent will be given in the comments of that file.
     '''
+    from . import __version__
     if field.dimensions == 1:
         data = np.asarray(field.matrix)
         extent = field.extent
         header = 'Created with postpic version {0}.\nx = [{1}, {2}]'.format(
-            postpic.__version__, extent[0], extent[1])
+            __version__, extent[0], extent[1])
         np.savetxt(filename, data, header=header)
     elif field.dimensions == 2:
         extent = field.extent
         header = 'Created with postpic version {0}.\nx = [{1}, {2}]\ny = [{3}, {4}]'.format(
-            postpic.__version__, extent[0], extent[1], extent[2], extent[3])
+            __version__, extent[0], extent[1], extent[2], extent[3])
         data = np.asarray(field.matrix)
         np.savetxt(filename, data, header=header)
     else:
