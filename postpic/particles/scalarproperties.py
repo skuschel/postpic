@@ -20,25 +20,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import warnings
 import collections
-try:
-    import numexpr as ne
-except(ImportError):
-    ne = None
-    warnings.warn('Install numexpr to improve performance!')
+import numexpr as ne
 
 __all__ = ['ScalarProperty']
 
 
 class ScalarProperty(object):
 
-    if ne is None:
-        @staticmethod
-        def _evaluate(*args, **kwargs):
-            import numpy as np
-            r = eval(*args, **kwargs)
-            return np.asarray(r)
-    else:
-        _evaluate = staticmethod(ne.evaluate)
+    _evaluate = staticmethod(ne.evaluate)
 
     def __init__(self, expr, name=None, unit=None, symbol=None):
         '''
@@ -85,19 +74,13 @@ class ScalarProperty(object):
         '''
         The list of variables used within this expression.
         '''
-        if ne is None:
-            c = compile(self.expr, '<expr>', 'eval')
-            return c.co_names
-        else:
-            return self._func.input_names
+        return self._func.input_names
 
     def evaluate(self, vars):
         '''
         vars must be a dictionary containing variables used
         within the expression "expr".
         '''
-        if ne is None:
-            return self._evaluate(self.expr, vars)
         args = [vars[v] for v in self.input_names]
         return self._func(*args)
 
