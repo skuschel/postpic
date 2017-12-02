@@ -35,7 +35,7 @@ from . import datareader
 from .datareader import chooseCode, readDump, readSim
 from . import plotting
 from ._version import get_versions
-from . import io
+from .io import *
 
 __all__ = ['helper']
 __all__ += datahandling.__all__

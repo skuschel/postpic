@@ -17,10 +17,35 @@
 # Stefan Tietze, 2017
 
 import numpy as np
-from . import datahandling
 
 
-__all__ = []
+__all__ = ['export_field', 'load_field']
+
+
+def load_field(filename):
+    '''
+    construct a new field object from file. currently, the following file
+    formats are supported:
+    *.npz
+    '''
+    if not filename.endswith('npz'):
+        raise ValueError('File format of filename {0} not recognized.'.format(filename))
+    return _import_field_npy(filename)
+
+
+def export_field(filename, field):
+    '''
+    export Field object as a file. Format depends on the extention
+    of the filename. Currently supported are:
+    *.npz
+    *.csv
+    '''
+    if filename.endswith('npz'):
+        _export_field_npy(filename, field)
+    elif filename.endswith('csv'):
+        _export_field_csv(filename, field)
+    else:
+        raise ValueError('File format of filename {0} not recognized.'.format(filename))
 
 
 def _export_field_csv(field, filename):
@@ -91,6 +116,7 @@ def _import_field_npy(filename):
     '''
     import a field object from a file written by _export_field_npy()
     '''
+    from .datahandling import Field, Axis
     import_file = np.load(filename)
 
     # Axes Objects
@@ -103,17 +129,17 @@ def _import_field_npy(filename):
 
     axes = []
     for nax in range(0, len(length_edges)):
-        axes.append(datahandling.Axis(name=meta_ax_names[nax],
-                                      unit=meta_ax_units[nax],
-                                      grid_node=meta_ax_edges[nax, 0:length_edges[nax]]))
+        axes.append(Axis(name=meta_ax_names[nax],
+                         unit=meta_ax_units[nax],
+                         grid_node=meta_ax_edges[nax, 0:length_edges[nax]]))
 
     # field
     meta_field = import_file['meta_field']
-    import_field = datahandling.Field(matrix=import_file['matrix'],
-                                      name=meta_field[0], unit=meta_field[1],
-                                      axes=axes,
-                                      axes_transform_state=meta_ax_transform_state,
-                                      transformed_axes_origins=meta_ax_transformed_origins)
+    import_field = Field(matrix=import_file['matrix'],
+                         name=meta_field[0], unit=meta_field[1],
+                         axes=axes,
+                         axes_transform_state=meta_ax_transform_state,
+                         transformed_axes_origins=meta_ax_transformed_origins)
     import_field.label = meta_field[2]
     import_field.infostring = meta_field[3]
 
