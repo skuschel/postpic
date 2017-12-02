@@ -397,6 +397,7 @@ class Field(NDArrayOperatorsMixin):
     '''
 
     @classmethod
+    @helper.append_doc_of(io.load_field)
     def loadfrom(cls, filename):
         return io.load_field(filename)
 
@@ -1786,7 +1787,12 @@ class Field(NDArrayOperatorsMixin):
 
         return ret
 
+    @helper.append_doc_of(io.export_field)
     def export(self, filename, **kwargs):
+        '''
+        Uses `postpic.export_field` to export this field to a file. All ``**kwargs`
+        will be forwarded to this function:
+        '''
         io.export_field(filename, **kwargs)
 
     def saveto(self, filename):
