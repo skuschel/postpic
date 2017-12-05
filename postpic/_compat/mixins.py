@@ -15,7 +15,7 @@ import sys
 
 from numpy.core import umath as um
 
-# Nothing should be exposed in the top-level NumPy module.
+# Nothing should be exposed in the top-level module.
 __all__ = []
 
 

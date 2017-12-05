@@ -42,4 +42,12 @@ postpic\.helper module
     :undoc-members:
     :show-inheritance:
 
+postpic\.io module
+------------------
+
+.. automodule:: postpic.io
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
