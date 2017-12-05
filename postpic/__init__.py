@@ -35,6 +35,7 @@ from .particles import *
 from . import datareader
 from .datareader import chooseCode, readDump, readSim
 from ._version import get_versions
+from .io import *
 
 __all__ = ['helper']
 __all__ += datahandling.__all__
@@ -43,6 +44,7 @@ __all__ += particles.__all__
 __all__ += ['datareader', 'plotting']
 # high level functions
 __all__ += ['chooseCode', 'readDump', 'readSim']
+__all__ += io.__all__
 
 __version__ = get_versions()['version']
 __git_version__ = get_versions()['full-revisionid']

@@ -58,6 +58,7 @@ import numexpr as ne
 
 from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
 from . import helper
+from . import io
 
 if sys.version[0] == '2':
     import functools32 as functools
@@ -293,21 +294,6 @@ class Axis(object):
         return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)'
 
 
-def _updatename(operator, reverse=False):
-    def ret(func):
-        @functools.wraps(func)
-        def f(s, o):
-            res = func(s, o)
-            try:
-                (a, b) = (o, s) if reverse else (s, o)
-                res.name = a.name + ' ' + operator + ' ' + b.name
-            except AttributeError:
-                pass
-            return res
-        return f
-    return ret
-
-
 def _reducing_numpy_method(method):
     """
     This function produces methods that are suitable for the `Field` class
@@ -394,18 +380,9 @@ class Field(NDArrayOperatorsMixin):
     '''
 
     @classmethod
+    @helper.append_doc_of(io.load_field)
     def loadfrom(cls, filename):
-        '''
-        construct a new field object from file. currently, the following file
-        formats are supported:
-        *.npz
-        '''
-        # leave import here. Older python versions can't handle circular imports
-        from . import io
-        if not filename.endswith('npz'):
-            raise Exception('File format of filename {0} not recognized.'.format(filename))
-
-        return io._import_field_npy(filename)
+        return io.load_field(filename)
 
     def __init__(self, matrix, name='', unit='', **kwargs):
         if 'xedges' in kwargs or 'axes' in kwargs:
@@ -1782,33 +1759,27 @@ class Field(NDArrayOperatorsMixin):
 
         return ret
 
-    def export(self, filename):
+    @helper.append_doc_of(io.export_field)
+    def export(self, filename, **kwargs):
         '''
-        Export Field object as a file. Format is recognized by the extension
+        Uses `postpic.export_field` to export this field to a file. All ``**kwargs`
+        will be forwarded to this function.
+        Format is recognized by the extension
         of the filename. Currently supported are:
             .npz:
                 uses `numpy.savez`.
             .csv:
                 uses `numpy.savetxt`.
         '''
-        # leave import here. Older python versions can't handle circular imports
-        from . import io
-        if filename.endswith('npz'):
-            io._export_field_npy(self, filename)
-        elif filename.endswith('csv'):
-            io._export_field_csv(self, filename)
-        else:
-            raise Exception('File format of filename {0} not recognized.'.format(filename))
+        io.export_field(filename, **kwargs)
 
     def saveto(self, filename):
         '''
-        Save a Field object as a file. Use loadfrom() to load Field objects.
-        Currently, only *.npz files are supported.
+        Save a Field object as a file. Use `loadfrom()` to load Field objects.
         '''
-        if filename.endswith('npz'):
-            self.export(filename)
-        else:
-            raise Exception('File format of filename {0} not recognized.'.format(filename))
+        if not filename.endswith('.npz'):
+            filename += '.npz'
+        self.export(filename)
 
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
