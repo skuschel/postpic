@@ -28,12 +28,12 @@ from . import helper
 from . import datahandling
 from . import particles
 from . import experimental
+from . import plotting
 from .datahandling import *
 from .helper import *
 from .particles import *
 from . import datareader
 from .datareader import chooseCode, readDump, readSim
-from . import plotting
 from ._version import get_versions
 from .io import *
 

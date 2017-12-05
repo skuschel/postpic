@@ -21,34 +21,16 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
 
-
-from mock import Mock as MagicMock
-
-class Mock(MagicMock):
-    pi = 3.141592653589793
-    @classmethod
-    def __getattr__(cls, name):
-            return MagicMock()
-
-MOCK_MODULES = ['argparse',
-                'scipy', 'scipy.signal', 'scipy.ndimage', 'scipy.interpolate',
-                'scipy.integrate', 'scipy.constants',
-                'skimage.restoration',
-                'h5py',
-                'matplotlib.colors', 'matplotlib.pyplot', 'matplotlib', 'matplotlib.ticker',
-                'numpy', 'numpy.fft', 'numpy.linalg',
-                'pyfftw', 'pyfftw.interfaces.cache', 'pyfftw.interfaces.numpy_fft',
-                'numexpr',
-                'postpic.particles._particlestogrid', 'postpic._compat']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-import postpic as pp
+# numpy and scipy are installed on readthedocs.org
+autodoc_mock_imports = ['skimage', 'pyfftw',
+                        'h5py', 'argparse']
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-# needs_sphinx = '1.0'
+needs_sphinx = '1.3'  # because of auto_mock_imports, see
+# http://www.sphinx-doc.org/en/stable/ext/autodoc.html
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -58,15 +40,19 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon']  # napoleon allows numpy like docstrings
+    'sphinx.ext.napoleon']
+# napoleon allows numpy like docstrings
+# https://sphinxcontrib-napoleon.readthedocs.io/en/latest/
+
+
+# private-members, special-members
+autodoc_default_flags = ['members', 'inherited_members']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
-# source_suffix = ['.rst', '.md']
 source_suffix = ['.rst', '.md']
 
 from recommonmark.parser import CommonMarkParser
@@ -90,10 +76,9 @@ author = 'the postpic developers'
 # built documents.
 #
 # The short X.Y version.
-#import versioneer
-#os.chdir('..')
-#version = versioneer.get_version()
-version = pp.__version__
+sys.path.insert(0, os.path.abspath('../../postpic'))
+import _version
+version = _version.get_versions()['version']
 # The full version, including alpha/beta/rc tags.
 release = version
 #os.chdir('doc')

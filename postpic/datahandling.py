@@ -101,7 +101,6 @@ try:
 except ImportError:
     # pyFFTW is not available, just import numpys fft
     import numpy.fft as fft
-    using_pyfftw = False
     fft_kwargs = dict()
 
 
@@ -121,21 +120,20 @@ __all__ = ['Field', 'Axis']
 class Axis(object):
     '''
     Axis handling for a single Axis.
-    '''
 
-    def __init__(self, name='', unit='', **kwargs):
-        """
-        Create an Axis object from scratch.
+    Create an Axis object from scratch.
 
-        The least required arguments are any of
+    The least required arguments are any of:
         * grid
         * grid_node
         * extent _and_ n
 
-        The remaining fields will be deduced from the givens.
+    The remaining fields will be deduced from the givens.
 
-        More arguments may be supplied, as long as they are compatible.
-        """
+    More arguments may be supplied, as long as they are compatible.
+    '''
+
+    def __init__(self, name='', unit='', **kwargs):
         self.name = name
         self.unit = unit
 
@@ -387,17 +385,6 @@ class Field(NDArrayOperatorsMixin):
         return io.load_field(filename)
 
     def __init__(self, matrix, name='', unit='', **kwargs):
-        """
-        Create a Field object from scratch. The only required argument is `matrix` which
-        contains the actual data.
-
-        A `name` and a `unit` may be supplied.
-
-        The axis may be specified in different ways:
-        * by passing a list of Axis object as `axes`
-        * by passing arrays with the grid_nodes as `xedges`, `yedges` and `zedges`
-        * by not passing anything which will create default axes from 0 to 0
-        """
         if 'xedges' in kwargs or 'axes' in kwargs:
             # Some axes have been passed, let length-1-dimensions alone
             self._matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
@@ -1776,7 +1763,13 @@ class Field(NDArrayOperatorsMixin):
     def export(self, filename, **kwargs):
         '''
         Uses `postpic.export_field` to export this field to a file. All ``**kwargs`
-        will be forwarded to this function:
+        will be forwarded to this function.
+        Format is recognized by the extension
+        of the filename. Currently supported are:
+            .npz:
+                uses `numpy.savez`.
+            .csv:
+                uses `numpy.savetxt`.
         '''
         io.export_field(filename, **kwargs)
 

@@ -41,7 +41,7 @@ before_install:
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
   - conda update --yes conda;
-  - conda create -yn pyenv python=$TRAVIS_PYTHON_VERSION atlas numpy=$NUMPY_V scipy=$SCIPY_V matplotlib=$MATPLOTLIB_V nose cython=$CYTHON_V h5py numexpr $EXTRAPACK
+  - conda create -yn pyenv python=$TRAVIS_PYTHON_VERSION atlas numpy=$NUMPY_V scipy=$SCIPY_V matplotlib=$MATPLOTLIB_V nose cython=$CYTHON_V h5py numexpr sphinx $EXTRAPACK
   - source activate pyenv
 
 install:

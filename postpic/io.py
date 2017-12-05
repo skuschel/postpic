@@ -15,6 +15,9 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stefan Tietze, 2017
+'''
+The postpic.io module provides free functions for importing and exporting data.
+'''
 
 import numpy as np
 
