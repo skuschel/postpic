@@ -1263,10 +1263,13 @@ class Field(NDArrayOperatorsMixin):
         '''
         removes axes that have length 1, reducing self.dimensions.
 
+        Note, that axis with length 0 will not be removed! `numpy.squeeze` also does not
+        remove length=0 directions.
+
         Same as `numpy.squeeze`.
         '''
         ret = copy.copy(self)
-        retained_axes = [i for i in range(self.dimensions) if len(self.axes[i]) > 1]
+        retained_axes = [i for i in range(len(self.shape)) if len(self.axes[i]) != 1]
 
         ret.axes = [self.axes[i] for i in retained_axes]
         ret.axes_transform_state = [self.axes_transform_state[i] for i in retained_axes]
