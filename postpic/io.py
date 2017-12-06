@@ -51,7 +51,7 @@ def export_field(filename, field):
         raise ValueError('File format of filename {0} not recognized.'.format(filename))
 
 
-def _export_field_csv(field, filename):
+def _export_field_csv(filename, field):
     '''
     Export the data of a Field object as a CSV file.
     The extent will be given in the comments of that file.
@@ -74,7 +74,7 @@ def _export_field_csv(field, filename):
     return
 
 
-def _export_field_npy(field, filename, compressed=True):
+def _export_field_npy(filename, field, compressed=True):
     '''
     Export a Field object including all metadata and axes to a file.
     The file will be in the numpy binary format (npz).
@@ -149,7 +149,7 @@ def _import_field_npy(filename):
     return import_field
 
 
-def export_scalar_vtk(scalarfields, filename):
+def export_scalar_vtk(filename, scalarfields):
     if not isinstance(scalarfields, collections.Iterable):
         if not isinstance(scalarfields, postpic.Field):
             raise Exception('scalarfields must be one or more Field objects.')
