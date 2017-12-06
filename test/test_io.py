@@ -17,8 +17,8 @@ class TestIO(unittest.TestCase):
         f = tempfile.mkstemp(suffix='.npz')[1]
         print('filename is {}'.format(f))
         self.f = f
-        io._export_field_npy(self.testfield, f)
-        self.testfield2 = io._import_field_npy(f)
+        io.export_field(f, self.testfield)
+        self.testfield2 = io.load_field(f)
 
     def tearDown(self):
         os.remove(self.f)
