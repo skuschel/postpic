@@ -41,11 +41,13 @@ o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import functools
+import sys
+
 import collections
 import copy
 import warnings
 import os
+import numbers
 
 import numpy as np
 import scipy.ndimage as spnd
@@ -54,7 +56,20 @@ import scipy.integrate
 import scipy.signal as sps
 import numexpr as ne
 
-from ._compat import tukey, meshgrid, broadcast_to
+from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
+from . import helper
+from . import io
+
+if sys.version[0] == '2':
+    import functools32 as functools
+else:
+    import functools
+
+if sys.version[0] == '2':
+    from itertools import izip_longest as zip_longest
+else:
+    from itertools import zip_longest
+
 
 try:
     import psutil
@@ -86,7 +101,6 @@ try:
 except ImportError:
     # pyFFTW is not available, just import numpys fft
     import numpy.fft as fft
-    using_pyfftw = False
     fft_kwargs = dict()
 
 
@@ -99,7 +113,6 @@ try:
 except ImportError:
     unwrap_phase = None
 
-from . import helper
 
 __all__ = ['Field', 'Axis']
 
@@ -107,21 +120,20 @@ __all__ = ['Field', 'Axis']
 class Axis(object):
     '''
     Axis handling for a single Axis.
-    '''
 
-    def __init__(self, name='', unit='', **kwargs):
-        """
-        Create an Axis object from scratch.
+    Create an Axis object from scratch.
 
-        The least required arguments are any of
+    The least required arguments are any of:
         * grid
         * grid_node
         * extent _and_ n
 
-        The remaining fields will be deduced from the givens.
+    The remaining fields will be deduced from the givens.
 
-        More arguments may be supplied, as long as they are compatible.
-        """
+    More arguments may be supplied, as long as they are compatible.
+    '''
+
+    def __init__(self, name='', unit='', **kwargs):
         self.name = name
         self.unit = unit
 
@@ -282,55 +294,97 @@ class Axis(object):
         return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)'
 
 
-def _updatename(operator, reverse=False):
-    def ret(func):
-        @functools.wraps(func)
-        def f(s, o):
-            res = func(s, o)
-            try:
-                (a, b) = (o, s) if reverse else (s, o)
-                res.name = a.name + ' ' + operator + ' ' + b.name
-            except AttributeError:
-                pass
-            return res
-        return f
-    return ret
+def _reducing_numpy_method(method):
+    """
+    This function produces methods that are suitable for the `Field` class
+    that reproduce the behaviour of the corresponding numpy `method`
+    """
+    @functools.wraps(getattr(np.ndarray, method))
+    def new_method(self, axis=None, out=None, keepdims=None, **kwargs):
+        # we need to interpret the axis object and create an iterable axisiter
+        # in order to iterate over the affected axes
+        axisiter = axis
+        if axisiter is None:
+            axisiter = tuple(range(self.dimensions))
+        if not isinstance(axisiter, collections.Iterable):
+            axisiter = (axis,)
+
+        # no `out` argument supplied, we need to figure out the axes of the result
+        # and deal with other state of the Field
+        if out is None:
+            axes = copy.copy(self.axes)
+            tao = copy.copy(self.transformed_axes_origins)
+            ats = copy.copy(self.axes_transform_state)
+            if keepdims:
+                for i in axisiter:
+                    axes[i] = Axis(axes[i].name, axes[i].unit, extent=axes[i].extent, n=1)
+            else:
+                for i in reversed(sorted(axisiter)):
+                    del axes[i]
+                    del tao[i]
+                    del ats[i]
+
+        # If the supplied `out` argument is a Field, we need to extract the plain array
+        # from it in order to pass to the real method
+        real_out = out
+        if isinstance(out, type(self)):
+            real_out = out.matrix
+        elif isinstance(out, tuple):
+            real_out = tuple(o.matrix if isinstance(o, type(self)) else o)
+
+        # call the underlying method and pass on `keepdims` if it is different from
+        # None. Passing on `None` does not work because the default value is a special
+        # object, see <https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/
+        # numpy.all.html#numpy.all>
+        if keepdims is not None:
+            kwargs['keepdims'] = keepdims
+        o = getattr(self.matrix, method)(axis=axis, out=real_out, **kwargs)
+
+        # if an `out` argument was supplied, just return it
+        if out:
+            return out
+
+        # create and return a Field object from the result.
+        if isinstance(o, tuple):
+            ret = tuple(type(self)(a, self.name, self.unit, axes=axes,
+                                   axes_transform_state=ats, transformed_axes_origins=tao)
+                        for a in o
+                        )
+        else:
+            ret = type(self)(o, self.name, self.unit, axes=axes,
+                             axes_transform_state=ats, transformed_axes_origins=tao)
+        return ret
+    return new_method
 
 
-class Field(object):
+# The NDArrayOperatorsMixin implements all arithmetic special functions through numpy
+# ufuncs
+class Field(NDArrayOperatorsMixin):
     '''
-    The Field Object carries a data matrix together with as many Axis
-    Objects as the data matrix's dimensions. Additionally the Field object
+    The Field Object carries data in form of an `numpy.ndarray` together with as many Axis
+    objects as the data's dimensions. Additionaly the Field object
     provides any information that is necessary to plot _and_ annotate
-    the plot. It will also suggest a content based filename for saving.
+    the plot.
+
+    Create a Field object from scratch. The only required argument is `matrix` which
+    contains the actual data.
+
+    A `name` and a `unit` may be supplied.
+
+    The axis may be specified in different ways:
+
+    * by passing a list of Axis object as `axes`
+    * by passing arrays with the grid_nodes as `xedges`, `yedges` and `zedges`.
+      This is intended to work with `np.histogram`.
+    * by not passing anything, which will create default axes from 0 to 1.
     '''
 
     @classmethod
+    @helper.append_doc_of(io.load_field)
     def loadfrom(cls, filename):
-        '''
-        construct a new field object from file. currently, the following file
-        formats are supported:
-        *.npz
-        '''
-        # leave import here. Older python versions can't handle circular imports
-        from . import io
-        if not filename.endswith('npz'):
-            raise Exception('File format of filename {0} not recognized.'.format(filename))
-
-        return io._import_field_npy(filename)
+        return io.load_field(filename)
 
     def __init__(self, matrix, name='', unit='', **kwargs):
-        """
-        Create a Field object from scratch. The only required argument is `matrix` which
-        contains the actual data.
-
-        A `name` and a `unit` may be supplied.
-
-        The axis may be specified in different ways:
-        * by passing a list of Axis object as `axes`
-        * by passing arrays with the grid_nodes as `xedges`, `yedges` and `zedges`
-        * by not passing anything which will create default axes from 0 to 0
-        """
         if 'xedges' in kwargs or 'axes' in kwargs:
             # Some axes have been passed, let length-1-dimensions alone
             self._matrix = np.asarray(matrix)  # dont sqeeze. trust numpys histogram functions.
@@ -400,14 +454,233 @@ class Field(object):
         ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
+    # Stuff related with compatibility to Numpy's ufuncs starts here.
+    def _get_axes_ats_tao_binary_ufunc_broadcasting(self, other):
+        """
+        compute the axes, axes_transform_state and transformed_axes_origins for the result
+        of a binary ufunc __call__ operation between self and other
+        """
+        if isinstance(other, numbers.Number):
+            # if other is just a number, all properties should be inherited from self
+            return self.axes, self.axes_transform_state, self.transformed_axes_origins
+
+        # some short hands...
+        axes1 = self.axes
+        ats1 = self.axes_transform_state
+        tao1 = self.transformed_axes_origins
+
+        # create short hands for the properties of other
+        if not isinstance(other, Field):
+            # if other is a plain array, fill everything with None
+            axes2 = [None]*other.ndim
+            ats2 = [None]*other.ndim
+            tao2 = [None]*other.ndim
+        else:
+            axes2 = other.axes
+            ats2 = other.axes_transform_state
+            tao2 = other.transformed_axes_origins
+
+        # print("_get_axes_ats_tao_binary_ufunc_broadcasting self:", axes1, ats1, tao1)
+        # print("_get_axes_ats_tao_binary_ufunc_broadcasting other:", axes2, ats2, tao2)
+
+        # resulting array has total_dim dimensions
+        total_dim = max(len(axes1), len(axes2))
+
+        # enumerate axes objects and convert to a list, to support reverse iteration
+        axes1 = list(enumerate(axes1))
+        axes2 = list(enumerate(axes2))
+
+        axes = []
+        axes_transform_state = []
+        transformed_axes_origins = []
+        # collect result properties starting from the last axis, as broadcasting logic
+        # of numpy also starts with last axis
+        for (i1, ax1), (i2, ax2) in zip_longest(reversed(axes1), reversed(axes2),
+                                                fillvalue=(None, None)):
+            if ax1 is None:
+                # ax1 is None, just use ax2
+                axes.append(ax2)
+                axes_transform_state.append(ats2[i2])
+                transformed_axes_origins.append(tao2[i2])
+            elif ax2 is None:
+                # ax2 is None, just use ax1
+                axes.append(ax1)
+                axes_transform_state.append(ats1[i1])
+                transformed_axes_origins.append(tao1[i1])
+            elif len(ax1) == len(ax2):
+                # both axes have same length, both should be valid.
+                # TODO: Check if axes are really equal
+                # print(len(ax1), len(ax2), ats1[i1], tao1[i1], ats2[i2], tao2[i2])
+                axes.append(ax1)
+
+                # we are not sure from which axis we should take ats and tao. guess...
+                if tao2[i2] is None and i1 is not None:
+                    axes_transform_state.append(ats1[i1])
+                    transformed_axes_origins.append(tao1[i1])
+                else:
+                    axes_transform_state.append(ats2[i2])
+                    transformed_axes_origins.append(tao2[i2])
+            elif len(ax1) == 1:
+                # ax1 has length 1, use ax2
+                axes.append(ax2)
+                axes_transform_state.append(ats2[i2])
+                transformed_axes_origins.append(tao2[i2])
+            elif len(ax2) == 1:
+                # ax2 has length 1, use ax1
+                axes.append(ax1)
+                axes_transform_state.append(ats1[i1])
+                transformed_axes_origins.append(tao1[i1])
+            else:
+                raise ValueError("Incompatible shapes for broadcasting")
+
+        return list(reversed(axes)), list(reversed(axes_transform_state)), \
+            list(reversed(transformed_axes_origins))
+
+    # make sure that np.array() * Field() returns a Field and not a plain array
+    __array_priority__ = 1
+
     def __array__(self, dtype=None):
         '''
         will be called by numpy function in case an numpy array is needed.
         '''
-        return np.asarray(self.matrix, dtype=dtype)
+        return np.asanyarray(self.matrix, dtype=dtype)
 
-    # make sure that np.array() * Field() returns a Field and not a plain array
-    __array_priority__ = 1
+    # What kind of other objects do we support? so far any kind of numpy array or scalar number
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    # handle ufuncs, new interface.
+    # see https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/[...]
+    # [...]/numpy.lib.mixins.NDArrayOperatorsMixin.html#numpy.lib.mixins.NDArrayOperatorsMixin
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # Have implemented neither 'reduceat' because it is crazy nor
+        # 'inner' because it is not documented
+        if method not in ['__call__', 'reduce', 'outer', 'at', 'accumulate']:
+            return NotImplemented
+
+        out = kwargs.get('out', ())
+        for x in inputs + out:
+            # Only support operations with instances of _HANDLED_TYPES.
+            if not isinstance(x, self._HANDLED_TYPES + (type(self),)):
+                # Any unsupported operation should return NotImplemented such that
+                # numpy can continue to look for other methods that might support it
+                return NotImplemented
+
+        # TODO: add check of Axes extent and unit here
+
+        # If out-argument set, an output Field was already created. Do not wworry
+        # about axes in that case
+        if not out:
+            if method == '__call__':
+                if len(inputs) == 1:
+                    # unary operation, leave everything as it is
+                    axes = self.axes
+                    ats = self.axes_transform_state
+                    tao = self.transformed_axes_origins
+                elif len(inputs) == 2:
+                    # binary operation, use Field._get_axes_ats_tao_binary_ufunc_broadcasting
+                    a, b = inputs
+                    if isinstance(a, type(self)):
+                        axes, ats, tao = a._get_axes_ats_tao_binary_ufunc_broadcasting(b)
+                    elif isinstance(b, type(self)):
+                        axes, ats, tao = b._get_axes_ats_tao_binary_ufunc_broadcasting(a)
+                else:
+                    raise NotImplemented
+            elif method == 'accumulate':
+                axes = self.axes
+                ats = self.axes_transform_state
+                tao = self.transformed_axes_origins
+            elif method == 'reduce':
+                axes = copy.copy(self.axes)
+                ats = self.axes_transform_state[:]
+                tao = self.transformed_axes_origins[:]
+                reduceaxis = kwargs.get('axis', 0)
+                if not isinstance(reduceaxis, collections.Iterable):
+                    reduceaxis = (reduceaxis,)
+                for axis in reversed(sorted(set(reduceaxis))):
+                    del axes[axis]
+                    del ats[axis]
+                    del tao[axis]
+            elif method == 'outer':
+                axes = []
+                ats = []
+                tao = []
+                for i in inputs:
+                    if isinstance(i, type(self)):
+                        axes.extend(i.axes)
+                        ats.extend(i.axes_transform_state)
+                        tao.extend(i.transformed_axes_origins)
+                    elif isinstance(i, np.ndarray):
+                        for j in range(i.ndim):
+                            a = Axis()
+                            a.setextent(0, 1, j.shape[j])
+                            axes.append(a)
+                            ats.append(False)
+                            tao.append(None)
+            elif method == 'at':
+                axes = None
+        # Defer to the implementation of the ufunc on unwrapped values.
+        inputs = tuple(x.matrix if isinstance(x, type(self)) else x for x in inputs)
+        if out:
+            if isinstance(out, type(self)):
+                kwargs['out'] = out.matrix
+            elif isinstance(out, tuple):
+                kwargs['out'] = tuple(
+                    x.matrix if isinstance(x, type(self)) else x for x in out)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        # If out-argument set, just return the output Field
+        if out:
+            return out
+
+        # Otherwise, the ufunc has returned one or more simple array(s). Wrap this/these
+        # with the `axes`
+        if type(result) is tuple:
+            # multiple return values
+            return tuple(type(self)(x, self.name, self.unit, axes=axes,
+                                    axes_transform_state=ats, transformed_axes_origins=tao)
+                         for x in result)
+        elif method == 'at':
+            # no return value
+            return None
+        else:
+            # one return value
+            obj = type(self)(result, self.name, self.unit, axes=axes,
+                             axes_transform_state=ats, transformed_axes_origins=tao)
+            return obj
+
+    # wrap ufunc results from numpy < 1.13 as Fields.
+    # This is also used for __add__ and so on as they are implemented through ufuncs via
+    # NDArrayOperatorsMixin.
+    # This is not intended to be perfect because it is barely possible to get it right
+    # with the old interface
+    def __array_wrap__(self, array, context=None):
+        # this is a Field already, leave it as is
+        if isinstance(array, type(self)):
+            return array
+
+        # fallback defaults
+        axes = self.axes
+        ats = self.axes_transform_state
+        tao = self.transformed_axes_origins
+
+        # if we have `context`, there might be a chance...
+        if context:
+            f, inputs, d = context
+            if len(inputs) == 2:
+                # binary operation, use Field._get_axes_ats_tao_binary_ufunc_broadcasting
+                a, b = inputs
+                if isinstance(a, type(self)):
+                    axes, ats, tao = a._get_axes_ats_tao_binary_ufunc_broadcasting(b)
+                elif isinstance(b, type(self)):
+                    axes, ats, tao = b._get_axes_ats_tao_binary_ufunc_broadcasting(a)
+
+        if array.ndim == len(axes):
+            # we might have gotten `axes` right...
+            return type(self)(array, self.name, self.unit, axes=axes,
+                              axes_transform_state=ats, transformed_axes_origins=tao)
+
+        # Have no Idea what the axes should be. Return plain `ndarray`.
+        return array
 
     def _addaxisobj(self, axisobj):
         '''
@@ -516,7 +789,7 @@ class Field(object):
     @extent.setter
     def extent(self, newextent):
         '''
-        sets the new extent to the specific values
+        sets the new extent to the specific values.
         '''
         if not self.dimensions * 2 == len(newextent):
             raise TypeError('size of newextent doesnt match self.dimensions * 2')
@@ -529,7 +802,7 @@ class Field(object):
     @property
     def spacing(self):
         '''
-        returns the grid spacings for all axis
+        returns the grid spacings for all axis.
         '''
         return np.array([ax.spacing for ax in self.axes])
 
@@ -546,7 +819,7 @@ class Field(object):
         return self.replace_data(np.angle(self))
 
     def conj(self):
-        return self.replace_data(np.conjugate(self))
+        return np.conj(self)
 
     def replace_data(self, other):
         ret = copy.copy(self)
@@ -555,13 +828,13 @@ class Field(object):
 
     def pad(self, pad_width, mode='constant', **kwargs):
         '''
-        Pads the matrix using np.pad and takes care of the axes.
-        See documentation of np.pad.
+        Pads the data using `np.pad` and takes care of the axes.
+        See documentation of `numpy.pad`.
 
-        In contrast to np.pad, pad_width may be given as integers, which will be interpreted
+        In contrast to `np.pad`, `pad_width` may be given as integers, which will be interpreted
         as pixels, or as floats, which will be interpreted as distance along the appropriate axis.
 
-        All other parameters are passed to np.pad unchanged.
+        All other parameters are passed to `np.pad` unchanged.
         '''
         ret = copy.copy(self)
         if not self.islinear():
@@ -625,11 +898,16 @@ class Field(object):
     def half_resolution(self, axis):
         '''
         Halfs the resolution along the given axis by removing
-        every second grid_node and averaging every second data point into one.
+        every second `grid_node` and averaging every second data point into one.
 
-        if there is an odd number of grid points, the last point will
-        be ignored. (that means, the extent will change by the size of
-        the last grid cell)
+        If there is an odd number of grid points, the last point will
+        be ignored (that means, the extent will change by the size of
+        the last grid cell).
+
+        Returns
+        -------
+        Field:
+            the modified `Field`.
         '''
         axis = helper.axesidentify[axis]
         ret = copy.copy(self)
@@ -655,27 +933,34 @@ class Field(object):
         Transform the Field to new coordinates along one axis.
 
         This function transforms the coordinates of one axis according to the function
-        transform and applies the jacobian to the data.
+        `transform` and applies the jacobian to the data.
 
         Please note that no interpolation is applied to the data, instead a non-linear
         axis grid is produced. If you want to interpolate the data to a new (linear) grid,
-        use the method map_coordinates instead.
+        use the method :meth:`map_coordinates` instead.
 
-        In contrast to map_coordinates the function transform is not used to pull the new data
+        In contrast to :meth:`map_coordinates`,
+        the function transform is not used to pull the new data
         points from the old grid, but is directly applied to the axis. This reverses the
-        direction of the transform. In this case, in order to preserve the integral,
+        direction of the transform. Therfore, in order to preserve the integral,
         it is necessary to divide by the Jacobian.
 
-        axis: the index or name of the axis you want to apply transform to
+        Parameters
+        ----------
+        axis: int
+            the index or name of the axis you want to apply transform to.
 
-        transform: the transformation function which takes the old coordinates as an input
-        and returns the new grid
+        transform: callable
+            the transformation function which takes the old coordinates as an input
+            and returns the new grid
 
-        preserve_integral: Divide by the jacobian of transform, in order to preserve the
-        integral.
+        preserve_integral: bool
+            Divide by the jacobian of transform, in order to preserve the
+            integral.
 
-        jacobian_func: If given, this is expected to return the derivative of transform.
-        If not given, the derivative is numerically approximated.
+        jacobian_func: callable
+            If given, this is expected to return the derivative of transform.
+            If not given, the derivative is numerically approximated.
         '''
         axis = helper.axesidentify[axis]
 
@@ -702,43 +987,49 @@ class Field(object):
                          preserve_integral=True, jacobian_func=None,
                          jacobian_determinant_func=None, **kwargs):
         '''
-        The complex_mode specifies how to proceed with complex data:
-         *  complex_mode = 'cartesian' - interpolate real/imag part (fastest)
+        complex_mode:
+            The complex_mode specifies how to proceed with complex data.
 
-         *  complex_mode = 'polar' - interpolate abs/phase
-         If skimage.restoration is available, the phase will be unwrapped first (default)
+            * complex_mode = 'cartesian' - interpolate real/imag part (fastest)
+            * complex_mode = 'polar' - interpolate abs/phase \
+            If skimage.restoration is available, the phase will be unwrapped first (default)
+            * complex_mode = 'polar-no-unwrap' - interpolate abs/phase \
+            Skip unwrapping the phase, even if skimage.restoration is available
 
-         *  complex_mode = 'polar-no-unwrap' - interpolate abs/phase
-         Skip unwrapping the phase, even if skimage.restoration is available
+        preserve_integral: bool
+            If True (the default), the data will be multiplied with the
+            Jacobian determinant of the coordinate transformation such that the integral
+            over the data will be preserved.
 
-        preserve_integral: If True (the default), the data will be multiplied with the
-        Jacobian determinant of the coordinate transformation such that the integral
-        over the data will be preserved.
+            In general, you will want to do this, because the physical unit of the new Field will
+            correspond to the new axis of the Fields. Please note that Postpic, currently, does not
+            automatically change the unit members of the Axis and Field objects, this you will have
+            to do manually.
 
-        In general, you will want to do this, because the physical unit of the new Field will
-        correspond to the new axis of the Fields. Please note that Postpic, currently, does not
-        automatically change the unit members of the Axis and Field objects, this you will have
-        to do manually.
+            There are, however, exceptions to this rule. Most prominently, if you are converting to
+            polar coordinates,
+            it depends on what you are going to do with the transformed Field.
+            If you intend to do a Cartesian r-theta plot or are interested in a lineout
+            for a single value of theta, you do want to apply the Jacobian determinant.
+            If you had a density in
+            e.g. J/m^2 than, in polar coordinates, you want to have a density in J/m/rad.
+            If you intend, on the other hand, to do a polar plot, you do not want to apply the
+            Jacobian. In a polar plot, the data points are plotted with variable density which
+            visually takes care of the Jacobian automatically. A polar plot of the polar data
+            should look like a Cartesian plot of the original data with just a peculiar coordinate
+            grid drawn over it.
 
-        There are, however, exceptions to this rule. Most prominently, if you are converting to
-        polar coordinates it depends on what you are going to do with the transformed Field.
-        If you intend to do a Cartesian r-theta plot or are interested in a lineout for a single
-        value of theta, you do want to apply the Jacobian determinant. If you had a density in
-        e.g. J/m^2 than, in polar coordinates, you want to have a density in J/m/rad.
-        If you intend, on the other hand, to do a polar plot, you do not want to apply the
-        Jacobian. In a polar plot, the data points are plotted with variable density which
-        visually takes care of the Jacobian automatically. A polar plot of the polar data
-        should look like a Cartesian plot of the original data with just a peculiar coordinate
-        grid drawn over it.
+        jacobian_determinant_func: callable
+            A callable that returns the jacobian determinant of
+            the transform. If given, this takes precedence over the following option.
 
-        jacobian_determinant_func: a callable that returns the jacobian determinant of
-        the transform. If given, this takes precedence over the following option.
+        jacobian_func: callable
+            a callable that returns the jacobian of the transform. If this is
+            not given, the jacobian is numerically approximated.
 
-        jacobian_func: a callable that returns the jacobian of the transform. If this is
-        not given, the jacobian is numerically approximated.
-
-        Additional keyword arguments are passed to scipy.ndimage.map_coordinates,
-        see the documentation for that function.
+        **kwargs:
+            Additional keyword arguments are passed to `scipy.ndimage.map_coordinates`,
+            see the documentation of that function.
         '''
         # Instantiate an identity if no transformation function was given
         if transform is None:
@@ -819,41 +1110,42 @@ class Field(object):
                         preserve_integral=True, jacobian_func=None,
                         jacobian_determinant_func=None, **kwargs):
         r'''
-        Transform the Field to new coordinates
+        Transform the Field to new coordinates.
 
-        newaxes: The new axes of the new coordinates
+        Parameters
+        ----------
+        newaxes: list
+            The new axes of the new coordinates.
 
-        transform: a callable that takes the new coordinates as input and returns
-        the old coordinates from where to sample the Field.
-        It is basically the inverse of the transformation that you want to perform.
-        If transform is not given, the identity will be used. This is suitable for
-        simple interpolation to a new extent/shape.
+        transform: callable
+            a callable that takes the new coordinates as input and returns
+            the old coordinates from where to sample the Field.
+            It is basically the inverse of the transformation that you want to perform.
+            If transform is not given, the identity will be used. This is suitable for
+            simple interpolation to a new extent/shape.
+            Example for cartesian -> polar:
 
-        Example for cartesian -> polar:
+            >>> def T(r, theta):
+            >>>    x = r * np.cos(theta)
+            >>>    y = r * np.sin(theta)
+            >>>    return x, y
 
-        def T(r, theta):
-            x = r*np.cos(theta)
-            y = r*np.sin(theta)
-            return x, y
+            Note that this function actually computes the cartesian coordinates from the polar
+            coordinates, but stands for transforming a field in cartesian coordinates into a
+            field in polar coordinates.
 
-        Note that this function actually computes the cartesian coordinates from the polar
-        coordinates, but stands for transforming a field in cartesian coordinates into a
-        field in polar coordinates.
+            However, in order to preserve the definite integral of
+            the field, it is necessary to multiply with the Jacobian determinant of T.
 
-        However, in order to preserve the definite integral of
-        the field, it is necessary to multiply with the Jacobian determinant of T.
+            .. math::
+                \tilde{U}(r, \theta) = U(T(r, \theta)) \cdot \det
+                \frac{\partial (x, y)}{\partial (r, \theta)}
+            such that
 
-        $$
-        \tilde{U}(r, \theta) = U(T(r, \theta)) \cdot \det
-        \frac{\partial (x, y)}{\partial (r, \theta)}
-        $$
-
-        such that
-
-        $$
-        \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
-        \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta} \tilde{U}(r,\theta)\,.
-        $$
+            .. math::
+                \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
+                \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta}
+                \tilde{U}(r,\theta)\,.
         '''
         return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
                                      preserve_integral=preserve_integral,
@@ -875,7 +1167,7 @@ class Field(object):
 
     def cutout(self, newextent):
         '''
-        only keeps that part of the matrix, that belongs to newextent.
+        only keeps that part of the data, that belongs to newextent.
         '''
         slices = self._extent_to_slices(newextent)
         return self[slices]
@@ -963,7 +1255,9 @@ class Field(object):
 
     def squeeze(self):
         '''
-        removes axes that have length 1, reducing self.dimensions
+        removes axes that have length 1, reducing self.dimensions.
+
+        Same as `numpy.squeeze`.
         '''
         ret = copy.copy(self)
         retained_axes = [i for i in range(self.dimensions) if len(self.axes[i]) > 1]
@@ -978,7 +1272,8 @@ class Field(object):
 
     def transpose(self, *axes):
         '''
-        transpose method equivalent to numpy.ndarray.transpose. If axes is empty, the order of the
+        transpose method equivalent to `numpy.ndarray.transpose`. If `axes` is empty,
+        the order of the
         axes will be reversed. Otherwise axes[i] == j means that the i'th axis of the returned
         Field will be the j'th axis of the input Field.
         '''
@@ -1007,40 +1302,50 @@ class Field(object):
 
     def swapaxes(self, axis1, axis2):
         '''
-        Swaps the axes `axis1` and `axis2`, equivalent to the numpy function with the same name.
+        Swaps the axes `axis1` and `axis2`, equivalent to `numpy.swapaxes`.
         '''
         axes = list(range(self.dimensions))
         axes[axis1] = axis2
         axes[axis2] = axis1
         return self.transpose(*axes)
 
-    def mean(self, axis=-1):
-        '''
-        takes the mean along the given axis.
-        '''
-        ret = copy.copy(self)
-        if self.dimensions == 0:
-            return self
-        ret._matrix = np.mean(ret.matrix, axis=axis)
-        ret.axes.pop(axis)
-        ret.transformed_axes_origins.pop(axis)
-        ret.axes_transform_state.pop(axis)
+    all = _reducing_numpy_method("all")
+    any = _reducing_numpy_method("any")
+    max = _reducing_numpy_method("max")
+    min = _reducing_numpy_method("min")
+    prod = _reducing_numpy_method("prod")
+    sum = _reducing_numpy_method("sum")
+    ptp = _reducing_numpy_method("ptp")
+    std = _reducing_numpy_method("std")
+    mean = _reducing_numpy_method("mean")
+    var = _reducing_numpy_method("var")
 
-        return ret
+    def clip(self, a_min, a_max, out=None):
+        o = np.clip(self.matrix, a_min, a_max, out=out)
+        if out:
+            return out
+        return self.replace_data(o)
 
     def _integrate_constant(self, axes):
-        if not self.islinear():
-            raise ValueError("Using method='constant' in integrate which is only suitable "
-                             "for linear grids.")
+        '''
+        Integrate by assuming constant value across each grid cell, even for uneven grids.
+        This effectively assumes cell-oriented data where each data point already represents
+        an average over its cell
+        '''
+        axes = tuple(sorted(set(axes)))
 
         ret = self
-        V = 1
 
-        for axis in reversed(sorted(axes)):
-            V *= ret.axes[axis].physical_length
-            ret = ret.mean(axis)
+        for axis in reversed(axes):
+            box_sizes = self.axes[axis].grid_node[1:] - self.axes[axis].grid_node[:-1]
+            shape = [1] * self.dimensions
+            shape[axis] = len(box_sizes)
+            box_sizes = np.reshape(box_sizes, shape)
+            ret = ret * box_sizes
 
-        return V * ret
+        ret = ret.sum(axes)
+
+        return ret
 
     def _integrate_scipy(self, axes, method):
         ret = copy.copy(self)
@@ -1054,9 +1359,13 @@ class Field(object):
         '''
         Calculates the definite integral along the given axes.
 
-        method: Choose the method to use. Available options:
+        Parameters
+        ----------
+        method: callable
+            Choose the method to use. Available options:
 
-        'constant' or any function with the same signature as scipy.integrate.simps
+            * 'constant'
+            * any function with the same signature as scipy.integrate.simps (default).
         '''
         if not callable(method) and method != 'constant':
             raise ValueError("Requested method {} is not supported".format(method))
@@ -1074,12 +1383,14 @@ class Field(object):
 
     def _transform_state(self, axes=None):
         """
-        Returns the collective transform state of the given axes
+        Returns the collective transform state of the given axes.
 
-        If all mentioned axis i have self.axes_transform_state[i]==True return True
-        (All axes live in frequency domain)
+        If all mentioned axis i have `self.axes_transform_state[i]==True` return True
+        (All axes live in frequency domain).
+
         If all mentioned axis i have self.axes_transform_state[i]==False return False
         (All axes live in spatial domain)
+
         Else return None
         (Axes have mixed transform_state)
         """
@@ -1093,20 +1404,24 @@ class Field(object):
 
     def fft_autopad(self, axes=None, fft_padsize=helper.fftw_padsize):
         """
-        Automatically pad the array to a size such that computing its FFT using FFTW will be
-        quick.
+        Automatically pad the array to a size such that computing its FFT using FFTW will be fast.
 
-        The default for keyword argument `fft_padsize` is a callable, that is used to calculate
-        the padded size for a given size.
+        Parameters
+        ----------
+        fft_padsize: callable
+            The default for keyword argument `fft_padsize` is a callable,
+            that is used to calculate the padded size for a given size.
 
-        By default, this uses `fft_padsize=helper.fftw_padsize` which finds the next larger "good"
-        grid size according to what the FFTW documentation says.
+            By default, this uses `fft_padsize=helper.fftw_padsize`
+            which finds the next larger "good"
+            grid size according to what the FFTW documentation says.
 
-        However, the FFTW documentation also says:
-        "(...) Transforms whose sizes are powers of 2 are especially fast."
+            However, the FFTW documentation also says:
+            "(...) Transforms whose sizes are powers of 2 are especially fast."
 
-        If you don't worry about the extra padding, you can pass
-        `fft_padsize=helper.fft_padsize_power2` and this method will pad to the next power of 2.
+            If you don't worry about the extra padding, you can pass
+            `fft_padsize=helper.fft_padsize_power2`
+            and this method will pad to the next power of 2.
         """
         if axes is None:
             axes = range(self.dimensions)
@@ -1156,13 +1471,20 @@ class Field(object):
         The argument axis is either an integer indicating the axis to be transformed
         or a tuple giving the axes that should be transformed. Automatically determines
         forward/inverse transform. Transform is only applied if all mentioned axes are
-        in the same space. If an axis is transformed twice, the origin of the axis is restored.
+        in the same transform state.
+        If an axis is transformed twice, the origin of the axis is restored.
 
-        exponential_signs configures the sign convention of the exponential
-        exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
-        exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+        Parameters
+        ----------
 
-        keyword-arguments are passed to the underlying fft implementation.
+        exponential_signs:
+            configures the sign convention of the exponential.
+
+            * exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
+            * exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+
+        **kwargs:
+            keyword-arguments are passed to the underlying fft implementation.
         '''
         # If axes is None, transform all axes
         if axes is None:
@@ -1273,7 +1595,7 @@ class Field(object):
 
     def ensure_transform_state(self, transform_states):
         """
-        Makes sure that the field has the given transform_states. `transform_states` might be
+        Makes sure that the field has the given transform_states. `transform_states` may be
         a single boolean, indicating the same desired transform_state for all axes.
         It may be a list of the desired transform states for all the axes or a dictionary
         indicating the desired transform states of specific axes.
@@ -1352,14 +1674,14 @@ class Field(object):
 
     def shift_grid_by(self, dx, interpolation='fourier'):
         '''
-        Translate the Grid by dx.
+        Translate the Grid by `dx`.
         This is useful to remove the grid stagger of field components.
 
-        If all axis will be shifted, dx may be a list.
+        If all axis will be shifted, `dx` may be a list.
         Otherwise dx should be a mapping from axis to translation distance.
 
         The keyword-argument interpolation indicates the method to be used and
-        may be one of ['linear', 'fourier'].
+        may be one of `['linear', 'fourier']`.
         In case of interpolation = 'fourier' all axes must have same transform_state.
         '''
         methods = dict(fourier=self._shift_grid_by_fourier,
@@ -1380,16 +1702,18 @@ class Field(object):
         '''
         Transform the Field to polar coordinates.
 
-        This is a convenience wrapper for map_coordinates which will let you easily
-        define the desired grid in polar coordinates via the arguments
+        This is a convenience wrapper for :meth:`map_coordinates` which will let you easily
+        define the desired grid in polar coordinates.
 
-        * extent,
-        which should be of the form extent=(phimin, phimax, rmin, rmax) or
-        extent=(phimin, phimax),
-        * shape,
-        which should be of the form shape=(N_phi, N_r),
-        * angleoffset,
-        which can be any real number and will rotate the zero-point of the angular axis.
+        Parameters
+        ----------
+        extent:
+            should be of the form `extent=(phimin, phimax, rmin, rmax)` or
+            `extent=(phimin, phimax)`
+        shape:
+            should be of the form `shape=(N_phi, N_r)`,
+        angleoffset:
+            can be any real number and will rotate the zero-point of the angular axis.
         '''
         # Fill extent and shape with sensible defaults if nothing was passed
         if extent is None or len(extent) < 4:
@@ -1435,31 +1759,27 @@ class Field(object):
 
         return ret
 
-    def export(self, filename):
+    @helper.append_doc_of(io.export_field)
+    def export(self, filename, **kwargs):
         '''
-        export Field object as a file. Format depends on the extention
+        Uses `postpic.export_field` to export this field to a file. All ``**kwargs`
+        will be forwarded to this function.
+        Format is recognized by the extension
         of the filename. Currently supported are:
-        *.npz
-        *.csv
+            .npz:
+                uses `numpy.savez`.
+            .csv:
+                uses `numpy.savetxt`.
         '''
-        # leave import here. Older python versions can't handle circular imports
-        from . import io
-        if filename.endswith('npz'):
-            io._export_field_npy(self, filename)
-        elif filename.endswith('csv'):
-            io._export_field_csv(self, filename)
-        else:
-            raise Exception('File format of filename {0} not recognized.'.format(filename))
+        io.export_field(filename, **kwargs)
 
     def saveto(self, filename):
         '''
-        Save a Field object as a file. Use loadfrom() to load Field objects.
-        Currently, only *.npz files are supported.
+        Save a Field object as a file. Use `loadfrom()` to load Field objects.
         '''
-        if filename.endswith('npz'):
-            self.export(filename)
-        else:
-            raise Exception('File format of filename {0} not recognized.'.format(filename))
+        if not filename.endswith('.npz'):
+            filename += '.npz'
+        self.export(filename)
 
     def __str__(self):
         return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
@@ -1502,89 +1822,3 @@ class Field(object):
     def __setitem__(self, key, other):
         key = self._normalize_slices(key)
         self._matrix[key] = other
-
-    @_updatename('+')
-    def __iadd__(self, other):
-        self.matrix += np.asarray(other)
-        return self
-
-    def __add__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix + np.asarray(other)
-        return ret
-    __radd__ = _updatename('+', reverse=True)(__add__)
-    __add__ = _updatename('+', reverse=False)(__add__)
-
-    def __neg__(self):
-        ret = copy.copy(self)
-        ret.matrix = -self.matrix
-        ret.name = '-' + ret.name
-        return ret
-
-    @_updatename('-')
-    def __isub__(self, other):
-        self.matrix -= np.asarray(other)
-        return self
-
-    @_updatename('-')
-    def __sub__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix - np.asarray(other)
-        return ret
-
-    @_updatename('-', reverse=True)
-    def __rsub__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) - ret.matrix
-        return ret
-
-    @_updatename('^')
-    def __pow__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = self.matrix ** np.asarray(other)
-        return ret
-
-    @_updatename('^', reverse=True)
-    def __rpow__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) ** self.matrix
-        return ret
-
-    @_updatename('*')
-    def __imul__(self, other):
-        self.matrix *= np.asarray(other)
-        return self
-
-    def __mul__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix * np.asarray(other)
-        return ret
-    __rmul__ = _updatename('*', reverse=True)(__mul__)
-    __mul__ = _updatename('*', reverse=False)(__mul__)
-
-    def __abs__(self):
-        ret = copy.copy(self)
-        ret.matrix = np.abs(ret.matrix)
-        ret.name = '|{}|'.format(ret.name)
-        return ret
-
-    @_updatename('/')
-    def __itruediv__(self, other):
-        self.matrix /= np.asarray(other)
-        return self
-
-    @_updatename('/')
-    def __truediv__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = ret.matrix / np.asarray(other)
-        return ret
-
-    @_updatename('/', reverse=True)
-    def __rtruediv__(self, other):
-        ret = copy.copy(self)
-        ret.matrix = np.asarray(other) / ret.matrix
-        return ret
-
-    # python 2
-    __idiv__ = __itruediv__
-    __div__ = __truediv__

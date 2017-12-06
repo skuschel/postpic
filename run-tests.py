@@ -81,7 +81,8 @@ def run_alltests(python='python', fast=False):
     cmds = [python + '-m nose',
             python + '-m ' + pycodestylecmd + ' postpic --statistics --count --show-source '
             '--ignore=W391,E123,E226,E24 --max-line-length=99']
-    cmdo = [python + os.path.join('examples', 'simpleexample.py'),
+    cmdo = [python + 'setup.py build_sphinx',
+            python + os.path.join('examples', 'simpleexample.py'),
             python + os.path.join('examples', 'particleshapedemo.py'),
             python + os.path.join('examples', 'time_cythonfunctions.py'),
             python + os.path.join('examples', 'openPMD.py')]
