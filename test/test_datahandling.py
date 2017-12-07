@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import unittest
 import postpic.datahandling as dh
@@ -146,7 +146,14 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f2d[0.5:, :].matrix.shape, (2, 5))
 
         self.assertEqual(self.f3d[0.5:, :, 0.5].matrix.shape, (2, 5, 1))
-        self.assertEqual(self.f3d[0.5:, :, 0.5].squeeze().matrix.shape, (2, 5))
+
+    def test_squeeze(self):
+        s = self.f3d[0.5:, :, 0.5].squeeze().shape
+        self.assertEqual(s, (2, 5))
+        s = self.f3d[1.5:2, :, :].squeeze().shape
+        self.assertEqual(s, (0, 5, 3))
+        s = self.f3d[1.5:2, 0.3, :].squeeze().shape
+        self.assertEqual(s, (0, 3))
 
     def test_transpose(self):
         f3d_T = self.f3d.T

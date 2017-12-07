@@ -21,6 +21,36 @@ The postpic.io module provides free functions for importing and exporting data.
 
 import numpy as np
 
+
+__all__ = ['export_field', 'load_field']
+
+
+def load_field(filename):
+    '''
+    construct a new field object from file. currently, the following file
+    formats are supported:
+    *.npz
+    '''
+    if not filename.endswith('npz'):
+        raise ValueError('File format of filename {0} not recognized.'.format(filename))
+    return _import_field_npy(filename)
+
+
+def export_field(filename, field):
+    '''
+    export Field object as a file. Format depends on the extention
+    of the filename. Currently supported are:
+    *.npz
+    *.csv
+    '''
+    if filename.endswith('npz'):
+        _export_field_npy(filename, field)
+    elif filename.endswith('csv'):
+        _export_field_csv(filename, field)
+    else:
+        raise ValueError('File format of filename {0} not recognized.'.format(filename))
+
+
 __all__ = ['export_field', 'load_field']
 
 
