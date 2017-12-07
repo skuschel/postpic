@@ -87,10 +87,10 @@ def _export_field_npy(filename, field, compressed=True):
     max_length = np.max(length_edges)
 
     meta_ax_edges = np.zeros([naxes, max_length])
-    meta_ax_names = np.array(['']*naxes)
-    meta_ax_units = np.array(['']*naxes)
-    meta_ax_transform_state = np.array([False]*naxes)
-    meta_ax_transformed_origins = np.array([False]*naxes)
+    meta_ax_names = np.array([''] * naxes)
+    meta_ax_units = np.array([''] * naxes)
+    meta_ax_transform_state = np.array([False] * naxes)
+    meta_ax_transformed_origins = np.array([False] * naxes)
 
     for nax in range(0, naxes):
         ax = field.axes[nax]
@@ -100,7 +100,7 @@ def _export_field_npy(filename, field, compressed=True):
 
     # field metadata
     meta_field = np.array([str(field.name), str(field.unit), str(field.label),
-                          str(field.infostring)])
+                           str(field.infostring)])
     meta_ax_transform_state = field.axes_transform_state
     meta_ax_transformed_origins = field.transformed_axes_origins
 
@@ -149,8 +149,11 @@ def _import_field_npy(filename):
 
 
 def export_scalar_vtk(filename, scalarfields):
+    import pyvtk
+    import collections
+    from .datahandling import Field
     if not isinstance(scalarfields, collections.Iterable):
-        if not isinstance(scalarfields, postpic.Field):
+        if not isinstance(scalarfields, Field):
             raise Exception('scalarfields must be one or more Field objects.')
         else:
             scalarfields = [scalarfields]
@@ -177,3 +180,41 @@ def export_scalar_vtk(filename, scalarfields):
     vtk.tofile(filename)
 
     return
+
+
+def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
+    import pyvtk
+    from .datahandling import Field
+
+    if not isinstance(fieldX, Field):
+        raise Exception('fieldX must be a Field object.')
+    if not isinstance(fieldY, Field):
+        raise Exception('fieldY must be a Field object.')
+    if not isinstance(fieldZ, Field):
+        raise Exception('fieldZ must be a Field object.')
+    if not fieldX.dimensions == 3:
+        raise Exception('fieldX must be a 3D field.')
+    if not fieldY.dimensions == 3:
+        raise Exception('fieldY must be a 3D field.')
+    if not fieldZ.dimensions == 3:
+        raise Exception('fieldZ must be a 3D field.')
+
+    lengths = [len(ax.grid) for ax in fieldX.axes]
+    increments = [ax.spacing for ax in fieldX.axes]
+    starts = [fieldX.extent[0], fieldX.extent[2], fieldX.extent[4]]
+    grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
+
+    if name == '':
+        name = fieldX[0].name
+
+    vectors_help = []
+
+    for zidx in range(0, lengths[2]):
+        for yidx in range(0, lengths[1]):
+            for xidx in range(0, lengths[0]):
+                vectors_help.append([fieldX[xidx, yidx, zidx],
+                                     fieldY[xidx, yidx, zidx],
+                                     fieldZ[xidx, yidx, zidx]])
+    pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
+    vtk = pyvtk.VtkData(grid, pointData)
+    vtk.tofile(filename)
