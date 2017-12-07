@@ -188,6 +188,19 @@ def export_scalar_vtk(filename, scalarfields):
     return
 
 
+def _make_vectors_help(fieldX, fieldY, fieldZ, lengths):
+    vectors_help = []
+
+    for zidx in range(0, lengths[2]):
+        for yidx in range(0, lengths[1]):
+            for xidx in range(0, lengths[0]):
+                vectors_help.append([fieldX[xidx, yidx, zidx],
+                                     fieldY[xidx, yidx, zidx],
+                                     fieldZ[xidx, yidx, zidx]])
+
+    return vectors_help
+
+
 def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
     '''
     exports a vector field to a VTK file suitable for viewing in ParaView.
@@ -216,16 +229,13 @@ def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
     grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
 
     if name == '':
-        name = fieldX[0].name
+        name = fieldX.name
 
-    vectors_help = []
+    vectors_help = _make_vectors_help(np.asarray(fieldX),
+                                      np.asarray(fieldY),
+                                      np.asarray(fieldZ),
+                                      lengths)
 
-    for zidx in range(0, lengths[2]):
-        for yidx in range(0, lengths[1]):
-            for xidx in range(0, lengths[0]):
-                vectors_help.append([np.asarray(fieldX)[xidx, yidx, zidx],
-                                     np.asarray(fieldY)[xidx, yidx, zidx],
-                                     np.asarray(fieldZ)[xidx, yidx, zidx]])
     pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
     vtk = pyvtk.VtkData(grid, pointData)
     vtk.tofile(filename)
