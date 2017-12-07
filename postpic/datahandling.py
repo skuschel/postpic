@@ -262,11 +262,17 @@ class Axis(object):
         if isinstance(index, slice):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
-                    raise IndexError('Non-Integer slices should have step == None')
+                    raise IndexError('Non-Integer slices must have step == None')
                 return self._extent_to_slice((index.start, index.stop))
             return index
         else:
             if helper.is_non_integer_real_number(index):
+                # Indexing to a single position outside the extent
+                # will yield IndexError. Identical behaviour as numpy.ndarray
+                if index < self.extent[0] or index > self.extent[1]:
+                    msg = 'Physical index position {} is outside of the ' \
+                          'extent {} of axis {}'.format(index, self.extent, str(self))
+                    raise IndexError(msg)
                 index = helper.find_nearest_index(self.grid, index)
             return slice(index, index+1)
 
@@ -291,7 +297,7 @@ class Axis(object):
         return self._n
 
     def __str__(self):
-        return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)'
+        return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)>'
 
 
 def _reducing_numpy_method(method):
@@ -1257,10 +1263,13 @@ class Field(NDArrayOperatorsMixin):
         '''
         removes axes that have length 1, reducing self.dimensions.
 
+        Note, that axis with length 0 will not be removed! `numpy.squeeze` also does not
+        remove length=0 directions.
+
         Same as `numpy.squeeze`.
         '''
         ret = copy.copy(self)
-        retained_axes = [i for i in range(self.dimensions) if len(self.axes[i]) > 1]
+        retained_axes = [i for i in range(len(self.shape)) if len(self.axes[i]) != 1]
 
         ret.axes = [self.axes[i] for i in retained_axes]
         ret.axes_transform_state = [self.axes_transform_state[i] for i in retained_axes]
