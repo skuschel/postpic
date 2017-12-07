@@ -188,17 +188,8 @@ def export_scalar_vtk(filename, scalarfields):
     return
 
 
-def _make_vectors_help(fieldX, fieldY, fieldZ, lengths):
-    vectors_help = []
-
-    for zidx in range(0, lengths[2]):
-        for yidx in range(0, lengths[1]):
-            for xidx in range(0, lengths[0]):
-                vectors_help.append([fieldX[xidx, yidx, zidx],
-                                     fieldY[xidx, yidx, zidx],
-                                     fieldZ[xidx, yidx, zidx]])
-
-    return vectors_help
+def _make_vectors_help(*fields):
+    return np.stack((np.ravel(f, order='F') for f in fields), axis=-1)
 
 
 def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
@@ -233,8 +224,7 @@ def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
 
     vectors_help = _make_vectors_help(np.asarray(fieldX),
                                       np.asarray(fieldY),
-                                      np.asarray(fieldZ),
-                                      lengths)
+                                      np.asarray(fieldZ))
 
     pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
     vtk = pyvtk.VtkData(grid, pointData)
