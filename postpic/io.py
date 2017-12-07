@@ -212,9 +212,9 @@ def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
     for zidx in range(0, lengths[2]):
         for yidx in range(0, lengths[1]):
             for xidx in range(0, lengths[0]):
-                vectors_help.append([fieldX[xidx, yidx, zidx],
-                                     fieldY[xidx, yidx, zidx],
-                                     fieldZ[xidx, yidx, zidx]])
+                vectors_help.append([np.asarray(fieldX)[xidx, yidx, zidx],
+                                     np.asarray(fieldY)[xidx, yidx, zidx],
+                                     np.asarray(fieldZ)[xidx, yidx, zidx]])
     pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
     vtk = pyvtk.VtkData(grid, pointData)
     vtk.tofile(filename)
