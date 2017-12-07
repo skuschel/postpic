@@ -44,9 +44,8 @@ class TestIO(unittest.TestCase):
         fieldX = np.arange(0,24).reshape(2,3,4)
         fieldY = np.arange(1,25).reshape(2,3,4)
         fieldZ = np.arange(2,26).reshape(2,3,4)
-        lengths = fieldX.shape
 
-        vectors_help = io._make_vectors_help(fieldX, fieldY, fieldZ, lengths)
+        vectors_help = io._make_vectors_help(fieldX, fieldY, fieldZ)
 
         reference = [[0, 1, 2], [12, 13, 14], [4, 5, 6], [16, 17, 18], [8, 9, 10], [20, 21, 22],
                      [1, 2, 3], [13, 14, 15], [5, 6, 7], [17, 18, 19], [9, 10, 11], [21, 22, 23],
