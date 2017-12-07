@@ -149,6 +149,11 @@ def _import_field_npy(filename):
 
 
 def export_scalar_vtk(filename, scalarfields):
+    '''
+    exports one or more 2D or 3D scalar field objects to a VTK file
+    which is suitable for viewing in ParaView.
+    It is assumed that all fields are defined on the same grid.
+    '''
     import pyvtk
     import collections
     from .datahandling import Field
@@ -183,6 +188,11 @@ def export_scalar_vtk(filename, scalarfields):
 
 
 def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
+    '''
+    exports a vector field to a VTK file suitable for viewing in ParaView.
+    Exactly three 3D fields are expected, which will form the X, Y and Z component
+    of the vector field.
+    '''
     import pyvtk
     from .datahandling import Field
 
