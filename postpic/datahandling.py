@@ -195,6 +195,8 @@ class Axis(object):
         """
         Checks if the axis has a linear grid.
         """
+        if len(self) < 3:
+            return True
         if self._linear is None or force:
             self._linear = helper.islinear(self._grid_node)
         return self._linear
@@ -1277,6 +1279,24 @@ class Field(NDArrayOperatorsMixin):
 
         ret._matrix = np.squeeze(ret.matrix)
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
+        return ret
+
+    def atleast_nd(self, n):
+        '''
+        Make sure the field has at least 'n' dimensions
+        '''
+        if self.dimensions >= n:
+            return self
+
+        additional_dims = n - self.dimensions
+        ret = copy.copy(self)
+
+        for _ in range(additional_dims):
+            ret._matrix = ret._matrix[..., np.newaxis]
+            ret.axes.append(Axis(grid_node=np.array([-1.0, 1.0])))
+            ret.transformed_axes_origins.append(None)
+            ret.axes_transform_state.append(None)
+
         return ret
 
     def transpose(self, *axes):

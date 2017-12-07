@@ -207,6 +207,17 @@ def export_vector_vtk(filename, *fields, name=''):
     if not all(shape == field.shape for field in fields):
         raise ValueError("All fields must have the same shape")
 
+    if len(fields) > 3:
+        raise ValueError("Too many fields")
+
+    while len(fields) < 3:
+        fields.append(fields[0].replace_data(np.zeros_like(fields[0])))
+
+    if len(shape) > 3:
+        raise ValueError("Fields have to many axes")
+
+    fields = [f.atleast_nd(3) for f in fields]
+
     if all(ax.islinear() for ax in fields[0].axes):
         lengths = [len(ax.grid) for ax in fields[0].axes]
         increments = [ax.spacing for ax in fields[0].axes]
