@@ -222,4 +222,4 @@ def export_vector_vtk(filename, *fields, name=''):
 
     pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
     vtk = pyvtk.VtkData(grid, pointData)
-    vtk.tofile(filename)
+    vtk.tofile(filename, 'binary')
