@@ -51,7 +51,7 @@ def export_field(filename, field):
         raise ValueError('File format of filename {0} not recognized.'.format(filename))
 
 
-def _export_field_csv(field, filename):
+def _export_field_csv(filename, field):
     '''
     Export the data of a Field object as a CSV file.
     The extent will be given in the comments of that file.
@@ -74,7 +74,7 @@ def _export_field_csv(field, filename):
     return
 
 
-def _export_field_npy(field, filename, compressed=True):
+def _export_field_npy(filename, field, compressed=True):
     '''
     Export a Field object including all metadata and axes to a file.
     The file will be in the numpy binary format (npz).
@@ -88,10 +88,10 @@ def _export_field_npy(field, filename, compressed=True):
     max_length = np.max(length_edges)
 
     meta_ax_edges = np.zeros([naxes, max_length])
-    meta_ax_names = np.array(['']*naxes)
-    meta_ax_units = np.array(['']*naxes)
-    meta_ax_transform_state = np.array([False]*naxes)
-    meta_ax_transformed_origins = np.array([False]*naxes)
+    meta_ax_names = np.array([''] * naxes)
+    meta_ax_units = np.array([''] * naxes)
+    meta_ax_transform_state = np.array([False] * naxes)
+    meta_ax_transformed_origins = np.array([False] * naxes)
 
     for nax in range(0, naxes):
         ax = field.axes[nax]
@@ -101,7 +101,7 @@ def _export_field_npy(field, filename, compressed=True):
 
     # field metadata
     meta_field = np.array([str(field.name), str(field.unit), str(field.label),
-                          str(field.infostring)])
+                           str(field.infostring)])
     meta_ax_transform_state = field.axes_transform_state
     meta_ax_transformed_origins = field.transformed_axes_origins
 
@@ -147,3 +147,91 @@ def _import_field_npy(filename):
     import_field.infostring = meta_field[3]
 
     return import_field
+
+
+def export_scalar_vtk(filename, scalarfields):
+    '''
+    exports one or more 2D or 3D scalar field objects to a VTK file
+    which is suitable for viewing in ParaView.
+    It is assumed that all fields are defined on the same grid.
+    '''
+    import pyvtk
+    import collections
+    from .datahandling import Field
+    if not isinstance(scalarfields, collections.Iterable):
+        if not isinstance(scalarfields, Field):
+            raise Exception('scalarfields must be one or more Field objects.')
+        else:
+            scalarfields = [scalarfields]
+
+    lengths = [len(ax.grid) for ax in scalarfields[0].axes]
+    increments = [ax.spacing for ax in scalarfields[0].axes]
+    if scalarfields[0].dimensions == 3:
+        starts = [scalarfields[0].extent[0], scalarfields[0].extent[2], scalarfields[0].extent[4]]
+    elif scalarfields[0].dimensions == 2:
+        starts = [scalarfields[0].extent[0], scalarfields[0].extent[2], 0.0]
+        lengths.append(1)
+        increments.append(1)
+    else:
+        raise Exception('Only 2D or 3D fields are supported.')
+
+    grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
+
+    scalar_list = []
+    for f in scalarfields:
+        scalar_list.append(pyvtk.Scalars(scalars=np.asarray(f).T.flatten(), name=f.name))
+    pointData = pyvtk.PointData(*scalar_list)
+
+    vtk = pyvtk.VtkData(grid, pointData)
+    vtk.tofile(filename)
+
+    return
+
+
+def _make_vectors_help(*fields):
+    return np.stack((np.ravel(f, order='F') for f in fields), axis=-1)
+
+
+def export_vector_vtk(filename, *fields, **kwargs):
+    '''
+    exports a vector field to a VTK file suitable for viewing in ParaView.
+    Exactly three 3D fields are expected, which will form the X, Y and Z component
+    of the vector field.
+    '''
+    import pyvtk
+    from .datahandling import Field
+
+    name = kwargs.pop('name', '')
+    fields = [field if isinstance(field, Field) else Field(field) for field in fields]
+    shape = fields[0].shape
+
+    if not all(shape == field.shape for field in fields):
+        raise ValueError("All fields must have the same shape")
+
+    if len(fields) > 3:
+        raise ValueError("Too many fields")
+
+    while len(fields) < 3:
+        fields.append(fields[0].replace_data(np.zeros_like(fields[0])))
+
+    if len(shape) > 3:
+        raise ValueError("Fields have to many axes")
+
+    fields = [f.atleast_nd(3) for f in fields]
+
+    if all(ax.islinear() for ax in fields[0].axes):
+        lengths = [len(ax.grid) for ax in fields[0].axes]
+        increments = [ax.spacing for ax in fields[0].axes]
+        starts = [ax.grid[0] for ax in fields[0].axes]
+        grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
+    else:
+        grid = pyvtk.RectilinearGrid(*fields[0].grid)
+
+    if name == '':
+        name = fields[0].name
+
+    vectors_help = _make_vectors_help(*[np.asarray(f) for f in fields])
+
+    pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
+    vtk = pyvtk.VtkData(grid, pointData)
+    vtk.tofile(filename, 'binary')
