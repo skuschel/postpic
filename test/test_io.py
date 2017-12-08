@@ -40,5 +40,22 @@ class TestIO(unittest.TestCase):
             self.assertTrue(np.all(np.isclose(self.testfield.axes[n].grid_node,
                                               self.testfield2.axes[n].grid_node)))
 
+    def test_vectors_help(self):
+        fieldX = np.arange(0,24).reshape(2,3,4)
+        fieldY = np.arange(1,25).reshape(2,3,4)
+        fieldZ = np.arange(2,26).reshape(2,3,4)
+
+        vectors_help = io._make_vectors_help(fieldX, fieldY, fieldZ)
+
+        reference = [[0, 1, 2], [12, 13, 14], [4, 5, 6], [16, 17, 18], [8, 9, 10], [20, 21, 22],
+                     [1, 2, 3], [13, 14, 15], [5, 6, 7], [17, 18, 19], [9, 10, 11], [21, 22, 23],
+                     [2, 3, 4], [14, 15, 16], [6, 7, 8], [18, 19, 20], [10, 11, 12], [22, 23, 24],
+                     [3, 4, 5], [15, 16, 17], [7, 8, 9], [19, 20, 21], [11, 12, 13], [23, 24, 25]]
+
+        self.assertEqual(vectors_help, reference)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

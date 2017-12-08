@@ -188,7 +188,11 @@ def export_scalar_vtk(filename, scalarfields):
     return
 
 
-def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
+def _make_vectors_help(*fields):
+    return np.stack((np.ravel(f, order='F') for f in fields), axis=-1)
+
+
+def export_vector_vtk(filename, *fields, name=''):
     '''
     exports a vector field to a VTK file suitable for viewing in ParaView.
     Exactly three 3D fields are expected, which will form the X, Y and Z component
@@ -197,35 +201,36 @@ def export_vector_vtk(filename, fieldX, fieldY, fieldZ, name=''):
     import pyvtk
     from .datahandling import Field
 
-    if not isinstance(fieldX, Field):
-        raise Exception('fieldX must be a Field object.')
-    if not isinstance(fieldY, Field):
-        raise Exception('fieldY must be a Field object.')
-    if not isinstance(fieldZ, Field):
-        raise Exception('fieldZ must be a Field object.')
-    if not fieldX.dimensions == 3:
-        raise Exception('fieldX must be a 3D field.')
-    if not fieldY.dimensions == 3:
-        raise Exception('fieldY must be a 3D field.')
-    if not fieldZ.dimensions == 3:
-        raise Exception('fieldZ must be a 3D field.')
+    fields = [field if isinstance(field, Field) else Field(field) for field in fields]
+    shape = fields[0].shape
 
-    lengths = [len(ax.grid) for ax in fieldX.axes]
-    increments = [ax.spacing for ax in fieldX.axes]
-    starts = [fieldX.extent[0], fieldX.extent[2], fieldX.extent[4]]
-    grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
+    if not all(shape == field.shape for field in fields):
+        raise ValueError("All fields must have the same shape")
+
+    if len(fields) > 3:
+        raise ValueError("Too many fields")
+
+    while len(fields) < 3:
+        fields.append(fields[0].replace_data(np.zeros_like(fields[0])))
+
+    if len(shape) > 3:
+        raise ValueError("Fields have to many axes")
+
+    fields = [f.atleast_nd(3) for f in fields]
+
+    if all(ax.islinear() for ax in fields[0].axes):
+        lengths = [len(ax.grid) for ax in fields[0].axes]
+        increments = [ax.spacing for ax in fields[0].axes]
+        starts = [ax.grid[0] for ax in fields[0].axes]
+        grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
+    else:
+        grid = pyvtk.RectilinearGrid(*fields[0].grid)
 
     if name == '':
-        name = fieldX[0].name
+        name = fields[0].name
 
-    vectors_help = []
+    vectors_help = _make_vectors_help(*[np.asarray(f) for f in fields])
 
-    for zidx in range(0, lengths[2]):
-        for yidx in range(0, lengths[1]):
-            for xidx in range(0, lengths[0]):
-                vectors_help.append([np.asarray(fieldX)[xidx, yidx, zidx],
-                                     np.asarray(fieldY)[xidx, yidx, zidx],
-                                     np.asarray(fieldZ)[xidx, yidx, zidx]])
     pointData = pyvtk.PointData(pyvtk.Vectors(vectors=vectors_help, name=name))
     vtk = pyvtk.VtkData(grid, pointData)
-    vtk.tofile(filename)
+    vtk.tofile(filename, 'binary')
