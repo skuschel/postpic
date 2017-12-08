@@ -450,6 +450,18 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
         self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
 
+    def test_inplace_operators(self):
+        a = self.f2d.replace_data(self.f2d.matrix.copy())
+        a -= a.mean()
+
+        self.assertTrue(isinstance(a, dh.Field))
+        self.assertAllEqual(a.matrix, self.f2d.matrix - np.mean(self.f2d.matrix))
+
+        a /= a
+
+        self.assertTrue(isinstance(a, dh.Field))
+        self.assertAllEqual(a.matrix, np.ones_like(a.matrix))
+
 
     def test_operators_broadcasting(self):
         a = self.f2d

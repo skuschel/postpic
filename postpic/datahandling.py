@@ -643,8 +643,10 @@ class Field(NDArrayOperatorsMixin):
                     x.matrix if isinstance(x, type(self)) else x for x in out)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        # If out-argument set, just return the output Field
+        # If out-argument set, return it. Unpack a one-tuple (important for binary inplace ops)
         if out:
+            if isinstance(out, tuple) and len(out) == 1:
+                return out[0]
             return out
 
         # Otherwise, the ufunc has returned one or more simple array(s). Wrap this/these
