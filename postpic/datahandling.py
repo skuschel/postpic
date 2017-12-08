@@ -253,13 +253,16 @@ class Axis(object):
         if b is None:
             b = self._grid_node[-1]
 
-        if a < self._grid_node[0]:
-            raise ValueError("Start of extent {} is beyond start of axis' "
-                             "extent at {}".format(a, self._grid_node[0]))
+        if b < a:
+            raise ValueError("End of extent is before start of extent")
 
-        if b > self._grid_node[-1]:
-            raise ValueError("End of extent {} is beyond end of axis' "
-                             "extent at {}".format(b, self._grid_node[-1]))
+        if a > self._grid[-1]:
+            raise ValueError("Start of extent {} is beyond last grid point of axis "
+                             "at {}".format(a, self._grid[-1]))
+
+        if b < self._grid[0]:
+            raise ValueError("End of extent {} is before first grid point of axis "
+                             "at {}".format(b, self._grid[0]))
 
         return slice(*np.searchsorted(self.grid, np.sort([a, b])))
 
