@@ -192,7 +192,7 @@ def _make_vectors_help(*fields):
     return np.stack((np.ravel(f, order='F') for f in fields), axis=-1)
 
 
-def export_vector_vtk(filename, name='', *fields):
+def export_vector_vtk(filename, *fields, **kwargs):
     '''
     exports a vector field to a VTK file suitable for viewing in ParaView.
     Exactly three 3D fields are expected, which will form the X, Y and Z component
@@ -201,6 +201,7 @@ def export_vector_vtk(filename, name='', *fields):
     import pyvtk
     from .datahandling import Field
 
+    name = kwargs.pop('name', '')
     fields = [field if isinstance(field, Field) else Field(field) for field in fields]
     shape = fields[0].shape
 
