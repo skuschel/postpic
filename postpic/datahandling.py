@@ -252,6 +252,15 @@ class Axis(object):
             a = self._grid_node[0]
         if b is None:
             b = self._grid_node[-1]
+
+        if a < self._grid_node[0]:
+            raise ValueError("Start of extent {} is beyond start of axis' "
+                             "extent at {}".format(a, self._grid_node[0]))
+
+        if b > self._grid_node[-1]:
+            raise ValueError("End of extent {} is beyond end of axis' "
+                             "extent at {}".format(b, self._grid_node[-1]))
+
         return slice(*np.searchsorted(self.grid, np.sort([a, b])))
 
     def _normalize_slice(self, index):
