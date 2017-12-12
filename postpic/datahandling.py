@@ -95,7 +95,6 @@ try:
     import pyfftw.interfaces.cache as fftw_cache
     import pyfftw.interfaces.numpy_fft as fftw
     fftw_cache.enable()
-    fftw_cache.set_keepalive_time(3600)
     fft = fftw
     fft_kwargs = dict(planner_effort='FFTW_ESTIMATE', threads=nproc)
 except ImportError:
