@@ -22,7 +22,7 @@ The postpic.io module provides free functions for importing and exporting data.
 import numpy as np
 
 
-__all__ = ['export_field', 'load_field']
+__all__ = ['export_field', 'load_field', 'export_vector_vtk']
 
 
 def load_field(filename):
@@ -36,17 +36,20 @@ def load_field(filename):
     return _import_field_npy(filename)
 
 
-def export_field(filename, field):
+def export_field(filename, field, **kwargs):
     '''
     export Field object as a file. Format depends on the extention
     of the filename. Currently supported are:
     *.npz
     *.csv
+    *.vtk
     '''
     if filename.endswith('npz'):
-        _export_field_npy(filename, field)
+        _export_field_npy(filename, field, **kwargs)
     elif filename.endswith('csv'):
-        _export_field_csv(filename, field)
+        _export_field_csv(filename, field, **kwargs)
+    elif filename.endswith('vtk'):
+        export_scalar_vtk(filename, field, **kwargs)
     else:
         raise ValueError('File format of filename {0} not recognized.'.format(filename))
 
@@ -61,13 +64,13 @@ def _export_field_csv(filename, field):
         data = np.asarray(field.matrix)
         extent = field.extent
         header = 'Created with postpic version {0}.\nx = [{1}, {2}]'.format(
-            __version__, extent[0], extent[1])
+            __version__, *extent)
         np.savetxt(filename, data, header=header)
     elif field.dimensions == 2:
         extent = field.extent
         header = 'Created with postpic version {0}.\nx = [{1}, {2}]\ny = [{3}, {4}]'.format(
-            __version__, extent[0], extent[1], extent[2], extent[3])
-        data = np.asarray(field.matrix)
+            __version__, *extent)
+        data = np.asarray(field)
         np.savetxt(filename, data, header=header)
     else:
         raise Exception('Not Implemented')
@@ -149,41 +152,37 @@ def _import_field_npy(filename):
     return import_field
 
 
-def export_scalar_vtk(filename, scalarfields):
+def export_scalar_vtk(filename, scalarfield):
     '''
-    exports one or more 2D or 3D scalar field objects to a VTK file
+    exports one 2D or 3D scalar field object to a VTK file
     which is suitable for viewing in ParaView.
     It is assumed that all fields are defined on the same grid.
     '''
     import pyvtk
     import collections
     from .datahandling import Field
-    if not isinstance(scalarfields, collections.Iterable):
-        if not isinstance(scalarfields, Field):
-            raise Exception('scalarfields must be one or more Field objects.')
-        else:
-            scalarfields = [scalarfields]
+    if not isinstance(scalarfield, Field):
+        raise Exception('scalarfield must be one or more Field objects.')
+    if scalarfield.dimensions == 1:
+        raise ValueError('Cannot export 1D Field.')
 
-    lengths = [len(ax.grid) for ax in scalarfields[0].axes]
-    increments = [ax.spacing for ax in scalarfields[0].axes]
-    if scalarfields[0].dimensions == 3:
-        starts = [scalarfields[0].extent[0], scalarfields[0].extent[2], scalarfields[0].extent[4]]
-    elif scalarfields[0].dimensions == 2:
-        starts = [scalarfields[0].extent[0], scalarfields[0].extent[2], 0.0]
-        lengths.append(1)
-        increments.append(1)
+    scalarfield = scalarfield.atleast_nd(3)
+    if all(ax.islinear() for ax in scalarfield.axes):
+        lengths = [len(ax) for ax in scalarfield.axes]
+        increments = [ax.spacing for ax in scalarfield.axes]
+        starts = [ax.grid[0] for ax in scalarfield.axes]
+        grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
     else:
-        raise Exception('Only 2D or 3D fields are supported.')
+        grid = pyvtk.RectilinearGrid(*scalarfield.grid)
 
     grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
 
-    scalar_list = []
-    for f in scalarfields:
-        scalar_list.append(pyvtk.Scalars(scalars=np.asarray(f).T.flatten(), name=f.name))
+    scalar_list = [pyvtk.Scalars(scalars=np.ravel(f, order='F'), name=f.name)
+                   for f in scalarfields]
     pointData = pyvtk.PointData(*scalar_list)
 
     vtk = pyvtk.VtkData(grid, pointData)
-    vtk.tofile(filename)
+    vtk.tofile(filename, 'binary')
 
     return
 
@@ -195,8 +194,9 @@ def _make_vectors_help(*fields):
 def export_vector_vtk(filename, *fields, **kwargs):
     '''
     exports a vector field to a VTK file suitable for viewing in ParaView.
-    Exactly three 3D fields are expected, which will form the X, Y and Z component
-    of the vector field.
+    Three 3D fields are expected, which will form the X, Y and Z component
+    of the vector field. If less than tree fields are given, the missing components
+    will be assumed to be zero.
     '''
     import pyvtk
     from .datahandling import Field
@@ -220,7 +220,7 @@ def export_vector_vtk(filename, *fields, **kwargs):
     fields = [f.atleast_nd(3) for f in fields]
 
     if all(ax.islinear() for ax in fields[0].axes):
-        lengths = [len(ax.grid) for ax in fields[0].axes]
+        lengths = [len(ax) for ax in fields[0].axes]
         increments = [ax.spacing for ax in fields[0].axes]
         starts = [ax.grid[0] for ax in fields[0].axes]
         grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
