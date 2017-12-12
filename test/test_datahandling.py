@@ -167,7 +167,7 @@ class TestField(unittest.TestCase):
         self.assertEqual(f1dto3.axes[0], self.f1d.axes[0])
         self.assertEqual(len(f1dto3.axes), 3)
         self.assertEqual(len(f1dto3.transformed_axes_origins), 3)
-        self.assertEqual(len(f1dto3.axes_transform_states), 3)
+        self.assertEqual(len(f1dto3.axes_transform_state), 3)
 
     def test_transpose(self):
         f3d_T = self.f3d.T
