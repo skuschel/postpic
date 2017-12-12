@@ -34,7 +34,7 @@ def _header_string():
     '''
     from . import __version__
     import datetime
-    now = str(datetime.datetime.now().astimezone())
+    now = str(datetime.datetime.now())
     ret = '''
     This file was written by postpic {v:}
     --- the open-source particle-in-cell post-processor. ---
