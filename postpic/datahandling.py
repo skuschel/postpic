@@ -1808,13 +1808,9 @@ class Field(NDArrayOperatorsMixin):
         Uses `postpic.export_field` to export this field to a file. All ``**kwargs`
         will be forwarded to this function.
         Format is recognized by the extension
-        of the filename. Currently supported are:
-            .npz:
-                uses `numpy.savez`.
-            .csv:
-                uses `numpy.savetxt`.
+        of the filename.
         '''
-        io.export_field(filename, **kwargs)
+        io.export_field(filename, self, **kwargs)
 
     def saveto(self, filename):
         '''

@@ -40,7 +40,7 @@ def _header_string():
     --- the open-source particle-in-cell post-processor. ---
     https://github.com/skuschel/postpic
 
-    {now:}\n
+    written on {now:}\n
     '''
     return ret.format(v=__version__, now=now)
 
@@ -60,9 +60,12 @@ def export_field(filename, field, **kwargs):
     '''
     export Field object as a file. Format depends on the extention
     of the filename. Currently supported are:
-    *.npz
-    *.csv
-    *.vtk
+    .npz:
+        uses `numpy.savez`.
+    .csv:
+        uses `numpy.savetxt`.
+    .vtk:
+        vtk export to paraview
     '''
     if filename.endswith('npz'):
         _export_field_npy(filename, field, **kwargs)
@@ -80,18 +83,9 @@ def _export_field_csv(filename, field):
     The extent will be given in the comments of that file.
     '''
     header = _header_string()
-    if field.dimensions == 1:
-        data = np.asarray(field.matrix)
-        extent = field.extent
-        header += 'x = [{1}, {2}]'.format(*extent)
-        np.savetxt(filename, data, header=header)
-    elif field.dimensions == 2:
-        extent = field.extent
-        header += 'x = [{1}, {2}]\ny = [{3}, {4}]'.format(*extent)
-        data = np.asarray(field)
-        np.savetxt(filename, data, header=header)
-    else:
-        raise Exception('Not Implemented')
+    data = np.asarray(field)
+    header += 'Data extent: {}\n'.format(field.extent)
+    np.savetxt(filename, data, header=header)
     return
 
 
@@ -196,9 +190,8 @@ def export_scalar_vtk(filename, scalarfield):
 
     grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
 
-    scalar_list = [pyvtk.Scalars(scalars=np.ravel(f, order='F'), name=f.name)
-                   for f in scalarfields]
-    pointData = pyvtk.PointData(*scalar_list)
+    scalar_list = pyvtk.Scalars(scalars=np.ravel(scalarfield, order='F'), name=f.name)
+    pointData = pyvtk.PointData(scalar_list)
 
     vtk = pyvtk.VtkData(grid, pointData)
     vtk.tofile(filename, 'binary')
