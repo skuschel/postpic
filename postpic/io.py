@@ -34,7 +34,7 @@ def _header_string():
     '''
     from . import __version__
     import datetime
-    now = str(datetime.datetime.now().astimezone())
+    now = str(datetime.datetime.now())
     ret = '''
     This file was written by postpic {v:}
     --- the open-source particle-in-cell post-processor. ---
@@ -200,7 +200,7 @@ def export_scalar_vtk(filename, scalarfield):
 
 
 def _make_vectors_help(*fields):
-    return np.stack((np.ravel(f, order='F') for f in fields), axis=-1)
+    return np.dstack((np.ravel(f, order='F') for f in fields))
 
 
 def export_vector_vtk(filename, *fields, **kwargs):

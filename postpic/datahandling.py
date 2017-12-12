@@ -191,6 +191,16 @@ class Axis(object):
 
         self._linear = None
 
+    def __eq__(self, other):
+        '''
+        equality test for axis
+        '''
+        testattribs = ['extent', 'grid_node', 'grid']
+        for ta in testattribs:
+            if not np.all(np.isclose(getattr(self, ta), getattr(other, ta))):
+                return False
+        return True
+
     def islinear(self, force=False):
         """
         Checks if the axis has a linear grid.
@@ -311,7 +321,10 @@ class Axis(object):
         return self._n
 
     def __str__(self):
-        return '<Axis "' + str(self.name) + '" (' + str(len(self)) + ' grid points)>'
+        s = '<Axis "{}" ({} grid points from {} to {})>'
+        return s.format(str(self.name), str(len(self)), *self.extent)
+
+    __repr__ = __str__
 
 
 def _reducing_numpy_method(method):
