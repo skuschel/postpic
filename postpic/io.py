@@ -190,7 +190,7 @@ def export_scalar_vtk(filename, scalarfield):
 
     grid = pyvtk.StructuredPoints(dimensions=lengths, origin=starts, spacing=increments)
 
-    scalar_list = pyvtk.Scalars(scalars=np.ravel(scalarfield, order='F'), name=f.name)
+    scalar_list = pyvtk.Scalars(scalars=np.ravel(scalarfield, order='F'), name=scalarfield.name)
     pointData = pyvtk.PointData(scalar_list)
 
     vtk = pyvtk.VtkData(grid, pointData)
