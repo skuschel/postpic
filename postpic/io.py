@@ -15,6 +15,8 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Stefan Tietze, 2017
+# Alexander Blinne, 2017
+# Stephan Kuschel, 2017
 '''
 The postpic.io module provides free functions for importing and exporting data.
 '''
@@ -22,7 +24,25 @@ The postpic.io module provides free functions for importing and exporting data.
 import numpy as np
 
 
-__all__ = ['export_field', 'load_field', 'export_vector_vtk']
+__all__ = ['export_field', 'load_field',
+           'export_scalar_vtk', 'export_vector_vtk']
+
+
+def _header_string():
+    '''
+    creates a header string for general export information.
+    '''
+    from . import __version__
+    import datetime
+    now = str(datetime.datetime.now().astimezone())
+    ret = '''
+    This file was written by postpic {v:}
+    --- the open-source particle-in-cell post-processor. ---
+    https://github.com/skuschel/postpic
+
+    {now:}\n
+    '''
+    return ret.format(v=__version__, now=now)
 
 
 def load_field(filename):
@@ -59,17 +79,15 @@ def _export_field_csv(filename, field):
     Export the data of a Field object as a CSV file.
     The extent will be given in the comments of that file.
     '''
-    from . import __version__
+    header = _header_string()
     if field.dimensions == 1:
         data = np.asarray(field.matrix)
         extent = field.extent
-        header = 'Created with postpic version {0}.\nx = [{1}, {2}]'.format(
-            __version__, *extent)
+        header += 'x = [{1}, {2}]'.format(*extent)
         np.savetxt(filename, data, header=header)
     elif field.dimensions == 2:
         extent = field.extent
-        header = 'Created with postpic version {0}.\nx = [{1}, {2}]\ny = [{3}, {4}]'.format(
-            __version__, *extent)
+        header += 'x = [{1}, {2}]\ny = [{3}, {4}]'.format(*extent)
         data = np.asarray(field)
         np.savetxt(filename, data, header=header)
     else:
@@ -115,7 +133,8 @@ def _export_field_npy(filename, field, compressed=True):
              meta_ax_units=meta_ax_units,
              meta_length_edges=length_edges,
              meta_ax_transform_state=meta_ax_transform_state,
-             meta_ax_transformed_origins=meta_ax_transformed_origins)
+             meta_ax_transformed_origins=meta_ax_transformed_origins,
+             header=_header_string())
 
 
 def _import_field_npy(filename):
