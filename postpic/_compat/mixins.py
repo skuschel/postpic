@@ -50,7 +50,7 @@ def _reflected_binary_method(ufunc, name):
 def _inplace_binary_method(ufunc, name):
     """Implement an in-place binary method with a ufunc, e.g., __iadd__."""
     def func(self, other):
-        ufunc(self, other, out=(self.matrix,))
+        ufunc(self, other, out=self.matrix)
         return self
     func.__name__ = '__i{}__'.format(name)
     return func

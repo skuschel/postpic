@@ -74,12 +74,12 @@ class TestField(unittest.TestCase):
 
     def setUp(self):
         self.fempty = dh.Field([])
-        self.f0d = dh.Field([42])
-        m = np.reshape(np.arange(10), 10)
+        self.f0d = dh.Field([42.])
+        m = np.reshape(np.arange(10).astype('d'), 10)
         self.f1d = dh.Field(m)
-        m = np.reshape(np.arange(20), (4, 5))
+        m = np.reshape(np.arange(20).astype('d'), (4, 5))
         self.f2d = dh.Field(m)
-        m = np.reshape(np.arange(60), (4, 5, 3))
+        m = np.reshape(np.arange(60).astype('d'), (4, 5, 3))
         self.f3d = dh.Field(m)
 
         x, y = helper.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
@@ -140,20 +140,26 @@ class TestField(unittest.TestCase):
         self.checkFieldConsistancy(f)
 
     def test_slicing(self):
-        self.assertEqual(self.f1d[0.15:0.75].matrix.shape, (6,))
-        self.assertEqual(self.f1d[5].matrix.shape, (1,))
+        self.assertEqual(self.f1d[0.15:0.75].shape, (6,))
+        self.assertEqual(self.f1d[5].shape, (1,))
 
-        self.assertEqual(self.f2d[0.5:, :].matrix.shape, (2, 5))
+        self.assertEqual(self.f2d[0.5:, :].shape, (2, 5))
 
-        self.assertEqual(self.f3d[0.5:, :, 0.5].matrix.shape, (2, 5, 1))
+        self.assertEqual(self.f3d[0.5:, :, 0.5].shape, (2, 5, 1))
+
+    def test_cutout(self):
+        self.assertEqual(self.f1d.cutout((0.15, 0.75)).shape, (6,))
+        self.assertEqual(self.f3d.cutout((None, None, None, None, None, None)).shape, self.f3d.shape)
+        self.assertEqual(self.f3d.cutout((0.874, None, None, None, None, None)).shape, (1, 5, 3))
+        self.assertEqual(self.f3d.cutout((0.874, None, None, None, None, None)).squeeze().shape, (5, 3))
 
     def test_squeeze(self):
         s = self.f3d[0.5:, :, 0.5].squeeze().shape
         self.assertEqual(s, (2, 5))
-        s = self.f3d[1.5:2, :, :].squeeze().shape
-        self.assertEqual(s, (0, 5, 3))
-        s = self.f3d[1.5:2, 0.3, :].squeeze().shape
-        self.assertEqual(s, (0, 3))
+        s = self.f3d[0.874:2., :, :].squeeze().shape
+        self.assertEqual(s, (5, 3))
+        s = self.f3d[0.874:2, 0.3, :].squeeze().shape
+        self.assertEqual(s, (3,))
 
     def test_transpose(self):
         f3d_T = self.f3d.T
