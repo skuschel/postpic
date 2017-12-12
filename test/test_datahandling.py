@@ -161,6 +161,14 @@ class TestField(unittest.TestCase):
         s = self.f3d[0.874:2, 0.3, :].squeeze().shape
         self.assertEqual(s, (3,))
 
+    def test_atleast_nd(self):
+        f1dto3 = self.f1d.atleast_nd(3)
+        self.assertEqual(f1dto3.shape, self.f1d.shape + (1,1))
+        self.assertEqual(f1dto3.axes[0], self.f1d.axes[0])
+        self.assertEqual(len(f1dto3.axes), 3)
+        self.assertEqual(len(f1dto3.transformed_axes_origins), 3)
+        self.assertEqual(len(f1dto3.axes_transform_states), 3)
+
     def test_transpose(self):
         f3d_T = self.f3d.T
         c, b, a = self.f3d.shape

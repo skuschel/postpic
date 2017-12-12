@@ -195,6 +195,8 @@ class Axis(object):
         """
         Checks if the axis has a linear grid.
         """
+        if len(self) < 3:
+            return True
         if self._linear is None or force:
             self._linear = helper.islinear(self._grid_node)
         return self._linear
@@ -1293,6 +1295,24 @@ class Field(NDArrayOperatorsMixin):
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
 
+    def atleast_nd(self, n):
+        '''
+        Make sure the field has at least 'n' dimensions
+        '''
+        if self.dimensions >= n:
+            return self
+
+        additional_dims = n - self.dimensions
+        ret = copy.copy(self)
+
+        for _ in range(additional_dims):
+            ret._matrix = ret._matrix[..., np.newaxis]
+            ret.axes.append(Axis(grid_node=np.array([-1.0, 1.0])))
+            ret.transformed_axes_origins.append(None)
+            ret.axes_transform_state.append(None)
+
+        return ret
+
     def transpose(self, *axes):
         '''
         transpose method equivalent to `numpy.ndarray.transpose`. If `axes` is empty,
@@ -1788,13 +1808,9 @@ class Field(NDArrayOperatorsMixin):
         Uses `postpic.export_field` to export this field to a file. All ``**kwargs`
         will be forwarded to this function.
         Format is recognized by the extension
-        of the filename. Currently supported are:
-            .npz:
-                uses `numpy.savez`.
-            .csv:
-                uses `numpy.savetxt`.
+        of the filename.
         '''
-        io.export_field(filename, **kwargs)
+        io.export_field(filename, self, **kwargs)
 
     def saveto(self, filename):
         '''
