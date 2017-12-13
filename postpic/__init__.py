@@ -29,6 +29,7 @@ from . import datahandling
 from . import particles
 from . import experimental
 from . import plotting
+from . import io
 from .datahandling import *
 from .helper import *
 from .particles import *
