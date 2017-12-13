@@ -399,6 +399,38 @@ def omega_free(mesh):
     return PhysicalConstants.c * np.sqrt(k2)
 
 
+def unstagger_fields(*fields, method="fourier", origin=None):
+    '''
+    Unstagger a collection of fields.
+
+    This functions shifts the origins of the grids of the given fields such that they coincide.
+    Since the choice of the common origin is somewhat arbitrary, it might be overriden by a
+    keyword-argument `origin`, as may be the interpolation `method`. See `Field.shift_grid_by`
+    for available methods.
+    '''
+    if origin is None:
+        origins = np.array([[ax.grid[0] for ax in field.axes]
+                            for field in fields
+                            ])
+        if len(fields) > 2:
+            origin = np.median(origins, axis=0)
+        else:
+            origin = origins[0, :]
+
+    new_fields = []
+    for field in fields:
+        fo = np.array([ax.grid[0] for ax in field.axes])
+        if np.all(np.isclose(origin, fo)):
+            new_fields.append(field)
+            continue
+
+        nf = field.shift_grid_by(origin-fo, method)
+        if np.isrealobj(field):
+            nf = nf.real
+        new_fields.append(nf)
+    return new_fields
+
+
 def _kspace_helper_cutfields(component, fields, extent):
     slices = fields[component]._extent_to_slices(extent)
     return {k: f[slices] for k, f in fields.items()}
