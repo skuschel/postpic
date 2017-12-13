@@ -38,7 +38,7 @@ setup(name='postpic',
       license='GPLv3+',
       setup_requires=['cython>=0.18', 'numpy>=1.8', 'versioneer'],
       install_requires=['matplotlib>=1.3', 'numpy>=1.8', 'scipy', 'future', 'urllib3', 'numexpr',
-                        'cython>=0.18', 'functools32;python_version<"3.0"', 'pyvtk'],
+                        'cython>=0.18', 'functools32;python_version<"3.0"'],
       extras_require = {
         'h5 reader for openPMD support':  ['h5py'],
         'sdf support for EPOCH reader':  ['sdf']},
