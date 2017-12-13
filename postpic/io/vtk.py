@@ -65,7 +65,7 @@ class RectilinearGrid(DataSet):
     Class to represent a vtkRectilinearGrid
     '''
     def __init__(self, grid):
-        if len(self.grid) != 3:
+        if len(grid) != 3:
             raise ValueError('Grid must have three axes')
         self.grid = grid
 
@@ -230,13 +230,11 @@ def _export_arraydata_vtk(filename, *fields, **kwargs):
                                skipped
     '''
     if kwargs.pop('unstagger', True):
-        sameshape = all([field.shape == fields[0].shape for field in fields])
-        spacing = [ax.spacing for ax in fields[0].axes]
-        samespacing = all([np.all(np.isclose(spacing, [ax.spacing for ax in field.axes]))
-                           for field in fields])
-        if sameshape and samespacing:
-            from ..helper import unstagger_fields
+        from ..helper import unstagger_fields
+        try:
             fields = unstagger_fields(*fields)
+        except ValueError:
+            pass
 
     if not kwargs.pop('skip_axes_check', False) \
             and not all([field.axes == fields[0].axes for field in fields[1:]]):
