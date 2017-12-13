@@ -161,8 +161,12 @@ class Axis(object):
                     gn[-1] = self._extent[-1]
                 else:
                     # estimate end points of grid_node as in the old grid.setter
-                    gn[0] = self._grid[0] + (self._grid[0] - gn[1])
-                    gn[-1] = self._grid[-1] + (self._grid[-1] - gn[-2])
+                    if len(self._grid) > 1:
+                        gn[0] = self._grid[0] + (self._grid[0] - gn[1])
+                        gn[-1] = self._grid[-1] + (self._grid[-1] - gn[-2])
+                    else:
+                        gn[0] = self._grid[0] - 0.5
+                        gn[-1] = self._grid[0] + 0.5
                 self._grid_node = gn
 
         # now we are garantueed to have a grid_node
@@ -1315,13 +1319,15 @@ class Field(NDArrayOperatorsMixin):
             return self
 
         additional_dims = n - self.dimensions
+        transform_state = self._transform_state()
+
         ret = copy.copy(self)
 
         for _ in range(additional_dims):
             ret._matrix = ret._matrix[..., np.newaxis]
-            ret.axes.append(Axis(grid_node=np.array([-1.0, 1.0])))
+            ret.axes.append(Axis(grid_node=np.array([-0.5, 0.5])))
             ret.transformed_axes_origins.append(None)
-            ret.axes_transform_state.append(None)
+            ret.axes_transform_state.append(transform_state)
 
         return ret
 
@@ -1580,6 +1586,7 @@ class Field(NDArrayOperatorsMixin):
         V = dV*N
 
         # Total volume of conjugate space
+        # print('dx', dx, 'dV', dV, 'N', N, 'V', V)
         Vk = (2*np.pi)**len(dx)/dV
 
         # normalization factor ensuring Parseval's Theorem
@@ -1723,7 +1730,8 @@ class Field(NDArrayOperatorsMixin):
             spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
 
         for i in axes:
-            ret.axes[i].grid_node = self.axes[i].grid_node + dx[i]
+            ret.axes[i] = Axis(grid_node=self.axes[i].grid_node + dx[i],
+                               grid=self.axes[i].grid + dx[i])
 
         return ret
 

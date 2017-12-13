@@ -411,6 +411,17 @@ def unstagger_fields(*fields, **kwargs):
     method = kwargs.pop('method', "fourier")
     origin = kwargs.pop('origin', None)
 
+    if not all([field.shape == fields[0].shape for field in fields]):
+        raise ValueError("Fields have different shapes")
+
+    if not all([all(field.islinear()) for field in fields]):
+        raise ValueError("Fields have non-linear axes")
+
+    spacing = [ax.spacing for ax in fields[0].axes]
+    if not all([np.all(np.isclose(spacing, [ax.spacing for ax in field.axes]))
+                for field in fields]):
+        raise ValueError("Fields have unequal grid spacing")
+
     if origin is None:
         origins = np.array([[ax.grid[0] for ax in field.axes]
                             for field in fields

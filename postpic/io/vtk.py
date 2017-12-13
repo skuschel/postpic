@@ -21,6 +21,8 @@
 The postpic.io module provides free functions for importing and exporting data.
 '''
 
+import warnings
+
 import numpy as np
 
 from ..helper import product
@@ -232,8 +234,16 @@ def _export_arraydata_vtk(filename, *fields, **kwargs):
     if kwargs.pop('unstagger', True):
         from ..helper import unstagger_fields
         try:
+            print(fields[0].axes_transform_state)
+            print(np.array([[ax.grid[0] for ax in field.axes]
+                            for field in fields
+                            ]))
             fields = unstagger_fields(*fields)
-        except ValueError:
+            print(np.array([[ax.grid[0] for ax in field.axes]
+                            for field in fields
+                            ]))
+        except ValueError as e:
+            warnings.warn('Could not unstagger fields, {}'.format(e))
             pass
 
     if not kwargs.pop('skip_axes_check', False) \
