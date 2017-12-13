@@ -80,7 +80,7 @@ class RectilinearGrid(DataSet):
         for axname, axis in zip('XYZ', self.grid):
             vtk.file.write('{}_COORDINATES {} {}\n'.format(axname, len(axis), vtk.type)
                            .encode('ascii'))
-            vtk.file.write(axis.astype(vtk.dtype).data.tobytes())
+            vtk.file.write(axis.astype(vtk.dtype).tobytes())
             vtk.file.write(b'\n')
 
 
@@ -181,7 +181,7 @@ class ArrayData(object):
 
     def tofile(self, vtk):
         data = self.transform_data(vtk.dtype)
-        vtk.file.write(data.data.tobytes())
+        vtk.file.write(data.tobytes())
 
     def __len__(self):
         return product(self.fields[0].shape)

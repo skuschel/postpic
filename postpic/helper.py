@@ -399,7 +399,7 @@ def omega_free(mesh):
     return PhysicalConstants.c * np.sqrt(k2)
 
 
-def unstagger_fields(*fields, method="fourier", origin=None):
+def unstagger_fields(*fields, **kwargs):
     '''
     Unstagger a collection of fields.
 
@@ -408,6 +408,9 @@ def unstagger_fields(*fields, method="fourier", origin=None):
     keyword-argument `origin`, as may be the interpolation `method`. See `Field.shift_grid_by`
     for available methods.
     '''
+    method = kwargs.pop('method', "fourier")
+    origin = kwargs.pop('origin', None)
+
     if origin is None:
         origins = np.array([[ax.grid[0] for ax in field.axes]
                             for field in fields
