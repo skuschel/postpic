@@ -243,27 +243,36 @@ def _export_arraydata_vtk(filename, *fields, **kwargs):
     kwargs['skip_axes_check']: True if the check that fields for having the same axes should be
                                skipped
     '''
-    if kwargs.pop('unstagger', True):
-        from ..helper import unstagger_fields
-        try:
-            fields = unstagger_fields(*fields)
-        except ValueError as e:
-            warnings.warn('Could not unstagger fields, {}'.format(e))
-            pass
+    ArrayDataSubClass = kwargs.pop('kind', Vectors)
+    name = kwargs.pop('name', None)
+    datatype = kwargs.pop('type', 'float')
+    unstagger = kwargs.pop('unstagger', True)
+    skip_axes_check = kwargs.pop('skip_axes_check', False)
 
-    if not kwargs.pop('skip_axes_check', False) \
-            and not all([field.axes == fields[0].axes for field in fields[1:]]):
-        raise ValueError('All fields must have the same axes.')
+    if not all([field.axes == fields[0].axes for field in fields[1:]]):
+        if unstagger:
+            from ..helper import unstagger_fields
+            fields = unstagger_fields(*fields)
+        elif not skip_axes_check:
+            raise ValueError('All fields must have the same axes.')
+
+    if len(fields[0].shape) > 3:
+        raise ValueError("Fields have to many axes")
+
+    if len(fields[0].shape) == 1:
+        raise ValueError("1D-data not supported by legacy vtk file format")
+
+    fields = [f.atleast_nd(3) for f in fields]
 
     if all([ax.islinear() for ax in fields[0].axes]):
         dataset = StructuredPoints.from_field(fields[0])
     else:
         dataset = RectilinearGrid.from_field(fields[0])
 
-    arraydata = kwargs.pop('kind', Vectors)(*fields, name=kwargs.pop('name', None))
+    arraydata = ArrayDataSubClass(*fields, name=name)
     data = PointData(arraydata)
     vtkdata = VtkData(dataset, data)
-    vtkdata.tofile(filename, type=kwargs.pop('type', 'float'))
+    vtkdata.tofile(filename, type=datatype)
 
 
 def export_scalar_vtk(filename, scalarfield, **kwargs):
@@ -292,11 +301,6 @@ def export_vector_vtk(filename, *fields, **kwargs):
     while len(fields) < 3:
         fields.append(fields[0].replace_data(np.zeros_like(fields[0])))
 
-    if len(fields[0].shape) > 3:
-        raise ValueError("Fields have to many axes")
-
-    fields = [f.atleast_nd(3) for f in fields]
-
     kwargs['kind'] = Vectors
     _export_arraydata_vtk(filename, *fields, **kwargs)
 
@@ -312,11 +316,6 @@ def _export_scalars_vtk(filename, *fields, **kwargs):
 
     if len(fields) > 4:
         raise ValueError("Too many fields")
-
-    if len(fields[0].shape) > 3:
-        raise ValueError("Fields have to many axes")
-
-    fields = [f.atleast_nd(3) for f in fields]
 
     kwargs['kind'] = Scalars
     _export_arraydata_vtk(filename, *fields, **kwargs)
