@@ -82,7 +82,13 @@ class RectilinearGrid(DataSet):
         for axname, axis in zip('XYZ', self.grid):
             vtk.file.write('{}_COORDINATES {} {}\n'.format(axname, len(axis), vtk.type)
                            .encode('ascii'))
-            vtk.file.write(axis.astype(vtk.dtype).tobytes())
+            try:
+                # ndarray.tobytes() was introduced in numpy 1.9
+                axis = axis.astype(vtk.dtype).tobytes()
+            except AttributeError:
+                # workaround for numpy <1.9, but only works in python 3
+                axis = axis.astype(vtk.dtype).data.tobytes()
+            vtk.file.write(axis)
             vtk.file.write(b'\n')
 
 
@@ -183,7 +189,13 @@ class ArrayData(object):
 
     def tofile(self, vtk):
         data = self.transform_data(vtk.dtype)
-        vtk.file.write(data.tobytes())
+        try:
+            # ndarray.tobytes() was introduced in numpy 1.9
+            data = data.tobytes()
+        except AttributeError:
+            # workaround for numpy <1.9, but only works in python 3
+            data = data.data.tobytes()
+        vtk.file.write(data)
 
     def __len__(self):
         return product(self.fields[0].shape)
@@ -234,14 +246,7 @@ def _export_arraydata_vtk(filename, *fields, **kwargs):
     if kwargs.pop('unstagger', True):
         from ..helper import unstagger_fields
         try:
-            print(fields[0].axes_transform_state)
-            print(np.array([[ax.grid[0] for ax in field.axes]
-                            for field in fields
-                            ]))
             fields = unstagger_fields(*fields)
-            print(np.array([[ax.grid[0] for ax in field.axes]
-                            for field in fields
-                            ]))
         except ValueError as e:
             warnings.warn('Could not unstagger fields, {}'.format(e))
             pass
