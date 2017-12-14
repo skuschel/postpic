@@ -217,7 +217,7 @@ def jac_det(jacobian_func):
 
 
 def islinear(grid):
-    return np.var(np.diff(grid))/np.mean(abs(grid)) < 1e-7
+    return np.all(np.isclose(grid, np.linspace(grid[0], grid[-1], len(grid))))
 
 
 def approx_jacobian(transform):
