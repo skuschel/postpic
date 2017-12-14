@@ -994,7 +994,7 @@ class MultiSpecies(object):
         h, edges = histogramdd((xdata,), weights=w,
                                range=rangex, **optargsh)
         h = h / np.diff(edges)  # to calculate particles per xunit.
-        return h, edges
+        return h, (edges,)
 
     def _createHistgram2d(self, spx, spy,
                           optargsh={}, simextent=False,
@@ -1067,7 +1067,7 @@ class MultiSpecies(object):
                                         weights=w, range=[rangex, rangey],
                                         **optargsh)
         h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
-        return h, xedges, yedges
+        return h, (xedges, yedges)
 
     def _createHistgram3d(self, spx, spy, spz,
                           optargsh={}, simextent=False,
@@ -1161,124 +1161,17 @@ class MultiSpecies(object):
                                     weights=w, range=[rangex, rangey, rangez],
                                     **optargsh)
         h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
-        return h, xe, ye, ze
+        return h, (xe, ye, ze)
 
-    def _createHistgramField1d(self, spx, name='distfn', title=None,
-                               **kwargs):
-        """
-        Creates an 1d Histogram enclosed in a Field object.
-
-        Attributes
-        ----------
-        spx : str or ScalarProperty or function acting on a MultiSpecies object
-            returns a list of scalar values for the x axis.
-        name : string, optional
-            addes a name. usually used for generating savenames.
-            Defaults to "distfn".
-        title: string, options
-            overrides the title. Autocreated if title==None.
-            Defaults to None.
-        **kwargs
-            given to _createHistgram1d.
-        """
-        if 'weights' in kwargs:
-            name = _findscalarattr(kwargs['weights'], 'name')
-        h, edges = self._createHistgram1d(spx, **kwargs)
-        ret = Field(h, xedges=edges)
-        ret.name = name + ' ' + self.species
-        ret.label = self.species
-        if title:
-            ret.name = title
-        ret.axes[0].unit = _findscalarattr(spx, 'unit')
-        ret.axes[0].name = _findscalarattr(spx, 'name')
-        ret.infos = self.getcompresslog()['all']
-        ret.infostring = self.npart
-        return ret
-
-    def _createHistgramField2d(self, spx, spy, name='distfn',
-                               title=None, **kwargs):
-        """
-        Creates an 2d Histogram enclosed in a Field object.
-
-        Attributes
-        ----------
-        spx : str or ScalarProperty or function acting on a MultiSpecies object
-            returns a list of scalar values for the x axis.
-        spy : str or ScalarProperty or function acting on a MultiSpecies object
-            returns a list of scalar values for the y axis.
-        name : string, optional
-            addes a name. usually used for generating savenames.
-            Defaults to "distfn".
-        title: string, options
-            overrides the title. Autocreated if title==None.
-            Defaults to None.
-        **kwargs
-            given to _createHistgram2d.
-        """
-        if 'weights' in kwargs:
-            name = _findscalarattr(kwargs['weights'], 'name')
-        h, xedges, yedges = self._createHistgram2d(spx, spy, **kwargs)
-        ret = Field(h, xedges=xedges, yedges=yedges)
-        ret.name = name + self.species
-        ret.label = self.species
-        if title:
-            ret.name = title
-        ret.axes[0].unit = _findscalarattr(spx, 'unit')
-        ret.axes[0].name = _findscalarattr(spx, 'name')
-        ret.axes[1].unit = _findscalarattr(spy, 'unit')
-        ret.axes[1].name = _findscalarattr(spy, 'name')
-        ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
-        ret.infos = self.getcompresslog()['all']
-        return ret
-
-    def _createHistgramField3d(self, spx, spy, spz, name='distfn',
-                               title=None, **kwargs):
-        """
-        Creates an 3d Histogram enclosed in a Field object.
-
-        Attributes
-        ----------
-        spx: str, ScalarProperty, function acting on a MultiSpecies object
-            returns a list of scalar values for the x axis.
-        spy: str, ScalarProperty, function acting on a MultiSpecies object
-            returns a list of scalar values for the y axis.
-        spz: str, ScalarProperty, function acting on a MultiSpecies object
-            returns a list of scalar values for the z axis.
-        name: string, optional
-            addes a name. usually used for generating savenames.
-            Defaults to "distfn".
-        title: string, options
-            overrides the title. Autocreated if title==None.
-            Defaults to None.
-        **kwargs
-            given to _createHistgram3d.
-        """
-        if 'weights' in kwargs:
-            name = _findscalarattr(kwargs['weights'], 'name')
-        h, xedges, yedges, zedges = self._createHistgram3d(spx, spy, spz, **kwargs)
-        ret = Field(h, xedges=xedges, yedges=yedges, zedges=zedges)
-        ret.name = name + self.species
-        ret.label = self.species
-        if title:
-            ret.name = title
-        ret.axes[0].unit = _findscalarattr(spx, 'unit')
-        ret.axes[0].name = _findscalarattr(spx, 'name')
-        ret.axes[1].unit = _findscalarattr(spy, 'unit')
-        ret.axes[1].name = _findscalarattr(spy, 'name')
-        ret.axes[2].unit = _findscalarattr(spz, 'unit')
-        ret.axes[2].name = _findscalarattr(spz, 'name')
-        ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
-        ret.infos = self.getcompresslog()['all']
-        return ret
-
-    def createField(self, *scalarf, **kwargs):
+    def createField(self, *sps, **kwargs):
         """
         Creates an n-d Histogram enclosed in a Field object.
 
         Parameters
         ----------
-        *scalarf
-            list of scalarfunctions that will be used for each axis.
+        *sps
+            list of scalarfunctions/strings/scalar-properties,
+            that will be evaluated to data for each axis.
             the number of args given determins the dimensionality of the
             field returned by this function (maximum 3)
         name: string, optional
@@ -1297,13 +1190,28 @@ class MultiSpecies(object):
             the zrange to include into the histogram.
             Defaults to None, determins the range by the range of scalars given.
         """
-        opts = {1: self._createHistgramField1d,
-                2: self._createHistgramField2d,
-                3: self._createHistgramField3d}
-        if not len(scalarf) in opts:
+        name = kwargs.pop('name', 'distfn')
+        title = kwargs.pop('title', None)
+        opts = {1: self._createHistgram1d,
+                2: self._createHistgram2d,
+                3: self._createHistgram3d}
+        if not len(sps) in opts:
             raise Exception('only 1d, 2d and 3d field creation implemented yet.')
+        h, edges = opts[len(sps)](*sps, **kwargs)
+        edgekwargs = {name: edg for name, edg in zip(['xedges', 'yedges', 'zedges'], edges)}
+        ret = Field(h, **edgekwargs)
 
-        return opts[len(scalarf)](*scalarf, **kwargs)
+        if 'weights' in kwargs:
+            name = _findscalarattr(kwargs['weights'], 'name')
+        ret.name = name + self.species
+        ret.label = self.species
+        ret.name = title if title else ret.name  # override if title is given
+        for i, sp in enumerate(sps):
+            ret.axes[i].unit = _findscalarattr(sp, 'unit')
+            ret.axes[i].name = _findscalarattr(sp, 'name')
+        ret.infostring = '{:.0f} npart in {:.0f} species'.format(self.npart, self.nspecies)
+        ret.infos = self.getcompresslog()['all']
+        return ret
 
 
 class ParticleHistory(object):

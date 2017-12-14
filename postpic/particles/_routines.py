@@ -38,8 +38,15 @@ def histogramdd(data, **kwargs):
     '''
     Creates a histogram of the data using particle shapes.
 
-    `data` must be a tuple. Its length determines the
-    dimensions of the histogram returned.
+    `data` must be a tuple. This function has the same signature as
+    `numpy.histogramdd`.
+
+    **kwargs
+    --------
+        bins
+        range
+        weights
+        shape
     '''
     [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
     if isinstance(data, np.ndarray):
