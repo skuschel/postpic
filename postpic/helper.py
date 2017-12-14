@@ -37,7 +37,7 @@ import math
 import numexpr as ne
 
 
-__all__ = ['PhysicalConstants', 'kspace_epoch_like', 'kspace',
+__all__ = ['PhysicalConstants', 'unstagger_fields', 'kspace_epoch_like', 'kspace',
            'kspace_propagate', 'time_profile_at_plane']
 
 
@@ -438,7 +438,11 @@ def unstagger_fields(*fields, **kwargs):
             new_fields.append(field)
             continue
 
-        nf = field.shift_grid_by(origin-fo, method)
+        dx = origin-fo
+        if np.any(abs(dx/spacing) > 2):
+            raise ValueError('Distance of grids is larger than twice the grid spacing')
+
+        nf = field.shift_grid_by(dx, method)
         if np.isrealobj(field):
             nf = nf.real
         new_fields.append(nf)

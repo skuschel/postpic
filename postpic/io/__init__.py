@@ -23,10 +23,10 @@ The postpic.io module provides free functions for importing and exporting data.
 
 from .csv import _export_field_csv
 from .npy import _export_field_npy, _import_field_npy
-from .vtk import export_scalar_vtk, export_vector_vtk
+from .vtk import export_scalar_vtk, export_vector_vtk, export_scalars_vtk
 
 __all__ = ['export_field', 'load_field',
-           'export_scalar_vtk', 'export_vector_vtk']
+           'export_scalar_vtk', 'export_scalars_vtk', 'export_vector_vtk']
 
 
 def load_field(filename):

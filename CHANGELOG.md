@@ -13,8 +13,11 @@ old: `ms.filter('gamma > 2')`<br>
 new: `ms = ms.filter('gamma > 2')`
 
 **Other improvements and new features**
-* `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files in addition.
+* `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files and `.vtk` files in addition.
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
+* `postpic` has a new function `unstagger_fields` that will take a set of staggered fields and returns the fields after removing the stagger
+* `postpic` has a new function `export_vector_vtk` that takes up to three fields and exports them as a vector field in the `.vtk` format
+* `postpic` has a new function `export_scalars_vtk` that takes up to four fields and exports them as multiple scalar fields on the same grid in the `.vtk` format
 * `postpic.Field` works now with all numpy ufuncs, also with `ufunc.reduce`, `ufunc.outer`, `ufunc.accumulate` and `ufunc.at`
 * `postpic.Field` now supports broadcasting like numpy arrays, for binary operators as well as binary ufunc operations
 * `postpic.Field` has methods `.swapaxes`, `.transpose` and property `.T` compatible to numpy.ndarray
@@ -22,6 +25,7 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
 * `postpic.Field` has a new method `autocutout` used to slice away close-to-zero regions from the borders
 * `postpic.Field` has a new method `fft_autopad` used to pad a small number of grid points to each axis such that the dimensions of the Field are favourable to FFTW
+* `postpic.Field` has a new method `adjust_stagger_to` to adjust the grid origin to match the grid origin of another field
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
 * New module `postpic.experimental` to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.

@@ -18,7 +18,43 @@
 # Alexander Blinne, 2017
 # Stephan Kuschel, 2017
 '''
-The postpic.io module provides free functions for importing and exporting data.
+The postpic.io.vtk module provides classes and functions to export fields to the vtk 2.0 legacy
+file format.
+
+The files are written in binary form and may have single or double precision.
+
+The vtk exporter is built up from multiple classes, representing the different parts of data that
+are put into a vtk file:
+
+VtkFile: represents the actual file to be written. Works as a context-manager that opens and
+         initializes the file on __enter__ and closes the file on __exit__. Next to the actual
+         file object `vtkfile.file`, it carries the attributes `vtkfile.type`, vtkfile.dtype` and
+         `vtkfile.mode`, which are later used to make sure the file is written in the intended
+         format.
+
+VtkData: represents the data that should be written to a file. Has a "tofile" method that will
+         create a VtkFile and pass it to the "tofile" methods of the other objects that carry the
+         actual data. VtkData stores one object that is an instance of `DataSet` that defines the
+         grid that the data lives on and one or more objects that are instances of `Data` that
+         contain the data to be exported.
+
+DataSet: Superclass for different types of grid. Subclasses are `StructuredPoints` and
+         `RectilinearGrid`. They have classmethods `.from_field` which allow the creation of
+         objects from a given `Field`.
+
+Data:    Superclass for representing either `PointData` or `CellData`. So far only
+         `PointData is used. This will be used to contain a subclass of `ArrayData`.
+
+ArrayData: Superclass for representing a collection of `Scalars` or `Vectors` that are stored in
+           an array that will be created from one or more `Field`s.
+
+Using all of this, writing a vtk file with `Scalar` data attached to the points (`PointData`) of a
+`StructuredGrid` is as simple as:
+
+VtkData(StructuredPoints.from_field(scalarfield),
+         PointData(Scalars(scalarfield))
+       ).tofile(filename)
+
 '''
 
 import warnings
@@ -180,7 +216,11 @@ class ArrayData(object):
     '''
     def __init__(self, *fields, **kwargs):
         self.fields = fields
-        self.name = kwargs.pop('name', getattr(fields[0], 'name', ''))
+        self.name = kwargs.pop('name', None)
+        if self.name is None:
+            # catch not only the case that 'name' is not present in kwargs,
+            # but also the case that None was explicitly passed
+            getattr(fields[0], 'name', '')
 
     def transform_data(self, dtype):
         data = np.vstack((np.ravel(f, order='F') for f in self.fields))
@@ -245,6 +285,8 @@ def _export_arraydata_vtk(filename, *fields, **kwargs):
     '''
     ArrayDataSubClass = kwargs.pop('kind', Vectors)
     name = kwargs.pop('name', None)
+    if name == '':
+        name = 'Field'
     datatype = kwargs.pop('type', 'float')
     unstagger = kwargs.pop('unstagger', True)
     skip_axes_check = kwargs.pop('skip_axes_check', False)
@@ -281,7 +323,7 @@ def export_scalar_vtk(filename, scalarfield, **kwargs):
     which is suitable for viewing in ParaView.
     It is assumed that all fields are defined on the same grid.
     '''
-    _export_scalars_vtk(filename, scalarfield, **kwargs)
+    export_scalars_vtk(filename, scalarfield, **kwargs)
 
 
 def export_vector_vtk(filename, *fields, **kwargs):
@@ -305,7 +347,7 @@ def export_vector_vtk(filename, *fields, **kwargs):
     _export_arraydata_vtk(filename, *fields, **kwargs)
 
 
-def _export_scalars_vtk(filename, *fields, **kwargs):
+def export_scalars_vtk(filename, *fields, **kwargs):
     '''
     exports a set of scalar fields to a VTK file suitable for viewing in ParaView.
     Up to four fields may be given

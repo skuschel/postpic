@@ -1760,6 +1760,10 @@ class Field(NDArrayOperatorsMixin):
 
         return methods[interpolation](dx)
 
+    def adjust_stagger_to(self, other):
+        origin = [ax.grid[0] for ax in other.axes]
+        return helper.unstagger_fields(self, origin=origin)[0]
+
     @helper.append_doc_of(_map_coordinates)
     def topolar(self, extent=None, shape=None, angleoffset=0, **kwargs):
         '''
