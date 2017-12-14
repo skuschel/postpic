@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel 2015
+# Copyright Stephan Kuschel 2015-2017
 '''
 This file adds some has some runtime critical funtions implemented in cython.
 '''
@@ -383,5 +383,3 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                                 ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
 
     return ret[shape_supp:shape_supp+xbins, shape_supp:shape_supp+ybins, shape_supp:shape_supp+zbins], xedges, yedges, zedges
-
-

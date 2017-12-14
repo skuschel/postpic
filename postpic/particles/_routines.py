@@ -36,7 +36,8 @@ __all__ = ['histogramdd', 'SpeciesIdentifier']
 
 def histogramdd(data, **kwargs):
     '''
-    automatically chooses the histogram function to be used.
+    Creates a histogram of the data using particle shapes.
+
     `data` must be a tuple. Its length determines the
     dimensions of the histogram returned.
     '''

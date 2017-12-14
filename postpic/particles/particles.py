@@ -1093,7 +1093,16 @@ class MultiSpecies(object):
         weights : function, optional
             applies additional weights to the macroparticles, for example
             "MultiSpecies.Ekin_MeV"".
-            Defaults to "lambda x:1".
+            Defaults to "1".
+        rangex : list of two values, optional
+            the xrange to include into the histogram
+            Defaults to None, determins the range by the range of scalars given.
+        rangey : list of two values, optional
+            the yrange to include into the histogram
+            Defaults to None, determins the range by the range of scalars given.
+        rangez : list of two values, optional
+            the zrange to include into the histogram
+            Defaults to None, determins the range by the range of scalars given.
         """
         optargshdefs = {'bins': [200, 200, 200]}
         optargshdefs.update(optargsh)
@@ -1154,8 +1163,8 @@ class MultiSpecies(object):
         h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
         return h, xe, ye, ze
 
-    def createHistgramField1d(self, spx, name='distfn', title=None,
-                              **kwargs):
+    def _createHistgramField1d(self, spx, name='distfn', title=None,
+                               **kwargs):
         """
         Creates an 1d Histogram enclosed in a Field object.
 
@@ -1170,7 +1179,7 @@ class MultiSpecies(object):
             overrides the title. Autocreated if title==None.
             Defaults to None.
         **kwargs
-            given to createHistgram1d.
+            given to _createHistgram1d.
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
@@ -1186,8 +1195,8 @@ class MultiSpecies(object):
         ret.infostring = self.npart
         return ret
 
-    def createHistgramField2d(self, spx, spy, name='distfn',
-                              title=None, **kwargs):
+    def _createHistgramField2d(self, spx, spy, name='distfn',
+                               title=None, **kwargs):
         """
         Creates an 2d Histogram enclosed in a Field object.
 
@@ -1204,7 +1213,7 @@ class MultiSpecies(object):
             overrides the title. Autocreated if title==None.
             Defaults to None.
         **kwargs
-            given to createHistgram2d.
+            given to _createHistgram2d.
         """
         if 'weights' in kwargs:
             name = _findscalarattr(kwargs['weights'], 'name')
@@ -1222,8 +1231,8 @@ class MultiSpecies(object):
         ret.infos = self.getcompresslog()['all']
         return ret
 
-    def createHistgramField3d(self, spx, spy, spz, name='distfn',
-                              title=None, **kwargs):
+    def _createHistgramField3d(self, spx, spy, spz, name='distfn',
+                               title=None, **kwargs):
         """
         Creates an 3d Histogram enclosed in a Field object.
 
@@ -1265,25 +1274,36 @@ class MultiSpecies(object):
     def createField(self, *scalarf, **kwargs):
         """
         Creates an n-d Histogram enclosed in a Field object.
-        Try using this function first.
 
         Parameters
         ----------
-        *args
-            list of scalarfunctions that should be used for the axis.
+        *scalarf
+            list of scalarfunctions that will be used for each axis.
             the number of args given determins the dimensionality of the
-            field returned by this function.
-        **kwargs
-            given to createHistgram1d or createHistgram2d.
+            field returned by this function (maximum 3)
+        name: string, optional
+            addes a name. usually used for generating savenames.
+            Defaults to "distfn".
+        title: string, options
+            overrides the title. Autocreated if title==None.
+            Defaults to None.
+        rangex : list of two values, optional
+            the xrange to include into the histogram.
+            Defaults to None, determins the range by the range of scalars given.
+        rangey : list of two values, optional
+            the yrange to include into the histogram.
+            Defaults to None, determins the range by the range of scalars given.
+        rangez : list of two values, optional
+            the zrange to include into the histogram.
+            Defaults to None, determins the range by the range of scalars given.
         """
-        if len(scalarf) == 1:
-            return self.createHistgramField1d(*scalarf, **kwargs)
-        elif len(scalarf) == 2:
-            return self.createHistgramField2d(*scalarf, **kwargs)
-        elif len(scalarf) == 3:
-            return self.createHistgramField3d(*scalarf, **kwargs)
-        else:
+        opts = {1: self._createHistgramField1d,
+                2: self._createHistgramField2d,
+                3: self._createHistgramField3d}
+        if not len(scalarf) in opts:
             raise Exception('only 1d, 2d and 3d field creation implemented yet.')
+
+        return opts[len(scalarf)](*scalarf, **kwargs)
 
 
 class ParticleHistory(object):
