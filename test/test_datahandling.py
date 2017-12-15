@@ -14,12 +14,18 @@ class TestAxis(unittest.TestCase):
     def setUp(self):
         self.ax = dh.Axis(name='name', unit='unit', extent=[-1,1], n=101)
 
+    def assertClose(self, a, b):
+        self.assertTrue(np.all(np.isclose(a, b)))
+
+    def assertAllEqual(self, a, b):
+        self.assertTrue(np.all( a == b ))
+
     def test_simple(self):
         self.assertEqual(self.ax.name, 'name')
         self.assertEqual(self.ax.unit, 'unit')
 
     def test_grid_general(self):
-        self.assertEqual(self.ax.extent, [-1, 1])
+        self.assertEqual(self.ax.extent, (-1, 1))
         self.assertEqual(len(self.ax), 101)
         self.assertEqual(len(self.ax.grid), 101)
         self.assertEqual(len(self.ax.grid_node), 102)
@@ -57,7 +63,7 @@ class TestAxis(unittest.TestCase):
 
     def test_extent(self):
         ax = dh.Axis(grid_node = [1, 2.7])
-        self.assertEqual(ax.extent, [1, 2.7])
+        self.assertEqual(ax.extent, (1, 2.7))
 
     def test_grid(self):
         ax = dh.Axis(grid = [5, 6])
@@ -67,7 +73,24 @@ class TestAxis(unittest.TestCase):
     def test_grid_node(self):
         ax = dh.Axis(grid_node = [5, 6])
         self.assertEqual(ax.grid[0], 5.5)
-        self.assertTrue(ax.grid_node == [5, 6])
+        self.assertAllEqual(ax.grid_node, [5, 6])
+
+    def test_equal(self):
+        ax1 = dh.Axis(grid_node = [5,6])
+        ax2 = dh.Axis(grid_node = [5,6], grid = [5.5])
+        self.assertEqual(ax1, ax2)
+
+        ax1 = dh.Axis(grid = [5.5])
+        ax2 = dh.Axis(grid = [5.1])
+        self.assertNotEqual(ax1, ax2)
+
+        ax1 = dh.Axis(grid = [5.5, 6.0])
+        ax2 = dh.Axis(grid = [5.1])
+        self.assertNotEqual(ax1, ax2)
+
+        ax1 = dh.Axis(grid = [5.5, 6.0], extent = [1, 10])
+        ax2 = dh.Axis(grid = [5.5, 6.0], extent = [1, 11])
+        self.assertNotEqual(ax1, ax2)
 
 
 class TestField(unittest.TestCase):

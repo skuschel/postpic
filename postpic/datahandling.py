@@ -137,8 +137,25 @@ class Axis(object):
         self.unit = unit
 
         self._grid_node = kwargs.get('grid_node', None)
+
+        if self._grid_node is not None:
+            self._grid_node = np.array(self._grid_node)
+            if self._grid_node.ndim != 1:
+                raise ValueError("Passed array grid_node has ndim != 1.")
+
         self._grid = kwargs.get('grid', None)
+
+        if self._grid is not None:
+            self._grid = np.array(self._grid)
+            if self._grid.ndim != 1:
+                raise ValueError("Passed array grid has ndim != 1.")
+
         self._extent = kwargs.get('extent', None)
+
+        if self._extent is not None:
+            if not isinstance(self._extent, collections.Iterable) or len(self._extent) != 2:
+                raise ValueError("Passed extent is not an iterable of length 2")
+
         self._n = kwargs.get('n', None)
 
         if self._grid_node is None:
@@ -181,6 +198,13 @@ class Axis(object):
             self._extent = [self._grid_node[0], self._grid_node[-1]]
         elif self._extent[0] != self._grid_node[0] or self._extent[-1] != self._grid_node[-1]:
             raise ValueError("Passed invalid extent.")
+
+        # make sure grid and grid_node is immutable
+        self._grid.flags.writeable = False
+        self._grid_node.flags.writeable = False
+
+        # make sure the extent is also immutable
+        self._extent = tuple(self._extent)
 
         # set n if not given or check if compatible with grid
         if self._n is None:
@@ -478,12 +502,10 @@ class Field(NDArrayOperatorsMixin):
         cls = type(self)
         ret = cls.__new__(cls)
         ret.__dict__.update(self.__dict__)  # shallow copy
-        for k in ['infos', 'axes_transform_state', 'transformed_axes_origins']:
+        for k in ['infos', 'axes_transform_state', 'transformed_axes_origins', 'axes']:
             # copy iterables one level deeper
             # but matrix is not copied!
             ret.__dict__[k] = copy.copy(self.__dict__[k])
-        # create shallow copies of Axis objects
-        ret.axes = [copy.copy(ret.axes[i]) for i in range(len(ret.axes))]
         return ret
 
     # Stuff related with compatibility to Numpy's ufuncs starts here.
