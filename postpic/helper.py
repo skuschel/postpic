@@ -738,7 +738,7 @@ def linear_phase(field, dx):
     _kspace_propagate_generator.
     '''
     transform_state = field._transform_state(dx.keys())
-    axes = [ax.grid for ax in field.axes]  # each axis object returns new numpy array
+    axes = [ax.grid.copy() for ax in field.axes]
     for i in range(len(axes)):
         gridlen = len(axes[i])
         if transform_state is True:
