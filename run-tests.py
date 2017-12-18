@@ -23,6 +23,7 @@
 
 # THIS FILE MUST RUN WITHOUT ERROR ON EVERY COMMIT!
 
+import sys
 import os
 
 
@@ -55,13 +56,14 @@ def run_autopep8(args):
         print('$ ' + ' '.join(argv))
         autopep8.main(argv)
 
-def run_alltests(python='python', fast=False):
+def run_alltests(python='python', fast=False, skip_setup=False):
     '''
     runs all tests on postpic. This function has to exit without error on every commit!
     '''
     python += ' '
     # make sure .pyx sources are up to date and compiled
-    runcmd(python + 'setup.py develop --user')
+    if not skip_setup:
+        runcmd(python + 'setup.py develop --user')
 
     # find pep8 or pycodestyle (its successor)
     pycodestylecmd = None
@@ -106,10 +108,15 @@ def main():
         ''')
     parser.add_argument('--fast', action='store_true', default=False,
                         help='Only run a subset of tests. Used for commit hook.')
+    parser.add_argument('--skip-setup', action='store_true', default=False,
+                        help='Skip the "setup.py develop --user" step.')
     pyversiongroup = parser.add_mutually_exclusive_group(required=False)
-    pyversiongroup.add_argument('--pycmd', default='python',
+    pyversiongroup.add_argument('--pycmd', default='python{}'.format(sys.version_info.major),
                                 help='use "PYCMD" as python interpreter for all subcommands. '
-                                + 'default: "python"')
+                                'default: "pythonX" where X is sys.version_info.major. '
+                                'This means that by default the same version is used that '
+                                'executes this script.'
+                               )
     pyversiongroup.add_argument('-2', action='store_const', dest='pycmd', const='python2',
                                 help='same as "--pycmd python2"')
     pyversiongroup.add_argument('-3', action='store_const', dest='pycmd', const='python3',
@@ -120,7 +127,7 @@ def main():
         run_autopep8(args)
         exit()
 
-    run_alltests(args.pycmd, fast=args.fast)
+    run_alltests(args.pycmd, fast=args.fast, skip_setup=args.skip_setup)
 
 if __name__ == '__main__':
     main()
