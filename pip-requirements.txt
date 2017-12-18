@@ -4,7 +4,6 @@ pycodestyle
 nose
 cython>=0.18
 numpy>=1.8
-versioneer
 
 # required for building the docs
 sphinx>=1.3
