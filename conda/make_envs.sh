@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# just get the directory that this file resides within and load the common variables
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . "$DIR/common.sh"
 
