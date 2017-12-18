@@ -30,7 +30,7 @@ import re
 particleshapes = ptg.shapes
 
 # Default values for histogramdd function
-histogramdd_defs = {'shape': 2, 'range': None, 'weights': None}
+histogramdd_defs = {'shape': 2, 'range': None, 'weights': None, 'bins': None}
 
 __all__ = ['histogramdd', 'SpeciesIdentifier']
 
@@ -64,6 +64,13 @@ def histogramdd(data, **kwargs):
         kwargs['range'] = (kwargs['range'], )
     if np.isscalar(kwargs['bins']):
         kwargs['bins'] = (kwargs['bins'], )
+    if len(data) > 3:
+        raise ValueError('Data with len {:} not supported. Maximum is 3D data.'.format(len(data)))
+    if kwargs['bins'] is None:
+        binsdefs = {1: [800],
+                    2: [500, 500],
+                    3: [200, 200, 200]}
+        kwargs['bins'] = binsdefs[len(data)]
 
     # 1D, 2D, 3D
     range = [[None, None] for d in data]
@@ -95,7 +102,7 @@ def histogramdd(data, **kwargs):
                                         data[2], **kwargs)
         return h, (xe, ye, ze)
     else:
-        raise ValueError('Data with len {:} not supported. Maximum is 3D data.'.format(len(data)))
+        assert False, 'Internal error'
 
 
 class SpeciesIdentifier(PhysicalConstants):

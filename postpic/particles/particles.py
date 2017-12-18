@@ -986,15 +986,9 @@ class MultiSpecies(object):
             the zrange to include into the histogram
             Defaults to None, determins the range by the range of scalars given.
         """
-        if len(sps) not in [1, 2, 3]:
+        if len(sps) > 3:
             raise TypeError('Only 1D, 2D or 3D Histograms can be created.')
 
-        optargshdefchoice = {1: {'bins': [300]},
-                             2: {'bins': [500, 500]},
-                             3: {'bins': [200, 200, 200]}}
-        optargshdefs = optargshdefchoice[len(sps)]
-        optargshdefs.update(optargsh)
-        optargsh = optargshdefs
         if simgrid:
             simextent = True
         if force:
