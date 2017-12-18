@@ -955,10 +955,7 @@ class MultiSpecies(object):
 
     # ---- Functions to create a Histogram. ---
 
-    def _createHistgram(self, *sps,
-                        optargsh={}, simextent=False,
-                        simgrid=False, rangex=None, rangey=None, rangez=None,
-                        weights='1', force=False):
+    def _createHistgram(self, *sps, **kwargs):
         """
         Creates an 3d Histogram.
 
@@ -986,6 +983,17 @@ class MultiSpecies(object):
             the zrange to include into the histogram
             Defaults to None, determins the range by the range of scalars given.
         """
+        optargsh = kwargs.pop('optargsh', {})
+        simextent = kwargs.pop('simextent', False)
+        simgrid = kwargs.pop('simgrid', False)
+        rangex = kwargs.pop('rangex', None)
+        rangey = kwargs.pop('rangey', None)
+        rangez = kwargs.pop('rangez', None)
+        weights = kwargs.pop('weights', '1')
+        force = kwargs.pop('force', False)
+        if len(kwargs) > 0:
+            raise TypeError("got an unexpected keyword argument {}'".format(kwargs))
+
         if len(sps) > 3:
             raise TypeError('Only 1D, 2D or 3D Histograms can be created.')
 
@@ -1021,7 +1029,7 @@ class MultiSpecies(object):
                     return np.linspace(0, 1, n + 1)
 
             edges = [createedges(r, optargsh['bins'][i]) for i, r in zip(range(len(h)), ranges)]
-            return (h, *edges)  # empty histogram: h == 0 everywhere
+            return h, edges  # empty histogram: h == 0 everywhere
 
         w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, edges = histogramdd(data,
