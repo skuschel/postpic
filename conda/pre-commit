@@ -16,6 +16,7 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright Stephan Kuschel, 2014-2015
+# Copyright Alexander Blinne 2017
 
 # This script is a wrapper around the run-tests.py script.
 # It is highly recommended to link it as the git pre-commit hook via:
