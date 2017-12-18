@@ -31,6 +31,6 @@ The scripts have the following tasks:
 tl;dr, what do I need to to?
 ----------------------------
 
-Run ``conda/make_envs.sh`` once. After that you can use ``conda/run_tests.sh`` as a replacement for ``run-tests.py``. You can even symlink the ``pre-commit`` from this folder to your ``.git/hooks`` like this::
+Run ``conda/make_envs.sh`` once. After that you can use ``conda/run_tests.sh`` as a replacement for ``run-tests.py``. You can even symlink the ``pre-commit`` from this folder to your ``.git/hooks`` like this, if the current working directory is the directory which contains this file::
 
-  ln -s postpic/.git/hooks/pre-commit ../../conda/pre-commit
+  ln -s ../../conda/pre-commit ../.git/hooks/pre-commit
