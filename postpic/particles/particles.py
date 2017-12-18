@@ -955,135 +955,17 @@ class MultiSpecies(object):
 
     # ---- Functions to create a Histogram. ---
 
-    def _createHistgram1d(self, spx, optargsh={},
-                          simextent=False, simgrid=False, rangex=None,
-                          weights='1', force=False):
-        '''
-        creates a 1d histogram.
-        spx must be of a kind, that self.__call__ can evalute to
-        '''
-        optargshdefs = {'bins': 300}
-        optargshdefs.update(optargsh)
-        optargsh = optargshdefs
-        if simgrid:
-            simextent = True
-        if force:
-            try:
-                xdata = self(spx)
-            except (KeyError):
-                xdata = []  # Return empty histogram
-        else:
-            xdata = self(spx)
-        if simextent:
-            tmp = self.simextent(getattr(spx, 'symbol', spx))
-            rangex = tmp if tmp is not None else rangex
-        if simgrid:
-            tmp = self.simgridpoints(getattr(spx, 'symbol', spx))
-            if tmp is not None:
-                optargsh['bins'] = tmp
-        if len(xdata) == 0:
-            h = np.zeros(optargsh['bins'])
-            if rangex is not None:
-                xedges = np.linspace(rangex[0], rangex[1], optargsh['bins'] + 1)
-            else:
-                xedges = np.linspace(0, 1, optargsh['bins'] + 1)
-            return h, xedges  # empty histogram: h == 0 everywhere
-        if rangex is None:
-            rangex = [np.min(xdata), np.max(xdata)]
-        w = self('weight * ({})'.format(weights))
-        h, edges = histogramdd((xdata,), weights=w,
-                               range=rangex, **optargsh)
-        h = h / np.diff(edges)  # to calculate particles per xunit.
-        return h, (edges,)
-
-    def _createHistgram2d(self, spx, spy,
-                          optargsh={}, simextent=False,
-                          simgrid=False, rangex=None, rangey=None,
-                          weights='1', force=False):
-        """
-        Creates an 2d Histogram.
-
-        Attributes
-        ----------
-        spx : a kind, that self.__call__ can evalute to
-            returns a list of scalar values for the x axis.
-        spy : a kind, that self.__call__ can evalute to
-            returns a list of scalar values for the y axis.
-        simgrid : boolean, optional
-            enforces the same grid as used in the simulation.
-            Implies simextent=True. Defaults to False.
-        simextent : boolean, optional
-            enforces, that the axis show the same extent as used in the
-            simulation. Defaults to False.
-        weights : function, optional
-            applies additional weights to the macroparticles, for example
-            "MultiSpecies.Ekin_MeV"".
-            Defaults to "lambda x:1".
-        """
-        optargshdefs = {'bins': [500, 500]}
-        optargshdefs.update(optargsh)
-        optargsh = optargshdefs
-        if simgrid:
-            simextent = True
-        if force:
-            try:
-                xdata = self(spx)
-                ydata = self(spy)
-            except (KeyError):
-                xdata = []  # Return empty histogram
-        else:
-            xdata = self(spx)
-            ydata = self(spy)
-        # TODO: Falls rangex oder rangy gegeben ist,
-        # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
-        # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
-        if simextent:
-            tmp = self.simextent(getattr(spx, 'symbol', spx))
-            rangex = tmp if tmp is not None else rangex
-            tmp = self.simextent(getattr(spy, 'symbol', spy))
-            rangey = tmp if tmp is not None else rangey
-        if simgrid:
-            for i, sp in enumerate([spx, spy]):
-                tmp = self.simgridpoints(getattr(sp, 'symbol', sp))
-                if tmp is not None:
-                    optargsh['bins'][i] = tmp
-        if len(xdata) == 0:
-            h = np.zeros(optargsh['bins'])
-            if rangex is not None:
-                xedges = np.linspace(rangex[0], rangex[1], optargsh['bins'][0] + 1)
-            else:
-                xedges = np.linspace(0, 1, optargsh['bins'][0] + 1)
-            if rangey is not None:
-                yedges = np.linspace(rangey[0], rangey[1], optargsh['bins'][1] + 1)
-            else:
-                yedges = np.linspace(0, 1, optargsh['bins'][1] + 1)
-            return h, xedges, yedges  # empty histogram: h == 0 everywhere
-        if rangex is None:
-            rangex = [np.min(xdata), np.max(xdata)]
-        if rangey is None:
-            rangey = [np.min(ydata), np.max(ydata)]
-        w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
-        h, xedges, yedges = histogramdd((xdata, ydata),
-                                        weights=w, range=[rangex, rangey],
-                                        **optargsh)
-        h = h / (xedges[1] - xedges[0]) / (yedges[1] - yedges[0])
-        return h, (xedges, yedges)
-
-    def _createHistgram3d(self, spx, spy, spz,
-                          optargsh={}, simextent=False,
-                          simgrid=False, rangex=None, rangey=None, rangez=None,
-                          weights='1', force=False):
+    def _createHistgram(self, *sps,
+                        optargsh={}, simextent=False,
+                        simgrid=False, rangex=None, rangey=None, rangez=None,
+                        weights='1', force=False):
         """
         Creates an 3d Histogram.
 
         Attributes
         ----------
-        spx : a kind, that self.__call__ can evalute to
-            returns a list of scalar values for the x axis.
-        spy : a kind, that self.__call__ can evalute to
-            returns a list of scalar values for the y axis.
-        spz : a kind, that self.__call__ can evalute to
-            returns a list of scalar values for the z axis.
+        *sps : a kind, that self.__call__ can evalute to
+            returns a list of scalar values for the x/y/z axis.
         simgrid : boolean, optional
             enforces the same grid as used in the simulation.
             Implies simextent=True. Defaults to False.
@@ -1092,8 +974,8 @@ class MultiSpecies(object):
             simulation. Defaults to False.
         weights : function, optional
             applies additional weights to the macroparticles, for example
-            "MultiSpecies.Ekin_MeV"".
-            Defaults to "1".
+            'gamma' or 'q' to weight the particle by its charge.
+            Defaults to '1' (no additional weight).
         rangex : list of two values, optional
             the xrange to include into the histogram
             Defaults to None, determins the range by the range of scalars given.
@@ -1104,64 +986,56 @@ class MultiSpecies(object):
             the zrange to include into the histogram
             Defaults to None, determins the range by the range of scalars given.
         """
-        optargshdefs = {'bins': [200, 200, 200]}
+        if len(sps) not in [1, 2, 3]:
+            raise TypeError('Only 1D, 2D or 3D Histograms can be created.')
+
+        optargshdefchoice = {1: {'bins': [300]},
+                             2: {'bins': [500, 500]},
+                             3: {'bins': [200, 200, 200]}}
+        optargshdefs = optargshdefchoice[len(sps)]
         optargshdefs.update(optargsh)
         optargsh = optargshdefs
         if simgrid:
             simextent = True
         if force:
             try:
-                xdata = self(spx)
-                ydata = self(spy)
-                zdata = self(spz)
+                data = [self(sp) for sp in sps]
             except (KeyError):
-                xdata = []  # Return empty histogram
+                data = [[]]  # Return empty histogram
         else:
-            xdata = self(spx)
-            ydata = self(spy)
-            zdata = self(spz)
-        # TODO: Falls rangex oder rangy gegeben ist,
+            data = [self(sp) for sp in sps]
+        # TODO: Falls rangex oder rangey gegeben ist,
         # ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die
         # ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.
+        ranges = [rangex, rangey, rangez]
         if simextent:
-            tmp = self.simextent(getattr(spx, 'symbol', spx))
-            rangex = tmp if tmp is not None else rangex
-            tmp = self.simextent(getattr(spy, 'symbol', spy))
-            rangey = tmp if tmp is not None else rangey
-            tmp = self.simextent(getattr(spz, 'symbol', spz))
-            rangez = tmp if tmp is not None else rangez
+            for i, sp in enumerate(sps):
+                tmp = self.simextent(getattr(sp, 'symbol', sp))
+                ranges[i] = tmp if tmp is not None else ranges[i]
         if simgrid:
-            for i, sp in enumerate([spx, spy, spz]):
+            for i, sp in enumerate(sps):
                 tmp = self.simgridpoints(getattr(sp, 'symbol', sp))
                 if tmp is not None:
                     optargsh['bins'][i] = tmp
-        if len(xdata) == 0:
+        if len(data[0]) == 0:  # no data points. create empy histogram
             h = np.zeros(optargsh['bins'])
-            if rangex is not None:
-                xedges = np.linspace(rangex[0], rangex[1], optargsh['bins'][0] + 1)
-            else:
-                xedges = np.linspace(0, 1, optargsh['bins'][0] + 1)
-            if rangey is not None:
-                yedges = np.linspace(rangey[0], rangey[1], optargsh['bins'][1] + 1)
-            else:
-                yedges = np.linspace(0, 1, optargsh['bins'][1] + 1)
-            if rangez is not None:
-                zedges = np.linspace(rangez[0], rangez[1], optargsh['bins'][2] + 1)
-            else:
-                zedges = np.linspace(0, 1, optargsh['bins'][2] + 1)
-            return h, xedges, yedges, zedges  # empty histogram: h == 0 everywhere
-        if rangex is None:
-            rangex = [np.min(xdata), np.max(xdata)]
-        if rangey is None:
-            rangey = [np.min(ydata), np.max(ydata)]
-        if rangez is None:
-            rangez = [np.min(zdata), np.max(zdata)]
+
+            def createedges(rangei, n):
+                if rangei is not None:
+                    return np.linspace(rangei[0], rangei[1], n + 1)
+                else:
+                    return np.linspace(0, 1, n + 1)
+
+            edges = [createedges(r, optargsh['bins'][i]) for i, r in zip(range(len(h)), ranges)]
+            return (h, *edges)  # empty histogram: h == 0 everywhere
+
         w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
-        h, xe, ye, ze = histogramdd((xdata, ydata, zdata),
-                                    weights=w, range=[rangex, rangey, rangez],
-                                    **optargsh)
-        h = h / (xe[1] - xe[0]) / (ye[1] - ye[0]) / (ze[1] - ze[0])
-        return h, (xe, ye, ze)
+        h, edges = histogramdd(data,
+                               weights=w, range=ranges,
+                               **optargsh)
+        dV = np.prod([edge[1] - edge[0] for edge in edges])
+        h /= dV
+        return h, edges  # h, (xedges, yedges, zedges)
 
     def createField(self, *sps, **kwargs):
         """
@@ -1192,12 +1066,8 @@ class MultiSpecies(object):
         """
         name = kwargs.pop('name', 'distfn')
         title = kwargs.pop('title', None)
-        opts = {1: self._createHistgram1d,
-                2: self._createHistgram2d,
-                3: self._createHistgram3d}
-        if not len(sps) in opts:
-            raise Exception('only 1d, 2d and 3d field creation implemented yet.')
-        h, edges = opts[len(sps)](*sps, **kwargs)
+
+        h, edges = self._createHistgram(*sps, **kwargs)
         edgekwargs = {name: edg for name, edg in zip(['xedges', 'yedges', 'zedges'], edges)}
         ret = Field(h, **edgekwargs)
 

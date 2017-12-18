@@ -21,6 +21,7 @@ Particle related functions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import collections
 
 from . import _particlestogrid as ptg
 from ..helper import PhysicalConstants
@@ -29,7 +30,7 @@ import re
 particleshapes = ptg.shapes
 
 # Default values for histogramdd function
-histogramdd_defs = {'shape': 2}
+histogramdd_defs = {'shape': 2, 'range': None, 'weights': None}
 
 __all__ = ['histogramdd', 'SpeciesIdentifier']
 
@@ -38,33 +39,61 @@ def histogramdd(data, **kwargs):
     '''
     Creates a histogram of the data using particle shapes.
 
-    `data` must be a tuple. This function has the same signature as
+    `data` must be a 1D numpy array. This function has the same signature as
     `numpy.histogramdd`.
 
     **kwargs
     --------
         bins
-        range
+        range : sequence, optional
+            A sequence of lower and upper bin edges to be used if the edges are not given
+            explicitly in bins. Defaults to the minimum and maximum values along each dimension.
+
         weights
         shape
     '''
     [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
-    if isinstance(data, np.ndarray):
-        if len(data.shape) == 1:  # [1,2,3]
-            h, xedges = ptg.histogram(np.float64(data), **kwargs)
-            return h, xedges
+    data = np.asarray(data, dtype='float64')
+    if kwargs['weights'] is not None:
+        kwargs['weights'] = np.asarray(kwargs['weights'], dtype='float64')
+
+    # upcast 1D if length 1 dimensions are omitted
+    if len(data.shape) == 1:  # [1,2,3]
+        data = (data, )  # ([1,2,3],)
+    if isinstance(kwargs['range'], collections.Iterable) and np.isscalar(kwargs['range'][0]):
+        kwargs['range'] = (kwargs['range'], )
+    if np.isscalar(kwargs['bins']):
+        kwargs['bins'] = (kwargs['bins'], )
+
+    # 1D, 2D, 3D
+    range = [[None, None] for d in data]
+    for ax, d in enumerate(data):
+        for i, f in zip([0, 1], [np.min, np.max]):
+            try:
+                range[ax][i] = kwargs['range'][ax][i]
+                if range[ax][i] is None:
+                    raise TypeError  # catch exception and fill value
+                if not np.isscalar(range[ax][i]):
+                    # if value can be accessed it must be a scalar value
+                    raise ValueError('range="{}" not properly formatted.'.format(kwargs['range']))
+            except(TypeError):
+                range[ax][i] = f(d)
+    kwargs['range'] = range
+
     if len(data) == 1:  # ([1,2,3],)
-        h, xedges = ptg.histogram(np.float64(data[0]), **kwargs)
-        return h, xedges
-    if len(data) == 2:  # [[1,2,3], [4,5,6]]
-        h, xedges, yedges = ptg.histogram2d(np.float64(data[0]),
-                                            np.float64(data[1]), **kwargs)
-        return h, xedges, yedges
-    if len(data) == 3:  # [[1,2,3], [4,5,6], [7,8,9]]
-        h, xe, ye, ze = ptg.histogram3d(np.float64(data[0]),
-                                        np.float64(data[1]),
-                                        np.float64(data[2]), **kwargs)
-        return h, xe, ye, ze
+        kwargs['range'] = kwargs['range'][0]
+        kwargs['bins'] = kwargs['bins'][0]
+        h, xedges = ptg.histogram(data[0], **kwargs)
+        return h, (xedges,)
+    elif len(data) == 2:  # [[1,2,3], [4,5,6]]
+        h, xedges, yedges = ptg.histogram2d(data[0],
+                                            data[1], **kwargs)
+        return h, (xedges, yedges)
+    elif len(data) == 3:  # [[1,2,3], [4,5,6], [7,8,9]]
+        h, xe, ye, ze = ptg.histogram3d(data[0],
+                                        data[1],
+                                        data[2], **kwargs)
+        return h, (xe, ye, ze)
     else:
         raise ValueError('Data with len {:} not supported. Maximum is 3D data.'.format(len(data)))
 

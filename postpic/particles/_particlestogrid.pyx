@@ -44,12 +44,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
             shape = 2 uses triangle particle shape.
     '''
     cdef double xmin, xmax
-    if range is None:
-        xmin = np.min(data)
-        xmax = np.max(data)
-    else:
-        xmin = range[0]
-        xmax = range[1]
+    xmin, xmax = range
     # ensure max != min
     sx = np.spacing(xmax)
     if np.abs(xmax-xmin) < sx:
@@ -128,16 +123,8 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     if n != len(datay):
             raise ValueError('datax and datay must be of equal length')
     cdef double xmin, xmax, ymin, ymax
-    if range is None:
-        xmin = np.min(datax)
-        xmax = np.max(datax)
-        ymin = np.min(datay)
-        ymax = np.max(datay)
-    else:
-        xmin = range[0][0]
-        xmax = range[0][1]
-        ymin = range[1][0]
-        ymax = range[1][1]
+    xmin, xmax = range[0]
+    ymin, ymax = range[1]
     # ensure max != min
     sx = np.spacing(xmax)
     if np.abs(xmax-xmin) < sx:
@@ -241,10 +228,11 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                 range=None, bins=(20, 20, 20), shape=0):
     '''
     Additional Arguments:
-        - order = 0:
+        - shape = 0:
             sets the order of the particle shapes.
-            order = 0 returns a normal histogram.
-            order = 1 uses top hat particle shape.
+            shape = 0 returns a normal histogram.
+            shape = 1 uses top hat particle shape.
+            shape = 2 uses triangle particle shape.
     '''
     cdef int n = len(datax)
     if n != len(datay):
@@ -252,20 +240,9 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     if n != len(dataz):
             raise ValueError('datax and dataz must be of equal length')
     cdef double xmin, xmax, ymin, ymax, zmin, zmax
-    if range is None:
-        xmin = np.min(datax)
-        xmax = np.max(datax)
-        ymin = np.min(datay)
-        ymax = np.max(datay)
-        zmin = np.min(dataz)
-        zmax = np.max(dataz)
-    else:
-        xmin = range[0][0]
-        xmax = range[0][1]
-        ymin = range[1][0]
-        ymax = range[1][1]
-        zmin = range[2][0]
-        zmax = range[2][1]
+    xmin, xmax = range[0]
+    ymin, ymax = range[1]
+    zmin, zmax = range[2]
     # ensure max != min
     sx = np.spacing(xmax)
     if np.abs(xmax-xmin) < sx:
