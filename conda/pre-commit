@@ -38,6 +38,10 @@ if git diff-index --quiet HEAD --; then
     echo "No changes detected. Skipping tests..."
     sleep 1
     exitcode=0
+elif [ -e .git/MERGE_HEAD ]; then
+    echo "Merge in progress... Testing against the working directory leaving unstages changes intact!"
+    conda/run_tests.sh --fast
+    exitcode=$?
 else
     git stash -q --keep-index
     conda/run_tests.sh --fast
