@@ -35,7 +35,7 @@ histogramdd_defs = {'shape': 2, 'range': None, 'weights': None, 'bins': None}
 __all__ = ['histogramdd', 'SpeciesIdentifier']
 
 
-def histogramdd(data, **kwargs):
+def histogramdd(data, **kwargs_in):
     '''
     Creates a histogram of the data. This function has the similar signature and return values as
     `numpy.histogramdd`.
@@ -71,7 +71,8 @@ def histogramdd(data, **kwargs):
     edges : list
         A list of D arrays describing the edges for each dimension
     '''
-    [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
+    kwargs = histogramdd_defs.copy()
+    kwargs.update(kwargs_in)
     try:
         shape = data.shape
         if shape[0] > 3 and len(shape) == 2:  # (N, D) array
