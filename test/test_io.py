@@ -12,7 +12,8 @@ class TestIO(unittest.TestCase):
 
     def gettempfile(self, suffix=''):
         import tempfile
-        f = tempfile.mkstemp(suffix=suffix)[1]
+        h, f = tempfile.mkstemp(suffix=suffix)
+        os.close(h)
         print('filename is {}'.format(f))
         self._tempfiles.append(f)
         return f
