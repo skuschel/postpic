@@ -16,11 +16,12 @@
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright Stephan Kuschel, 2014-2015
+# Copyright Alexander Blinne 2017
 
 # This script is a wrapper around the run-tests.py script.
 # It is highly recommended to link it as the git pre-commit hook via:
 
-# ln -s ../../pre-commit .git/hooks/pre-commit
+# ln -s ../../conda/pre-commit .git/hooks/pre-commit
 
 # The difference to the run-tests.py script is that this script stashes
 # unstaged changes before testing (see below). Thus only the changeset to be
@@ -39,11 +40,11 @@ if git diff-index --quiet HEAD --; then
     exitcode=0
 elif [ -e .git/MERGE_HEAD ]; then
     echo "Merge in progress... Testing against the working directory leaving unstages changes intact!"
-    ./run-tests.py --fast
+    conda/run_tests.sh --fast
     exitcode=$?
 else
     git stash -q --keep-index
-    ./run-tests.py --fast
+    conda/run_tests.sh --fast
     exitcode=$?
     git reset --hard -q && git stash apply --index -q && git stash drop -q
 fi

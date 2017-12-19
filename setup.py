@@ -36,7 +36,7 @@ setup(name='postpic',
       ext_modules = cythonize("postpic/particles/_particlestogrid.pyx"),
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
-      setup_requires=['cython>=0.18', 'numpy>=1.8', 'versioneer'],
+      setup_requires=['cython>=0.18', 'numpy>=1.8'],
       install_requires=['matplotlib>=1.3',
                         # ndarray.tobytes was introduced in np 1.9 and workaround in vtk routines
                         # does not work for python 2

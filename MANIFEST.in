@@ -1,7 +1,7 @@
 include *.md
 include LICENSE
 include CONTRIBUTING.md
-include postpic/*.pyx
+include postpic/particles/*.pyx
 include _version.txt
 include postpic/_version.txt
 include versioneer.py
