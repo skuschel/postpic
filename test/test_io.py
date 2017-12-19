@@ -12,11 +12,10 @@ class TestIO(unittest.TestCase):
 
     def gettempfile(self, suffix=''):
         import tempfile
-        h, f = tempfile.mkstemp(suffix=suffix)
-        os.close(h)
-        print('filename is {}'.format(f))
+        f = tempfile.NamedTemporaryFile(suffix=suffix)
+        print('filename is {}'.format(f.name))
         self._tempfiles.append(f)
-        return f
+        return f.name
 
     def setUp(self):
         self._tempfiles = []
@@ -26,7 +25,7 @@ class TestIO(unittest.TestCase):
 
     def tearDown(self):
         for f in self._tempfiles:
-            os.remove(f)
+            f.close()
 
     def test_importexport_npz(self):
         filename = self.gettempfile(suffix='.npz')
