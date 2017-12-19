@@ -1094,13 +1094,12 @@ class ParticleHistory(object):
 
     Parameters
     ----------
-    sr:
+    sr: iterable of datareader
         a collection of datareader to use. Usually a Simulationreader object
-
-    speciess:
+    speciess: string or iterable of strings
         a species name or a list of species names. Those particles can be included
-         into the history.
-    ids:
+        into the history.
+    ids: iterable of int
         list of ids to use (default: None). If this is None all particles in speciess will
         be tracked. If a list of ids is given, these ids will be serached in speciess only.
     '''

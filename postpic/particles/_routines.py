@@ -37,20 +37,37 @@ __all__ = ['histogramdd', 'SpeciesIdentifier']
 
 def histogramdd(data, **kwargs):
     '''
-    Creates a histogram of the data using particle shapes.
-
-    `data` must be a 1D numpy array. This function has the same signature as
+    Creates a histogram of the data. This function has the similar signature and return values as
     `numpy.histogramdd`.
+    In addition this function supports the `shape` keyword argument to choose
+    the particle shape used. If used with `shape=0` the results of this function and the
+    `numpy.histogramdd` are identical, however, this function is approx. factor 2 to 3 faster.
 
-    **kwargs
-    --------
-        bins
-        range : sequence, optional
-            A sequence of lower and upper bin edges to be used if the edges are not given
-            explicitly in bins. Defaults to the minimum and maximum values along each dimension.
+    Parameters
+    ----------
+    data:
+        A 1D numpy array (for 1D histogram).
+        A sequence providing the data for the different axis, i.e. `(datax, datay, dataz)`.
 
-        weights
-        shape
+    bins: sequence or int
+        The number of bins to use for each dimension
+    range: sequence, optional
+        A sequence of lower and upper bin edges to be used if the edges are not given
+        explicitly in bins. Defaults to the minimum and maximum values along each dimension.
+    weights: 1D numpy array
+        The weights to be used for each data point
+    shape: int
+        possible choices are:
+         * 0 - use nearest grid point (NGP)
+         * 1 - use tophat shape of width 1 bin
+         * 2 - triangular shape (default)
+
+    Returns
+    -------
+    H : ndarray
+        the final histogram
+    edges : list
+        A list of D arrays describing the edges for each dimension
     '''
     [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
     data = np.asarray(data, dtype='float64')

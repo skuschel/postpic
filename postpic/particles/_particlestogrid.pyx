@@ -16,7 +16,9 @@
 #
 # Copyright Stephan Kuschel 2015-2017
 '''
-This file adds some has some runtime critical funtions implemented in cython.
+This file adds the particle-to-grid routines, implemented in cython.
+
+Do not call these functions directly. Use `postpic.particles.histogramdd` instead.
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
 cimport cython
@@ -35,6 +37,8 @@ shapes = [
 def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
            np.ndarray[np.double_t, ndim=1] weights=None, shape=0):
     '''
+    Never use directly. Use `postpic.particles.histogramdd` instead.
+
     Mimics numpy.histogram.
     Additional Arguments:
         - shape = 0:
@@ -111,6 +115,8 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                 np.ndarray[np.double_t, ndim=1] weights=None,
                 range=None, bins=(20, 20), shape=0):
     '''
+    Never use directly. Use `postpic.particles.histogramdd` instead.
+
     Mimics numpy.histogram2d.
     Additional Arguments:
         - shape = 0:
@@ -227,6 +233,8 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                 np.ndarray[np.double_t, ndim=1] weights=None,
                 range=None, bins=(20, 20, 20), shape=0):
     '''
+    Never use directly. Use `postpic.particles.histogramdd` instead.
+
     Additional Arguments:
         - shape = 0:
             sets the order of the particle shapes.
