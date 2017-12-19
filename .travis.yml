@@ -17,13 +17,13 @@ python:
 
 env:
   - MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
-  - MATPLOTLIB_V=2.0.2 NUMPY_V=* SCIPY_V=* CYTHON_V=*
+#  - MATPLOTLIB_V=2.0.2 NUMPY_V=* SCIPY_V=* CYTHON_V=*
 
 matrix:
   fast_finish: true
-  allow_failures:
+#  allow_failures:
     # have this allowed as there is a bug in matplotlib 2.1.0
-    - env: MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
+#    - env: MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
   include:
     # ubuntu 14.04.5 LTS:
     # python 2.6 is explicitly NOT supported!
