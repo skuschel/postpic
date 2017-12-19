@@ -298,6 +298,17 @@ class TestHistogramdd(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(ey0, ey1)))
         self.assertAlmostEqual(np.sum(h0), np.sum(self.weights))
 
+    def test_histogram2d_np_w_T(self):
+        arg = np.asarray([self.datax, self.datay]).T
+        kwargs = dict(bins=[20,22], range=((0,1),(0,2)), shape=0, weights=self.weights)
+        h0, (ex0, ey0) = histogramdd(arg, **kwargs)
+        kwargs.pop('shape')
+        h1, (ex1, ey1) = np.histogramdd(arg, **kwargs)
+        self.assertTrue(np.all(np.isclose(h0, h1)))
+        self.assertTrue(np.all(np.isclose(ex0, ex1)))
+        self.assertTrue(np.all(np.isclose(ey0, ey1)))
+        self.assertAlmostEqual(np.sum(h0), np.sum(self.weights))
+
     def test_histogram3d_np_w(self):
         arg = (self.datax, self.datay, self.dataz)
         kwargs = dict(bins=[20,22,25], range=((0,1),(0,2),(0,3)), shape=0, weights=self.weights)
@@ -309,6 +320,21 @@ class TestHistogramdd(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(ey0, ey1)))
         self.assertTrue(np.all(np.isclose(ez0, ez1)))
         self.assertAlmostEqual(np.sum(h0), np.sum(self.weights))
+        print(np.sum(h0))
+
+    def test_histogram3d_np_w(self):
+        arg = (self.datax, self.datay, self.dataz)
+        kwargs = dict(bins=27, range=((0,1),(0,2),(0,3)), shape=0, weights=self.weights)
+        h0, (ex0, ey0, ez0) = histogramdd(arg, **kwargs)
+        kwargs.pop('shape')
+        h1, (ex1, ey1, ez1) = np.histogramdd(arg, **kwargs)
+        self.assertTrue(np.all(np.isclose(h0, h1)))
+        self.assertTrue(np.all(np.isclose(ex0, ex1)))
+        self.assertTrue(np.all(np.isclose(ey0, ey1)))
+        self.assertTrue(np.all(np.isclose(ez0, ez1)))
+        self.assertAlmostEqual(np.sum(h0), np.sum(self.weights))
+        self.assertListEqual(list(h0.shape), [27,27,27])
+        self.assertListEqual(list(h1.shape), [27,27,27])
         print(np.sum(h0))
 
 if __name__ == '__main__':
