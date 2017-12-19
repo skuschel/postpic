@@ -21,6 +21,7 @@ Particle related functions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import collections
 
 from . import _particlestogrid as ptg
 from ..helper import PhysicalConstants
@@ -29,36 +30,108 @@ import re
 particleshapes = ptg.shapes
 
 # Default values for histogramdd function
-histogramdd_defs = {'shape': 2}
+histogramdd_defs = {'shape': 2, 'range': None, 'weights': None, 'bins': None}
 
 __all__ = ['histogramdd', 'SpeciesIdentifier']
 
 
-def histogramdd(data, **kwargs):
+def histogramdd(data, **kwargs_in):
     '''
-    automatically chooses the histogram function to be used.
-    `data` must be a tuple. Its length determines the
-    dimensions of the histogram returned.
+    Creates a histogram of the data. This function has the similar signature and return values as
+    `numpy.histogramdd`.
+    In addition this function supports the `shape` keyword argument to choose
+    the particle shape used. If used with `shape=0` the results of this function and the
+    `numpy.histogramdd` are identical, however, this function is approx. factor 2 or 3 faster.
+
+    Parameters
+    ----------
+    data: sequence of ndarray or ndarray (1D or 2D)
+        The input (particle) data for the histogram.
+         * A 1D numpy array (for 1D histogram).
+         * A sequence providing the data for the different axis, i.e.
+           `(datax, datay, dataz)` (preferred).
+         * A (N, D)-array, i.e. `[[x1, y1, z1], [x2, y2, z2]]` -- must be a numpy array!
+    bins: sequence or int
+        The number of bins to use for each dimension
+    range: sequence, optional
+        A sequence of lower and upper bin edges to be used if the edges are not given
+        explicitly in bins. Defaults to the minimum and maximum values along each dimension.
+    weights: 1D numpy array
+        The weights to be used for each data point
+    shape: int
+        possible choices are:
+         * 0 - use nearest grid point (NGP)
+         * 1 - use tophat shape of width 1 bin
+         * 2 - triangular shape (default)
+
+    Returns
+    -------
+    H : ndarray
+        the final histogram
+    edges : list
+        A list of D arrays describing the edges for each dimension
     '''
-    [kwargs.setdefault(k, i) for (k, i) in list(histogramdd_defs.items())]
-    if isinstance(data, np.ndarray):
-        if len(data.shape) == 1:  # [1,2,3]
-            h, xedges = ptg.histogram(np.float64(data), **kwargs)
-            return h, xedges
-    if len(data) == 1:  # ([1,2,3],)
-        h, xedges = ptg.histogram(np.float64(data[0]), **kwargs)
-        return h, xedges
-    if len(data) == 2:  # [[1,2,3], [4,5,6]]
-        h, xedges, yedges = ptg.histogram2d(np.float64(data[0]),
-                                            np.float64(data[1]), **kwargs)
-        return h, xedges, yedges
-    if len(data) == 3:  # [[1,2,3], [4,5,6], [7,8,9]]
-        h, xe, ye, ze = ptg.histogram3d(np.float64(data[0]),
-                                        np.float64(data[1]),
-                                        np.float64(data[2]), **kwargs)
-        return h, xe, ye, ze
-    else:
+    kwargs = histogramdd_defs.copy()
+    kwargs.update(kwargs_in)
+    try:
+        shape = data.shape
+        if shape[0] > 3 and len(shape) == 2:  # (N, D) array
+            # data[:,i] will create a view consuming only microseconds
+            data = [data[:, i] for i in range(shape[1])]
+    except(AttributeError):
+        pass
+
+    # upcast 1D if length 1 dimensions are omitted
+    if np.isscalar(data[0]):  # [1,2,3]
+        data = (data, )  # ([1,2,3],)
+    if len(data) > 3:
         raise ValueError('Data with len {:} not supported. Maximum is 3D data.'.format(len(data)))
+    if isinstance(kwargs['range'], collections.Iterable) and np.isscalar(kwargs['range'][0]):
+        kwargs['range'] = (kwargs['range'], )
+    if np.isscalar(kwargs['bins']):
+        kwargs['bins'] = (kwargs['bins'], ) * len(data)
+    if kwargs['bins'] is None:
+        binsdefs = {1: [800],
+                    2: [500, 500],
+                    3: [200, 200, 200]}
+        kwargs['bins'] = binsdefs[len(data)]
+
+    # data is now (datax, datay, dataz)
+    # make sure each is an ndarray. If it is already, this operation is fast.
+    data = [np.asarray(d, dtype='float64') for d in data]
+    if kwargs['weights'] is not None:
+        kwargs['weights'] = np.asarray(kwargs['weights'], dtype='float64')
+    # 1D, 2D, 3D
+    ranges = [[None, None] for d in data]
+    for ax, d in enumerate(data):
+        for i, f in zip([0, 1], [np.min, np.max]):
+            try:
+                ranges[ax][i] = kwargs['range'][ax][i]
+                if ranges[ax][i] is None:
+                    raise TypeError  # catch exception and fill value
+                if not np.isscalar(ranges[ax][i]):
+                    # if value can be accessed it must be a scalar value
+                    raise ValueError('range="{}" not properly formatted.'.format(kwargs['range']))
+            except(TypeError):
+                ranges[ax][i] = f(d)
+    kwargs['range'] = ranges
+
+    if len(data) == 1:  # ([1,2,3],)
+        kwargs['range'] = kwargs['range'][0]
+        kwargs['bins'] = kwargs['bins'][0]
+        h, xedges = ptg.histogram(data[0], **kwargs)
+        return h, (xedges,)
+    elif len(data) == 2:  # [[1,2,3], [4,5,6]]
+        h, xedges, yedges = ptg.histogram2d(data[0],
+                                            data[1], **kwargs)
+        return h, (xedges, yedges)
+    elif len(data) == 3:  # [[1,2,3], [4,5,6], [7,8,9]]
+        h, xe, ye, ze = ptg.histogram3d(data[0],
+                                        data[1],
+                                        data[2], **kwargs)
+        return h, (xe, ye, ze)
+    else:
+        assert False, 'Internal error'
 
 
 class SpeciesIdentifier(PhysicalConstants):

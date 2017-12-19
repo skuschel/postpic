@@ -14,9 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel 2015
+# Copyright Stephan Kuschel 2015-2017
 '''
-This file adds some has some runtime critical funtions implemented in cython.
+This file adds the particle-to-grid routines, implemented in cython.
+
+Do not call these functions directly. Use `postpic.particles.histogramdd` instead.
 '''
 from __future__ import absolute_import, division, print_function, unicode_literals
 cimport cython
@@ -35,6 +37,8 @@ shapes = [
 def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
            np.ndarray[np.double_t, ndim=1] weights=None, shape=0):
     '''
+    Never use directly. Use `postpic.particles.histogramdd` instead.
+
     Mimics numpy.histogram.
     Additional Arguments:
         - shape = 0:
@@ -44,12 +48,7 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
             shape = 2 uses triangle particle shape.
     '''
     cdef double xmin, xmax
-    if range is None:
-        xmin = np.min(data)
-        xmax = np.max(data)
-    else:
-        xmin = range[0]
-        xmax = range[1]
+    xmin, xmax = range
     # ensure max != min
     sx = np.spacing(xmax)
     if np.abs(xmax-xmin) < sx:
@@ -116,6 +115,8 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                 np.ndarray[np.double_t, ndim=1] weights=None,
                 range=None, bins=(20, 20), shape=0):
     '''
+    Never use directly. Use `postpic.particles.histogramdd` instead.
+
     Mimics numpy.histogram2d.
     Additional Arguments:
         - shape = 0:
@@ -128,16 +129,8 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     if n != len(datay):
             raise ValueError('datax and datay must be of equal length')
     cdef double xmin, xmax, ymin, ymax
-    if range is None:
-        xmin = np.min(datax)
-        xmax = np.max(datax)
-        ymin = np.min(datay)
-        ymax = np.max(datay)
-    else:
-        xmin = range[0][0]
-        xmax = range[0][1]
-        ymin = range[1][0]
-        ymax = range[1][1]
+    xmin, xmax = range[0]
+    ymin, ymax = range[1]
     # ensure max != min
     sx = np.spacing(xmax)
     if np.abs(xmax-xmin) < sx:
@@ -240,11 +233,14 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                 np.ndarray[np.double_t, ndim=1] weights=None,
                 range=None, bins=(20, 20, 20), shape=0):
     '''
+    Never use directly. Use `postpic.particles.histogramdd` instead.
+
     Additional Arguments:
-        - order = 0:
+        - shape = 0:
             sets the order of the particle shapes.
-            order = 0 returns a normal histogram.
-            order = 1 uses top hat particle shape.
+            shape = 0 returns a normal histogram.
+            shape = 1 uses top hat particle shape.
+            shape = 2 uses triangle particle shape.
     '''
     cdef int n = len(datax)
     if n != len(datay):
@@ -252,20 +248,9 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     if n != len(dataz):
             raise ValueError('datax and dataz must be of equal length')
     cdef double xmin, xmax, ymin, ymax, zmin, zmax
-    if range is None:
-        xmin = np.min(datax)
-        xmax = np.max(datax)
-        ymin = np.min(datay)
-        ymax = np.max(datay)
-        zmin = np.min(dataz)
-        zmax = np.max(dataz)
-    else:
-        xmin = range[0][0]
-        xmax = range[0][1]
-        ymin = range[1][0]
-        ymax = range[1][1]
-        zmin = range[2][0]
-        zmax = range[2][1]
+    xmin, xmax = range[0]
+    ymin, ymax = range[1]
+    zmin, zmax = range[2]
     # ensure max != min
     sx = np.spacing(xmax)
     if np.abs(xmax-xmin) < sx:
@@ -383,5 +368,3 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                                 ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
 
     return ret[shape_supp:shape_supp+xbins, shape_supp:shape_supp+ybins, shape_supp:shape_supp+zbins], xedges, yedges, zedges
-
-
