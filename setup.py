@@ -37,8 +37,12 @@ setup(name='postpic',
       include_dirs = [numpy.get_include()],
       license='GPLv3+',
       setup_requires=['cython>=0.18', 'numpy>=1.8', 'versioneer'],
-      install_requires=['matplotlib>=1.3', 'numpy>=1.8', 'scipy', 'future', 'urllib3', 'numexpr',
-                        'cython>=0.18', 'functools32;python_version<"3.0"', 'pyvtk'],
+      install_requires=['matplotlib>=1.3',
+                        # ndarray.tobytes was introduced in np 1.9 and workaround in vtk routines
+                        # does not work for python 2
+                        'numpy>=1.8', 'numpy>=1.9;python_version<"3.0"',
+                        'scipy', 'future', 'urllib3', 'numexpr',
+                        'cython>=0.18', 'functools32;python_version<"3.0"'],
       extras_require = {
         'h5 reader for openPMD support':  ['h5py'],
         'sdf support for EPOCH reader':  ['sdf']},

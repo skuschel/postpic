@@ -37,7 +37,7 @@ import math
 import numexpr as ne
 
 
-__all__ = ['PhysicalConstants', 'kspace_epoch_like', 'kspace',
+__all__ = ['PhysicalConstants', 'unstagger_fields', 'kspace_epoch_like', 'kspace',
            'kspace_propagate', 'time_profile_at_plane']
 
 
@@ -217,7 +217,7 @@ def jac_det(jacobian_func):
 
 
 def islinear(grid):
-    return np.var(np.diff(grid))/np.mean(abs(grid)) < 1e-7
+    return np.all(np.isclose(grid, np.linspace(grid[0], grid[-1], len(grid))))
 
 
 def approx_jacobian(transform):
@@ -397,6 +397,56 @@ def omega_free(mesh):
     """
     k2 = sum(ki**2 for ki in mesh)
     return PhysicalConstants.c * np.sqrt(k2)
+
+
+def unstagger_fields(*fields, **kwargs):
+    '''
+    Unstagger a collection of fields.
+
+    This functions shifts the origins of the grids of the given fields such that they coincide.
+    Since the choice of the common origin is somewhat arbitrary, it might be overriden by a
+    keyword-argument `origin`, as may be the interpolation `method`. See `Field.shift_grid_by`
+    for available methods.
+    '''
+    method = kwargs.pop('method', "fourier")
+    origin = kwargs.pop('origin', None)
+
+    if not all([field.shape == fields[0].shape for field in fields]):
+        raise ValueError("Fields have different shapes")
+
+    if not all([all(field.islinear()) for field in fields]):
+        raise ValueError("Fields have non-linear axes")
+
+    spacing = [ax.spacing for ax in fields[0].axes]
+    if not all([np.all(np.isclose(spacing, [ax.spacing for ax in field.axes]))
+                for field in fields]):
+        raise ValueError("Fields have unequal grid spacing")
+
+    if origin is None:
+        origins = np.array([[ax.grid[0] for ax in field.axes]
+                            for field in fields
+                            ])
+        if len(fields) > 2:
+            origin = np.median(origins, axis=0)
+        else:
+            origin = origins[0, :]
+
+    new_fields = []
+    for field in fields:
+        fo = np.array([ax.grid[0] for ax in field.axes])
+        if np.all(np.isclose(origin, fo)):
+            new_fields.append(field)
+            continue
+
+        dx = origin-fo
+        if np.any(abs(dx/spacing) > 2):
+            raise ValueError('Distance of grids is larger than twice the grid spacing')
+
+        nf = field.shift_grid_by(dx, method)
+        if np.isrealobj(field):
+            nf = nf.real
+        new_fields.append(nf)
+    return new_fields
 
 
 def _kspace_helper_cutfields(component, fields, extent):
