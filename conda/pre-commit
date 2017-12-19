@@ -21,7 +21,7 @@
 # This script is a wrapper around the run-tests.py script.
 # It is highly recommended to link it as the git pre-commit hook via:
 
-# ln -s ../../pre-commit .git/hooks/pre-commit
+# ln -s ../../conda/pre-commit .git/hooks/pre-commit
 
 # The difference to the run-tests.py script is that this script stashes
 # unstaged changes before testing (see below). Thus only the changeset to be
