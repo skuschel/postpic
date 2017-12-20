@@ -55,6 +55,8 @@ def time_histogram():
     time1D(data, bins, weights, 1, tnw)
     time1D(data, bins, None, 2, tn)
     time1D(data, bins, weights, 2, tnw)
+    time1D(data, bins, None, 3, tn)
+    time1D(data, bins, weights, 3, tnw)
 
     # --- 2D
 
@@ -83,6 +85,8 @@ def time_histogram():
     time2D(datax, datay, bins, weights, 1, tnw)
     time2D(datax,datay, bins, None, 2, tn)
     time2D(datax, datay, bins, weights, 2, tnw)
+    time2D(datax,datay, bins, None, 3, tn)
+    time2D(datax, datay, bins, weights, 3, tnw)
 
 
     # --- 3D
@@ -113,6 +117,8 @@ def time_histogram():
     time3D(datax, datay, dataz, bins, weights, 1, tnw)
     time3D(datax, datay, dataz, bins, None, 2, tn)
     time3D(datax, datay, dataz, bins, weights, 2, tnw)
+    time3D(datax, datay, dataz, bins, None, 3, tn)
+    time3D(datax, datay, dataz, bins, weights, 3, tnw)
 
 
 def time_particlescalars():

@@ -29,7 +29,8 @@ cimport numpy as np
 shapes = [
     [0, 'NGP'],
     [1, 'tophat'],
-    [2, 'triangle']
+    [2, 'triangle'],
+    [3, 'spline3']
 ]
 
 @cython.boundscheck(False)  # disable array boundscheck
@@ -106,6 +107,26 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
                     ret[xr + shape_supp - 1] += (0.5 * (1 - xd)**2) * weights[i]
                     ret[xr + shape_supp]     += (0.5 + xd - xd**2) * weights[i]
                     ret[xr + shape_supp + 1] += (0.5 * xd**2) * weights[i]
+    elif shape in shapes[3]:
+        # Particle shape is spline of order 3 = Spline3
+        shape_supp = 3
+        # use shape_supp ghost cells on both sides of the domain
+        ret = np.zeros(bins + 2 * shape_supp, dtype=np.double)
+        for i in xrange(n):
+            x = (data[i] - xmin) * dx;
+            xr = <int>(x + 0.5);
+            xd = x - xr + 0.5
+            if (xr >= 0.0 and xr <= bins):
+                if weights is None:
+                    ret[xr + shape_supp - 2] += 1.0/6.0 * (1 - xd)**3
+                    ret[xr + shape_supp - 1] += 1.0/6.0 * (4 - 6*xd**2 + 3*xd**3)
+                    ret[xr + shape_supp]     += 1.0/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
+                    ret[xr + shape_supp + 1] += 1.0/6.0 * xd**3
+                else:
+                    ret[xr + shape_supp - 2] += weights[i]/6.0 * (1 - xd)**3
+                    ret[xr + shape_supp - 1] += weights[i]/6.0 * (4 - 6*xd**2 + 3*xd**3)
+                    ret[xr + shape_supp]     += weights[i]/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
+                    ret[xr + shape_supp + 1] += weights[i]/6.0 * xd**3
     return ret[shape_supp:shape_supp + bins], bin_edges
 
 
@@ -150,8 +171,8 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef int shape_supp, xs, ys, xoffset, yoffset
     cdef double x, y, xd, yd
     cdef int xr, yr
-    cdef double wx[3]
-    cdef double wy[3]
+    cdef double wx[4]
+    cdef double wy[4]
 
     if shape in shapes[0]:
         # normal Histogram
@@ -221,6 +242,38 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                     for xs in xrange(3):
                         for ys in xrange(3):
                             ret[xoffset + xs, yoffset + ys] += wx[xs] * wy[ys] * weights[i]
+    elif shape in shapes[3]:
+        # Particle shape is spline of order 3
+        shape_supp = 3
+        # use shape_supp ghost cells on both sides of the domain
+        resshape = [b + 2 * shape_supp for b in bins]
+        ret = np.zeros(resshape, dtype=np.double)
+        for i in xrange(n):
+            x = (datax[i] - xmin) * dx;
+            y = (datay[i] - ymin) * dy;
+            xr = <int>(x + 0.5);
+            yr = <int>(y + 0.5);
+            xd = x - xr + 0.5;
+            yd = y - yr + 0.5;
+            if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
+                wx[0] = 1.0/6.0 * (1 - xd)**3
+                wx[1] = 1.0/6.0 * (4 - 6*xd**2 + 3*xd**3)
+                wx[2] = 1.0/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
+                wx[3] = 1.0/6.0 * xd**3
+                wy[0] = 1.0/6.0 * (1 - yd)**3
+                wy[1] = 1.0/6.0 * (4 - 6*yd**2 + 3*yd**3)
+                wy[2] = 1.0/6.0 * (1 + 3*yd + 3*yd**2 - 3*yd**3)
+                wy[3] = 1.0/6.0 * yd**3
+                xoffset = xr + shape_supp - 2
+                yoffset = yr + shape_supp - 2
+                if weights is None:
+                    for xs in xrange(4):
+                        for ys in xrange(4):
+                            ret[xoffset + xs, yoffset + ys] += wx[xs] * wy[ys]
+                else:
+                    for xs in xrange(4):
+                        for ys in xrange(4):
+                            ret[xoffset + xs, yoffset + ys] += wx[xs] * wy[ys] * weights[i]
 
     return ret[shape_supp:shape_supp + xbins, shape_supp:shape_supp + ybins], xedges, yedges
 
@@ -277,9 +330,9 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
     cdef int shape_supp, xs, ys, zs, xoffset, yoffset, zoffset
     cdef double x, y, z, xd, yd, zd
     cdef int xr, yr, zr
-    cdef double wx[3]
-    cdef double wy[3]
-    cdef double wz[3]
+    cdef double wx[4]
+    cdef double wy[4]
+    cdef double wz[4]
 
     if shape in shapes[0]:
         # normal Histogram
@@ -365,6 +418,48 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                     for xs in xrange(3):
                         for ys in xrange(3):
                             for zs in xrange(3):
+                                ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
+    elif shape in shapes[3]:
+        # Particle shape is spline of order 2 = Triangle
+        shape_supp = 3
+        # use shape_supp ghost cells on both sides of the domain
+        resshape = [b + 2 * shape_supp for b in bins]
+        ret = np.zeros(resshape, dtype=np.double)
+        for i in xrange(n):
+            x = (datax[i] - xmin) * dx;
+            y = (datay[i] - ymin) * dy;
+            z = (dataz[i] - zmin) * dz;
+            xr = <int>(x + 0.5);
+            yr = <int>(y + 0.5);
+            zr = <int>(z + 0.5);
+            xd = x - xr + 0.5;
+            yd = y - yr + 0.5;
+            zd = z - zr + 0.5;
+            if (xr >= 0 and y >= 0 and zr >= 0 and xr <= xbins and yr <= ybins and zr <= zbins):
+                wx[0] = 1.0/6.0 * (1 - xd)**3
+                wx[1] = 1.0/6.0 * (4 - 6*xd**2 + 3*xd**3)
+                wx[2] = 1.0/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
+                wx[3] = 1.0/6.0 * xd**3
+                wy[0] = 1.0/6.0 * (1 - yd)**3
+                wy[1] = 1.0/6.0 * (4 - 6*yd**2 + 3*yd**3)
+                wy[2] = 1.0/6.0 * (1 + 3*yd + 3*yd**2 - 3*yd**3)
+                wy[3] = 1.0/6.0 * yd**3
+                wz[0] = 1.0/6.0 * (1 - zd)**3
+                wz[1] = 1.0/6.0 * (4 - 6*zd**2 + 3*zd**3)
+                wz[2] = 1.0/6.0 * (1 + 3*zd + 3*zd**2 - 3*zd**3)
+                wz[3] = 1.0/6.0 * yd**3
+                xoffset = xr + shape_supp - 2
+                yoffset = yr + shape_supp - 2
+                zoffset = zr + shape_supp - 2
+                if weights is None:
+                    for xs in xrange(4):
+                        for ys in xrange(4):
+                            for zs in xrange(4):
+                                ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs]
+                else:
+                    for xs in xrange(4):
+                        for ys in xrange(4):
+                            for zs in xrange(4):
                                 ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
 
     return ret[shape_supp:shape_supp+xbins, shape_supp:shape_supp+ybins, shape_supp:shape_supp+zbins], xedges, yedges, zedges
