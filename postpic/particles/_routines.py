@@ -63,6 +63,7 @@ def histogramdd(data, **kwargs_in):
          * 0 - use nearest grid point (NGP)
          * 1 - use tophat shape of width 1 bin
          * 2 - triangular shape (default)
+         * 3 - spline 3 shape
 
     Returns
     -------
