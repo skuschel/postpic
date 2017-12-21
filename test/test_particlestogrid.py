@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel, 2015
+# Copyright Stephan Kuschel, 2015-2017
 
 import unittest
 import postpic.particles._particlestogrid as cf
@@ -81,6 +81,18 @@ class TestHistogram(unittest.TestCase):
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
         self.assertAlmostEqual(np.sum(nph) - totalmass, 0)
         self.assertListEqual(list(npe), list(cfe))
+
+    def test_histogramo3(self):
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), shape=3)
+        # just check that no mass is lost (cfh.base includes ghost cells)
+        totalmass = len(self.data)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogramo3w(self):
+        cfh, cfe = cf.histogram(self.data, bins=100, range=(0.0,1.0), shape=3, weights=self.weights)
+        # just check that no mass is lost (cfh.base includes ghost cells)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
 class TestHistogram2d(unittest.TestCase):
 
@@ -167,6 +179,17 @@ class TestHistogram2d(unittest.TestCase):
         self.assertListEqual(list(npex), list(cfex))
         self.assertListEqual(list(npey), list(cfey))
 
+    def test_histogram2do3(self):
+        cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay,
+                                         bins=(20,30), range=((0,1), (0,2)), shape=3)
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram2do3w(self):
+        cfh, cfex, cfey = cf.histogram2d(self.datax, self.datay, weights=self.weights,
+                                         bins=(20, 30), range=((0,1), (0,2)), shape=3)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 
 class TestHistogram3d(unittest.TestCase):
 
@@ -222,6 +245,18 @@ class TestHistogram3d(unittest.TestCase):
         # check hist and edges
         cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
                                          bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=2)
+        totalmass = np.sum(self.weights)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram3do3(self):
+        cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=3)
+        totalmass = len(self.datax)
+        self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
+
+    def test_histogram3do3w(self):
+        cfh, cfex, cfey, cfez = cf.histogram3d(self.datax, self.datay, self.dataz, weights=self.weights,
+                                         bins=(20,30,40), range=((0,1), (0,2), (0,3)), shape=3)
         totalmass = np.sum(self.weights)
         self.assertAlmostEqual(np.sum(cfh.base) - totalmass, 0)
 

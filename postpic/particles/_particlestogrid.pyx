@@ -118,15 +118,15 @@ def histogram(np.ndarray[np.double_t, ndim=1] data, range=None, int bins=20,
             xd = x - xr + 0.5
             if (xr >= 0.0 and xr <= bins):
                 if weights is None:
-                    ret[xr + shape_supp - 2] += 1.0/6.0 * (1 - xd)**3
-                    ret[xr + shape_supp - 1] += 1.0/6.0 * (4 - 6*xd**2 + 3*xd**3)
-                    ret[xr + shape_supp]     += 1.0/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
-                    ret[xr + shape_supp + 1] += 1.0/6.0 * xd**3
+                    ret[xr + shape_supp - 2] += 1./6. + xd*(-0.5 + (0.5 - xd/6.)*xd)
+                    ret[xr + shape_supp - 1] += 2./3. + (-1 + xd/2.)*xd*xd
+                    ret[xr + shape_supp]     += 1./6 + xd*(0.5 + (0.5 - xd/2.)*xd)
+                    ret[xr + shape_supp + 1] += xd*xd*xd/6.0
                 else:
-                    ret[xr + shape_supp - 2] += weights[i]/6.0 * (1 - xd)**3
-                    ret[xr + shape_supp - 1] += weights[i]/6.0 * (4 - 6*xd**2 + 3*xd**3)
-                    ret[xr + shape_supp]     += weights[i]/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
-                    ret[xr + shape_supp + 1] += weights[i]/6.0 * xd**3
+                    ret[xr + shape_supp - 2] += weights[i] * (1./6. + xd*(-0.5 + (0.5 - xd/6.)*xd))
+                    ret[xr + shape_supp - 1] += weights[i] * (2./3. + (-1 + xd/2.)*xd*xd)
+                    ret[xr + shape_supp]     += weights[i] * (1./6 + xd*(0.5 + (0.5 - xd/2.)*xd))
+                    ret[xr + shape_supp + 1] += weights[i] * (xd*xd*xd/6.0)
     return ret[shape_supp:shape_supp + bins], bin_edges
 
 
@@ -256,14 +256,14 @@ def histogram2d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
             xd = x - xr + 0.5;
             yd = y - yr + 0.5;
             if (xr >= 0 and y >= 0 and xr <= xbins and yr <= ybins):
-                wx[0] = 1.0/6.0 * (1 - xd)**3
-                wx[1] = 1.0/6.0 * (4 - 6*xd**2 + 3*xd**3)
-                wx[2] = 1.0/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
-                wx[3] = 1.0/6.0 * xd**3
-                wy[0] = 1.0/6.0 * (1 - yd)**3
-                wy[1] = 1.0/6.0 * (4 - 6*yd**2 + 3*yd**3)
-                wy[2] = 1.0/6.0 * (1 + 3*yd + 3*yd**2 - 3*yd**3)
-                wy[3] = 1.0/6.0 * yd**3
+                wx[0] = 1./6. + xd*(-0.5 + (0.5 - xd/6.)*xd)
+                wx[1] = 2./3. + (-1 + xd/2.)*xd*xd
+                wx[2] = 1./6 + xd*(0.5 + (0.5 - xd/2.)*xd)
+                wx[3] = xd*xd*xd/6.0
+                wy[0] = 1./6. + yd*(-0.5 + (0.5 - yd/6.)*yd)
+                wy[1] = 2./3. + (-1 + yd/2.)*yd*yd
+                wy[2] = 1./6 + yd*(0.5 + (0.5 - yd/2.)*yd)
+                wy[3] = yd*yd*yd/6.0
                 xoffset = xr + shape_supp - 2
                 yoffset = yr + shape_supp - 2
                 if weights is None:
@@ -420,7 +420,7 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
                             for zs in xrange(3):
                                 ret[xoffset+xs, yoffset+ys, zoffset+zs] += wx[xs] * wy[ys] * wz[zs] * weights[i]
     elif shape in shapes[3]:
-        # Particle shape is spline of order 2 = Triangle
+        # Particle shape is spline of order 3 = spine3
         shape_supp = 3
         # use shape_supp ghost cells on both sides of the domain
         resshape = [b + 2 * shape_supp for b in bins]
@@ -436,18 +436,18 @@ def histogram3d(np.ndarray[np.double_t, ndim=1] datax, np.ndarray[np.double_t, n
             yd = y - yr + 0.5;
             zd = z - zr + 0.5;
             if (xr >= 0 and y >= 0 and zr >= 0 and xr <= xbins and yr <= ybins and zr <= zbins):
-                wx[0] = 1.0/6.0 * (1 - xd)**3
-                wx[1] = 1.0/6.0 * (4 - 6*xd**2 + 3*xd**3)
-                wx[2] = 1.0/6.0 * (1 + 3*xd + 3*xd**2 - 3*xd**3)
-                wx[3] = 1.0/6.0 * xd**3
-                wy[0] = 1.0/6.0 * (1 - yd)**3
-                wy[1] = 1.0/6.0 * (4 - 6*yd**2 + 3*yd**3)
-                wy[2] = 1.0/6.0 * (1 + 3*yd + 3*yd**2 - 3*yd**3)
-                wy[3] = 1.0/6.0 * yd**3
-                wz[0] = 1.0/6.0 * (1 - zd)**3
-                wz[1] = 1.0/6.0 * (4 - 6*zd**2 + 3*zd**3)
-                wz[2] = 1.0/6.0 * (1 + 3*zd + 3*zd**2 - 3*zd**3)
-                wz[3] = 1.0/6.0 * yd**3
+                wx[0] = 1./6. + xd*(-0.5 + (0.5 - xd/6.)*xd)
+                wx[1] = 2./3. + (-1 + xd/2.)*xd*xd
+                wx[2] = 1./6 + xd*(0.5 + (0.5 - xd/2.)*xd)
+                wx[3] = xd*xd*xd/6.0
+                wy[0] = 1./6. + yd*(-0.5 + (0.5 - yd/6.)*yd)
+                wy[1] = 2./3. + (-1 + yd/2.)*yd*yd
+                wy[2] = 1./6 + yd*(0.5 + (0.5 - yd/2.)*yd)
+                wy[3] = yd*yd*yd/6.0
+                wz[0] = 1./6. + zd*(-0.5 + (0.5 - zd/6.)*zd)
+                wz[1] = 2./3. + (-1 + zd/2.)*zd*zd
+                wz[2] = 1./6 + zd*(0.5 + (0.5 - zd/2.)*zd)
+                wz[3] = zd*zd*zd/6.0
                 xoffset = xr + shape_supp - 2
                 yoffset = yr + shape_supp - 2
                 zoffset = zr + shape_supp - 2
