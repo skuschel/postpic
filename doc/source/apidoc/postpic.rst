@@ -12,6 +12,7 @@ Subpackages
 .. toctree::
 
     postpic.datareader
+    postpic.io
     postpic.particles
     postpic.plotting
 
@@ -38,14 +39,6 @@ postpic\.helper module
 ----------------------
 
 .. automodule:: postpic.helper
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-postpic\.io module
-------------------
-
-.. automodule:: postpic.io
     :members:
     :undoc-members:
     :show-inheritance:

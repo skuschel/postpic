@@ -28,16 +28,19 @@ Terminology
 A data field with N numeric points has N 'grid' points,
 but N+1 'grid_nodes' as depicted here:
 
-+---+---+---+---+---+
-|   |   |   |   |   |
-+---+---+---+---+---+
-|   |   |   |   |   |
-+---+---+---+---+---+
-|   |   |   |   |   |
-+---+---+---+---+---+
-  o   o   o   o   o     grid      (coordinates where data is sampled at)
-o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
-|                   |   extent
+.. code-block:: none
+
+  +---+---+---+---+---+
+  |   |   |   |   |   |
+  +---+---+---+---+---+
+  |   |   |   |   |   |
+  +---+---+---+---+---+
+  |   |   |   |   |   |
+  +---+---+---+---+---+
+    o   o   o   o   o     grid      (coordinates where data is sampled at)
+  o   o   o   o   o   o   grid_node (coordinates of grid cell boundaries)
+  |                   |   extent
+
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 

@@ -20,7 +20,33 @@
 |   POSTPIC    |
 +--------------+
 
-The open source particle-in-cell post processor.
+  *The open source particle-in-cell post processor.*
+
+Particle-in-cell simulations are a valuable tool for the simulation of non-equelibrium
+systems in plasma- or astrophysics.
+Such simulations usually produce a large amount of data consisting of electric and magnetic
+field data as well as particle positions and momenta. While there are various PIC codes freely
+available, the task of post-processing -- essentially condensing the large amounts of data
+into small units suitable for plotting routines -- is typically left to each user individually.
+As post-processing may be a time consuming and error-prone process,
+this python package has been developed.
+
+*Postpic* can handle two different types of data:
+
+Field data
+  which is data sampled on a predefined grid, such as electic and magnetic fields, particle- or
+  charge densities, currents, etc.
+  Fields are usually the data, which can be plotted directly.
+  See :class:`postpic.Field`.
+
+Particle data
+  which is data of multiple particles and for each particle positions (`x`, `y`, `z`) and
+  momenta (`px`, `py`, `pz`) are known. Particles usually also have `weight`,
+  `charge`, `time` and a unique `id`.
+  Postpic can transform particle data to field data using the same algorithm and particle shapes,
+  which are used in most PIC Simulations. The particle-to-grid routines are written in C
+  for maximum performance. See :class:`postpic.MultiSpecies`.
+
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 
