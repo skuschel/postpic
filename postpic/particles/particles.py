@@ -1159,11 +1159,11 @@ class ParticleHistory(object):
            list of ids, [list scalar values, list of scalar values, ... ]
         '''
         ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
-        ms.compress(self.ids)
+        ms = ms.compress(self.ids)
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
             scalars[i, :] = ms(scalarfs[i])
-        ids = ms('id')
+        ids = np.asarray(ms('id'), dtype=np.int)
         del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
