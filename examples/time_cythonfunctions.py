@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel 2015
+# Copyright Stephan Kuschel 2015-2018
 #
 
 def main():
@@ -149,17 +149,16 @@ def time_particlescalars():
 def time_particleidfilter():
     import postpic as pp
     import numpy as np
-    import timeit
+    from timeit import default_timer as timer
     pp.chooseCode('dummy')
     dr = pp.readDump(1e6, dimensions=3)
     ms = pp.MultiSpecies(dr, 'electron')
-    totpart = len(ms)
     def timefilter(ms, expr):
-        ms.uncompress()
-        t = timeit.Timer(lambda: ms.filter(expr))
-        tc = t.timeit(number=1)
+        t0 = timer()
+        ms2 = ms.filter(expr)
+        tf = timer()
         print('npart = {:.1e}, fraction_taken = {:6.2f}%, time = {:6.2f}ms, expr: "{}"' \
-              .format(totpart, len(ms)/totpart*100, tc*1e3, expr))
+              .format(len(ms), len(ms2)/len(ms)*100, (tf-t0)*1e3, expr))
     print('')
     print('time to filter to a fraction of the particles by expression')
     timefilter(ms, 'x > 0')
@@ -169,22 +168,21 @@ def time_particleidfilter():
 def time_particleidsort():
     import postpic as pp
     import numpy as np
-    import timeit
+    from timeit import default_timer as timer
     pp.chooseCode('dummy')
     dr = pp.readDump(1e6, dimensions=3)
     ms = pp.MultiSpecies(dr, 'electron')
-    totpart = len(ms)
     def timeid(ms, ids):
-        ms.uncompress()
-        t = timeit.Timer(lambda: ms.compress(ids))
-        tc = t.timeit(number=1)
+        t0 = timer()
+        ms2 = ms.compress(ids)
+        tf = timer()
         print('npart = {:.1e}, fraction_taken ={:6.2f}%, time ={:6.2f}ms' \
-              .format(totpart, len(ms)/totpart*100, tc*1e3))
+              .format(len(ms), len(ms2)/len(ms)*100, (tf-t0)*1e3))
     print('')
     print('time to take a fraction of the particles by their ids')
     timeid(ms, np.arange(100))
-    timeid(ms, np.arange(totpart/20))
-    timeid(ms, np.arange(totpart))
+    timeid(ms, np.arange(len(ms)/20))
+    timeid(ms, np.arange(len(ms)))
 
 if __name__=='__main__':
     main()

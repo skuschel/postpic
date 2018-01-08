@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014-2017
+# Stephan Kuschel 2014-2018
 """
 Particle related routines.
 """
