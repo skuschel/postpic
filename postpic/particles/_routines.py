@@ -29,13 +29,10 @@ import re
 
 particleshapes = ptg.shapes
 
-# Default values for histogramdd function
-histogramdd_defs = {'shape': 2, 'range': None, 'weights': None, 'bins': None}
-
 __all__ = ['histogramdd', 'SpeciesIdentifier']
 
 
-def histogramdd(data, **kwargs_in):
+def histogramdd(data, **kwargs):
     '''
     Creates a histogram of the data. This function has the similar signature and return values as
     `numpy.histogramdd`.
@@ -72,8 +69,14 @@ def histogramdd(data, **kwargs_in):
     edges : list
         A list of D arrays describing the edges for each dimension
     '''
-    kwargs = histogramdd_defs.copy()
-    kwargs.update(kwargs_in)
+    kwshape = kwargs.pop('shape', None)
+    kwshape = 2 if kwshape is None else kwshape  # default value
+    kwrange = kwargs.pop('range', None)
+    kwweights = kwargs.pop('weights', None)
+    kwbins = kwargs.pop('bins', None)
+    if len(kwargs) > 0:
+        raise TypeError("got an unexpected keyword argument {}'".format(kwargs))
+
     try:
         shape = data.shape
         if shape[0] > 3 and len(shape) == 2:  # (N, D) array
@@ -87,49 +90,55 @@ def histogramdd(data, **kwargs_in):
         data = (data, )  # ([1,2,3],)
     if len(data) > 3:
         raise ValueError('Data with len {:} not supported. Maximum is 3D data.'.format(len(data)))
-    if isinstance(kwargs['range'], collections.Iterable) and np.isscalar(kwargs['range'][0]):
-        kwargs['range'] = (kwargs['range'], )
-    if np.isscalar(kwargs['bins']):
-        kwargs['bins'] = (kwargs['bins'], ) * len(data)
-    if kwargs['bins'] is None:
+    if isinstance(kwrange, collections.Iterable) and np.isscalar(kwrange[0]):
+        kwrange = (kwrange, )
+    if np.isscalar(kwbins):
+        kwbins = (kwbins, ) * len(data)
+    if kwbins is None:
         binsdefs = {1: [800],
                     2: [500, 500],
                     3: [200, 200, 200]}
-        kwargs['bins'] = binsdefs[len(data)]
+        kwbins = binsdefs[len(data)]
 
     # data is now (datax, datay, dataz)
     # make sure each is an ndarray. If it is already, this operation is fast.
     data = [np.asarray(d, dtype='float64') for d in data]
-    if kwargs['weights'] is not None:
-        kwargs['weights'] = np.asarray(kwargs['weights'], dtype='float64')
+    if kwweights is not None:
+        kwweights = np.asarray(kwweights, dtype='float64')
     # 1D, 2D, 3D
     ranges = [[None, None] for d in data]
     for ax, d in enumerate(data):
         for i, f in zip([0, 1], [np.min, np.max]):
             try:
-                ranges[ax][i] = kwargs['range'][ax][i]
+                ranges[ax][i] = kwrange[ax][i]
                 if ranges[ax][i] is None:
                     raise TypeError  # catch exception and fill value
                 if not np.isscalar(ranges[ax][i]):
                     # if value can be accessed it must be a scalar value
-                    raise ValueError('range="{}" not properly formatted.'.format(kwargs['range']))
+                    raise ValueError('range="{}" not properly formatted.'.format(kwrange))
             except(TypeError):
                 ranges[ax][i] = f(d)
-    kwargs['range'] = ranges
+    kwrange = ranges
 
     if len(data) == 1:  # ([1,2,3],)
-        kwargs['range'] = kwargs['range'][0]
-        kwargs['bins'] = kwargs['bins'][0]
-        h, xedges = ptg.histogram(data[0], **kwargs)
+        kwrange = kwrange[0]
+        kwbins = kwbins[0]
+        h, xedges = ptg.histogram(data[0],
+                                  range=kwrange, bins=kwbins,
+                                  weights=kwweights, shape=kwshape)
         return h, (xedges,)
     elif len(data) == 2:  # [[1,2,3], [4,5,6]]
         h, xedges, yedges = ptg.histogram2d(data[0],
-                                            data[1], **kwargs)
+                                            data[1],
+                                            range=kwrange, bins=kwbins,
+                                            weights=kwweights, shape=kwshape)
         return h, (xedges, yedges)
     elif len(data) == 3:  # [[1,2,3], [4,5,6], [7,8,9]]
         h, xe, ye, ze = ptg.histogram3d(data[0],
                                         data[1],
-                                        data[2], **kwargs)
+                                        data[2],
+                                        range=kwrange, bins=kwbins,
+                                        weights=kwweights, shape=kwshape)
         return h, (xe, ye, ze)
     else:
         assert False, 'Internal error'

@@ -983,7 +983,11 @@ class MultiSpecies(object):
             the zrange to include into the histogram
             Defaults to None, determins the range by the range of scalars given.
         """
-        optargsh = kwargs.pop('optargsh', {})
+        if 'optargsh' in kwargs:
+            warnings.warn('keyword "optargsh" is deprecated. Use "bins" and "shape" '
+                          'arguments directly on "createField".', category=DeprecationWarning)
+            optargsh = kwargs.pop('optargsh')
+            kwargs.update(optargsh)
         simextent = kwargs.pop('simextent', False)
         simgrid = kwargs.pop('simgrid', False)
         rangex = kwargs.pop('rangex', None)
@@ -991,6 +995,8 @@ class MultiSpecies(object):
         rangez = kwargs.pop('rangez', None)
         weights = kwargs.pop('weights', '1')
         force = kwargs.pop('force', False)
+        bins = kwargs.pop('bins', None)
+        shape = kwargs.pop('shape', None)
         if len(kwargs) > 0:
             raise TypeError("got an unexpected keyword argument {}'".format(kwargs))
 
@@ -1018,9 +1024,9 @@ class MultiSpecies(object):
             for i, sp in enumerate(sps):
                 tmp = self.simgridpoints(getattr(sp, 'symbol', sp))
                 if tmp is not None:
-                    optargsh['bins'][i] = tmp
+                    bins[i] = tmp
         if len(data[0]) == 0:  # no data points. create empy histogram
-            h = np.zeros(optargsh['bins'])
+            h = np.zeros(bins)
 
             def createedges(rangei, n):
                 if rangei is not None:
@@ -1028,13 +1034,13 @@ class MultiSpecies(object):
                 else:
                     return np.linspace(0, 1, n + 1)
 
-            edges = [createedges(r, optargsh['bins'][i]) for i, r in zip(range(len(h)), ranges)]
+            edges = [createedges(r, bins[i]) for i, r in zip(range(len(h)), ranges)]
             return h, edges  # empty histogram: h == 0 everywhere
 
         w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, edges = histogramdd(data,
                                weights=w, range=ranges,
-                               **optargsh)
+                               bins=bins, shape=shape)
         dV = np.prod([edge[1] - edge[0] for edge in edges])
         h /= dV
         return h, edges  # h, (xedges, yedges, zedges)
@@ -1056,6 +1062,16 @@ class MultiSpecies(object):
         title: string, options
             overrides the title. Autocreated if title==None.
             Defaults to None.
+        simgrid : boolean, optional
+            enforces the same grid as used in the simulation.
+            Implies simextent=True. Defaults to False.
+        simextent : boolean, optional
+            enforces, that the axis show the same extent as used in the
+            simulation. Defaults to False.
+        weights : function, optional
+            applies additional weights to the macroparticles, for example
+            'gamma' or 'q' to weight the particle by its charge.
+            Defaults to '1' (no additional weight).
         rangex : list of two values, optional
             the xrange to include into the histogram.
             Defaults to None, determins the range by the range of scalars given.
@@ -1065,6 +1081,14 @@ class MultiSpecies(object):
         rangez : list of two values, optional
             the zrange to include into the histogram.
             Defaults to None, determins the range by the range of scalars given.
+        bins: sequence or int
+            The number of bins to use for each dimension
+        shape: int
+            possible choices are:
+            * 0 - use nearest grid point (NGP)
+            * 1 - use tophat shape of width 1 bin
+            * 2 - triangular shape (default)
+            * 3 - spline 3 shape
         """
         name = kwargs.pop('name', 'distfn')
         title = kwargs.pop('title', None)
