@@ -63,7 +63,7 @@ def main():
         optargsh={'bins': [300,300]}
         for pa in pas:
             # create a Field object nd holding the number density
-            nd = pa.createField('x', 'y', **optargsh, simextent=True)
+            nd = pa.createField('x', 'y', simextent=True, **optargsh)
             # plot the Field object nd
             plotter.plotField(nd, name='NumberDensity')   # plot 4
             # if you like to keep working with the just created number density
@@ -72,7 +72,7 @@ def main():
             print('Shape of number density: {}'.format(arr.shape))
 
             # more advanced: create a field holding the total kinetic energy on grid
-            ekin = pa.createField('x', 'y', weights='Ekin_MeV', **optargsh, simextent=True)
+            ekin = pa.createField('x', 'y', weights='Ekin_MeV', simextent=True, **optargsh)
             # The Field objectes can be used for calculations. Here we use this to
             # calculate the average kinetic energy on grid and plot
             plotter.plotField(ekin / nd, name='Avg Kin Energy (MeV)')  # plot 5

@@ -94,18 +94,18 @@ def main():
             # if we would use the data of a 3D Simulation instead.
 
             # create a Field object nd holding the number density
-            nd = pa.createField('z', 'x', **optargsh, simextent=False)
+            nd = pa.createField('z', 'x', simextent=False, **optargsh)
             # plot the Field object nd
             plotter.plotField(nd, name='NumberDensity')   # plot 4
 
             # create a Field object nd holding the charge density
             qd = pa.createField('z', 'x', weights='charge',
-                                **optargsh, simextent=False)
+                                simextent=False, **optargsh)
             # plot the Field object qd
             plotter.plotField(qd, name='ChargeDensity')   # plot 5
 
             # more advanced: create a field holding the total kinetic energy on grid
-            ekin = pa.createField('z', 'x', weights='Ekin_MeV', **optargsh, simextent=False)
+            ekin = pa.createField('z', 'x', weights='Ekin_MeV', simextent=False, **optargsh)
             # The Field objectes can be used for calculations. Here we use this to
             # calculate the average kinetic energy on grid and plot
             plotter.plotField(ekin / nd, name='Avg Kin Energy (MeV)')  # plot 6

@@ -18,6 +18,8 @@
 # Copyright Stephan Kuschel 2015-2018
 #
 
+from __future__ import division
+
 def main():
     time_histogram()
     time_particlescalars()
