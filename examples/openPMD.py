@@ -94,29 +94,29 @@ def main():
             # if we would use the data of a 3D Simulation instead.
 
             # create a Field object nd holding the number density
-            nd = pa.createField('z', 'x', optargsh=optargsh, simextent=False)
+            nd = pa.createField('z', 'x', **optargsh, simextent=False)
             # plot the Field object nd
             plotter.plotField(nd, name='NumberDensity')   # plot 4
 
             # create a Field object nd holding the charge density
             qd = pa.createField('z', 'x', weights='charge',
-                                optargsh=optargsh, simextent=False)
+                                **optargsh, simextent=False)
             # plot the Field object qd
             plotter.plotField(qd, name='ChargeDensity')   # plot 5
 
             # more advanced: create a field holding the total kinetic energy on grid
-            ekin = pa.createField('z', 'x', weights='Ekin_MeV', optargsh=optargsh, simextent=False)
+            ekin = pa.createField('z', 'x', weights='Ekin_MeV', **optargsh, simextent=False)
             # The Field objectes can be used for calculations. Here we use this to
             # calculate the average kinetic energy on grid and plot
             plotter.plotField(ekin / nd, name='Avg Kin Energy (MeV)')  # plot 6
 
             # use optargsh to force lower resolution
             # plot number density
-            plotter.plotField(pa.createField('z', 'x', optargsh=optargsh), lineoutx=True, lineouty=True)  # plot 7
+            plotter.plotField(pa.createField('z', 'x', **optargsh), lineoutx=True, lineouty=True)  # plot 7
             # plot phase space
-            plotter.plotField(pa.createField('z', 'p', optargsh=optargsh))  # plot 8
-            plotter.plotField(pa.createField('z', 'gamma', optargsh=optargsh))  # plot 9
-            plotter.plotField(pa.createField('z', 'beta', optargsh=optargsh))  # plot 10
+            plotter.plotField(pa.createField('z', 'p', **optargsh))  # plot 8
+            plotter.plotField(pa.createField('z', 'gamma', **optargsh))  # plot 9
+            plotter.plotField(pa.createField('z', 'beta', **optargsh))  # plot 10
 
 
     if True:
