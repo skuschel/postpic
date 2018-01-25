@@ -1867,7 +1867,8 @@ class Field(NDArrayOperatorsMixin):
         self.export(filename)
 
     def __str__(self):
-        return '<Feld "' + self.name + '" ' + str(self.shape) + '>'
+        s = '<Field "{:}" {:}>'
+        return s.format(str(self.name), str(self.shape))
 
     def _extent_to_slices(self, extent):
         if not self.dimensions * 2 == len(extent):

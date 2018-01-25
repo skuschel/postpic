@@ -45,5 +45,9 @@ class TestMultiSpecies(unittest.TestCase):
         lenc = len(p2)
         self.assertEqual(lenc, 3)
 
+    def test_repr(self):
+        print(self.p)
+        print(self.p._ssas[0])
+
 if __name__ == '__main__':
     unittest.main()

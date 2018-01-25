@@ -266,9 +266,8 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
     def name(self, val):
         self._name = str(val) if bool(val) else None
 
-    def __str__(self):
-        return '<Dumpreader initialized with "' \
-               + str(self.dumpidentifier) + '">'
+    def __repr__(self):
+        return '<Dumpreader at "{:}">'.format(str(self.dumpidentifier))
 
     def __eq__(self, other):
         """
@@ -336,9 +335,9 @@ class Simulationreader_ifc(collections.Sequence):
     def __len__(self):
         pass
 
-    def __str__(self):
-        return '<Simulationreader initialized with "' \
-               + str(self.simidentifier) + '">'
+    def __repr__(self):
+        s = '<Simulationreader initialized with "{:}" ({:} dumps)'
+        return s.format(str(self.simidentifier), len(self))
 
     # Higher Level Functions for usability
 

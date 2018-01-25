@@ -216,8 +216,8 @@ class Sdfreader(Dumpreader_ifc):
         ret.sort()
         return ret
 
-    def __str__(self):
-        return '<Sdfreader at "' + str(self.dumpidentifier) + '">'
+    def __repr__(self):
+        return '<Sdfreader at "{:}">'.format(self.dumpidentifier)
 
 
 class Visitreader(Simulationreader_ifc):
@@ -247,5 +247,5 @@ class Visitreader(Simulationreader_ifc):
     def _getDumpreader(self, index):
         return self.dumpreadercls(self._dumpfiles[index])
 
-    def __str__(self):
-        return '<Visitreader at "' + self.visitfile + '">'
+    def __repr__(self):
+        return '<Visitreader at "{:}" ({:} dumps)>'.format(self.visitfile, len(self))

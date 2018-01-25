@@ -111,10 +111,15 @@ class _SingleSpecies(object):
     def dumpreader(self):
         return self._dumpreader
 
-    def __str__(self):
-        return '<_SingleSpecies ' + str(self.species) \
-            + ' at ' + str(self._dumpreader) \
-            + '(' + str(len(self)) + ')>'
+    def __repr__(self):
+        n = len(self)
+        i = self.initial_npart()
+        if n == i:
+            s = '<SingleSpecies "{}" ({}) from "{}">'
+            return s.format(str(self.species), n, self.dumpreader)
+        else:
+            s = '<SingleSpecies "{}" ({}/{} - {:.2%}) from "{}">'
+            return s.format(str(self.species), n, i, n/i, self.dumpreader)
 
     def _readatomic(self, key):
         '''
@@ -320,15 +325,15 @@ class MultiSpecies(object):
         ret._compresslog = copy.copy(self._compresslog)
         return ret
 
-    def __str__(self):
+    def __repr__(self):
         n = len(self)
         i = self.initial_npart
         if n == i:
-            return '<MultiSpecies including "' + str(self.species) + '"' \
-                + '({})>'.format(n)
+            s = '<MultiSpecies including all "{:}" ({:})>'
+            return s.format(str(self.species), n)
         else:
-            return '<MultiSpecies including "' + str(self.species) + '"' \
-                + '({}/{} -- {:.2f}%)>'.format(n, i, n/i*100)
+            s = '<MultiSpecies including "{:}" ({}/{} - {:.2%})>'
+            return s.format(str(self.species), n, i, n/i)
 
     @property
     def dumpreader(self):
