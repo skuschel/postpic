@@ -80,15 +80,23 @@ class Sdfreader(Dumpreader_ifc):
             raise ImportError('Upgrade sdf package to 2.2.0 or higher.')
         if not os.path.isfile(sdffile):
             raise IOError('File "' + str(sdffile) + '" doesnt exist.')
-        self._data = sdf.read(sdffile, dict=True)
+        self._sdffile = sdffile
+        self._sdfreader = sdf.read(sdffile, dict=True)
 
 # --- Level 0 methods ---
 
     def keys(self):
-        return list(self._data.keys())
+        return list(self._sdfreader.keys())
 
     def __getitem__(self, key):
-        return self._data[key]
+        return self._sdfreader[key]
+
+    def dumpsize(self):
+        '''
+        returns the file size of the sdf file in bytes.
+        '''
+        import os
+        return os.path.getsize(self._sdffile)
 
 # --- Level 1 methods ---
 
@@ -209,7 +217,7 @@ class Sdfreader(Dumpreader_ifc):
         Returns all Keys starting with "Derived/".
         '''
         ret = []
-        for key in list(self._data.keys()):
+        for key in list(self.keys()):
             r = re.match('Derived/[\w/ ]*', key)
             if r:
                 ret.append(r.group(0))
