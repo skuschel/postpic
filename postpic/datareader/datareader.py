@@ -272,8 +272,25 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
     def __eq__(self, other):
         """
         two dumpreader are equal, if they represent the same dump.
+
+        Assuming the dumpidentifier are paths to the dumpfiles, his may give a "False",
+        even if they both point to the same file:
+        * ./path/to/file
+        * path/to/file
+        * /absolute/path/to/file
+
+        Therefore this functions tries to interpret the dumpidentifier as paths/to/files
+        and checks if they point to the same file.
         """
-        return self.dumpidentifier == other.dumpidentifier
+        import os.path as osp
+        s1 = str(self.dumpidentifier)
+        s2 = str(other.dumpidentifier)
+        if osp.isfile(s1) and osp.isfile(s2):
+            # osp.samefile available under Windows since python 3.2
+            return osp.samefile(s1, s2)
+        else:
+            # seems to be something else than a path to a file
+            return self.dumpidentifier == other.dumpidentifier
 
 
 class Simulationreader_ifc(collections.Sequence):
