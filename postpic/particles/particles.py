@@ -178,41 +178,52 @@ class _SingleSpecies(object):
         cfintospectrometer.name = '< 30mrad offaxis'
         pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
         2)
-        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
+        condtition = [7, 2000, 4, 5, 91, ... , 765, 809]
         condition can be a list of arbitraty length, so only the particles
         with the ids listed here are kept.
+
+        **kwargs
+        --------
+        name -- name the condition. This can later be reviewed by calling 'self.compresslog()'
         """
         condition = np.asarray(condition)
         if condition.dtype is np.dtype('bool'):
             # Case 1:
             # condition is list of boolean values specifying particles to use
-            if not len(self) == len(condition):
-                raise ValueError('number of particles ({:7n}) has to match'
-                                 'length of condition ({:7n})'
-                                 ''.format(len(self), len(condition)))
-            ret = copy.copy(self)
-            if ret._compressboollist is None:
-                ret._compressboollist = condition
-            else:
-                ret._compressboollist[ret._compressboollist] = condition
-            for key in ret._cache:
-                if ret._cache[key].shape is not ():
-                    ret._cache[key] = ret._cache[key][condition]
-            ret.compresslog = np.append(self.compresslog, name)
-            return ret
+            ret = self._compress_bool(condition)
         else:
             # Case 2:
             # condition is list of particle IDs to use
-            condition = np.asarray(condition, dtype='int')
-            # same as
-            # bools = np.array([idx in condition for idx in self.ID()])
-            # but benchmarked to be 1500 times faster :)
-            condition.sort()
-            ids = self.id()
-            idx = np.searchsorted(condition, ids)
-            idx[idx == len(condition)] = 0
-            bools = condition[idx] == ids
-            return self.compress(bools, name=name)
+            ret = self._compress_int(condition)
+        ret.compresslog = np.append(self.compresslog, name)
+        return ret
+
+    def _compress_bool(self, condition):
+        if not len(self) == len(condition):
+            raise ValueError('number of particles ({:7n}) has to match'
+                             'length of condition ({:7n})'
+                             ''.format(len(self), len(condition)))
+        ret = copy.copy(self)
+        if ret._compressboollist is None:
+            ret._compressboollist = condition
+        else:
+            ret._compressboollist[ret._compressboollist] = condition
+        for key in ret._cache:
+            if ret._cache[key].shape is not ():
+                ret._cache[key] = ret._cache[key][condition]
+        return ret
+
+    def _compress_int(self, condition):
+        condition = np.asarray(condition, dtype='int')
+        # same as
+        # bools = np.array([idx in condition for idx in self.ID()])
+        # but benchmarked to be 1500 times faster :)
+        condition.sort()
+        ids = self.id()
+        idx = np.searchsorted(condition, ids)
+        idx[idx == len(condition)] = 0
+        bools = condition[idx] == ids
+        return self._compress_bool(bools)
 
     def uncompress(self):
         """
@@ -515,30 +526,8 @@ class MultiSpecies(object):
         ret._compresslog = np.append(self._compresslog, str(condition))
         return ret
 
+    @append_doc_of(_SingleSpecies.compress)
     def compress(self, condition, name='unknown condition'):
-        """
-        works like numpy.compress.
-        Returns a new MultiSpecies instance.
-
-        Additionaly you can specify a name, that gets saved in the compresslog.
-
-        condition has to be one out of:
-        1)
-        condition =  [True, False, True, True, ... , True, False]
-        condition is a list of length N, specifing which particles to keep.
-        Example:
-        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
-        cfintospectrometer.name = '< 30mrad offaxis'
-        pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
-        2)
-        condition = [1, 2, 4, 5, 9, ... , 805, 809]
-        condition can be a list of arbitraty length, so only the particles
-        with the ids listed here are kept.
-
-        **kwargs
-        --------
-        name -- name the condition. This can later be reviewed by calling 'self.compresslog()'
-        """
         condition = np.asarray(condition)
         i = 0
         ret = copy.copy(self)
