@@ -104,7 +104,8 @@ class _SingleSpecies(object):
         ret.__dict__.update(self.__dict__)
         # the content of _cache will be updated in the compress function,
         # But the copy needs its own dictionary
-        ret._cache = copy.copy(self._cache)
+        for k in ['_cache', '_compressboollist', 'compresslog']:
+            ret.__dict__[k] = copy.copy(self.__dict__[k])
         return ret
 
     @property

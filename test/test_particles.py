@@ -49,5 +49,18 @@ class TestMultiSpecies(unittest.TestCase):
         print(self.p)
         print(self.p._ssas[0])
 
+    def test_multifilter(self):
+        l0 = len(self.p)
+        s1 = self.p.filter('y>0')
+        l1 = len(s1)
+        s2 = s1.filter('x>0')
+        l2 = len(s2)
+        s3 = s2.filter('px>0')
+        l3 = len(s3)
+        self.assertEqual(len(self.p), l0)
+        self.assertEqual(len(s1), l1)
+        self.assertEqual(len(s2), l2)
+        self.assertEqual(len(s3), l3)
+
 if __name__ == '__main__':
     unittest.main()
