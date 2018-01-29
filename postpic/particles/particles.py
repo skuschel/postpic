@@ -503,22 +503,37 @@ class MultiSpecies(object):
     # --- Operator overloading
 
     def __add__(self, other):  # self + other
+        '''
+        Operator overloading for the ``+`` operator.
+
+        :returns: A new MultiSpecies object containing the combined collection
+          of particles.
+
+        .. note:: Particles present in ``self`` and ``other`` will be present twice in the
+          returned object!
+        '''
         ret = copy.copy(self)
         ret += other
         return ret
 
     def __iadd__(self, other):  # self += other
         '''
-        adding MultiSpecies should give the feeling as if you were adding
-        their particle lists. Thats why there is no append function.
+        Operator overloading for the ``+=`` operator.
+        Adding MultiSpecies should give the feeling as if you were adding
+        their particle lists. That is why there is no append function.
         Compare those outputs (numpy.array handles that differently!):
-        a=[1,2,3]; a.append([4,5]); print a
-        [1,2,3,[4,5]]
-        a=[1,2,3]; a += [4,5]; print a
-        [1,2,3,4,5]
-        This function modifies the current object. Same as
-        a = [1,2]; b = a; b+=[7,8]; print(a,b)
-        [1, 2, 7, 8] [1, 2, 7, 8]
+
+        >>> a=[1,2,3]; a.append([4,5]); print a
+        >>> [1,2,3,[4,5]]
+        >>> a=[1,2,3]; a += [4,5]; print a
+        >>> [1,2,3,4,5]
+
+        This function modifies the current object. Same behaviour as
+
+        >>> a = [1,2]; b = a; b+=[7,8]; print(a,b)
+        >>> [1, 2, 7, 8] [1, 2, 7, 8]
+
+        .. seealso:: :meth:`__add__`
         '''
         for ssa in other._ssas:
             self._ssas.append(copy.copy(ssa))
