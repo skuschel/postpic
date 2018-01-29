@@ -46,7 +46,17 @@ extensions = ['sphinx.ext.autodoc',
 
 
 # private-members, special-members
-autodoc_default_flags = ['members', 'inherited_members']
+autodoc_default_flags = ['members', 'inherited_members', 'special-members', 'show-inheritance']
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    exclusions = ('__weakref__', '__doc__', '__module__', '__dict__',
+                  '__abstractmethods__', '__hash__', '__init__',
+                  '__len__', '__str__', '__repr__')
+    exclude = name in exclusions
+    return skip or exclude
+
+def setup(app):
+    app.connect('autodoc-skip-member', autodoc_skip_member)
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
