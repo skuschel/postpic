@@ -349,7 +349,7 @@ class Axis(object):
 
     def __str__(self):
         s = '<Axis "{}" ({} grid points from {} to {})>'
-        return s.format(str(self.name), str(len(self)), *self.extent)
+        return s.format(self.name, len(self), *self.extent)
 
     __repr__ = __str__
 
@@ -1868,7 +1868,7 @@ class Field(NDArrayOperatorsMixin):
 
     def __str__(self):
         s = '<Field "{:}" {:}>'
-        return s.format(str(self.name), str(self.shape))
+        return s.format(self.name, self.shape)
 
     def _extent_to_slices(self, extent):
         if not self.dimensions * 2 == len(extent):

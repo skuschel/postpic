@@ -71,6 +71,8 @@ def histogramdd(data, **kwargs):
     '''
     kwshape = kwargs.pop('shape', None)
     kwshape = 2 if kwshape is None else kwshape  # default value
+    # default value need to be set separately, such that calling the function
+    # with `shape=None` or the shape argument not given yields the same result.
     kwrange = kwargs.pop('range', None)
     kwweights = kwargs.pop('weights', None)
     kwbins = kwargs.pop('bins', None)

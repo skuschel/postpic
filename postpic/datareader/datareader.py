@@ -267,20 +267,22 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
         self._name = str(val) if bool(val) else None
 
     def __repr__(self):
-        return '<Dumpreader at "{:}">'.format(str(self.dumpidentifier))
+        return '<Dumpreader at "{:}">'.format(self.dumpidentifier)
 
     def __eq__(self, other):
         """
-        two dumpreader are equal, if they represent the same dump.
+        Two dumpreader are equal, if they represent the same dump.
 
-        Assuming the dumpidentifier are paths to the dumpfiles, his may give a "False",
-        even if they both point to the same file:
+        Assuming both dumpidentifier are paths to the dumpfiles, simple string comparison
+        may give a "False",
+        although they both point to the same file:
         * ./path/to/file
         * path/to/file
         * /absolute/path/to/file
 
-        Therefore this functions tries to interpret the dumpidentifier as paths/to/files
-        and checks if they point to the same file.
+        Therefore this functions tries to interpret the dumpidentifier as paths/to/files.
+        In case this is successful and both files exist,
+        the function checks if they point to the same file.
         """
         import os.path as osp
         s1 = str(self.dumpidentifier)
@@ -354,7 +356,7 @@ class Simulationreader_ifc(collections.Sequence):
 
     def __repr__(self):
         s = '<Simulationreader initialized with "{:}" ({:} dumps)'
-        return s.format(str(self.simidentifier), len(self))
+        return s.format(self.simidentifier, len(self))
 
     # Higher Level Functions for usability
 

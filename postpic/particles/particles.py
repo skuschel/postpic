@@ -117,10 +117,10 @@ class _SingleSpecies(object):
         i = self.initial_npart()
         if n == i:
             s = '<SingleSpecies "{}" ({}) from "{}">'
-            return s.format(str(self.species), n, self.dumpreader)
+            return s.format(self.species, n, self.dumpreader)
         else:
             s = '<SingleSpecies "{}" ({}/{} - {:.2%}) from "{}">'
-            return s.format(str(self.species), n, i, n/i, self.dumpreader)
+            return s.format(self.species, n, i, n/i, self.dumpreader)
 
     def _readatomic(self, key):
         '''
@@ -359,10 +359,10 @@ class MultiSpecies(object):
         i = self.initial_npart
         if n == i:
             s = '<MultiSpecies including all "{:}" ({:})>'
-            return s.format(str(self.species), n)
+            return s.format(self.species, n)
         else:
             s = '<MultiSpecies including "{:}" ({}/{} - {:.2%})>'
-            return s.format(str(self.species), n, i, n/i)
+            return s.format(self.species, n, i, n/i)
 
     @property
     def dumpreader(self):
