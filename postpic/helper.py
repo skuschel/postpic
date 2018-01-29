@@ -975,7 +975,8 @@ def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
     return itertools.islice(gen, nsteps)
 
 
-def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, **kwargs):
+def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0,
+                          **kwargs):
     '''
     'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
 
@@ -997,6 +998,9 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
 
     If the given `value` differs from these defaults, an initial propagation with moving window
     will be performed, such that the desired plane lies in the default position.
+
+    t_input specifies the point in time at which the input field or kspace is given. This is used
+    to specify the time axis of the output fields.
 
     For example `axis='x'` and `value=0.0` specifies the 'x=0.0' plane while `dir=1` specifies
     propagation towards positive 'x' values. The 'x' axis starts at 2e-5 and ends at 6e-5 with
@@ -1065,14 +1069,14 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
             r = complex_field.axes[axis].grid[0]
 
         # do propagating of initial_dt such that the measurement plane is at `value`
-        initial_dt = (value-r) / PhysicalConstants.c
+        initial_dt = dir * (value-r) / PhysicalConstants.c
 
     kspace = kspace_propagate(kspace, initial_dt, **kwargs)
 
     # setup a generator for the propagated kspaces
     kwargs['nsteps'] = len(complex_field.axes[axis])
     kwargs['move_window'] = False
-    kwargs['yield_zeroth_step'] = False
+    kwargs['yield_zeroth_step'] = True
     gen = kspace_propagate(kspace, dt, **kwargs)
 
     # initialize an empty matrix
@@ -1089,7 +1093,9 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
 
     k_transverse_tprofile = kspace.replace_data(newmat)
     t_axis = datahandling.Axis(name='t', unit='s',
-                               grid=np.linspace(0, (N-1)*dt, N))
+                               grid=np.linspace(t_input + initial_dt,
+                                                t_input + initial_dt + (N-1)*dt,
+                                                N))
     k_transverse_tprofile.setaxisobj(axis, t_axis)
     k_transverse_tprofile.axes_transform_state[axis] = False
     k_transverse_tprofile.transformed_axes_origins[axis] = None
