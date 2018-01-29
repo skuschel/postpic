@@ -1074,7 +1074,7 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
     kspace = kspace_propagate(kspace, initial_dt, **kwargs)
 
     # setup a generator for the propagated kspaces
-    kwargs['nsteps'] = len(complex_field.axes[axis])-1
+    kwargs['nsteps'] = len(complex_field.axes[axis])
     kwargs['move_window'] = False
     kwargs['yield_zeroth_step'] = True
     gen = kspace_propagate(kspace, dt, **kwargs)

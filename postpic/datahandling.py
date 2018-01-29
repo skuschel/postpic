@@ -884,11 +884,11 @@ class Field(NDArrayOperatorsMixin):
 
         do_unwrap_phase: True, if skimage.restoration.unwrap_phase should be applied to data
         '''
-        phase = np.angle(self.matrix)
+        phase = np.angle(self)
         if do_unwrap_phase:
             phase = unwrap_phase(phase)
         ret = self.replace_data(phase)
-        ret.name = r'$\varphi$'
+        ret.name = r'$\varphi$({})'.format(self.name)
         ret.unit = r'rad'
         return ret
 
