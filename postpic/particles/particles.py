@@ -156,8 +156,15 @@ class _SingleSpecies(object):
 
     def filter(self, condition, name=None):
         '''
-        like compress, but takes a ScalarProperty object instead which is required
-        to evalute to a boolean list.
+        like :meth:`compress`, but takes a ScalarProperty object instead which is required
+        to evalute to a boolean list. Example:
+
+        >>> ms2 = ms.filter('gamma > 12')
+
+        Parameters
+        ----------
+        condition: str
+          A string, which can also be used at `ms(condition)` and evaluates
         '''
         cond = self(condition)
         if name is None:
@@ -168,23 +175,34 @@ class _SingleSpecies(object):
         """
         works like numpy.compress.
         Additionaly you can specify a name, that gets saved in the compresslog.
+        Returns a new MultiSpecies instance. `compress` gives you a lot of control,
+        but in most cases :meth:`filter` will be sufficient and keeps your code more readable.
 
-        condition has to be one out of:
-        1)
-        condition =  [True, False, True, True, ... , True, False]
-        condition is a list of length N, specifing which particles to keep.
-        Example:
-        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
-        cfintospectrometer.name = '< 30mrad offaxis'
-        pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
-        2)
-        condtition = [7, 2000, 4, 5, 91, ... , 765, 809]
-        condition can be a list of arbitraty length, so only the particles
-        with the ids listed here are kept.
+        Parameters
+        ----------
+        condition: 1D numpy array
+          Condition can be one out of two choices:
 
-        **kwargs
-        --------
-        name -- name the condition. This can later be reviewed by calling 'self.compresslog()'
+          * `condition =  [True, False, True, True, ... , True, False]`
+
+            condition is a list of length N, specifing which particles to keep. The length
+            of the list must be equal to the length of the MultiSpecies instance,
+            otherwise a ValueError is raised.
+            Example:
+
+            >>> cfintospectrometer = lambda ms: ms('abs(angle_xaxis) < 30e-3')
+            >>> ms2 = ms.compress(cfintospectrometer(ms), name='< 30mrad offaxis')
+
+            Consider using :meth:`filter` instead.
+
+          * `condtition = [7, 2000, 4, 5, 91, ... , 765, 809]`
+
+            condition can be a list of arbitraty length. Only the particles
+            with the ids listed here will be kept.
+
+        name: str, optional
+          an optional name of the condition. This can later be reviewed by
+          calling 'self.compresslog()'
         """
         condition = np.asarray(condition)
         if condition.dtype is np.dtype('bool'):
@@ -263,11 +281,10 @@ class _SingleSpecies(object):
         # sp MUST be ScalarProperty
         # this docsting is forwared to __call__
         '''
-        Variable resolution order:
-        --------------------------
-        1. try to find the value as a atomic particle property.
-        2. try to find the value as a defined particle property in `particle_scalars`.
-        3. if not found look for an equally named attribute in `scipy.constants`.
+        Variable resolution order
+          1. try to find the value as a atomic particle property.
+          2. try to find the value as a defined particle property in ``particle_scalars``.
+          3. if not found look for an equally named attribute in ``scipy.constants``.
         '''
         _vars = dict() if _vars is None else _vars
         expr = sp.expr
@@ -509,14 +526,8 @@ class MultiSpecies(object):
 
     # --- compress related functions ---
 
+    @append_doc_of(_SingleSpecies.filter)
     def filter(self, condition, name=None):
-        '''
-        like compress, but takes a ScalarProperty or a str, which are required to
-        evaluate to a boolean list to filter particles. This is the preferred method to
-        filter particles by a value of their property.
-
-        Returns a new MultiSpecies instance.
-        '''
         if isinstance(condition, ScalarProperty):
             sp = condition
         else:
@@ -545,13 +556,9 @@ class MultiSpecies(object):
 
     def compressfn(self, conditionf, name='unknown condition'):
         '''
-        like "compress", but accepts a function.
+        like :meth:`compress`, but accepts a function.
 
         Returns a new MultiSpecies instance.
-
-        **kwargs
-        --------
-        name -- name the condition.
         '''
         if hasattr(conditionf, 'name'):
             name = conditionf.name
@@ -560,7 +567,7 @@ class MultiSpecies(object):
     def uncompress(self):
         '''
         Returns a new MultiSpecies instance, with all previous calls of
-        "compress" or "filter" undone.
+        :meth:`compress` or :meth:`filter` undone.
         '''
         ret = copy.copy(self)
         ret._compresslog = []
@@ -584,18 +591,19 @@ class MultiSpecies(object):
         This is **only** function to actually access the data. Every other function
         which allows data access must call this one internally!
 
-        Supported Types:
-        ----------------
-        * ScalarProperty
-        * str: will be converted to a ScalarProperty by particle_scalars.__call__.
-               Therefore known quantities will be recognized
-        * callable, that acts on the MultiSpecies object. This will work, but
-          maybe removed in a future release.
+        Supported types
+          * ScalarProperty
+          * str: will be converted to a ScalarProperty by particle_scalars.__call__.
+            Therefore known quantities will be recognized
+          * callable, which acts on the MultiSpecies object. This will work, but
+            maybe removed in a future release.
+
+        The list of known particle scalars can be accessed by
+        ``postpic.particle_scalars``.
 
         Examples
-        --------
-        self('x')
-        self('sqrt(px**2 + py**2 + pz**2)')
+          * ``self('x')``
+          * ``self('sqrt(px**2 + py**2 + pz**2)')``
         '''
         if isinstance(expr, ScalarProperty):
             # best case
