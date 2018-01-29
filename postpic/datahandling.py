@@ -878,6 +878,20 @@ class Field(NDArrayOperatorsMixin):
     def angle(self):
         return self.replace_data(np.angle(self))
 
+    def phase(self, do_unwrap_phase=True):
+        '''
+        Returns the (unwrapped) phase of the complex Field.
+
+        do_unwrap_phase: True, if skimage.restoration.unwrap_phase should be applied to data
+        '''
+        phase = np.angle(self.matrix)
+        if do_unwrap_phase:
+            phase = unwrap_phase(phase)
+        ret = self.replace_data(phase)
+        ret.name = r'$\varphi$'
+        ret.unit = r'rad'
+        return ret
+
     def conj(self):
         return np.conj(self)
 
