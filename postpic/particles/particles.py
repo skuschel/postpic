@@ -249,6 +249,21 @@ class _SingleSpecies(object):
         """
         return type(self)(self.dumpreader, self.species)
 
+    def __invert__(self):
+        '''
+        inverts which particles have been taken and which have not.
+        '''
+        ret = copy.copy(self)
+        ret._cache = {}  # clear cache
+        if self._compressboollist is None:
+            ret._compressboollist = np.asarray(False)
+        elif self._compressboollist.shape is () and bool(self._compressboollist) is False:
+            ret._compressboollist = None
+        else:
+            ret._compressboollist = ~self._compressboollist
+        ret.compresslog = np.append(self.compresslog, 'inverted')
+        return ret
+
     # --- Only very basic functions
 
     def __len__(self):  # = number of particles
@@ -567,7 +582,16 @@ class MultiSpecies(object):
         ret._compresslog = np.append(self._compresslog, name)
         return ret
 
-    # --- user friendly functions
+    def __invert__(self):
+        '''
+        invert the selection of particles.
+        '''
+        ret = copy.copy(self)
+        ret._ssas = [~ssa for ssa in self._ssas]
+        ret._compresslog = np.append(self._compresslog, 'inverted')
+        return ret
+
+    # --- other user friendly functions
 
     def compressfn(self, conditionf, name='unknown condition'):
         '''

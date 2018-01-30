@@ -62,5 +62,21 @@ class TestMultiSpecies(unittest.TestCase):
         self.assertEqual(len(s2), l2)
         self.assertEqual(len(s3), l3)
 
+    def test_invert(self):
+        l0 = len(self.p)
+        sgtr = self.p.filter('y>0')
+        lgtr = len(sgtr)
+        sless = self.p.filter('y<=0')
+        lless = len(sless)
+        self.assertEqual(lgtr + lless, l0)
+        self.assertEqual(lgtr, len(~sless))
+        self.assertEqual(lless, len(~sgtr))
+        self.assertEqual(lgtr, len(~~sgtr))
+
+    def test_invert2(self):
+        l0 = len(self.p)
+        self.assertEqual(len(~self.p), 0)
+        self.assertEqual(len(~~self.p), l0)
+
 if __name__ == '__main__':
     unittest.main()
