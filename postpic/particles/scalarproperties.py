@@ -127,14 +127,12 @@ class ScalarPropertyContext(collections.Mapping):
             raise ValueError('Impossible to add the anonymous ScalarProperty {}'.format(str(sp)))
         self._mapping.update({sp.symbol: sp})
 
-    def __str__(self):
+    def __repr__(self):
         # order alphabetically to increase readability
         scalars = sorted(list(self))
         s = [str(k) + ' = ' + self[k].expr for k in scalars]
         s.append('--> {} known particle scalars.'.format(len(s)))
         return '\n'.join(s)
-
-    __repr__ = __str__
 
     def remove(self, symbol):
         self._mapping.pop(symbol)

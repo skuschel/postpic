@@ -8,11 +8,13 @@
 * `postpic.Field` method `mean` has now an interface matching `ndarray.mean`. This means that, if the `axis` argument is not given, it averages across all axes instead the last axis.
 * `postpic.Field.map_coordinates` applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
 In your code you will need to turn calls to `Field.transform` into calls to `Field.map_coordinates` and set the keyword argument `preserve_integral=False` to get the old behaviour.
+* `postpic.MultiSpecies.createField` has now keyword arguments (`bins`, `shape`), which replace the corresponding entries from the `optargsh` dictionary. The use of the`optargsh` keyword argument has been deprecated.
 * The functions `MultiSpecies.compress`, `MultiSpecies.filter`, `MultiSpecies.uncompress` and `ParticleHistory.skip` return a new object now. Before this release, they modified the current object. Assuming  `ms` is a `MultiSpecies` object, the corresponding adjustemens read:<br>
 old: `ms.filter('gamma > 2')`<br>
 new: `ms = ms.filter('gamma > 2')`
 
 **Other improvements and new features**
+* Overload of the `~` (invert) operator on `postpic.MultiSpecies`. If `ms` is a MultiSpecies object with filtered particles (created by the use of `compress` or `filter`), then `~ms` inverts the selection of particles.
 * `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files and `.vtk` files in addition.
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
 * `postpic` has a new function `unstagger_fields` that will take a set of staggered fields and returns the fields after removing the stagger

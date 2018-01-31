@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014-2017
+# Stephan Kuschel 2014-2018
 """
 Particle related routines.
 """
@@ -104,17 +104,23 @@ class _SingleSpecies(object):
         ret.__dict__.update(self.__dict__)
         # the content of _cache will be updated in the compress function,
         # But the copy needs its own dictionary
-        ret._cache = copy.copy(self._cache)
+        for k in ['_cache', '_compressboollist', 'compresslog']:
+            ret.__dict__[k] = copy.copy(self.__dict__[k])
         return ret
 
     @property
     def dumpreader(self):
         return self._dumpreader
 
-    def __str__(self):
-        return '<_SingleSpecies ' + str(self.species) \
-            + ' at ' + str(self._dumpreader) \
-            + '(' + str(len(self)) + ')>'
+    def __repr__(self):
+        n = len(self)
+        i = self.initial_npart()
+        if n == i:
+            s = '<SingleSpecies "{}" ({}) from "{}">'
+            return s.format(self.species, n, self.dumpreader)
+        else:
+            s = '<SingleSpecies "{}" ({}/{} - {:.2%}) from "{}">'
+            return s.format(self.species, n, i, n/i, self.dumpreader)
 
     def _readatomic(self, key):
         '''
@@ -150,8 +156,15 @@ class _SingleSpecies(object):
 
     def filter(self, condition, name=None):
         '''
-        like compress, but takes a ScalarProperty object instead which is required
-        to evalute to a boolean list.
+        like :meth:`compress`, but takes a ScalarProperty object instead which is required
+        to evalute to a boolean list. Example:
+
+        >>> ms2 = ms.filter('gamma > 12')
+
+        Parameters
+        ----------
+        condition: str
+          A string, which can also be used at `ms(condition)` and evaluates
         '''
         cond = self(condition)
         if name is None:
@@ -162,57 +175,94 @@ class _SingleSpecies(object):
         """
         works like numpy.compress.
         Additionaly you can specify a name, that gets saved in the compresslog.
+        Returns a new MultiSpecies instance. `compress` gives you a lot of control,
+        but in most cases :meth:`filter` will be sufficient and keeps your code more readable.
 
-        condition has to be one out of:
-        1)
-        condition =  [True, False, True, True, ... , True, False]
-        condition is a list of length N, specifing which particles to keep.
-        Example:
-        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
-        cfintospectrometer.name = '< 30mrad offaxis'
-        pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
-        2)
-        condtition = [1, 2, 4, 5, 9, ... , 805, 809]
-        condition can be a list of arbitraty length, so only the particles
-        with the ids listed here are kept.
+        Parameters
+        ----------
+        condition: 1D numpy array
+          Condition can be one out of two choices:
+
+          * `condition =  [True, False, True, True, ... , True, False]`
+
+            condition is a list of length N, specifing which particles to keep. The length
+            of the list must be equal to the length of the MultiSpecies instance,
+            otherwise a ValueError is raised.
+            Example:
+
+            >>> cfintospectrometer = lambda ms: ms('abs(angle_xaxis) < 30e-3')
+            >>> ms2 = ms.compress(cfintospectrometer(ms), name='< 30mrad offaxis')
+
+            Consider using :meth:`filter` instead.
+
+          * `condtition = [7, 2000, 4, 5, 91, ... , 765, 809]`
+
+            condition can be a list of arbitraty length. Only the particles
+            with the ids listed here will be kept.
+
+        name: str, optional
+          an optional name of the condition. This can later be reviewed by
+          calling 'self.compresslog()'
         """
         condition = np.asarray(condition)
         if condition.dtype is np.dtype('bool'):
             # Case 1:
             # condition is list of boolean values specifying particles to use
-            if not len(self) == len(condition):
-                raise ValueError('number of particles ({:7n}) has to match'
-                                 'length of condition ({:7n})'
-                                 ''.format(len(self), len(condition)))
-            ret = copy.copy(self)
-            if ret._compressboollist is None:
-                ret._compressboollist = condition
-            else:
-                ret._compressboollist[ret._compressboollist] = condition
-            for key in ret._cache:
-                if ret._cache[key].shape is not ():
-                    ret._cache[key] = ret._cache[key][condition]
-            ret.compresslog = np.append(self.compresslog, name)
-            return ret
+            ret = self._compress_bool(condition)
         else:
             # Case 2:
             # condition is list of particle IDs to use
-            condition = np.asarray(condition, dtype='int')
-            # same as
-            # bools = np.array([idx in condition for idx in self.ID()])
-            # but benchmarked to be 1500 times faster :)
-            condition.sort()
-            ids = self.id()
-            idx = np.searchsorted(condition, ids)
-            idx[idx == len(condition)] = 0
-            bools = condition[idx] == ids
-            return self.compress(bools, name=name)
+            ret = self._compress_int(condition)
+        ret.compresslog = np.append(self.compresslog, name)
+        return ret
+
+    def _compress_bool(self, condition):
+        if not len(self) == len(condition):
+            raise ValueError('number of particles ({:7n}) has to match'
+                             'length of condition ({:7n})'
+                             ''.format(len(self), len(condition)))
+        ret = copy.copy(self)
+        if ret._compressboollist is None:
+            ret._compressboollist = condition
+        else:
+            ret._compressboollist[ret._compressboollist] = condition
+        for key in ret._cache:
+            if ret._cache[key].shape is not ():
+                ret._cache[key] = ret._cache[key][condition]
+        return ret
+
+    def _compress_int(self, condition):
+        condition = np.asarray(condition, dtype='int')
+        # same as
+        # bools = np.array([idx in condition for idx in self.ID()])
+        # but benchmarked to be 1500 times faster :)
+        condition.sort()
+        ids = self.id()
+        idx = np.searchsorted(condition, ids)
+        idx[idx == len(condition)] = 0
+        bools = condition[idx] == ids
+        return self._compress_bool(bools)
 
     def uncompress(self):
         """
         Discard all previous runs of 'compress'
         """
         return type(self)(self.dumpreader, self.species)
+
+    def __invert__(self):
+        '''
+        inverts which particles have been taken and which have not.
+        '''
+        ret = copy.copy(self)
+        ret._cache = {}  # clear cache
+        if self._compressboollist is None:
+            ret._compressboollist = np.asarray(False)
+        elif self._compressboollist.shape is () and bool(self._compressboollist) is False:
+            ret._compressboollist = None
+        else:
+            ret._compressboollist = ~self._compressboollist
+        ret.compresslog = np.append(self.compresslog, 'inverted')
+        return ret
 
     # --- Only very basic functions
 
@@ -246,11 +296,10 @@ class _SingleSpecies(object):
         # sp MUST be ScalarProperty
         # this docsting is forwared to __call__
         '''
-        Variable resolution order:
-        --------------------------
-        1. try to find the value as a atomic particle property.
-        2. try to find the value as a defined particle property in `particle_scalars`.
-        3. if not found look for an equally named attribute in `scipy.constants`.
+        Variable resolution order
+          1. try to find the value as a atomic particle property.
+          2. try to find the value as a defined particle property in ``particle_scalars``.
+          3. if not found look for an equally named attribute in ``scipy.constants``.
         '''
         _vars = dict() if _vars is None else _vars
         expr = sp.expr
@@ -320,15 +369,15 @@ class MultiSpecies(object):
         ret._compresslog = copy.copy(self._compresslog)
         return ret
 
-    def __str__(self):
+    def __repr__(self):
         n = len(self)
         i = self.initial_npart
         if n == i:
-            return '<MultiSpecies including "' + str(self.species) + '"' \
-                + '({})>'.format(n)
+            s = '<MultiSpecies including all "{:}" ({:})>'
+            return s.format(self.species, n)
         else:
-            return '<MultiSpecies including "' + str(self.species) + '"' \
-                + '({}/{} -- {:.2f}%)>'.format(n, i, n/i*100)
+            s = '<MultiSpecies including "{:}" ({}/{} - {:.2%})>'
+            return s.format(self.species, n, i, n/i)
 
     @property
     def dumpreader(self):
@@ -469,22 +518,37 @@ class MultiSpecies(object):
     # --- Operator overloading
 
     def __add__(self, other):  # self + other
+        '''
+        Operator overloading for the ``+`` operator.
+
+        :returns: A new MultiSpecies object containing the combined collection
+          of particles.
+
+        .. note:: Particles present in ``self`` and ``other`` will be present twice in the
+          returned object!
+        '''
         ret = copy.copy(self)
         ret += other
         return ret
 
     def __iadd__(self, other):  # self += other
         '''
-        adding MultiSpecies should give the feeling as if you were adding
-        their particle lists. Thats why there is no append function.
+        Operator overloading for the ``+=`` operator.
+        Adding MultiSpecies should give the feeling as if you were adding
+        their particle lists. That is why there is no append function.
         Compare those outputs (numpy.array handles that differently!):
-        a=[1,2,3]; a.append([4,5]); print a
-        [1,2,3,[4,5]]
-        a=[1,2,3]; a += [4,5]; print a
-        [1,2,3,4,5]
-        This function modifies the current object. Same as
-        a = [1,2]; b = a; b+=[7,8]; print(a,b)
-        [1, 2, 7, 8] [1, 2, 7, 8]
+
+        >>> a=[1,2,3]; a.append([4,5]); print a
+        >>> [1,2,3,[4,5]]
+        >>> a=[1,2,3]; a += [4,5]; print a
+        >>> [1,2,3,4,5]
+
+        This function modifies the current object. Same behaviour as
+
+        >>> a = [1,2]; b = a; b+=[7,8]; print(a,b)
+        >>> [1, 2, 7, 8] [1, 2, 7, 8]
+
+        .. seealso:: :meth:`__add__`
         '''
         for ssa in other._ssas:
             self._ssas.append(copy.copy(ssa))
@@ -492,14 +556,8 @@ class MultiSpecies(object):
 
     # --- compress related functions ---
 
+    @append_doc_of(_SingleSpecies.filter)
     def filter(self, condition, name=None):
-        '''
-        like compress, but takes a ScalarProperty or a str, which are required to
-        evaluate to a boolean list to filter particles. This is the preferred method to
-        filter particles by a value of their property.
-
-        Returns a new MultiSpecies instance.
-        '''
         if isinstance(condition, ScalarProperty):
             sp = condition
         else:
@@ -509,30 +567,8 @@ class MultiSpecies(object):
         ret._compresslog = np.append(self._compresslog, str(condition))
         return ret
 
+    @append_doc_of(_SingleSpecies.compress)
     def compress(self, condition, name='unknown condition'):
-        """
-        works like numpy.compress.
-        Returns a new MultiSpecies instance.
-
-        Additionaly you can specify a name, that gets saved in the compresslog.
-
-        condition has to be one out of:
-        1)
-        condition =  [True, False, True, True, ... , True, False]
-        condition is a list of length N, specifing which particles to keep.
-        Example:
-        cfintospectrometer = lambda x: x.angle_offaxis() < 30e-3
-        cfintospectrometer.name = '< 30mrad offaxis'
-        pa.compress(cfintospectrometer(pa), name=cfintospectrometer.name)
-        2)
-        condition = [1, 2, 4, 5, 9, ... , 805, 809]
-        condition can be a list of arbitraty length, so only the particles
-        with the ids listed here are kept.
-
-        **kwargs
-        --------
-        name -- name the condition. This can later be reviewed by calling 'self.compresslog()'
-        """
         condition = np.asarray(condition)
         i = 0
         ret = copy.copy(self)
@@ -546,17 +582,22 @@ class MultiSpecies(object):
         ret._compresslog = np.append(self._compresslog, name)
         return ret
 
-    # --- user friendly functions
+    def __invert__(self):
+        '''
+        invert the selection of particles.
+        '''
+        ret = copy.copy(self)
+        ret._ssas = [~ssa for ssa in self._ssas]
+        ret._compresslog = np.append(self._compresslog, 'inverted')
+        return ret
+
+    # --- other user friendly functions
 
     def compressfn(self, conditionf, name='unknown condition'):
         '''
-        like "compress", but accepts a function.
+        like :meth:`compress`, but accepts a function.
 
         Returns a new MultiSpecies instance.
-
-        **kwargs
-        --------
-        name -- name the condition.
         '''
         if hasattr(conditionf, 'name'):
             name = conditionf.name
@@ -565,7 +606,7 @@ class MultiSpecies(object):
     def uncompress(self):
         '''
         Returns a new MultiSpecies instance, with all previous calls of
-        "compress" or "filter" undone.
+        :meth:`compress` or :meth:`filter` undone.
         '''
         ret = copy.copy(self)
         ret._compresslog = []
@@ -589,18 +630,19 @@ class MultiSpecies(object):
         This is **only** function to actually access the data. Every other function
         which allows data access must call this one internally!
 
-        Supported Types:
-        ----------------
-        * ScalarProperty
-        * str: will be converted to a ScalarProperty by particle_scalars.__call__.
-               Therefore known quantities will be recognized
-        * callable, that acts on the MultiSpecies object. This will work, but
-          maybe removed in a future release.
+        Supported types
+          * ScalarProperty
+          * str: will be converted to a ScalarProperty by particle_scalars.__call__.
+            Therefore known quantities will be recognized
+          * callable, which acts on the MultiSpecies object. This will work, but
+            maybe removed in a future release.
+
+        The list of known particle scalars can be accessed by
+        ``postpic.particle_scalars``.
 
         Examples
-        --------
-        self('x')
-        self('sqrt(px**2 + py**2 + pz**2)')
+          * ``self('x')``
+          * ``self('sqrt(px**2 + py**2 + pz**2)')``
         '''
         if isinstance(expr, ScalarProperty):
             # best case
@@ -983,7 +1025,11 @@ class MultiSpecies(object):
             the zrange to include into the histogram
             Defaults to None, determins the range by the range of scalars given.
         """
-        optargsh = kwargs.pop('optargsh', {})
+        if 'optargsh' in kwargs:
+            warnings.warn('keyword "optargsh" is deprecated. Use "bins" and "shape" '
+                          'arguments directly on "createField".', category=DeprecationWarning)
+            optargsh = kwargs.pop('optargsh')
+            kwargs.update(optargsh)
         simextent = kwargs.pop('simextent', False)
         simgrid = kwargs.pop('simgrid', False)
         rangex = kwargs.pop('rangex', None)
@@ -991,6 +1037,8 @@ class MultiSpecies(object):
         rangez = kwargs.pop('rangez', None)
         weights = kwargs.pop('weights', '1')
         force = kwargs.pop('force', False)
+        bins = kwargs.pop('bins', None)
+        shape = kwargs.pop('shape', None)
         if len(kwargs) > 0:
             raise TypeError("got an unexpected keyword argument {}'".format(kwargs))
 
@@ -1018,9 +1066,9 @@ class MultiSpecies(object):
             for i, sp in enumerate(sps):
                 tmp = self.simgridpoints(getattr(sp, 'symbol', sp))
                 if tmp is not None:
-                    optargsh['bins'][i] = tmp
+                    bins[i] = tmp
         if len(data[0]) == 0:  # no data points. create empy histogram
-            h = np.zeros(optargsh['bins'])
+            h = np.zeros(bins)
 
             def createedges(rangei, n):
                 if rangei is not None:
@@ -1028,13 +1076,13 @@ class MultiSpecies(object):
                 else:
                     return np.linspace(0, 1, n + 1)
 
-            edges = [createedges(r, optargsh['bins'][i]) for i, r in zip(range(len(h)), ranges)]
+            edges = [createedges(r, bins[i]) for i, r in zip(range(len(h)), ranges)]
             return h, edges  # empty histogram: h == 0 everywhere
 
         w = self('weight * ({})'.format(weights))  # Particle Size * additional weights
         h, edges = histogramdd(data,
                                weights=w, range=ranges,
-                               **optargsh)
+                               bins=bins, shape=shape)
         dV = np.prod([edge[1] - edge[0] for edge in edges])
         h /= dV
         return h, edges  # h, (xedges, yedges, zedges)
@@ -1056,6 +1104,16 @@ class MultiSpecies(object):
         title: string, options
             overrides the title. Autocreated if title==None.
             Defaults to None.
+        simgrid : boolean, optional
+            enforces the same grid as used in the simulation.
+            Implies simextent=True. Defaults to False.
+        simextent : boolean, optional
+            enforces, that the axis show the same extent as used in the
+            simulation. Defaults to False.
+        weights : function, optional
+            applies additional weights to the macroparticles, for example
+            'gamma' or 'q' to weight the particle by its charge.
+            Defaults to '1' (no additional weight).
         rangex : list of two values, optional
             the xrange to include into the histogram.
             Defaults to None, determins the range by the range of scalars given.
@@ -1065,6 +1123,14 @@ class MultiSpecies(object):
         rangez : list of two values, optional
             the zrange to include into the histogram.
             Defaults to None, determins the range by the range of scalars given.
+        bins: sequence or int
+            The number of bins to use for each dimension
+        shape: int
+            possible choices are:
+            * 0 - use nearest grid point (NGP)
+            * 1 - use tophat shape of width 1 bin
+            * 2 - triangular shape (default)
+            * 3 - spline 3 shape
         """
         name = kwargs.pop('name', 'distfn')
         title = kwargs.pop('title', None)
@@ -1159,11 +1225,11 @@ class ParticleHistory(object):
            list of ids, [list scalar values, list of scalar values, ... ]
         '''
         ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
-        ms.compress(self.ids)
+        ms = ms.compress(self.ids)
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
             scalars[i, :] = ms(scalarfs[i])
-        ids = ms('id')
+        ids = np.asarray(ms('id'), dtype=np.int)
         del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
