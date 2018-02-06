@@ -283,9 +283,11 @@ class MatplotlibPlotter(object):
                 any(field.matrix.flatten() > 0):
             if 'cmap' not in kwargs:
                 kwargs['cmap'] = 'jet'
+            if 'aspect' not in kwargs:
+                kwargs['aspect'] = 'auto'
             if field.islinear() and True:
                 ax.imshow(np.log10(field.matrix.T), origin='lower',
-                          aspect='auto', extent=field.extent,
+                          extent=field.extent,
                           interpolation=interpolation, **kwargs)
             else:
                 print('using pcolormesh, this is experimental.')
@@ -298,7 +300,9 @@ class MatplotlibPlotter(object):
             log10plot = False
             if 'cmap' not in kwargs:
                 kwargs['cmap'] = MatplotlibPlotter.symmap
-            ax.imshow(field.matrix.T, aspect='auto', origin='lower',
+            if 'aspect' not in kwargs:
+                kwargs['aspect'] = 'auto'
+            ax.imshow(field.matrix.T, origin='lower',
                       extent=field.extent, interpolation=interpolation, **kwargs)
             if clim:
                 ax.images[0].set_clim(clim)
