@@ -45,10 +45,15 @@ class MatplotlibPlotter(object):
     axesformattery.set_powerlimits((-2, 3))
 
     from matplotlib.colors import LinearSegmentedColormap
-    efieldcdict = {'red': ((0, 0, 0), (1, 1, 1)),
-                   'green': ((0, 0, 0), (1, 0, 0)),
-                   'blue': ((0, 1, 1), (1, 0, 0)),
-                   'alpha': ((0, 1, 1), (0.5, 0, 0), (1, 1, 1))}
+    efieldcdict = {'red': ((0, 0, 0),
+                           (0.5, 1, 1),
+                           (1.0, 1, 1)),
+                   'green': ((0, 0, 0),
+                             (0.5, 1, 1),
+                             (1, 0, 0)),
+                   'blue': ((0, 1, 1),
+                            (0.5, 1, 1),
+                            (1, 0, 0))}
     symmap = LinearSegmentedColormap('EField', efieldcdict, 1024)
 
     def __init__(self, reader, outdir='./', autosave=False, project=None,
