@@ -94,8 +94,8 @@ def _import_field_npy(filename):
     import_field = Field(matrix=import_file['matrix'],
                          name=meta_field[0], unit=meta_field[1],
                          axes=axes,
-                         axes_transform_state=meta_ax_transform_state,
-                         transformed_axes_origins=meta_ax_transformed_origins)
+                         axes_transform_state=meta_ax_transform_state.tolist(),
+                         transformed_axes_origins=meta_ax_transformed_origins.tolist())
     import_field.label = meta_field[2]
     import_field.infostring = meta_field[3]
 
