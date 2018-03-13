@@ -1478,6 +1478,50 @@ class Field(NDArrayOperatorsMixin):
         else:
             return self._integrate_scipy(axes, method)
 
+    def _derivative(self, axis):
+        from pkg_resources import parse_version
+        if parse_version(np.__version__) < parse_version('1.9'):
+            g = np.gradient(self, self.axes[axis].spacing)
+            if self.dimensions > 1:
+                g = g[axis]
+            der_field = self.replace_data(g)
+        else:
+            der_field = self.replace_data(np.gradient(self, self.axes[axis].spacing, axis=axis))
+
+        der_field.name = "{}'".format(self.name)
+        return der_field
+
+    def _derivative_stagger(self, axis):
+        oldax = self.axes[axis]
+        assert oldax.islinear()
+
+        axes = self.axes[:]
+        axes[axis] = Axis(grid=oldax.grid_node[1:-1], name=oldax.name, unit=oldax.unit)
+
+        index1 = [slice(None) for _ in range(self.dimensions)]
+        index1[axis] = slice(1, None)
+        index2 = [slice(None) for _ in range(self.dimensions)]
+        index2[axis] = slice(0, -1)
+
+        deriv = (self.matrix[index1] - self.matrix[index2])/oldax.spacing
+
+        return Field(deriv, name=self.name + "'", unit=self.unit, axes=axes)
+
+    def derivative(self, axis, staggered=False):
+        """
+        Calculate the derivative of the field with respect to `axis`.
+
+        Uses `np.gradient` by default which outputs the second order accurate derivative on the
+        same grid as the input field.
+
+        If `staggered=True` is passed, the method will instead calculate the second order
+        accurate derivative at the points centered between the input grid points.
+        """
+        if staggered:
+            return self._derivative_stagger(axis)
+        else:
+            return self._derivative(axis)
+
     def _transform_state(self, axes=None):
         """
         Returns the collective transform state of the given axes.
