@@ -592,9 +592,9 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_
     '''
     Reconstruct the physical kspace of one polarization component
     This function basically computes one component of
-        E = 0.5*(E - omega/k^2 * Cross[k, E])
+        E = 0.5*(E - omega/k^2 * Cross[k, B])
     or
-        B = 0.5*(B + 1/omega * Cross[k, B]).
+        B = 0.5*(B + 1/omega * Cross[k, E]).
 
     component must be one of ["Ex", "Ey", "Ez", "Bx", "By", "Bz"].
 
