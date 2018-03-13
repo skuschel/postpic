@@ -1,20 +1,27 @@
 postpic
 =======
+
 [![Build Status](https://travis-ci.org/skuschel/postpic.svg?branch=master)](https://travis-ci.org/skuschel/postpic)
 [![PyPI version](https://badge.fury.io/py/postpic.png)](http://badge.fury.io/py/postpic)
 [![Documentation Status](https://readthedocs.org/projects/postpic/badge/?version=latest)](https://postpic.readthedocs.org/)
 
-postpic is a open-source post processor for Particle-in-cell (PIC) simulations written in python.  If you are doing PIC Simulations (likely for you PhD in physics...) you need tools to provide proper post-processing to create nice graphics from many GB of raw simulation output data -- regardless of what simulation code you are using.
+Postpic is a open-source post processor for Particle-in-cell (PIC) simulations written in python. If you are doing PIC Simulations (likely for you PhD in physics...) you need tools to provide proper post-processing to create nice graphics from many GB of raw simulation output data -- regardless of what simulation code you are using.
+
+**For working examples, please go to  https://github.com/skuschel/postpic-examples**
+
+The (technical, but complete) documentation is hosted on
+https://postpic.readthedocs.io/en/latest/
 
 
 Idea of postpic
 ---------------
 
-The basic idea of postpic is to calculate the plots you are interested in just from the basic data the Simulation provides. This data includes electric and magnetic fields and a tuple (weight, x, y, z, px, py, pz) for every macro-particle. Anything else you want to look at (for example a spectrum at your detector) should just be calculated from these values. This is exactly what postpic can do for you, and even more:
+The basic idea of postpic is to calculate the plots you are interested in just from the basic data the simulation provides. This data includes electric and magnetic fields and a tuple (`weight`, `x`, `y`, `z`, `px`, `py`, `pz`, `id`, `mass`, `charge`, `time`) for every macro-particle. Anything else you like to look at (for example a spectrum at your detector) should just be calculated from these values. This is exactly what postpic can do for you, and even more:
 
 postpic has a unified interface for reading the required simulation data. If the simulation code of your choice is not supported by postic, this is the perfect opportunity to add a new datareader.
 
 Additionally postpic can plot and label your plot automatically. This makes it easy to work with and avoids mistakes. Currently matplotlib is used for that but this is also extensible.
+
 
 
 Installation
