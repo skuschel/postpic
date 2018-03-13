@@ -463,6 +463,8 @@ class TestField(unittest.TestCase):
         self.assertClose(d.matrix, (self.f1d.matrix[1:] - self.f1d.matrix[:-1])/self.f1d.spacing)
 
         d = self.f1d.derivative(0, staggered=False)
+        print('f1d:', self.f1d.matrix, self.f1d.grid)
+        print('d:', d.matrix)
 
         self.assertClose(d.grid, self.f1d.grid)
         self.assertClose(d.matrix, np.gradient(self.f1d.matrix, self.f1d.spacing[0]))

@@ -1481,19 +1481,27 @@ class Field(NDArrayOperatorsMixin):
     def _derivative(self, axis):
         from pkg_resources import parse_version
         if parse_version(np.__version__) < parse_version('1.9'):
+            if not self.axes[axis].islinear():
+                raise ValueError('This method can only be applied to linear axes.')
             g = np.gradient(self, self.axes[axis].spacing)
             if self.dimensions > 1:
                 g = g[axis]
             der_field = self.replace_data(g)
-        else:
+        elif parse_version(np.__version__) < parse_version('1.13'):
+            if not self.axes[axis].islinear():
+                raise ValueError('This method can only be applied to linear axes.')
             der_field = self.replace_data(np.gradient(self, self.axes[axis].spacing, axis=axis))
+        else:
+            # this works fine even on non-linear axes
+            der_field = self.replace_data(np.gradient(self, self.axes[axis].grid, axis=axis))
 
         der_field.name = "{}'".format(self.name)
         return der_field
 
     def _derivative_stagger(self, axis):
         oldax = self.axes[axis]
-        assert oldax.islinear()
+        if not oldax.islinear():
+            raise ValueError('This method can only be applied to linear axes.')
 
         axes = self.axes[:]
         axes[axis] = Axis(grid=oldax.grid_node[1:-1], name=oldax.name, unit=oldax.unit)
