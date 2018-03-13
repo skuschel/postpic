@@ -3,7 +3,9 @@
 Introduction
 ============
 
-*The open-source particle-in-cell postprocessor.*
+.. automodule:: postpic
+  :no-members:
+
 
 
 What is postpic?
@@ -13,7 +15,6 @@ Postpic is an open-source package aiming to ease the postprocessing of particle-
 
 
 .. automodule:: postpic.datareader
-
 
 .. autofunction:: postpic.readDump
 
