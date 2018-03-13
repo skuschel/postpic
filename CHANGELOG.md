@@ -12,6 +12,7 @@ In your code you will need to turn calls to `Field.transform` into calls to `Fie
 * The functions `MultiSpecies.compress`, `MultiSpecies.filter`, `MultiSpecies.uncompress` and `ParticleHistory.skip` return a new object now. Before this release, they modified the current object. Assuming  `ms` is a `MultiSpecies` object, the corresponding adjustemens read:<br>
 old: `ms.filter('gamma > 2')`<br>
 new: `ms = ms.filter('gamma > 2')`
+* `plotter_matplotlib` has a new default symmetric colormap
 
 **Other improvements and new features**
 * Overload of the `~` (invert) operator on `postpic.MultiSpecies`. If `ms` is a MultiSpecies object with filtered particles (created by the use of `compress` or `filter`), then `~ms` inverts the selection of particles.
@@ -29,10 +30,12 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic.Field` has a new method `fft_autopad` used to pad a small number of grid points to each axis such that the dimensions of the Field are favourable to FFTW
 * `postpic.Field` has a new method `adjust_stagger_to` to adjust the grid origin to match the grid origin of another field
 * `postpic.Field` has a new method `phase` to get the unwrapped phase of the field
+* `postpic.Field` has a new method `derivative` to calculate the derivative of a field
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
 * New module `postpic.experimental` to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.
 * k-space reconstruction from EPOCH dumps has greatly improved accuracy due to a new algorithm correctly incorporating the frequency response of the implicit linear interpolation performed by EPOCH's half-steps
+* `plotter_matplotlib.plotField` allows to override `aspect` option to `imshow`
 
 ## v0.3.1
 2017-10-03

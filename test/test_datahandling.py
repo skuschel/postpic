@@ -109,6 +109,7 @@ class TestField(unittest.TestCase):
         self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
 
     def assertClose(self, a, b):
+        print(a, b)
         self.assertTrue(np.all(np.isclose(a, b)))
 
     def assertAllEqual(self, a, b):
@@ -454,6 +455,25 @@ class TestField(unittest.TestCase):
 
         self.assertTrue(np.isclose(b, 0))
         self.assertTrue(np.isclose(c, 0))
+
+    def test_derivative(self):
+        d = self.f1d.derivative(0, staggered=True)
+
+        self.assertClose(d.grid, 0.5 * (self.f1d.grid[1:] + self.f1d.grid[:-1]))
+        self.assertClose(d.matrix, (self.f1d.matrix[1:] - self.f1d.matrix[:-1])/self.f1d.spacing)
+
+        d = self.f1d.derivative(0, staggered=False)
+        print('f1d:', self.f1d.matrix, self.f1d.grid)
+        print('d:', d.matrix)
+
+        self.assertClose(d.grid, self.f1d.grid)
+        self.assertClose(d.matrix, np.gradient(self.f1d.matrix, self.f1d.spacing[0]))
+
+        d = self.f2d.derivative(1, staggered=False)
+
+        self.assertClose(d.grid[0], self.f2d.grid[0])
+        self.assertClose(d.grid[1], self.f2d.grid[1])
+        self.assertClose(d.matrix, np.gradient(self.f2d.matrix, self.f2d.spacing[1])[1])
 
     def test_arithmetic(self):
         c1d = self.f1d + 3j*self.f1d
