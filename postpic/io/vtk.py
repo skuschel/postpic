@@ -43,7 +43,7 @@ DataSet: Superclass for different types of grid. Subclasses are `StructuredPoint
          objects from a given `Field`.
 
 Data:    Superclass for representing either `PointData` or `CellData`. So far only
-         `PointData is used. This will be used to contain a subclass of `ArrayData`.
+         `PointData` is used. This will be used to contain a subclass of `ArrayData`.
 
 ArrayData: Superclass for representing a collection of `Scalars` or `Vectors` that are stored in
            an array that will be created from one or more `Field`s.
@@ -220,7 +220,8 @@ class ArrayData(object):
         if self.name is None:
             # catch not only the case that 'name' is not present in kwargs,
             # but also the case that None was explicitly passed
-            getattr(fields[0], 'name', '')
+            self.name = getattr(fields[0], 'name', 'None')
+        self.name = str(self.name).replace(' ', '_')
 
     def transform_data(self, dtype):
         data = np.vstack((np.ravel(f, order='F') for f in self.fields))
