@@ -39,10 +39,14 @@ def _import_field_image(filename):
 
     # image data are usually in y-major order, but postpic Fields assume x-major order
     # and rows are stored from top to bottom while y axes coordinate grows from bottom to top
-    data = data.T[:, ::-1]
+    data = data.T[:, ::-1, ...]
 
-    axes = [Axis(name=name, unit='px', grid=np.linspace(0, data.shape[i]-1, data.shape[i]))
-            for i, name in enumerate('xy')]
+    axes = []
+    for i, (name, axlen) in enumerate(zip(['x', 'y', 'channel'], data.shape)):
+        ax = Axis(name=name, unit='px' if i < 2 else '',
+                  grid=np.linspace(0, axlen-1, axlen))
+        axes.append(ax)
+
     basename = osp.basename(filename)
     return Field(data, unit='counts', name=basename, axes=axes)
 
