@@ -24,7 +24,7 @@ import os.path as osp
 
 import numpy as np
 
-_import_field_image_extensions = "png tif tiff jpg jpeg gif ".split()
+_import_field_image_extensions = "png tif tiff jpg jpeg gif bmp".split()
 
 
 def _import_field_image(filename):

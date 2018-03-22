@@ -52,6 +52,8 @@ def import_field(filename, **kwargs):
         return _import_field_csv(filename, **kwargs)
     elif any(filename.lower().endswith(ext) for ext in _import_field_image_extensions):
         return _import_field_image(filename, **kwargs)
+    else:
+        raise ValueError('File format of filename {0} not recognized.'.format(filename))
 
 
 def export_field(filename, field, **kwargs):
