@@ -281,11 +281,19 @@ class MatplotlibPlotter(object):
                    savecsv=False, lineoutx=False, lineouty=False, **kwargs):
         field = field.squeeze()
         (fig, ax) = figax
-        assert field.dimensions == 2, 'Field needs to be 2 dimensional'
+        assert field.dimensions == 2 or (field.dimensions == 3 and field.shape[2] in [3, 4]), \
+            'Field needs to be 2 dimensional'
+
+        color_image = field.dimensions == 3
+        maximum = None
+        if color_image:
+            maximum = np.max(field.matrix)
+            field = field/maximum
+
         ax.xaxis.set_major_formatter(MatplotlibPlotter.axesformatterx)
         ax.yaxis.set_major_formatter(MatplotlibPlotter.axesformattery)
         if log10plot and not any(field.matrix.flatten() < 0) and \
-                any(field.matrix.flatten() > 0):
+                any(field.matrix.flatten() > 0) and not color_image:
             if 'cmap' not in kwargs:
                 kwargs['cmap'] = 'jet'
             if 'aspect' not in kwargs:
@@ -307,13 +315,14 @@ class MatplotlibPlotter(object):
                 kwargs['cmap'] = MatplotlibPlotter.symmap
             if 'aspect' not in kwargs:
                 kwargs['aspect'] = 'auto'
-            ax.imshow(field.matrix.T, origin='lower',
-                      extent=field.extent, interpolation=interpolation, **kwargs)
+            ax.imshow(np.swapaxes(field.matrix, 0, 1), origin='lower',
+                      extent=field.extent[:4], interpolation=interpolation, **kwargs)
             if clim:
                 ax.images[0].set_clim(clim)
             else:
                 MatplotlibPlotter.symmetricclim(ax)
-            fig.colorbar(ax.images[0], format='%6.0e')
+            if not color_image:
+                fig.colorbar(ax.images[0], format='%6.0e')
 
         if contourlevels.size != 0:  # Draw contour lines
             ax.contour(field.matrix.T, contourlevels, hold='on',
@@ -388,7 +397,7 @@ class MatplotlibPlotter(object):
             if name:
                 kwargs.update({'name': name})
             ret = self.plotFields1d(field, **kwargs)
-        elif field.dimensions == 2:
+        elif field.dimensions == 2 or (field.dimensions == 3 and field.shape[2] in [3, 4]):
             ret = self.plotField2d(field, name,  **kwargs)
         else:
             raise Exception('3D not implemented')

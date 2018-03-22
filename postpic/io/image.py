@@ -39,7 +39,7 @@ def _import_field_image(filename):
 
     # image data are usually in y-major order, but postpic Fields assume x-major order
     # and rows are stored from top to bottom while y axes coordinate grows from bottom to top
-    data = data.T[:, ::-1, ...]
+    data = np.moveaxis(data, 0, 1)[:, ::-1, ...]
 
     axes = []
     for i, (name, axlen) in enumerate(zip(['x', 'y', 'channel'], data.shape)):
