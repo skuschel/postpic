@@ -24,8 +24,6 @@ import os.path as osp
 
 import numpy as np
 
-_import_field_image_extensions = "png tif tiff jpg jpeg gif bmp".split()
-
 
 def _import_field_image(filename):
     '''
@@ -71,9 +69,14 @@ def _readpng(filename):
 
     Author: Stephan Kuschel, 2015-2016
     '''
-    import png
-    r = png.Reader(filename)
-    ret = np.vstack(map(np.uint16, r.asDirect()[2]))
+    import png  # pypng
+    import scipy.misc as sm
+    import numpy as np
+    meta = png.Reader(filename)
+    meta.preamble()
+    significant_bits = ord(meta.sbit)
+    ret = sm.imread(filename)
+    ret >>= 16 - significant_bits
     return np.float64(ret)
 
 

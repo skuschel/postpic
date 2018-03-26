@@ -24,7 +24,7 @@ The postpic.io module provides free functions for importing and exporting data.
 from .csv import _export_field_csv, _import_field_csv
 from .npy import _export_field_npy, _import_field_npy
 from .vtk import export_scalar_vtk, export_vector_vtk, export_scalars_vtk
-from .image import _import_field_image, _import_field_image_extensions
+from .image import _import_field_image
 
 __all__ = ['export_field', 'load_field',
            'export_scalar_vtk', 'export_scalars_vtk', 'export_vector_vtk']
@@ -43,17 +43,18 @@ def load_field(filename):
 def import_field(filename, **kwargs):
     '''
     Construct a new field object from foreign data. Currently, the following file
-    formats are supported:
-    *.png
-    *.tif
+    formats are supported explicitly:
     *.csv
+    *.png
+
+    All other files will be opened using Pillow.
     '''
     if filename.lower().endswith('csv'):
         return _import_field_csv(filename, **kwargs)
-    elif any(filename.lower().endswith(ext) for ext in _import_field_image_extensions):
-        return _import_field_image(filename, **kwargs)
     else:
-        raise ValueError('File format of filename {0} not recognized.'.format(filename))
+        # assume anything else, this will open png files with pypng and all other files
+        # with pillow
+        return _import_field_image(filename, **kwargs)
 
 
 def export_field(filename, field, **kwargs):
