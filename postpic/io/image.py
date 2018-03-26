@@ -25,7 +25,7 @@ import os.path as osp
 import numpy as np
 
 
-def _import_field_image(filename):
+def _import_field_image(filename, hotpixelremove=False):
     '''
 
     '''
@@ -34,6 +34,15 @@ def _import_field_image(filename):
         data = _readpng(filename)
     else:
         data = _read_image_pil(filename)
+
+    if hotpixelremove:
+        import scipy.ndimage
+        if data.ndim == 3 and data.shape[2] < 5:
+            # assume multichannel image file like rgb or rgba
+            for i in range(data.shape[2]):
+                data[..., i] = scipy.ndimage.morphology.grey_opening(data[..., i], size=(3, 3))
+            else:
+                data = scipy.ndimage.morphology.grey_opening(data, size=(3, 3))
 
     # image data are usually in y-major order, but postpic Fields assume x-major order
     # and rows are stored from top to bottom while y axes coordinate grows from bottom to top
