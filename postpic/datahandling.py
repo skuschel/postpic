@@ -1405,6 +1405,28 @@ class Field(NDArrayOperatorsMixin):
         """
         return self.transpose()
 
+    def rot90(self, k=1, axes=(0, 1)):
+        """
+        Rotates the field by 90 degrees, `k` times. Rotates the field in the plane given by `axes`.
+        Axes are swapped if necessary, but not reversed. This means that the coordinates may not
+        be compatible between fields before or after rotating du to problems with reversed axes.
+        """
+        new_axes = self.axes[:]
+        if k % 2 == 1:
+            new_axes[axes[0]] = self.axes[axes[1]]
+            new_axes[axes[1]] = self.axes[axes[0]]
+
+        return Field(np.rot90(self.matrix, k=k, axes=axes), axes=new_axes,
+                     name=self.name, unit=self.unit)
+
+    def flip(self, axis):
+        """
+        Flips one axis. See also np.flip().
+
+        Does not flip Axis due to problems with reversed axes.
+        """
+        return self.replace_data(np.flip(self.matrix, axis))
+
     def swapaxes(self, axis1, axis2):
         '''
         Swaps the axes `axis1` and `axis2`, equivalent to `numpy.swapaxes`.
