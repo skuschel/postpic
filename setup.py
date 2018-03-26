@@ -45,7 +45,9 @@ setup(name='postpic',
                         'cython>=0.18', 'functools32;python_version<"3.0"'],
       extras_require = {
         'h5 reader for openPMD support':  ['h5py'],
-        'sdf support for EPOCH reader':  ['sdf']},
+        'sdf support for EPOCH reader':  ['sdf'],
+        'PyPNG read png files': ['pypng'],
+        'Pillow to read other image files': ['pillow']},
       keywords = ['PIC', 'particle-in-cell', 'plasma', 'physics', 'plasma physics',
                   'laser', 'laser plasma', 'particle acceleration'],
       classifiers=[

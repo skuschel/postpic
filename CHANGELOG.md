@@ -16,7 +16,8 @@ new: `ms = ms.filter('gamma > 2')`
 
 **Other improvements and new features**
 * Overload of the `~` (invert) operator on `postpic.MultiSpecies`. If `ms` is a MultiSpecies object with filtered particles (created by the use of `compress` or `filter`), then `~ms` inverts the selection of particles.
-* `postpic.Field` has methods `.loadfrom`, `.saveto` and `.export`. `.saveto` saves the complete Field object as a ` .npz` file. Use `.loadfrom` to load a Field object from file. `.export` is able to write `.csv` files and `.vtk` files in addition.
+* `postpic.Field` has methods `.loadfrom` and `.saveto`. These can be used to save a Field to a ` .npz` file for later use. Use `.loadfrom` to load a Field object from such a file. All attributes of the Field are restored.
+* `postpic.Field` has methods `.export` and `.import`. These are used to export fields to and import fields from foreign file formats such as `.csv`, `.vtk`, `.png`, `.tif`, `.jpg`. It is not guaranteed to get all attributes back after `.export`ing and than `.import`ing a Field. Some formats are not available for both methods.
 * `postpic` has a new function `time_profile_at_plane` that 'measures' the temporal profile of a pulse while passing through a plane
 * `postpic` has a new function `unstagger_fields` that will take a set of staggered fields and returns the fields after removing the stagger
 * `postpic` has a new function `export_vector_vtk` that takes up to three fields and exports them as a vector field in the `.vtk` format

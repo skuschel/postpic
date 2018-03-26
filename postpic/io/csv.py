@@ -21,6 +21,8 @@
 The postpic.io module provides free functions for importing and exporting data.
 '''
 
+import os.path as osp
+
 import numpy as np
 
 from .common import _header_string
@@ -36,3 +38,24 @@ def _export_field_csv(filename, field):
     header += 'Data extent: {}\n'.format(field.extent)
     np.savetxt(filename, data, header=header)
     return
+
+
+def _import_field_csv(filename, delimiter=','):
+    '''
+    reads a .csv file using numpy.genfromtxt.
+
+    Args:
+        filename (str): Path and filename to the file to open
+
+    Returns:
+        numpy.array: the image data as numpy array converted to float64
+
+    Author: Stephan Kuschel, 2015-2016, Alexander Blinne 2017
+    '''
+    from ..datahandling import Field, Axis
+
+    ret = np.genfromtxt(filename, delimiter=delimiter)
+    axes = [Axis(name=name, unit='px', grid=np.linspace(0, ret.shape[i]-1, ret.shape[i]))
+            for i, name in enumerate('xy')]
+    basename = osp.basename(filename)
+    return Field(ret, name=basename, unit='?', axes=axes)

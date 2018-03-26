@@ -447,6 +447,11 @@ class Field(NDArrayOperatorsMixin):
     def loadfrom(cls, filename):
         return io.load_field(filename)
 
+    @classmethod
+    @helper.append_doc_of(io.import_field)
+    def importfrom(cls, filename, **kwargs):
+        return io.import_field(filename, **kwargs)
+
     def __init__(self, matrix, name='', unit='', **kwargs):
         if 'xedges' in kwargs or 'axes' in kwargs:
             # Some axes have been passed, let length-1-dimensions alone
