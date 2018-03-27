@@ -220,6 +220,7 @@ class Axis(object):
             raise ValueError("Passed invalid value of n.")
 
         self._linear = None
+        self._inv_map = None
 
     def __eq__(self, other):
         '''
@@ -271,13 +272,22 @@ class Axis(object):
             ret = self.name + ' [' + self.unit + ']'
         return ret
 
-    def value_to_index(self, value):
-        if not self.islinear():
-            raise ValueError("This function is intended for linear grids only.")
+    def _value_to_index_nonlinear(self, value):
+        if self._inv_map is None:
+            self._inv_map = spinterp.interp1d(self.grid, np.linspace(0, len(self)-1, len(self)),
+                                              bounds_error=False, fill_value='extrapolate')
+        return self._inv_map(value)
 
+    def _value_to_index_linear(self, value):
         a, b = self.extent
         lg = len(self)
         return (value-a)/(b-a) * lg - 0.5
+
+    def value_to_index(self, value):
+        if self.islinear():
+            return self._value_to_index_linear(value)
+        else:
+            return self._value_to_index_nonlinear(value)
 
     def half_resolution(self):
         '''
