@@ -303,7 +303,7 @@ class MatplotlibPlotter(object):
                                extent=field.extent,
                                interpolation=interpolation, **kwargs)
             elif not color_image:
-                x, y = field.grid
+                x, y = [ax.grid_node for ax in field.axes]
                 if 'aspect' in kwargs:
                     del kwargs['aspect']
                 im = ax.pcolormesh(x, y, np.log10(field.matrix.T), **kwargs)
@@ -323,7 +323,7 @@ class MatplotlibPlotter(object):
                 im = ax.imshow(np.swapaxes(field.matrix, 0, 1), origin='lower',
                                extent=field.extent[:4], interpolation=interpolation, **kwargs)
             elif not color_image:
-                x, y = field.grid
+                x, y = [ax.grid_node for ax in field.axes]
                 if 'aspect' in kwargs:
                     del kwargs['aspect']
                 im = ax.pcolormesh(x, y, field.matrix.T, **kwargs)
