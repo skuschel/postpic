@@ -139,27 +139,31 @@ class Axis(object):
         self.name = name
         self.unit = unit
 
-        self._grid_node = kwargs.get('grid_node', None)
+        self._grid_node = kwargs.pop('grid_node', None)
 
         if self._grid_node is not None:
             self._grid_node = np.array(self._grid_node)
             if self._grid_node.ndim != 1:
                 raise ValueError("Passed array grid_node has ndim != 1.")
 
-        self._grid = kwargs.get('grid', None)
+        self._grid = kwargs.pop('grid', None)
 
         if self._grid is not None:
             self._grid = np.array(self._grid)
             if self._grid.ndim != 1:
                 raise ValueError("Passed array grid has ndim != 1.")
 
-        self._extent = kwargs.get('extent', None)
+        self._extent = kwargs.pop('extent', None)
 
         if self._extent is not None:
             if not isinstance(self._extent, collections.Iterable) or len(self._extent) != 2:
                 raise ValueError("Passed extent is not an iterable of length 2")
 
-        self._n = kwargs.get('n', None)
+        self._n = kwargs.pop('n', None)
+
+        # kwargs must be exhausted now
+        if len(kwargs) > 0:
+            raise TypeError('got an unexpcted keyword argument "{}"'.format(kwargs))
 
         if self._grid_node is None:
             if self._grid is None:

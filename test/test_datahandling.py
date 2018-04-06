@@ -92,6 +92,10 @@ class TestAxis(unittest.TestCase):
         ax2 = dh.Axis(grid = [5.5, 6.0], extent = [1, 11])
         self.assertNotEqual(ax1, ax2)
 
+    def test_init(self):
+        with self.assertRaises(TypeError):
+            dh.Axis(extent=(0,1), n=99, unknownarg=0)
+
 
 class TestField(unittest.TestCase):
 
