@@ -246,6 +246,10 @@ class Axis(object):
         return self._linear
 
     @property
+    def isreversed(self):
+        return self.extent[0] > self.extent[1]
+
+    @property
     def grid_node(self):
         return self._grid_node
 
@@ -292,25 +296,40 @@ class Axis(object):
         ret = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
         return ret
 
+    def _inside_domain(self, val):
+        '''
+        returns true if val is inside the extent.
+        '''
+        se = np.sort(self.extent)
+        return val >= se[0] and val <= se[1]
+
     def _extent_to_slice(self, extent):
+        '''
+        if the extent reverses the axis, the step argument of the returned slice is
+        automatically set to -1, effectively auto-reversing the axis.
+        '''
         a, b = extent
         if a is None:
             a = self._grid_node[0]
         if b is None:
             b = self._grid_node[-1]
 
-        if b < a:
-            raise ValueError("End of extent is before start of extent")
+        if not (self._inside_domain(a) or self._inside_domain(b)):
+            s = 'The extent limits {} must at least overlap with the domain extent {}.'
+            raise ValueError(s.format((a, b), self.extent))
 
-        if a > self._grid[-1]:
-            raise ValueError("Start of extent {} is beyond last grid point of axis "
-                             "at {}".format(a, self._grid[-1]))
-
-        if b < self._grid[0]:
-            raise ValueError("End of extent {} is before first grid point of axis "
-                             "at {}".format(b, self._grid[0]))
-
-        return slice(*np.searchsorted(self.grid, np.sort([a, b])))
+        sortgrid = self.grid[::-1] if self.isreversed else self.grid
+        # assert sortgrid is actually sorted
+        assert np.all(np.sort(sortgrid) == sortgrid)
+        side = {False: 'left', True: 'right'}[self.isreversed]
+        slicelims = np.searchsorted(sortgrid, [a, b], side=side)
+        if self.isreversed:
+            start, stop = len(self) - slicelims
+        else:
+            start, stop = slicelims
+        # auto-reverse is necessary
+        slicedir = -1 if (a > b) != self.isreversed else None
+        return slice(start, stop, slicedir)
 
     def _normalize_slice(self, index):
         """

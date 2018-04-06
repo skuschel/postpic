@@ -96,6 +96,33 @@ class TestAxis(unittest.TestCase):
         with self.assertRaises(TypeError):
             dh.Axis(extent=(0,1), n=99, unknownarg=0)
 
+    def test_reversed(self, n=100):
+        ax = dh.Axis(extent=[-1,1], n=n)
+        axri = dh.Axis(extent=[1,-1], n=n)
+        self.assertEqual(ax.value_to_index(0), axri.value_to_index(0))
+        #self.assertTrue(ax, axrr)
+        #self.assertTrue(axri, axr)
+
+    def test_reversed_odd(self):
+        self.test_reversed(n=101)
+
+    def test_extent_to_slice_even(self, n=100):
+        ax = dh.Axis(extent=[-1,1], n=n)
+        axr = dh.Axis(extent=[1,-1], n=n)
+        self.assertEqual(ax._extent_to_slice((-1,0)), slice(0, 50))
+        self.assertEqual(ax._extent_to_slice((0,-1)), slice(50, 0, -1))
+        self.assertEqual(axr._extent_to_slice((-1,0)), slice(100, 50, -1))
+        self.assertEqual(axr._extent_to_slice((0,-1)), slice(50, 100))
+
+        self.assertEqual(ax._extent_to_slice((0,1)), slice(50, 100))
+        self.assertEqual(ax._extent_to_slice((1,0)), slice(100, 50, -1))
+        self.assertEqual(axr._extent_to_slice((0,1)), slice(50, 0, -1))
+        self.assertEqual(axr._extent_to_slice((1,0)), slice(0, 50))
+
+        self.assertEqual(ax._extent_to_slice((-1,1)), slice(0, 100))
+        self.assertEqual(ax._extent_to_slice((1,-1)), slice(100, 0, -1))
+        self.assertEqual(axr._extent_to_slice((-1,1)), slice(100, 0, -1))
+        self.assertEqual(axr._extent_to_slice((1,-1)), slice(0, 100))
 
 class TestField(unittest.TestCase):
 
