@@ -287,6 +287,24 @@ class Axis(object):
         lg = len(self)
         return (value-a)/(b-a) * lg - 0.5
 
+    def _find_nearest_index(self, value):
+        """
+        Gives the index i of the value array[i] which is closest to value.
+        Assumes that the array is sorted.
+        """
+        sortgrid = self.grid[::-1] if self.isreversed else self.grid
+        # assert sortgrid is actually sorted
+        assert np.all(np.sort(sortgrid) == sortgrid)
+        side = {False: 'left', True: 'right'}[self.isreversed]
+        idx = np.searchsorted(sortgrid, value, side=side)
+        if self.isreversed:
+            idx = len(self) - idx
+        if idx > 0 and (idx == len(self) or
+                        np.fabs(value - self.grid[idx-1]) < np.fabs(value - self.grid[idx])):
+            return idx-1
+        else:
+            return idx
+
     def half_resolution(self):
         '''
         removes every second grid_node.
@@ -346,11 +364,11 @@ class Axis(object):
             if helper.is_non_integer_real_number(index):
                 # Indexing to a single position outside the extent
                 # will yield IndexError. Identical behaviour as numpy.ndarray
-                if index < self.extent[0] or index > self.extent[1]:
+                if not self._inside_domain(index):
                     msg = 'Physical index position {} is outside of the ' \
                           'extent {} of axis {}'.format(index, self.extent, str(self))
                     raise IndexError(msg)
-                index = helper.find_nearest_index(self.grid, index)
+                index = self._find_nearest_index(index)
             return slice(index, index+1)
 
     def __getitem__(self, key):

@@ -270,19 +270,6 @@ def is_non_integer_real_number(x):
     return isinstance(x, numbers.Real) and not isinstance(x, numbers.Integral)
 
 
-def find_nearest_index(array, value):
-    """
-    Gives the index i of the value array[i] which is closest to value.
-    Assumes that the array is sorted.
-    """
-    idx = np.searchsorted(array, value, side="left")
-    if idx > 0 and (idx == len(array) or
-                    np.fabs(value - array[idx-1]) < np.fabs(value - array[idx])):
-                        return idx-1
-    else:
-        return idx
-
-
 def max_frac_bounds(array, fraction):
     """
     For a 1d Array `array` this function gives indices `a`, `b` such that all values
