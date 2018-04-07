@@ -100,8 +100,9 @@ class TestAxis(unittest.TestCase):
         ax = dh.Axis(extent=[-1,1], n=n)
         axri = dh.Axis(extent=[1,-1], n=n)
         self.assertEqual(ax.value_to_index(0), axri.value_to_index(0))
-        #self.assertTrue(ax, axrr)
-        #self.assertTrue(axri, axr)
+        axrr = ax.reversed().reversed()
+        self.assertEqual(ax, axrr)
+        self.assertTrue(axri, ax.reversed())
 
     def test_reversed_odd(self):
         self.test_reversed(n=101)

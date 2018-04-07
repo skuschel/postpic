@@ -371,6 +371,13 @@ class Axis(object):
                 index = self._find_nearest_index(index)
             return slice(index, index+1)
 
+    def reversed(self):
+        '''
+        returns an reversed Axis object
+        '''
+        ax = type(self)(self.name, self.unit, grid_node=self.grid_node[::-1], grid=self.grid[::-1])
+        return ax
+
     def __getitem__(self, key):
         """
         Returns an Axis which consists of a sub-part of this object defined by
