@@ -1989,8 +1989,10 @@ class Field(NDArrayOperatorsMixin):
         self.export(filename)
 
     def __str__(self):
-        s = '<Field "{:}" {:}>'
+        s = '<postpic.Field "{:}" {:}>'
         return s.format(self.name, self.shape)
+
+    __repr__ = __str__
 
     def _extent_to_slices(self, extent):
         if not self.dimensions * 2 == len(extent):
