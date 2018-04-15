@@ -1490,6 +1490,17 @@ class Field(NDArrayOperatorsMixin):
         ret.axes[axis] = ax
         return ret
 
+    def ensure_positive_axes(self):
+        '''
+        ensures, that all axis are going from smaller to greater numbers,
+        i.e. none of the axis is reversed.
+        '''
+        ret = self
+        for i, ax in enumerate(self.axes):
+            if ax.isreversed():
+                ret = ret.flip(i)
+        return ret
+
     def _integrate_constant(self, axes):
         '''
         Integrate by assuming constant value across each grid cell, even for uneven grids.
