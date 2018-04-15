@@ -261,7 +261,7 @@ class Axis(object):
     def spacing(self):
         if not self.islinear():
             raise TypeError('Grid must be linear to calculate gridspacing')
-        return self.grid_node[1] - self.grid_node[0]
+        return np.abs(self.grid_node[1] - self.grid_node[0])
 
     @property
     def extent(self):
@@ -269,7 +269,7 @@ class Axis(object):
 
     @property
     def physical_length(self):
-        return self._extent[1] - self._extent[0]
+        return np.abs(self._extent[1] - self._extent[0])
 
     @property
     def label(self):
