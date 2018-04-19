@@ -82,7 +82,7 @@ def run_alltests(python='python', fast=False, skip_setup=False):
 
     cmds = [python + '-m nose --exe',
             python + '-m ' + pycodestylecmd + ' postpic --statistics --count --show-source '
-            '--ignore=W391,E123,E226,E24 --max-line-length=99']
+            '--ignore=W391,E123,E226,E24,W504 --max-line-length=99']
     cmdo = [python + 'setup.py build_sphinx',
             python + os.path.join('examples', 'simpleexample.py'),
             python + os.path.join('examples', 'particleshapedemo.py'),
