@@ -32,6 +32,7 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic.Field` has a new method `adjust_stagger_to` to adjust the grid origin to match the grid origin of another field
 * `postpic.Field` has a new method `phase` to get the unwrapped phase of the field
 * `postpic.Field` has a new method `derivative` to calculate the derivative of a field
+* `postpic.Field` has new methods `flip` and `rot90` similar to np.flip() and np.rot90()
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
 * New module `postpic.experimental` to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.
