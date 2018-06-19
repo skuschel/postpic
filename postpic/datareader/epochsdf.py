@@ -135,7 +135,6 @@ class Sdfreader(Dumpreader_ifc):
         axid = helper.axesidentify[axis]
         return self[key].dims[axid]
 
-
 # --- Level 2 methods ---
 
     def timestep(self):
@@ -145,7 +144,7 @@ class Sdfreader(Dumpreader_ifc):
         return np.float64(self['Header']['time'])
 
     def simdimensions(self):
-        return int(re.match('Epoch(\d)d', self['Header']['code_name']).group(1))
+        return int(re.match(r'Epoch(\d)d', self['Header']['code_name']).group(1))
 
     def _keyE(self, component, average=False):
         axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
@@ -182,7 +181,7 @@ class Sdfreader(Dumpreader_ifc):
     def listSpecies(self):
         ret = set()
         for key in list(self.keys()):
-            match = re.match('Particles/\w+/([\w-]+(/[\w-]+)?)', key)
+            match = re.match(r'Particles/\w+/([\w-]+(/[\w-]+)?)', key)
             if match:
                 ret.add(match.group(1))
         ret = list(ret)
@@ -218,7 +217,7 @@ class Sdfreader(Dumpreader_ifc):
         '''
         ret = []
         for key in list(self.keys()):
-            r = re.match('Derived/[\w/ ]*', key)
+            r = re.match(r'Derived/[\w/ ]*', key)
             if r:
                 ret.append(r.group(0))
         ret.sort()
