@@ -612,6 +612,8 @@ class TestField(unittest.TestCase):
         self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
         self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
 
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+                 "This behaviour is not supported for numpy older than 1.12")
     def test_flip(self):
         f2df = self.f2d.flip(axis=-1)
         self.assertAllEqual(f2df.extent, [0,1,1,0])
