@@ -1481,9 +1481,11 @@ class Field(NDArrayOperatorsMixin):
 
     def flip(self, axis):
         '''
-        identical to `numpy.flip`.
+        functionality of `numpy.flip`.
 
-        TODO: make `numpy.flip(field)` work!
+        `field.flip(0)` returns a `postpic.Field` object with the
+        specified axis flipped. `np.flip(field)` returns only
+        the `numpy.ndarray` and the axis information is lost.
         '''
         ret = self.replace_data(np.flip(self, axis))
         ax = ret.axes[axis].reversed()

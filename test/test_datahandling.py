@@ -149,7 +149,7 @@ class TestField(unittest.TestCase):
 
     def checkFieldConsistancy(self, field):
         '''
-        general consistancy check. must never fail.
+        general consistency check. must never fail.
         '''
         self.assertEqual(field.dimensions, len(field.axes))
         for i in range(len(field.axes)):
@@ -612,6 +612,11 @@ class TestField(unittest.TestCase):
         self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
         self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
 
+    def test_flip(self):
+        f2df = self.f2d.flip(axis=-1)
+        self.assertAllEqual(f2df.extent, [0,1,1,0])
+        self.assertAllEqual(f2df.flip(axis=-1), self.f2d)
+        self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(0).flip(1))
 
 if __name__ == '__main__':
     unittest.main()
