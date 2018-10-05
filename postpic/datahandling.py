@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel, 2014-2017
+# Stephan Kuschel, 2014-2018
 # Alexander Blinne, 2017
 """
 The Core module for final data handling.
@@ -384,12 +384,12 @@ class Axis(object):
         a slice containing floats or integers or a float or an integer
         """
         sl = self._normalize_slice(key)
-        if sl.step is not None:
-            raise ValueError("Slices with step!=None not supported")
+        if not (sl.step is None or np.abs(sl.step) == 1):
+            raise ValueError("slice.step must be 1, -1 or None (but is {})".format(sl.step))
         grid = self.grid[sl]
         stop = sl.stop
         if stop is not None and stop > 0:
-            stop += 1
+            stop += -1 if sl.step == -1 else 1
         sln = slice(sl.start if sl.start else None, stop)
         grid_node = self.grid_node[sln]
         ax = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
@@ -893,6 +893,10 @@ class Field(NDArrayOperatorsMixin):
         if np.prod(self.shape) == 0:  # handels everything without data
             ret = -1
         return ret
+
+    @property
+    def ndim(self):
+        return self.matrix.ndim
 
     @property
     def extent(self):
@@ -1491,6 +1495,39 @@ class Field(NDArrayOperatorsMixin):
         ax = ret.axes[axis].reversed()
         ret.axes[axis] = ax
         return ret
+
+    def rot90(self, k=1, axes=(0, 1)):
+        """
+        Rotates the field by 90 degrees, `k` times. Rotates the field in the plane given by `axes`.
+        """
+        # copied most of the code from
+        # https://github.com/numpy/numpy/blob/v1.15.1/numpy/lib/function_base.py#L62-L145
+        axes = tuple(axes)
+        if len(axes) != 2:
+            raise ValueError("len(axes) must be 2.")
+        if axes[0] == axes[1]:
+            raise ValueError("Axes must be different.")
+        if (axes[0] >= self.ndim or axes[0] < -self.ndim or
+                axes[1] >= self.ndim or axes[1] < -self.ndim):
+            raise ValueError("Axes={} out of range for array of ndim={}."
+                             .format(axes, self.ndim))
+
+        k %= 4
+
+        if k == 0:
+            return copy.copy(self)
+        if k == 2:
+            return self.flip(axes[0]).flip(axes[1])
+
+        axes_list = np.arange(0, self.ndim)
+        (axes_list[axes[0]], axes_list[axes[1]]) = (axes_list[axes[1]],
+                                                    axes_list[axes[0]])
+
+        if k == 1:
+            return self.flip(axes[1]).transpose(axes_list)
+        else:
+            # k == 3
+            return self.transpose(axes_list).flip(axes[1])
 
     def ensure_positive_axes(self):
         '''

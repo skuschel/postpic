@@ -24,7 +24,7 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic` has a new function `export_scalars_vtk` that takes up to four fields and exports them as multiple scalar fields on the same grid in the `.vtk` format
 * `postpic.Field` works now with all numpy ufuncs, also with `ufunc.reduce`, `ufunc.outer`, `ufunc.accumulate` and `ufunc.at`
 * `postpic.Field` now supports broadcasting like numpy arrays, for binary operators as well as binary ufunc operations
-* `postpic.Field` has methods `.swapaxes`, `.transpose` and property `.T` compatible to numpy.ndarray
+* `postpic.Field` has methods `.swapaxes`, `.transpose` and properties `.T` and `ndim` compatible to numpy.ndarray
 * `postpic.Field` has methods `all`, `any`, `max`, `min`, `prod`, `sum`, `ptp`, `std`, `var`, `mean`, `clip` compatible to numpy.ndarray
 * `postpic.Field` has a new method `map_axis_grid` for transforming the coordinates only along one axis which is simpler than `map_coordinates`, but also takes care of the Jacobian
 * `postpic.Field` has a new method `autocutout` used to slice away close-to-zero regions from the borders
@@ -32,6 +32,7 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic.Field` has a new method `adjust_stagger_to` to adjust the grid origin to match the grid origin of another field
 * `postpic.Field` has a new method `phase` to get the unwrapped phase of the field
 * `postpic.Field` has a new method `derivative` to calculate the derivative of a field
+* `postpic.Field` has new methods `flip` and `rot90` similar to `np.flip()` and `np.rot90()`
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
 * New module `postpic.experimental` to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.

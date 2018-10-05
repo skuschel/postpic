@@ -619,6 +619,35 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(f2df.extent, [0,1,1,0])
         self.assertAllEqual(f2df.flip(axis=-1), self.f2d)
         self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(0).flip(1))
+        self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(1).flip(0))
+
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+                 "This behaviour is not supported for numpy older than 1.12")
+    def test_rot90(self):
+        f2dr = self.f2d.rot90().rot90().rot90().rot90()
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        f2dr = self.f2d.rot90().rot90(k=2).rot90()
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        f2dr = self.f2d.rot90(k=3).rot90()
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        f2dr = self.f2d.rot90(k=4)
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+                 "This behaviour is not supported for numpy older than 1.12")
+    def test_rot90_2(self):
+        f2dr = np.rot90(self.f2d, k=4)
+        self.assertAllEqual(self.f2d, f2dr)
+        f2dr = np.rot90(self.f2d, k=3)
+        f2drot = self.f2d.rot90(k=3)
+        self.assertAllEqual(f2drot, f2dr)
+        # this would fail, as f2drot is a np.ndarray
+        # self.assertAllEqual(f2drot.extent, f2dr.extent)
+
 
 if __name__ == '__main__':
     unittest.main()
