@@ -92,6 +92,38 @@ class TestAxis(unittest.TestCase):
         ax2 = dh.Axis(grid = [5.5, 6.0], extent = [1, 11])
         self.assertNotEqual(ax1, ax2)
 
+    def test_init(self):
+        with self.assertRaises(TypeError):
+            dh.Axis(extent=(0,1), n=99, unknownarg=0)
+
+    def test_reversed(self, n=100):
+        ax = dh.Axis(extent=[-1,1], n=n)
+        axri = dh.Axis(extent=[1,-1], n=n)
+        self.assertEqual(ax.value_to_index(0), axri.value_to_index(0))
+        axrr = ax.reversed().reversed()
+        self.assertEqual(ax, axrr)
+        self.assertTrue(axri, ax.reversed())
+
+    def test_reversed_odd(self):
+        self.test_reversed(n=101)
+
+    def test_extent_to_slice_even(self, n=100):
+        ax = dh.Axis(extent=[-1,1], n=n)
+        axr = dh.Axis(extent=[1,-1], n=n)
+        self.assertEqual(ax._extent_to_slice((-1,0)), slice(0, 50))
+        self.assertEqual(ax._extent_to_slice((0,-1)), slice(50, 0, -1))
+        self.assertEqual(axr._extent_to_slice((-1,0)), slice(100, 50, -1))
+        self.assertEqual(axr._extent_to_slice((0,-1)), slice(50, 100))
+
+        self.assertEqual(ax._extent_to_slice((0,1)), slice(50, 100))
+        self.assertEqual(ax._extent_to_slice((1,0)), slice(100, 50, -1))
+        self.assertEqual(axr._extent_to_slice((0,1)), slice(50, 0, -1))
+        self.assertEqual(axr._extent_to_slice((1,0)), slice(0, 50))
+
+        self.assertEqual(ax._extent_to_slice((-1,1)), slice(0, 100))
+        self.assertEqual(ax._extent_to_slice((1,-1)), slice(100, 0, -1))
+        self.assertEqual(axr._extent_to_slice((-1,1)), slice(100, 0, -1))
+        self.assertEqual(axr._extent_to_slice((1,-1)), slice(0, 100))
 
 class TestField(unittest.TestCase):
 
@@ -117,7 +149,7 @@ class TestField(unittest.TestCase):
 
     def checkFieldConsistancy(self, field):
         '''
-        general consistancy check. must never fail.
+        general consistency check. must never fail.
         '''
         self.assertEqual(field.dimensions, len(field.axes))
         for i in range(len(field.axes)):
@@ -579,6 +611,40 @@ class TestField(unittest.TestCase):
         b = np.multiply.outer(self.f1d, self.f2d)
         self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
         self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
+
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+                 "This behaviour is not supported for numpy older than 1.12")
+    def test_flip(self):
+        f2df = self.f2d.flip(axis=-1)
+        self.assertAllEqual(f2df.extent, [0,1,1,0])
+        self.assertAllEqual(f2df.flip(axis=-1), self.f2d)
+        self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(0).flip(1))
+        self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(1).flip(0))
+
+    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+                 "This behaviour is not supported for numpy older than 1.12")
+    def test_rot90(self):
+        f2dr = self.f2d.rot90().rot90().rot90().rot90()
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        f2dr = self.f2d.rot90().rot90(k=2).rot90()
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        f2dr = self.f2d.rot90(k=3).rot90()
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        f2dr = self.f2d.rot90(k=4)
+        self.assertAllEqual(self.f2d, f2dr)
+        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+
+    def test_rot90_2(self):
+        f2dr = np.rot90(self.f2d, k=4)
+        self.assertAllEqual(self.f2d, f2dr)
+        f2dr = np.rot90(self.f2d, k=3)
+        f2drot = self.f2d.rot90(k=3)
+        self.assertAllEqual(f2drot, f2dr)
+        # this would fail, as f2drot is a np.ndarray
+        # self.assertAllEqual(f2drot.extent, f2dr.extent)
 
 
 if __name__ == '__main__':
