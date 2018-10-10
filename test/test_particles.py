@@ -29,6 +29,11 @@ class TestMultiSpecies(unittest.TestCase):
     def test_quantile(self):
         self.assertAlmostEqual(self.p.quantile('x', 0.4), -0.26393734)
         self.assertAlmostEqual(self.p.quantile('x', 0.6, weights='gamma'), 0.2220709288)
+        self.assertTrue(np.allclose(self.p.quantile('x', [0.4]), -0.26393734))
+        print(self.p.quantile('x', [0.4, 0.5, 0.6, 0.4]))
+        self.assertTrue(np.allclose(self.p.quantile('x', [0.4, 0.5, 0.6, 0.4]),
+                                    [-0.26393735, -0.02714493, 0.21839707, -0.26393735]
+))
 
     def test_compress(self):
         def cf(ms):

@@ -984,18 +984,20 @@ class MultiSpecies(object):
     def quantile(self, expr, q, weights=None):
         '''
         The qth-quantile of the distribution of a value given by the expression `expr`.
+        q can be a scalar or a list of quantiles to be calculated simultaneously.
         The particle weight of the individual particles
         will be automatically included in the calculation.
         An additional weight can be given using the keyword `weights`.
         '''
         weights = '1' if weights is None else weights
-        if q < 0 or q > 1:
-            raise ValueError('Quantile q ({:}) must be in range [0, 1]'.format(q))
+        q = np.asarray(q)
+        if np.any(q < 0) or np.any(q > 1):
+            raise ValueError('Quantile(s) q ({:}) must be in range [0, 1]'.format(q))
         w = self('weight * ({})'.format(weights))
         data = self(expr)
         sortidx = np.argsort(data)
         wcs = np.cumsum(w[sortidx])
-        idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
+        idx = np.searchsorted(wcs, wcs[-1]*q)
         return data[sortidx[idx]]
 
     def median(self, expr, weights=None):
