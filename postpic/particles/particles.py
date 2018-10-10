@@ -958,28 +958,37 @@ class MultiSpecies(object):
     r_xyz.name = 'r_xyz'
     # ---- Functions for measuring particle collection related values
 
-    def mean(self, expr, weights='1'):
+    def mean(self, expr, weights=None):
         '''
-        the mean of a value given by the function func. The particle weight
-        of the individual particles will be included in the calculation.
-        An additional weight can be given as well.
+        The mean of a value given by the expression `expr`.
+        The particle weight of the individual particles
+        will be automatically included in the calculation.
+        An additional weight can be given using the keyword `weights`.
         '''
+        weights = '1' if weights is None else weights
         w = self('weight * ({})'.format(weights))
         return np.average(self(expr), weights=w)
 
     def var(self, expr, weights='1'):
         '''
-        variance
+        The variance of a value given by the expression `expr`.
+        The particle weight of the individual particles
+        will be automatically included in the calculation.
+        An additional weight can be given using the keyword `weights`.
         '''
         w = self('weight * ({})'.format(weights))
         data = self(expr)
         m = np.average(data, weights=w)
         return np.average((data - m)**2, weights=w)
 
-    def quantile(self, expr, q, weights='1'):
+    def quantile(self, expr, q, weights=None):
         '''
-        The qth-quantile of the distribution.
+        The qth-quantile of the distribution of a value given by the expression `expr`.
+        The particle weight of the individual particles
+        will be automatically included in the calculation.
+        An additional weight can be given using the keyword `weights`.
         '''
+        weights = '1' if weights is None else weights
         if q < 0 or q > 1:
             raise ValueError('Quantile q ({:}) must be in range [0, 1]'.format(q))
         w = self('weight * ({})'.format(weights))
@@ -989,9 +998,12 @@ class MultiSpecies(object):
         idx = np.searchsorted(wcs, wcs[-1]*np.asarray(q))
         return data[sortidx[idx]]
 
-    def median(self, expr, weights='1'):
+    def median(self, expr, weights=None):
         '''
-        The median
+        The median of a value given by the expression `expr`.
+        The particle weight of the individual particles
+        will be automatically included in the calculation.
+        An additional weight can be given using the keyword `weights`.
         '''
         return self.quantile(expr, 0.5, weights=weights)
 
