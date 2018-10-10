@@ -34,6 +34,19 @@ class TestMultiSpecies(unittest.TestCase):
         self.assertTrue(np.allclose(self.p.quantile('x', [0.4, 0.5, 0.6, 0.4]),
                                     [-0.26393735, -0.02714493, 0.21839707, -0.26393735]
 ))
+    def test_operatorOverloading(self):
+        p = self.p
+        lenp = len(p)
+        p2 = p + p
+        self.assertEqual(lenp, len(p2)/2)
+        f = p.createField('x', 'y')
+        f2 = p2.createField('x', 'y')
+        self.assertTrue(np.allclose(f, f2/2))
+        # ensure p and p2 are still independent
+        pf = p.filter('x>0')
+        self.assertEqual(lenp, len(p2)/2)
+        p2f = p2.filter('x<0')
+        self.assertEqual(lenp, len(p))
 
     def test_compress(self):
         def cf(ms):
