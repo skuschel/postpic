@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel, 2014-2017
+# Stephan Kuschel, 2014-2018
 # Alexander Blinne, 2017
 """
 The Core module for final data handling.
@@ -139,27 +139,31 @@ class Axis(object):
         self.name = name
         self.unit = unit
 
-        self._grid_node = kwargs.get('grid_node', None)
+        self._grid_node = kwargs.pop('grid_node', None)
 
         if self._grid_node is not None:
             self._grid_node = np.array(self._grid_node)
             if self._grid_node.ndim != 1:
                 raise ValueError("Passed array grid_node has ndim != 1.")
 
-        self._grid = kwargs.get('grid', None)
+        self._grid = kwargs.pop('grid', None)
 
         if self._grid is not None:
             self._grid = np.array(self._grid)
             if self._grid.ndim != 1:
                 raise ValueError("Passed array grid has ndim != 1.")
 
-        self._extent = kwargs.get('extent', None)
+        self._extent = kwargs.pop('extent', None)
 
         if self._extent is not None:
             if not isinstance(self._extent, collections.Iterable) or len(self._extent) != 2:
                 raise ValueError("Passed extent is not an iterable of length 2")
 
-        self._n = kwargs.get('n', None)
+        self._n = kwargs.pop('n', None)
+
+        # kwargs must be exhausted now
+        if len(kwargs) > 0:
+            raise TypeError('got an unexpcted keyword argument "{}"'.format(kwargs))
 
         if self._grid_node is None:
             if self._grid is None:
@@ -242,6 +246,10 @@ class Axis(object):
         return self._linear
 
     @property
+    def isreversed(self):
+        return self.extent[0] > self.extent[1]
+
+    @property
     def grid_node(self):
         return self._grid_node
 
@@ -253,7 +261,7 @@ class Axis(object):
     def spacing(self):
         if not self.islinear():
             raise TypeError('Grid must be linear to calculate gridspacing')
-        return self.grid_node[1] - self.grid_node[0]
+        return np.abs(self.grid_node[1] - self.grid_node[0])
 
     @property
     def extent(self):
@@ -261,7 +269,7 @@ class Axis(object):
 
     @property
     def physical_length(self):
-        return self._extent[1] - self._extent[0]
+        return np.abs(self._extent[1] - self._extent[0])
 
     @property
     def label(self):
@@ -279,6 +287,24 @@ class Axis(object):
         lg = len(self)
         return (value-a)/(b-a) * lg - 0.5
 
+    def _find_nearest_index(self, value):
+        """
+        Gives the index i of the value array[i] which is closest to value.
+        Assumes that the array is sorted.
+        """
+        sortgrid = self.grid[::-1] if self.isreversed else self.grid
+        # assert sortgrid is actually sorted
+        assert np.all(np.sort(sortgrid) == sortgrid)
+        side = {False: 'left', True: 'right'}[self.isreversed]
+        idx = np.searchsorted(sortgrid, value, side=side)
+        if self.isreversed:
+            idx = len(self) - idx
+        if idx > 0 and (idx == len(self) or
+                        np.fabs(value - self.grid[idx-1]) < np.fabs(value - self.grid[idx])):
+            return idx-1
+        else:
+            return idx
+
     def half_resolution(self):
         '''
         removes every second grid_node.
@@ -288,25 +314,40 @@ class Axis(object):
         ret = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
         return ret
 
+    def _inside_domain(self, val):
+        '''
+        returns true if val is inside the extent.
+        '''
+        se = np.sort(self.extent)
+        return val >= se[0] and val <= se[1]
+
     def _extent_to_slice(self, extent):
+        '''
+        if the extent reverses the axis, the step argument of the returned slice is
+        automatically set to -1, effectively auto-reversing the axis.
+        '''
         a, b = extent
         if a is None:
             a = self._grid_node[0]
         if b is None:
             b = self._grid_node[-1]
 
-        if b < a:
-            raise ValueError("End of extent is before start of extent")
+        if not (self._inside_domain(a) or self._inside_domain(b)):
+            s = 'The extent limits {} must at least overlap with the domain extent {}.'
+            raise ValueError(s.format((a, b), self.extent))
 
-        if a > self._grid[-1]:
-            raise ValueError("Start of extent {} is beyond last grid point of axis "
-                             "at {}".format(a, self._grid[-1]))
-
-        if b < self._grid[0]:
-            raise ValueError("End of extent {} is before first grid point of axis "
-                             "at {}".format(b, self._grid[0]))
-
-        return slice(*np.searchsorted(self.grid, np.sort([a, b])))
+        sortgrid = self.grid[::-1] if self.isreversed else self.grid
+        # assert sortgrid is actually sorted
+        assert np.all(np.sort(sortgrid) == sortgrid)
+        side = {False: 'left', True: 'right'}[self.isreversed]
+        slicelims = np.searchsorted(sortgrid, [a, b], side=side)
+        if self.isreversed:
+            start, stop = len(self) - slicelims
+        else:
+            start, stop = slicelims
+        # auto-reverse is necessary
+        slicedir = -1 if (a > b) != self.isreversed else None
+        return slice(start, stop, slicedir)
 
     def _normalize_slice(self, index):
         """
@@ -323,12 +364,19 @@ class Axis(object):
             if helper.is_non_integer_real_number(index):
                 # Indexing to a single position outside the extent
                 # will yield IndexError. Identical behaviour as numpy.ndarray
-                if index < self.extent[0] or index > self.extent[1]:
+                if not self._inside_domain(index):
                     msg = 'Physical index position {} is outside of the ' \
                           'extent {} of axis {}'.format(index, self.extent, str(self))
                     raise IndexError(msg)
-                index = helper.find_nearest_index(self.grid, index)
+                index = self._find_nearest_index(index)
             return slice(index, index+1)
+
+    def reversed(self):
+        '''
+        returns an reversed Axis object
+        '''
+        ax = type(self)(self.name, self.unit, grid_node=self.grid_node[::-1], grid=self.grid[::-1])
+        return ax
 
     def __getitem__(self, key):
         """
@@ -336,12 +384,12 @@ class Axis(object):
         a slice containing floats or integers or a float or an integer
         """
         sl = self._normalize_slice(key)
-        if sl.step is not None:
-            raise ValueError("Slices with step!=None not supported")
+        if not (sl.step is None or np.abs(sl.step) == 1):
+            raise ValueError("slice.step must be 1, -1 or None (but is {})".format(sl.step))
         grid = self.grid[sl]
         stop = sl.stop
         if stop is not None and stop > 0:
-            stop += 1
+            stop += -1 if sl.step == -1 else 1
         sln = slice(sl.start if sl.start else None, stop)
         grid_node = self.grid_node[sln]
         ax = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
@@ -845,6 +893,10 @@ class Field(NDArrayOperatorsMixin):
         if np.prod(self.shape) == 0:  # handels everything without data
             ret = -1
         return ret
+
+    @property
+    def ndim(self):
+        return self.matrix.ndim
 
     @property
     def extent(self):
@@ -1431,6 +1483,63 @@ class Field(NDArrayOperatorsMixin):
             return out
         return self.replace_data(o)
 
+    def flip(self, axis):
+        '''
+        functionality of `numpy.flip`.
+
+        `field.flip(0)` returns a `postpic.Field` object with the
+        specified axis flipped. `np.flip(field)` returns only
+        the `numpy.ndarray` and the axis information is lost.
+        '''
+        ret = self.replace_data(np.flip(self, axis))
+        ax = ret.axes[axis].reversed()
+        ret.axes[axis] = ax
+        return ret
+
+    def rot90(self, k=1, axes=(0, 1)):
+        """
+        Rotates the field by 90 degrees, `k` times. Rotates the field in the plane given by `axes`.
+        """
+        # copied most of the code from
+        # https://github.com/numpy/numpy/blob/v1.15.1/numpy/lib/function_base.py#L62-L145
+        axes = tuple(axes)
+        if len(axes) != 2:
+            raise ValueError("len(axes) must be 2.")
+        if axes[0] == axes[1]:
+            raise ValueError("Axes must be different.")
+        if (axes[0] >= self.ndim or axes[0] < -self.ndim or
+                axes[1] >= self.ndim or axes[1] < -self.ndim):
+            raise ValueError("Axes={} out of range for array of ndim={}."
+                             .format(axes, self.ndim))
+
+        k %= 4
+
+        if k == 0:
+            return copy.copy(self)
+        if k == 2:
+            return self.flip(axes[0]).flip(axes[1])
+
+        axes_list = np.arange(0, self.ndim)
+        (axes_list[axes[0]], axes_list[axes[1]]) = (axes_list[axes[1]],
+                                                    axes_list[axes[0]])
+
+        if k == 1:
+            return self.flip(axes[1]).transpose(axes_list)
+        else:
+            # k == 3
+            return self.transpose(axes_list).flip(axes[1])
+
+    def ensure_positive_axes(self):
+        '''
+        ensures, that all axis are going from smaller to greater numbers,
+        i.e. none of the axis is reversed.
+        '''
+        ret = self
+        for i, ax in enumerate(self.axes):
+            if ax.isreversed():
+                ret = ret.flip(i)
+        return ret
+
     def _integrate_constant(self, axes):
         '''
         Integrate by assuming constant value across each grid cell, even for uneven grids.
@@ -1941,8 +2050,10 @@ class Field(NDArrayOperatorsMixin):
         self.export(filename)
 
     def __str__(self):
-        s = '<Field "{:}" {:}>'
+        s = '<postpic.Field "{:}" {:}>'
         return s.format(self.name, self.shape)
+
+    __repr__ = __str__
 
     def _extent_to_slices(self, extent):
         if not self.dimensions * 2 == len(extent):
