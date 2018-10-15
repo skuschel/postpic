@@ -298,31 +298,44 @@ class MatplotlibPlotter(object):
                 kwargs['cmap'] = 'jet'
             if 'aspect' not in kwargs:
                 kwargs['aspect'] = 'auto'
-            if field.islinear() and True:
-                ax.imshow(np.log10(field.matrix.T), origin='lower',
-                          extent=field.extent,
-                          interpolation=interpolation, **kwargs)
+            if all(field.islinear()):
+                im = ax.imshow(np.log10(field.matrix.T), origin='lower',
+                               extent=field.extent,
+                               interpolation=interpolation, **kwargs)
+            elif not color_image:
+                x, y = [ax.grid_node for ax in field.axes]
+                if 'aspect' in kwargs:
+                    del kwargs['aspect']
+                im = ax.pcolormesh(x, y, np.log10(field.matrix.T), **kwargs)
             else:
-                print('using pcolormesh, this is experimental.')
-                x, y = field.grid()
-                ax.pcolormesh(x, y, np.log10(field.matrix.T), **kwargs)
-            fig.colorbar(ax.images[0], format='%3.1f')
+                raise ValueError("color images with non-linear axes not supported by this "
+                                 "function.")
+            fig.colorbar(im, format='%3.1f')
             if clim:
-                ax.images[0].set_clim(clim)
+                im.set_clim(clim)
         else:
             log10plot = False
             if 'cmap' not in kwargs:
                 kwargs['cmap'] = MatplotlibPlotter.symmap
             if 'aspect' not in kwargs:
                 kwargs['aspect'] = 'auto'
-            ax.imshow(np.swapaxes(field.matrix, 0, 1), origin='lower',
-                      extent=field.extent[:4], interpolation=interpolation, **kwargs)
+            if all(field.islinear()):
+                im = ax.imshow(np.swapaxes(field.matrix, 0, 1), origin='lower',
+                               extent=field.extent[:4], interpolation=interpolation, **kwargs)
+            elif not color_image:
+                x, y = [ax.grid_node for ax in field.axes]
+                if 'aspect' in kwargs:
+                    del kwargs['aspect']
+                im = ax.pcolormesh(x, y, field.matrix.T, **kwargs)
+            else:
+                raise ValueError("color images with non-linear axes not supported by this "
+                                 "function.")
             if clim:
-                ax.images[0].set_clim(clim)
+                im.set_clim(clim)
             else:
                 MatplotlibPlotter.symmetricclim(ax)
             if not color_image:
-                fig.colorbar(ax.images[0], format='%6.0e')
+                fig.colorbar(im, format='%6.0e')
 
         if contourlevels.size != 0:  # Draw contour lines
             ax.contour(field.matrix.T, contourlevels, hold='on',
