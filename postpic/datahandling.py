@@ -1134,7 +1134,7 @@ class Field(NDArrayOperatorsMixin):
 
         # Start a new Field object by inserting the new axes
         ret = copy.copy(self)
-        ret.axes = newaxes
+        ret.axes = list(newaxes)
         shape = [len(ax) for ax in newaxes]
 
         # Calculate the output grid
