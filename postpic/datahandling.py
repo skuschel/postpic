@@ -145,6 +145,8 @@ class Axis(object):
             self._grid_node = np.array(self._grid_node)
             if self._grid_node.ndim != 1:
                 raise ValueError("Passed array grid_node has ndim != 1.")
+            if helper.monotonicity(self._grid_node) == 0:
+                raise ValueError("Passed array grid_node is not monotonous.")
 
         self._grid = kwargs.pop('grid', None)
 
@@ -152,6 +154,8 @@ class Axis(object):
             self._grid = np.array(self._grid)
             if self._grid.ndim != 1:
                 raise ValueError("Passed array grid has ndim != 1.")
+            if helper.monotonicity(self._grid) == 0:
+                raise ValueError("Passed array grid is not monotonous.")
 
         self._extent = kwargs.pop('extent', None)
 
