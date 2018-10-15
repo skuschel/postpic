@@ -220,6 +220,23 @@ def islinear(grid):
     return np.all(np.isclose(grid, np.linspace(grid[0], grid[-1], len(grid))))
 
 
+def monotonicity(arr, axis=-1):
+    """
+    Checks if an array is strictly monotonically increasing or decreasing.
+    arr:  Array to be tested
+    axis: axis along which monotonicality is to be tested. Like np.diff() this
+          defaults to the last axis.
+    Returns "1" for a strictly monotonically increasing array, "-1" for a strictly
+    monotonically decreasing array and "0" for an array that is neither.
+    """
+    dx = np.diff(arr, axis=axis)
+    if np.all(dx > 0.0):
+        return 1
+    if np.all(dx < 0.0):
+        return -1
+    return 0
+
+
 def approx_jacobian(transform):
     '''
     Approximate the jacobian of the transformation given by transform.
