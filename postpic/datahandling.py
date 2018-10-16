@@ -230,6 +230,14 @@ class Axis(object):
         self._linear = None
         self._inv_map = None
 
+    def __getstate__(self):
+        """
+        Excludes self._inv_map from the pickled state
+        """
+        state = dict(self.__dict__)  # shallow copy
+        state['_inv_map'] = None
+        return state
+
     def __eq__(self, other):
         '''
         equality test for axis
