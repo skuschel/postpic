@@ -1,0 +1,1 @@
+rsvg-convert -f pdf -o logo.pdf logo.svg
