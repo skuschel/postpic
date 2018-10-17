@@ -26,6 +26,8 @@ class TestAxis(unittest.TestCase):
         self.assertEqual(len(self.ax.grid_node), 102)
         self.assertEqual(self.ax.grid_node[0], -1)
         self.assertEqual(self.ax.grid_node[-1], 1)
+
+    def test_islinear(self):
         self.assertTrue(self.ax.islinear())
         self.assertTrue(self.ax.islinear(force=True))
 
@@ -119,6 +121,23 @@ class TestAxis(unittest.TestCase):
         self.assertEqual(ax._extent_to_slice((1,-1)), slice(100, 0, -1))
         self.assertEqual(axr._extent_to_slice((-1,1)), slice(100, 0, -1))
         self.assertEqual(axr._extent_to_slice((1,-1)), slice(0, 100))
+
+    def test_find_nearest_index(self):
+        x = 0.3
+        i = self.ax._find_nearest_index(x)
+        self.assertEqual(np.abs(self.ax.grid[i]-x), np.min(np.abs(self.ax.grid - x)))
+
+    def test_value_to_index(self):
+        self.assertEqual(self.ax._find_nearest_index(0.5), np.round(self.ax.value_to_index(0.5)))
+
+class TestAxisNonLinear(TestAxis):
+
+    def setUp(self):
+        self.ax = dh.Axis(name='name', unit='unit', grid_node=np.sin(np.linspace(-np.pi/2, np.pi/2, 102)))
+
+    def test_islinear(self):
+        self.assertFalse(self.ax.islinear())
+        self.assertFalse(self.ax.islinear(force=True))
 
 class TestField(unittest.TestCase):
 
