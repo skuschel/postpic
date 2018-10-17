@@ -294,8 +294,18 @@ class Axis(object):
 
     def _value_to_index_nonlinear(self, value):
         if self._inv_map is None:
-            self._inv_map = spinterp.interp1d(self.grid, np.linspace(0, len(self)-1, len(self)),
-                                              bounds_error=False, fill_value='extrapolate')
+            grid_and_nodes = np.zeros(2*len(self)+1)
+
+            grid_and_nodes[::2] = self.grid_node
+            grid_and_nodes[1::2] = self.grid
+
+            indices_grid_and_nodes = np.linspace(-0.5, len(self)-0.5, len(grid_and_nodes))
+
+            self._inv_map = spinterp.interp1d(grid_and_nodes, indices_grid_and_nodes)
+
+        # clip the input values to the axes grid range
+        value = np.clip(value, *sorted(self.extent))
+
         return self._inv_map(value)
 
     def _value_to_index_linear(self, value):
