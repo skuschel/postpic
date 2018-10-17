@@ -322,6 +322,19 @@ class Axis(object):
             return idx
 
     def value_to_index(self, value):
+        """
+        This funtion is used to map values to indices in an interpolating manner, this is
+        mainly used by the `map_coordinates` method of the `Field` class.
+
+        In contrast to the `_find_nearest_index` method, this method does not return an integer
+        but a fractional index that refers to a position between actual pixels.
+
+        In general the equality
+
+        `ax._find_nearest_index(x) == np.round(ax.value_to_index(x))`
+
+        should hold.
+        """
         if self.islinear():
             return self._value_to_index_linear(value)
         else:
