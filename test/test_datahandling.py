@@ -307,7 +307,6 @@ class TestField(unittest.TestCase):
         f = self.f2d.shift_grid_by([dx[0], 0])
         self.assertTrue(np.all(np.isclose(np.roll(f2d_orig.matrix, -1, axis=0), f.matrix.real)))
 
-        self.f2d = f2d_orig
         f = self.f2d.shift_grid_by(dx)
         self.assertTrue(np.all(np.isclose(np.roll(
             np.roll(f2d_orig.matrix, -1, axis=0), -1, axis=1

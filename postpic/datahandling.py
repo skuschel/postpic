@@ -1748,7 +1748,7 @@ class Field(NDArrayOperatorsMixin):
 
         for i in axes:
             # restore original axes origins
-            if self.transformed_axes_origins[i]:
+            if self.transformed_axes_origins[i] is not None:
                 new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
         return new_axes
 
