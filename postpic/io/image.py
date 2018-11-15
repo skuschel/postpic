@@ -83,9 +83,11 @@ def _readpng(filename):
     import numpy as np
     meta = png.Reader(filename)
     meta.preamble()
-    significant_bits = ord(meta.sbit)
     ret = sm.imread(filename)
-    ret >>= 16 - significant_bits
+    if meta.sbit is not None:
+        significant_bits = ord(meta.sbit)
+        ret >>= 16 - significant_bits
+    # else: 8 bit image, no need to modify data
     return np.float64(ret)
 
 
