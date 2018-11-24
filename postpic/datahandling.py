@@ -180,7 +180,14 @@ class Axis(object):
                                               endpoint=True)
             else:
                 # grid has been passed, create grid_node from grid.
-                gn = np.convolve(self._grid, np.ones(2) / 2.0, mode='full')
+                if len(self._grid) > 3:
+                    grid_spline = scipy.interpolate.UnivariateSpline(np.arange(len(self._grid)),
+                                                                     self._grid)
+                    gn_inner = grid_spline(np.arange(0.5, len(self._grid)-1))
+                    gn = np.pad(gn_inner, 1, 'constant')
+                    del grid_spline
+                else:
+                    gn = np.convolve(self._grid, np.ones(2) / 2.0, mode='full')
                 if self._extent is not None:
                     # extent has been passed, use this for the end points of grid_node
                     if self._extent[0] >= self._grid[0] or self._extent[-1] <= self._grid[-1]:
@@ -200,7 +207,14 @@ class Axis(object):
         # now we are garantueed to have a grid_node
         if self._grid is None:
             # create grid from grid_node like in the old grid.getter
-            self._grid = np.convolve(self._grid_node, np.ones(2) / 2.0, mode='valid')
+            if len(self._grid_node) > 3:
+                node_spline = scipy.interpolate.UnivariateSpline(np.arange(-0.5,
+                                                                           len(self._grid_node)-1),
+                                                                 self._grid_node)
+                self._grid = node_spline(np.arange(len(self._grid_node)-1))
+                del node_spline
+            else:
+                self._grid = np.convolve(self._grid_node, np.ones(2) / 2.0, mode='valid')
         else:
             # check if grid and grid_node are compatible
             if not np.all(self._grid > self._grid_node[:-1]) and \

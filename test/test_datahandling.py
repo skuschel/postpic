@@ -43,13 +43,13 @@ class TestAxis(unittest.TestCase):
         # even number of grid points
         ax = dh.Axis(extent=(-1,1), n=100)
         ax = ax[0.0:1.0]
-        self.assertEqual(len(ax), 50)
-        self.assertEqual(ax.grid_node[0], 0)
+        self.assertClose(len(ax), 50)
+        self.assertClose(ax.grid_node[0], 0)
         # odd number of grid points
         ax = dh.Axis(extent=(-1,1), n=101)
         ax = ax[-0.01: 1]
-        self.assertEqual(len(ax), 51)
-        self.assertEqual(ax.grid[0], 0)
+        self.assertClose(len(ax), 51)
+        self.assertClose(ax.grid[0], 0)
 
     def test_half_resolution(self):
         # even number of grid points
@@ -196,7 +196,9 @@ class TestField(unittest.TestCase):
         self.checkFieldConsistancy(f)
 
     def test_slicing(self):
-        self.assertEqual(self.f1d[0.15:0.75].shape, (6,))
+        f1d_slice = self.f1d[0.15:0.75]
+        self.assertTrue(np.all(f1d_slice.grid >= 0.15))
+        self.assertTrue(np.all(f1d_slice.grid <= 0.75))
         self.assertEqual(self.f1d[5].shape, (1,))
 
         self.assertEqual(self.f2d[0.5:, :].shape, (2, 5))
@@ -204,7 +206,9 @@ class TestField(unittest.TestCase):
         self.assertEqual(self.f3d[0.5:, :, 0.5].shape, (2, 5, 1))
 
     def test_cutout(self):
-        self.assertEqual(self.f1d.cutout((0.15, 0.75)).shape, (6,))
+        f1d_cutout = self.f1d.cutout((0.15, 0.75))
+        self.assertTrue(np.all(f1d_cutout.grid >= 0.15))
+        self.assertTrue(np.all(f1d_cutout.grid <= 0.75))
         self.assertEqual(self.f3d.cutout((None, None, None, None, None, None)).shape, self.f3d.shape)
         self.assertEqual(self.f3d.cutout((0.874, None, None, None, None, None)).shape, (1, 5, 3))
         self.assertEqual(self.f3d.cutout((0.874, None, None, None, None, None)).squeeze().shape, (5, 3))
