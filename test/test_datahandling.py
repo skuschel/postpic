@@ -271,52 +271,48 @@ class TestField(unittest.TestCase):
             self.assertTrue(np.all(np.isclose(f2d_grid[k], v)))
 
     def test_fourier_inverse(self):
-        f1d_orig = copy.deepcopy(self.f1d)
-        self.f1d.fft()
-        self.f1d.fft()
-        self.assertTrue(np.all(np.isclose(f1d_orig.matrix, self.f1d.matrix)))
-        self.assertTrue(np.all(np.isclose(f1d_orig.grid, self.f1d.grid)))
+        f1d_orig = self.f1d
+        f1d = self.f1d.fft().fft()
+        self.assertTrue(np.all(np.isclose(f1d_orig.matrix, f1d.matrix)))
+        self.assertTrue(np.all(np.isclose(f1d_orig.grid, f1d.grid)))
 
-        f2d_orig = copy.deepcopy(self.f2d)
-        self.f2d.fft()
-        self.f2d.fft()
-        self.assertTrue(np.all(np.isclose(f2d_orig.matrix, self.f2d.matrix)))
+        f2d_orig = self.f2d
+        f2d = self.f2d.fft().fft()
+        self.assertTrue(np.all(np.isclose(f2d_orig.matrix, f2d.matrix)))
         self.assertTrue(
             all(
-                np.all(np.isclose(f2d_orig.grid[i], self.f2d.grid[i]))
+                np.all(np.isclose(f2d_orig.grid[i], f2d.grid[i]))
                 for i in (0, 1)
                 )
             )
 
-        f3d_orig = copy.deepcopy(self.f3d)
-        self.f3d.fft()
-        self.f3d.fft()
-        self.assertTrue(np.all(np.isclose(f3d_orig.matrix, self.f3d.matrix)))
+        f3d_orig = self.f3d
+        f3d = self.f3d.fft().fft()
+        self.assertTrue(np.all(np.isclose(f3d_orig.matrix, f3d.matrix)))
         self.assertTrue(
             all(
-                np.all(np.isclose(f3d_orig.grid[i], self.f3d.grid[i]))
+                np.all(np.isclose(f3d_orig.grid[i], f3d.grid[i]))
                 for i in (0, 1, 2)
                 )
             )
 
     def test_fourier_shift_spatial_domain(self):
-        f1d_orig = copy.deepcopy(self.f1d)
+        f1d_orig = self.f1d
         dx = [ax.grid[1]-ax.grid[0] for ax in self.f1d.axes]
         f = self.f1d.shift_grid_by(dx)
         self.assertTrue(np.all(np.isclose(np.roll(f1d_orig.matrix, -1), f.matrix.real)))
 
-        f2d_orig = copy.deepcopy(self.f2d)
+        f2d_orig = self.f2d
         dx = [ax.grid[1]-ax.grid[0] for ax in self.f2d.axes]
         f = self.f2d.shift_grid_by([dx[0], 0])
         self.assertTrue(np.all(np.isclose(np.roll(f2d_orig.matrix, -1, axis=0), f.matrix.real)))
 
-        self.f2d = copy.deepcopy(f2d_orig)
         f = self.f2d.shift_grid_by(dx)
         self.assertTrue(np.all(np.isclose(np.roll(
             np.roll(f2d_orig.matrix, -1, axis=0), -1, axis=1
             ), f.matrix.real)))
 
-        f3d_orig = copy.deepcopy(self.f3d)
+        f3d_orig = self.f3d
         f = self.f3d.shift_grid_by([0.25, 0, 0])
         self.assertTrue(np.all(np.isclose(np.roll(f3d_orig.matrix, -1, axis=0), f.matrix.real)))
 
