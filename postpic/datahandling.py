@@ -1602,6 +1602,46 @@ class Field(NDArrayOperatorsMixin):
         for axis in reversed(sorted(axes)):
             ret._matrix = method(ret, ret.axes[axis].grid, axis=axis)
             del ret.axes[axis]
+            del ret.axes_transform_state[axis]
+            del ret.transformed_axes_origins[axis]
+
+        return ret
+
+    def _integrate_fast(self, axes):
+        '''
+        Integrate by assuming constant value across each grid cell, even for uneven grids.
+        This effectively assumes cell-oriented data where each data point already represents
+        an average over its cell.
+
+        Note: This is effectively equivalent to _integrate_constant, but should be a lot faster
+        on larger arrays. However for the time being, _integrate_constant is left as is to have a
+        refernce for testing and comparison of speed.
+        '''
+        ret = copy.copy(self)
+
+        # sort the unique set of axes by the number of grid points, in ascending order
+        axes = sorted(set(axes), key=lambda i: self.shape[i])
+        while axes:
+            # pops the last value from axes which is the index of the axis with the most points
+            axis = axes.pop()
+
+            # get the box sizes along that axis and put them into an array with a shape compatible
+            # with the current matrix
+            shape = [1] * ret.dimensions
+            shape[axis] = ret.shape[axis]
+            upper = ret.axes[axis].grid_node[1:].reshape(shape)
+            lower = ret.axes[axis].grid_node[:-1].reshape(shape)
+
+            # perform summation, replace matrix and adapt metadata according to the removal of the
+            # current axis
+            ret._matrix = ne.evaluate('sum((upper-lower) * ret, axis={})'.format(axis))
+            del ret.axes[axis]
+            del ret.axes_transform_state[axis]
+            del ret.transformed_axes_origins[axis]
+
+            # reduce the remaining axis indices by 1, if they refer to an axis with a higher index
+            # than the current axis to account for removal of the current axis
+            axes = [i-1 if i > axis else i for i in axes]
 
         return ret
 
@@ -1617,7 +1657,7 @@ class Field(NDArrayOperatorsMixin):
             * 'constant'
             * any function with the same signature as scipy.integrate.simps (default).
         '''
-        if not callable(method) and method != 'constant':
+        if not callable(method) and method not in ['constant', 'fast']:
             raise ValueError("Requested method {} is not supported".format(method))
 
         if axes is None:
@@ -1628,6 +1668,8 @@ class Field(NDArrayOperatorsMixin):
 
         if method == 'constant':
             return self._integrate_constant(axes)
+        elif method == 'fast':
+            return self._integrate_fast(axes)
         else:
             return self._integrate_scipy(axes, method)
 

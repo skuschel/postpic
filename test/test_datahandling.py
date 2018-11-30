@@ -482,11 +482,23 @@ class TestField(unittest.TestCase):
 
         self.assertTrue(np.isclose(a, b))
 
+        print('start f1d.integrate')
+        a = self.f1d.integrate(method='fast')
+
+        print('type(a.matrix)', type(a.matrix))
+        self.assertTrue(np.isclose(a, b))
+
         b = self.f2d_fine.integrate(method=scipy.integrate.simps)
         c = self.f2d_fine.integrate(method=scipy.integrate.trapz)
 
         self.assertTrue(np.isclose(b, 0))
         self.assertTrue(np.isclose(c, 0))
+
+    def test_integrate_fast(self):
+        for axes in [0, 1, 2, (0,1), (0,2), (0,1,2)]:
+            a = self.f3d.integrate(axes, method='constant')
+            b = self.f3d.integrate(axes, method='fast')
+            np.testing.assert_allclose(a, b)
 
     def test_derivative(self):
         d = self.f1d.derivative(0, staggered=True)
