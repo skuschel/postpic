@@ -35,6 +35,7 @@ new: `ms = ms.filter('gamma > 2')`
 * `postpic.Field` has new methods `flip` and `rot90` similar to `np.flip()` and `np.rot90()`
 * `postpic.Field.topolar` has new defaults for extent and shape
 * `postpic.Field.integrate` now uses the simpson method by default
+* `postpic.Field.integrate` now has a new 'fast' method that uses numexpr, suitable for large datasets
 * New module `postpic.experimental` to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.
 * k-space reconstruction from EPOCH dumps has greatly improved accuracy due to a new algorithm correctly incorporating the frequency response of the implicit linear interpolation performed by EPOCH's half-steps
 * `plotter_matplotlib.plotField` allows to override `aspect` option to `imshow`
