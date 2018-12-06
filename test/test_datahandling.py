@@ -132,6 +132,7 @@ class TestField(unittest.TestCase):
         self.f0d = dh.Field([42.])
         m = np.reshape(np.arange(10).astype('d'), 10)
         self.f1d = dh.Field(m)
+        self.f1dnl = dh.Field(m, axes=[dh.Axis(grid=m**2)])
         m = np.reshape(np.arange(20).astype('d'), (4, 5))
         self.f2d = dh.Field(m)
         m = np.reshape(np.arange(60).astype('d'), (4, 5, 3))
@@ -160,6 +161,10 @@ class TestField(unittest.TestCase):
         self.assertListEqual(list(self.f1d.extent), [0, 1])
         self.f1d.extent = [3.3, 5.5]
         self.assertListEqual(list(self.f1d.extent), [3.3, 5.5])
+        self.assertClose(self.f1dnl.extent, [-0.25, 89.75])  # this may change in the future
+        with self.assertRaises(TypeError):
+            # setting a new extent for a non-linear grid is not yet supported
+            self.f1dnl.extent = [0, 1]
         self.assertListEqual(list(self.f2d.extent), [0, 1, 0, 1])
         self.f2d.extent = [3.3, 5.5, 7.7, 9.9]
         self.assertListEqual(list(self.f2d.extent), [3.3, 5.5, 7.7, 9.9])
@@ -499,6 +504,9 @@ class TestField(unittest.TestCase):
             a = self.f3d.integrate(axes, method='constant')
             b = self.f3d.integrate(axes, method='fast')
             np.testing.assert_allclose(a, b)
+        a = self.f1dnl.integrate(0, method='constant')
+        b = self.f1dnl.integrate(0, method='fast')
+        np.testing.assert_allclose(a, b)
 
     def test_derivative(self):
         d = self.f1d.derivative(0, staggered=True)
