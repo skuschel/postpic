@@ -40,13 +40,13 @@ class TestAxis(unittest.TestCase):
         # even number of grid points
         ax = dh.Axis(extent=(-1,1), n=100)
         ax = ax[0.0:1.0]
-        self.assertClose(len(ax), 50)
-        self.assertClose(ax.grid_node[0], 0)
+        npt.assert_allclose(len(ax), 50)
+        npt.assert_allclose(ax.grid_node[0], 0)
         # odd number of grid points
         ax = dh.Axis(extent=(-1,1), n=101)
         ax = ax[-0.01: 1]
-        self.assertClose(len(ax), 51)
-        self.assertClose(ax.grid[0], 0)
+        npt.assert_allclose(len(ax), 51)
+        npt.assert_allclose(ax.grid[0], 0, atol=1e-10)
 
     def test_half_resolution(self):
         # even number of grid points
@@ -125,7 +125,7 @@ class TestAxis(unittest.TestCase):
     def test_find_nearest_index(self):
         x = 0.3
         i = self.ax._find_nearest_index(x)
-        self.assertEqual(np.abs(self.ax.grid[i]-x), np.min(np.abs(self.ax.grid - x)))
+        npt.assert_allclose(np.abs(self.ax.grid[i]-x), np.min(np.abs(self.ax.grid - x)))
 
     def test_value_to_index(self):
         self.assertEqual(self.ax._find_nearest_index(0.5), np.round(self.ax.value_to_index(0.5)))

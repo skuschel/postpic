@@ -182,7 +182,7 @@ class Axis(object):
                 # grid has been passed, create grid_node from grid.
                 if len(self._grid) > 3:
                     grid_spline = scipy.interpolate.UnivariateSpline(np.arange(len(self._grid)),
-                                                                     self._grid)
+                                                                     self._grid, s=0)
                     gn_inner = grid_spline(np.arange(0.5, len(self._grid)-1))
                     gn = np.pad(gn_inner, 1, 'constant')
                     del grid_spline
@@ -210,7 +210,7 @@ class Axis(object):
             if len(self._grid_node) > 3:
                 node_spline = scipy.interpolate.UnivariateSpline(np.arange(-0.5,
                                                                            len(self._grid_node)-1),
-                                                                 self._grid_node)
+                                                                 self._grid_node, s=0)
                 self._grid = node_spline(np.arange(len(self._grid_node)-1))
                 del node_spline
             else:
