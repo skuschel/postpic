@@ -1019,6 +1019,46 @@ class Field(NDArrayOperatorsMixin):
         ret.matrix = other
         return ret
 
+    def evaluate(self, ex, local_dict=None, global_dict=None, **kwargs):
+        """
+        Evaluates the expression `ex` using `NumExpr` and returns a field containing the result.
+        This copies all metadata from `self` and just replaces the matrix.
+
+        This function is basically syntactic sugar simplifying
+
+        ```field.replace_data(ne.evaluate(expr))```
+
+        to
+
+        ```field.evaluate(expr)```
+
+        This method replicates some logic from NumExpr.necompiler.getArguments(), seems
+        there is no way around it.
+        """
+        call_frame = sys._getframe(1)
+
+        clear_local_dict = False
+        if local_dict is None:
+            local_dict = call_frame.f_locals
+            clear_local_dict = True
+        try:
+            frame_globals = call_frame.f_globals
+            if global_dict is None:
+                global_dict = frame_globals
+
+            # If `call_frame` is the top frame of the interpreter we can't clear its
+            # `local_dict`, because it is actually the `global_dict`.
+            clear_local_dict = clear_local_dict and frame_globals is not local_dict
+
+            ret = self.replace_data(ne.evaluate(ex, local_dict=local_dict,
+                                                global_dict=global_dict, **kwargs))
+
+        finally:
+            if clear_local_dict:
+                local_dict.clear()
+
+        return ret
+
     def pad(self, pad_width, mode='constant', **kwargs):
         '''
         Pads the data using `np.pad` and takes care of the axes.
