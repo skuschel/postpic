@@ -182,7 +182,7 @@ class Axis(object):
                 # grid has been passed, create grid_node from grid.
                 if len(self._grid) > 3:
                     grid_spline = scipy.interpolate.UnivariateSpline(np.arange(len(self._grid)),
-                                                                     self._grid)
+                                                                     self._grid, s=0)
                     gn_inner = grid_spline(np.arange(0.5, len(self._grid)-1))
                     gn = np.pad(gn_inner, 1, 'constant')
                     del grid_spline
@@ -210,7 +210,7 @@ class Axis(object):
             if len(self._grid_node) > 3:
                 node_spline = scipy.interpolate.UnivariateSpline(np.arange(-0.5,
                                                                            len(self._grid_node)-1),
-                                                                 self._grid_node)
+                                                                 self._grid_node, s=0)
                 self._grid = node_spline(np.arange(len(self._grid_node)-1))
                 del node_spline
             else:
@@ -308,8 +308,18 @@ class Axis(object):
 
     def _value_to_index_nonlinear(self, value):
         if self._inv_map is None:
-            self._inv_map = spinterp.interp1d(self.grid, np.linspace(0, len(self)-1, len(self)),
-                                              bounds_error=False, fill_value='extrapolate')
+            grid_and_nodes = np.zeros(2*len(self)+1)
+
+            grid_and_nodes[::2] = self.grid_node
+            grid_and_nodes[1::2] = self.grid
+
+            indices_grid_and_nodes = np.linspace(-0.5, len(self)-0.5, len(grid_and_nodes))
+
+            self._inv_map = spinterp.interp1d(grid_and_nodes, indices_grid_and_nodes)
+
+        # clip the input values to the axes grid range
+        value = np.clip(value, *sorted(self.extent))
+
         return self._inv_map(value)
 
     def _value_to_index_linear(self, value):
@@ -336,6 +346,19 @@ class Axis(object):
             return idx
 
     def value_to_index(self, value):
+        """
+        This funtion is used to map values to indices in an interpolating manner, this is
+        mainly used by the `map_coordinates` method of the `Field` class.
+
+        In contrast to the `_find_nearest_index` method, this method does not return an integer
+        but a fractional index that refers to a position between actual pixels.
+
+        In general the equality
+
+        `ax._find_nearest_index(x) == np.round(ax.value_to_index(x))`
+
+        should hold.
+        """
         if self.islinear():
             return self._value_to_index_linear(value)
         else:

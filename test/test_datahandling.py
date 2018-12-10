@@ -4,6 +4,7 @@ import unittest
 import postpic.datahandling as dh
 import postpic.helper as helper
 import numpy as np
+import numpy.testing as npt
 import copy
 import scipy.integrate
 import pkg_resources as pr
@@ -13,12 +14,6 @@ class TestAxis(unittest.TestCase):
 
     def setUp(self):
         self.ax = dh.Axis(name='name', unit='unit', extent=[-1,1], n=101)
-
-    def assertClose(self, a, b):
-        self.assertTrue(np.all(np.isclose(a, b)))
-
-    def assertAllEqual(self, a, b):
-        self.assertTrue(np.all( a == b ))
 
     def test_simple(self):
         self.assertEqual(self.ax.name, 'name')
@@ -31,6 +26,8 @@ class TestAxis(unittest.TestCase):
         self.assertEqual(len(self.ax.grid_node), 102)
         self.assertEqual(self.ax.grid_node[0], -1)
         self.assertEqual(self.ax.grid_node[-1], 1)
+
+    def test_islinear(self):
         self.assertTrue(self.ax.islinear())
         self.assertTrue(self.ax.islinear(force=True))
 
@@ -43,13 +40,13 @@ class TestAxis(unittest.TestCase):
         # even number of grid points
         ax = dh.Axis(extent=(-1,1), n=100)
         ax = ax[0.0:1.0]
-        self.assertClose(len(ax), 50)
-        self.assertClose(ax.grid_node[0], 0)
+        npt.assert_allclose(len(ax), 50)
+        npt.assert_allclose(ax.grid_node[0], 0)
         # odd number of grid points
         ax = dh.Axis(extent=(-1,1), n=101)
         ax = ax[-0.01: 1]
-        self.assertClose(len(ax), 51)
-        self.assertClose(ax.grid[0], 0)
+        npt.assert_allclose(len(ax), 51)
+        npt.assert_allclose(ax.grid[0], 0, atol=1e-10)
 
     def test_half_resolution(self):
         # even number of grid points
@@ -73,7 +70,7 @@ class TestAxis(unittest.TestCase):
     def test_grid_node(self):
         ax = dh.Axis(grid_node = [5, 6])
         self.assertEqual(ax.grid[0], 5.5)
-        self.assertAllEqual(ax.grid_node, [5, 6])
+        npt.assert_equal(ax.grid_node, [5, 6])
 
     def test_equal(self):
         ax1 = dh.Axis(grid_node = [5,6])
@@ -125,6 +122,23 @@ class TestAxis(unittest.TestCase):
         self.assertEqual(axr._extent_to_slice((-1,1)), slice(100, 0, -1))
         self.assertEqual(axr._extent_to_slice((1,-1)), slice(0, 100))
 
+    def test_find_nearest_index(self):
+        x = 0.3
+        i = self.ax._find_nearest_index(x)
+        npt.assert_allclose(np.abs(self.ax.grid[i]-x), np.min(np.abs(self.ax.grid - x)))
+
+    def test_value_to_index(self):
+        self.assertEqual(self.ax._find_nearest_index(0.5), np.round(self.ax.value_to_index(0.5)))
+
+class TestAxisNonLinear(TestAxis):
+
+    def setUp(self):
+        self.ax = dh.Axis(name='name', unit='unit', grid_node=np.sin(np.linspace(-np.pi/2, np.pi/2, 102)))
+
+    def test_islinear(self):
+        self.assertFalse(self.ax.islinear())
+        self.assertFalse(self.ax.islinear(force=True))
+
 class TestField(unittest.TestCase):
 
     def setUp(self):
@@ -139,13 +153,6 @@ class TestField(unittest.TestCase):
 
         x, y = helper.meshgrid(np.linspace(0,2*np.pi,100), np.linspace(0,2*np.pi,100), indexing='ij', sparse=True)
         self.f2d_fine = dh.Field(np.sin(x)*np.cos(y))
-
-    def assertClose(self, a, b):
-        print(a, b)
-        self.assertTrue(np.all(np.isclose(a, b)))
-
-    def assertAllEqual(self, a, b):
-        self.assertTrue(np.all( a == b ))
 
     def checkFieldConsistancy(self, field):
         '''
@@ -503,34 +510,34 @@ class TestField(unittest.TestCase):
     def test_derivative(self):
         d = self.f1d.derivative(0, staggered=True)
 
-        self.assertClose(d.grid, 0.5 * (self.f1d.grid[1:] + self.f1d.grid[:-1]))
-        self.assertClose(d.matrix, (self.f1d.matrix[1:] - self.f1d.matrix[:-1])/self.f1d.spacing)
+        npt.assert_allclose(d.grid, 0.5 * (self.f1d.grid[1:] + self.f1d.grid[:-1]))
+        npt.assert_allclose(d.matrix, (self.f1d.matrix[1:] - self.f1d.matrix[:-1])/self.f1d.spacing)
 
         d = self.f1d.derivative(0, staggered=False)
         print('f1d:', self.f1d.matrix, self.f1d.grid)
         print('d:', d.matrix)
 
-        self.assertClose(d.grid, self.f1d.grid)
-        self.assertClose(d.matrix, np.gradient(self.f1d.matrix, self.f1d.spacing[0]))
+        npt.assert_allclose(d.grid, self.f1d.grid)
+        npt.assert_allclose(d.matrix, np.gradient(self.f1d.matrix, self.f1d.spacing[0]))
 
         d = self.f2d.derivative(1, staggered=False)
 
-        self.assertClose(d.grid[0], self.f2d.grid[0])
-        self.assertClose(d.grid[1], self.f2d.grid[1])
-        self.assertClose(d.matrix, np.gradient(self.f2d.matrix, self.f2d.spacing[1])[1])
+        npt.assert_allclose(d.grid[0], self.f2d.grid[0])
+        npt.assert_allclose(d.grid[1], self.f2d.grid[1])
+        npt.assert_allclose(d.matrix, np.gradient(self.f2d.matrix, self.f2d.spacing[1])[1])
 
     def test_arithmetic(self):
         c1d = self.f1d + 3j*self.f1d
         i1d = c1d.imag
         a1d = c1d.angle
         cc1d = c1d.conj()
-        self.assertClose(cc1d.matrix, (c1d-2j*i1d).matrix)
+        npt.assert_allclose(cc1d.matrix, (c1d-2j*i1d).matrix)
 
     def test_operators(self):
         # test unary operators
         a = self.f2d
 
-        self.assertAllEqual((-a).matrix, -(a.matrix))
+        npt.assert_equal((-a).matrix, -(a.matrix))
 
         # f1d_neg contains negative numbers
         b = a - np.mean(a.matrix)
@@ -538,30 +545,30 @@ class TestField(unittest.TestCase):
         # avoid runtime errors
         b.matrix[b==0] = 1
 
-        self.assertAllEqual(abs(b).matrix, abs(b.matrix))
+        npt.assert_equal(abs(b).matrix, abs(b.matrix))
 
         #test binary operators
-        self.assertAllEqual((a+b).matrix, a.matrix + b.matrix)
-        self.assertAllEqual((a*b).matrix, a.matrix * b.matrix)
-        self.assertAllEqual((a/b).matrix, a.matrix / b.matrix)
-        self.assertAllEqual((b**a).matrix, b.matrix ** a.matrix)
-        self.assertAllEqual((b<=a).matrix, b.matrix <= a.matrix)
+        npt.assert_equal((a+b).matrix, a.matrix + b.matrix)
+        npt.assert_equal((a*b).matrix, a.matrix * b.matrix)
+        npt.assert_equal((a/b).matrix, a.matrix / b.matrix)
+        npt.assert_equal((b**a).matrix, b.matrix ** a.matrix)
+        npt.assert_equal((b<=a).matrix, b.matrix <= a.matrix)
 
         #test other ufuncs
-        self.assertAllEqual(np.sin(a).matrix, np.sin(a.matrix))
-        self.assertAllEqual(np.exp(a).matrix, np.exp(a.matrix))
+        npt.assert_equal(np.sin(a).matrix, np.sin(a.matrix))
+        npt.assert_equal(np.exp(a).matrix, np.exp(a.matrix))
 
     def test_inplace_operators(self):
         a = self.f2d.replace_data(self.f2d.matrix.copy())
         a -= a.mean()
 
         self.assertTrue(isinstance(a, dh.Field))
-        self.assertAllEqual(a.matrix, self.f2d.matrix - np.mean(self.f2d.matrix))
+        npt.assert_equal(a.matrix, self.f2d.matrix - np.mean(self.f2d.matrix))
 
         a /= a
 
         self.assertTrue(isinstance(a, dh.Field))
-        self.assertAllEqual(a.matrix, np.ones_like(a.matrix))
+        npt.assert_equal(a.matrix, np.ones_like(a.matrix))
 
 
     def test_operators_broadcasting(self):
@@ -575,12 +582,12 @@ class TestField(unittest.TestCase):
         c = a+b
         self.assertEqual(c.axes[0], a.axes[0])
         self.assertTrue(c.axes[1] in (a.axes[1], b.axes[1]))
-        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+        npt.assert_equal(c.matrix, a.matrix + b.matrix)
 
         c = b+a
         self.assertEqual(c.axes[0], a.axes[0])
         self.assertTrue(c.axes[1] in (a.axes[1], b.axes[1]))
-        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+        npt.assert_equal(c.matrix, a.matrix + b.matrix)
 
         # test broadcasting with missing dimensions
         b = b.squeeze()
@@ -589,12 +596,12 @@ class TestField(unittest.TestCase):
         c = a+b
         self.assertEqual(c.axes[0], a.axes[0])
         self.assertTrue(c.axes[1] in (a.axes[1], b.axes[0]))
-        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+        npt.assert_equal(c.matrix, a.matrix + b.matrix)
 
         c = b+a
         self.assertEqual(c.axes[0], a.axes[0])
         self.assertTrue(c.axes[1] in (a.axes[1], b.axes[0]))
-        self.assertAllEqual(c.matrix, a.matrix + b.matrix)
+        npt.assert_equal(c.matrix, a.matrix + b.matrix)
 
 
     def test_numpy_methods_1(self):
@@ -618,47 +625,47 @@ class TestField(unittest.TestCase):
     def test_numpy_ufuncs(self):
         a = np.add.reduce(self.f2d, axis=1)
         self.assertTrue(a.axes[0] is self.f2d.axes[0])
-        self.assertAllEqual(a.matrix, np.add.reduce(self.f2d.matrix, axis=1))
+        npt.assert_equal(a.matrix, np.add.reduce(self.f2d.matrix, axis=1))
 
         b = np.multiply.outer(self.f1d, self.f2d)
         self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
-        self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
+        npt.assert_equal(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
 
     @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
                  "This behaviour is not supported for numpy older than 1.12")
     def test_flip(self):
         f2df = self.f2d.flip(axis=-1)
-        self.assertAllEqual(f2df.extent, [0,1,1,0])
-        self.assertAllEqual(f2df.flip(axis=-1), self.f2d)
-        self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(0).flip(1))
-        self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(1).flip(0))
+        npt.assert_equal(f2df.extent, [0,1,1,0])
+        npt.assert_equal(f2df.flip(axis=-1), self.f2d)
+        npt.assert_equal(self.f2d, self.f2d.flip(0).flip(1).flip(0).flip(1))
+        npt.assert_equal(self.f2d, self.f2d.flip(0).flip(1).flip(1).flip(0))
 
     @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
                  "This behaviour is not supported for numpy older than 1.12")
     def test_rot90(self):
         f2dr = self.f2d.rot90().rot90().rot90().rot90()
-        self.assertAllEqual(self.f2d, f2dr)
-        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        npt.assert_equal(self.f2d, f2dr)
+        npt.assert_equal(self.f2d.extent, f2dr.extent)
         f2dr = self.f2d.rot90().rot90(k=2).rot90()
-        self.assertAllEqual(self.f2d, f2dr)
-        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        npt.assert_equal(self.f2d, f2dr)
+        npt.assert_equal(self.f2d.extent, f2dr.extent)
         f2dr = self.f2d.rot90(k=3).rot90()
-        self.assertAllEqual(self.f2d, f2dr)
-        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        npt.assert_equal(self.f2d, f2dr)
+        npt.assert_equal(self.f2d.extent, f2dr.extent)
         f2dr = self.f2d.rot90(k=4)
-        self.assertAllEqual(self.f2d, f2dr)
-        self.assertAllEqual(self.f2d.extent, f2dr.extent)
+        npt.assert_equal(self.f2d, f2dr)
+        npt.assert_equal(self.f2d.extent, f2dr.extent)
 
     @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
                  "This behaviour is not supported for numpy older than 1.12")
     def test_rot90_2(self):
         f2dr = np.rot90(self.f2d, k=4)
-        self.assertAllEqual(self.f2d, f2dr)
+        npt.assert_equal(self.f2d, f2dr)
         f2dr = np.rot90(self.f2d, k=3)
         f2drot = self.f2d.rot90(k=3)
-        self.assertAllEqual(f2drot, f2dr)
+        npt.assert_equal(f2drot, f2dr)
         # this would fail, as f2drot is a np.ndarray
-        # self.assertAllEqual(f2drot.extent, f2dr.extent)
+        # npt.assert_equal(f2drot.extent, f2dr.extent)
 
 
 if __name__ == '__main__':
