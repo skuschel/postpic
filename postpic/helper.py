@@ -554,6 +554,11 @@ def kspace_epoch_like(component, fields, dt, extent=None, omega_func=omega_free,
 
     For the current version of EPOCH, v4.9, use the following:
     align_to == 'B' for intermediate dumps, align_to == "E" for final dumps
+
+    As of Jan 2019 the devel branch contains a change, that will modify the behaviour of final
+    dumps to be the same as intermediate dumps. This change is supposed to be released with
+    Epoch v5.0. See https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch/issues/1896 for details. From
+    Epoch v5.0 onwards, align_to should always be set to 'B'.
     '''
     polfield = component[0]
     polaxis = axesidentify[component[1]]
