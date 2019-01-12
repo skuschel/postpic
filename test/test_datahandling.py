@@ -168,7 +168,7 @@ class TestField(unittest.TestCase):
         self.assertListEqual(list(self.f1d.extent), [0, 1])
         self.f1d.extent = [3.3, 5.5]
         self.assertListEqual(list(self.f1d.extent), [3.3, 5.5])
-        self.assertClose(self.f1dnl.extent, [-0.25, 89.75])  # this may change in the future
+        self.assertTrue(np.allclose(self.f1dnl.extent, [-0.25, 89.75]))  # this may change in the future
         with self.assertRaises(TypeError):
             # setting a new extent for a non-linear grid is not yet supported
             self.f1dnl.extent = [0, 1]
