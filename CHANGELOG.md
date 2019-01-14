@@ -2,6 +2,18 @@
 
 ## current master
 
+## v0.4
+2019-01-14
+
+**Highlights**
+
+* Improved interoperability with numpy:
+  * `Field` now understands most of numpy's broadcasting
+  * `Field` can be used as an argument to numpy's ufuncs.
+* Import and export routines for `Field` incuding vtk, compatible with [paraview](https://www.paraview.org/).
+* Coordinate mapping and transform for `Field`.
+* Brand new `Multispecies.__call__` interface: This takes an expression, which is evaluated by `numexr`, increasing the speed of per-particle scalar computations strongly. It's also really user-friendly.
+
 **Incompatible adjustments to previous version**
 * `postpic.Field` method `exporttocsv` is removed. Use `export` instead.
 * `postpic.Field` method `transform` is renamed to `map_coordinates`, matching the underlying scipy-function.
