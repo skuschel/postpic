@@ -10,12 +10,6 @@ notifications:
     on_success: change
     on_failure: change
 
-python:
-  - 2.7
-  - 3.5
-  - 3.6
-  - 3.7
-
 env:
   - MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
 #  - MATPLOTLIB_V=2.0.2 NUMPY_V=* SCIPY_V=* CYTHON_V=*
@@ -26,9 +20,20 @@ jobs:
     # have this allowed as there is a bug in matplotlib 2.1.0
 #    - env: MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
   include:
-    # Ubuntu 14.04.5 LTS
-    # python 2.6 is explicitly NOT supported!
-    - name: "Ubuntu 14.04.5 LTS - Python 3.4"
+    - stage: pep8 code style
+      before_install: skip
+      install: pip install pycodestyle
+      before_script: skip
+      script: "pycodestyle postpic --statistics --count --show-source --ignore=W391,E123,E226,E24,W504 --max-line-length=99"
+
+    - stage: Tests
+      python: 2.7
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+      # Ubuntu 14.04.5 LTS
+      # python 2.6 is explicitly NOT supported!
+      name: "Ubuntu 14.04.5 LTS - Python 3.4"
       python: 3.4
       env: MATPLOTLIB_V=1.3.1 NUMPY_V=1.8.1 SCIPY_V=0.13.3 CYTHON_V=0.20.1 EXTRAPACK="libgfortran<3"
     # Ubuntu 16.04.3 LTS
