@@ -60,38 +60,37 @@ def run_alltests(python='python', fast=False, skip_setup=False):
     '''
     runs all tests on postpic. This function has to exit without error on every commit!
     '''
-    python += ' '
+    cmdrpl = dict(python=python)
     # make sure .pyx sources are up to date and compiled
     if not skip_setup:
-        runcmd(python + 'setup.py develop --user')
+        runcmd('{python} setup.py develop --user'.format(**cmdrpl))
 
     # find pep8 or pycodestyle (its successor)
-    pycodestylecmd = None
     try:
         import pep8
-        pycodestylecmd = 'pep8'
+        cmdrpl['pycodestyle'] = 'pep8'
     except(ImportError):
         pass
     try:
         import pycodestyle
-        pycodestylecmd = 'pycodestyle'
+        cmdrpl['pycodestyle'] = 'pycodestyle'
     except(ImportError):
         pass
-    if not pycodestylecmd:
+    if 'pycodestyle' not in cmdrpl:
         raise ImportError('Install pep8 or pycodestyle (its successor)')
 
-    cmds = [python + '-m nose --exe',
-            python + '-m ' + pycodestylecmd + ' postpic --statistics --count --show-source '
-            '--ignore=W391,E123,E226,E24,W504 --max-line-length=99']
-    cmdo = [python + 'setup.py build_sphinx',
-            python + os.path.join('examples', 'simpleexample.py'),
-            python + os.path.join('examples', 'particleshapedemo.py'),
-            python + os.path.join('examples', 'time_cythonfunctions.py'),
-            python + os.path.join('examples', 'openPMD.py')]
+    cmds = ['{python} -m {pycodestyle} postpic --statistics --count --show-source '
+            '--ignore=W391,E123,E226,E24,W504 --max-line-length=99',
+            '{python} -m nose --exe']
+    cmdo = ['{python} setup.py build_sphinx',
+            '{python} ' + os.path.join('examples', 'simpleexample.py'),
+            '{python} ' + os.path.join('examples', 'particleshapedemo.py'),
+            '{python} ' + os.path.join('examples', 'time_cythonfunctions.py'),
+            '{python} ' + os.path.join('examples', 'openPMD.py')]
     if not fast:
         cmds += cmdo
     for cmd in cmds:
-        runcmd(cmd)
+        runcmd(cmd.format(**cmdrpl))
 
 def main():
     import argparse
