@@ -20,11 +20,14 @@ jobs:
     # have this allowed as there is a bug in matplotlib 2.1.0
 #    - env: MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
   include:
-    - stage: pep8 code style
+    - stage: Fast test
+      python: 3.5
+      virtualenv:
+        system_site_packages: true
       before_install: skip
-      install: pip install pycodestyle
+      install: pip install -r pip-requirements.txt
       before_script: skip
-      script: "pycodestyle postpic --statistics --count --show-source --ignore=W391,E123,E226,E24,W504 --max-line-length=99"
+      script: ./run-tests.py --fast
 
     - stage: Tests
       python: 2.7
