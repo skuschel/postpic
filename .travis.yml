@@ -3,7 +3,7 @@
 
 language: python
 sudo: false
-dist: trusty
+dist: xenial
 
 notifications:
   email:
@@ -19,7 +19,7 @@ env:
   - MATPLOTLIB_V=* NUMPY_V=* SCIPY_V=* CYTHON_V=*
 #  - MATPLOTLIB_V=2.0.2 NUMPY_V=* SCIPY_V=* CYTHON_V=*
 
-matrix:
+jobs:
   fast_finish: true
 #  allow_failures:
     # have this allowed as there is a bug in matplotlib 2.1.0
