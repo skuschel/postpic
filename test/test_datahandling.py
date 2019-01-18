@@ -162,6 +162,39 @@ class TestField(unittest.TestCase):
         for i in range(len(field.axes)):
             self.assertEqual(len(field.axes[i]), field.matrix.shape[i])
 
+    def test_copy(self):
+        c1d = self.f1d.copy(deep=False)
+        assert c1d.matrix is self.f1d.matrix
+
+        assert c1d.axes is not self.f1d.axes
+        assert c1d.axes == self.f1d.axes
+
+        assert c1d.axes_transform_state is not self.f1d.axes_transform_state
+        assert c1d.axes_transform_state == self.f1d.axes_transform_state
+
+        assert c1d.transformed_axes_origins is not self.f1d.transformed_axes_origins
+        assert c1d.transformed_axes_origins == self.f1d.transformed_axes_origins
+
+        assert c1d.infos is not self.f1d.infos
+        assert c1d.infos == self.f1d.infos
+
+        c1d = self.f1d.copy(deep=True)
+        assert c1d.matrix is not self.f1d.matrix
+        np.testing.assert_equal(c1d.matrix, self.f1d.matrix)
+
+        assert c1d.axes is not self.f1d.axes
+        assert c1d.axes == self.f1d.axes
+
+        assert c1d.axes_transform_state is not self.f1d.axes_transform_state
+        assert c1d.axes_transform_state == self.f1d.axes_transform_state
+
+        assert c1d.transformed_axes_origins is not self.f1d.transformed_axes_origins
+        assert c1d.transformed_axes_origins == self.f1d.transformed_axes_origins
+
+        assert c1d.infos is not self.f1d.infos
+        assert c1d.infos == self.f1d.infos
+
+
     def test_extent(self):
         self.assertListEqual(list(self.f0d.extent), [])
         self.assertListEqual(list(self.f1d.extent), [0, 1])
