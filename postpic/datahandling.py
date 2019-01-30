@@ -973,6 +973,9 @@ class Field(NDArrayOperatorsMixin):
         if not self.dimensions * 2 == len(newextent):
             raise TypeError('size of newextent doesnt match self.dimensions * 2')
         for i in range(len(self.axes)):
+            if not self.axes[i].islinear():
+                s = 'resetting the extent for an axis with non-linear grid is not yet supported.'
+                raise TypeError(s)
             newax = Axis(self.axes[i].name, self.axes[i].unit,
                          extent=newextent[2 * i:2 * i + 2], n=self.shape[i])
             self.setaxisobj(i, newax)
