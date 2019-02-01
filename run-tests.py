@@ -79,7 +79,8 @@ def run_alltests(python='python', fast=False, skip_setup=False):
     if 'pycodestyle' not in cmdrpl:
         raise ImportError('Install pep8 or pycodestyle (its successor)')
 
-    cmds = ['{python} -m {pycodestyle} postpic --statistics --count --show-source '
+    cmds = ['{python} -m pycodestyle --version',
+            '{python} -m {pycodestyle} postpic --statistics --count --show-source '
             '--ignore=W391,E123,E226,E24,W504 --max-line-length=99',
             '{python} -m nose --exe']
     cmdo = ['{python} setup.py build_sphinx',
