@@ -219,8 +219,8 @@ class Axis(object):
             # check if grid and grid_node are compatible
             if not np.all(self._grid > self._grid_node[:-1]) and \
                np.all(self._grid < self._grid_node[1:]):
-                    raise ValueError("Points of passed grid are not within corresponding "
-                                     "grid_nodes.")
+                raise ValueError("Points of passed grid are not within corresponding "
+                                 "grid_nodes.")
 
         # set extent if not given or check if compatible with grid_node
         if self._extent is None:
@@ -1002,6 +1002,9 @@ class Field(NDArrayOperatorsMixin):
         if not self.dimensions * 2 == len(newextent):
             raise TypeError('size of newextent doesnt match self.dimensions * 2')
         for i in range(len(self.axes)):
+            if not self.axes[i].islinear():
+                s = 'resetting the extent for an axis with non-linear grid is not yet supported.'
+                raise TypeError(s)
             newax = Axis(self.axes[i].name, self.axes[i].unit,
                          extent=newextent[2 * i:2 * i + 2], n=self.shape[i])
             self.setaxisobj(i, newax)
