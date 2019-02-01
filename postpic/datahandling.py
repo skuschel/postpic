@@ -219,8 +219,8 @@ class Axis(object):
             # check if grid and grid_node are compatible
             if not np.all(self._grid > self._grid_node[:-1]) and \
                np.all(self._grid < self._grid_node[1:]):
-                    raise ValueError("Points of passed grid are not within corresponding "
-                                     "grid_nodes.")
+                raise ValueError("Points of passed grid are not within corresponding "
+                                 "grid_nodes.")
 
         # set extent if not given or check if compatible with grid_node
         if self._extent is None:
