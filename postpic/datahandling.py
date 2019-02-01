@@ -627,6 +627,35 @@ class Field(NDArrayOperatorsMixin):
             ret.__dict__[k] = copy.copy(self.__dict__[k])
         return ret
 
+    def __deepcopy__(self, memo=None):
+        '''
+        returns a deep copy of the object.
+        This method is called by `copy.deepcopy(obj)`.
+
+        Although Field objects are mostly immutable, they have a __setitem__, which is useful
+        in some cases. Sometimes, one needs an easy way to copy a Field before using __setitem__.
+        This function copies the underlying data to make sure that no modifications applied to
+        the copy affect the source.
+
+        As the contents of `axes` should be strictly immutable, they don't need to be copied.
+        '''
+        ret = copy.copy(self)
+        ret.matrix = self.matrix.copy()
+        return ret
+
+    def copy(self, deep=True):
+        '''
+        Return a copy of the Field.
+
+        deep: return a deep copy ()
+
+        Similar to `numpy.ndarray.copy`.
+        '''
+        if deep:
+            return copy.deepcopy(self)
+        else:
+            return copy.copy(self)
+
     # Stuff related with compatibility to Numpy's ufuncs starts here.
     def _get_axes_ats_tao_binary_ufunc_broadcasting(self, other):
         """

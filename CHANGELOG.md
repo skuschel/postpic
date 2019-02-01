@@ -2,6 +2,8 @@
 
 ## current master
 
+* New convenience method `Field.copy`
+
 ## v0.4
 2019-01-14
 
