@@ -4,6 +4,7 @@ import unittest
 import postpic.datahandling as dh
 import postpic.helper as helper
 import numpy as np
+import numpy.testing as npt
 import copy
 import scipy.integrate
 import pkg_resources as pr
@@ -12,10 +13,12 @@ import pkg_resources as pr
 class TestAxis(unittest.TestCase):
 
     def assertAllClose(self, a, b, **kwargs):
-        self.assertTrue(np.allclose(a, b, **kwargs))
+        #self.assertTrue(np.allclose(a, b, **kwargs))
+        npt.assert_allclose(a, b, **kwargs)
 
     def assertAllEqual(self, a, b):
-        self.assertTrue(np.all(np.equal(a, b)))
+        #self.assertTrue(np.all(np.equal(a, b)))
+        npt.assert_equal(a, b)
 
     def setUp(self):
         self.ax = dh.Axis(name='name', unit='unit', extent=[-1,1], n=101)
@@ -147,10 +150,12 @@ class TestAxisNonLinear(TestAxis):
 class TestField(unittest.TestCase):
 
     def assertAllClose(self, a, b, **kwargs):
-        self.assertTrue(np.allclose(a, b, **kwargs))
+        #self.assertTrue(np.allclose(a, b, **kwargs))
+        npt.assert_allclose(a, b, **kwargs)
 
     def assertAllEqual(self, a, b):
-        self.assertTrue(np.all(np.equal(a, b)))
+        #self.assertTrue(np.all(np.equal(a, b)))
+        npt.assert_equal(a, b)
 
     def setUp(self):
         self.fempty = dh.Field([])
