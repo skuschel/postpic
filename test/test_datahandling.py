@@ -470,6 +470,23 @@ class TestField(unittest.TestCase):
         print(a, b)
         self.assertTrue(np.isclose(a, b, rtol=0.01))
 
+    def test_map_coordinates_cmplx(self):
+        complex_field = self.f2d + 1.j * self.f2d
+
+        th_axis = dh.Axis(grid = np.linspace(0, 2*np.pi, 100))
+
+        r_axis = dh.Axis(grid = np.linspace(0, 1.5, 100))
+
+        # this calculates numerical approximation of jacobi determinant and thus also tests
+        # helper.jac_det and
+        # helper.approx_jacobian
+        polar = complex_field.map_coordinates([th_axis, r_axis], helper.polar2linear)
+        a = abs(complex_field).integrate().matrix
+        b = abs(polar).integrate().matrix
+
+        print(a, b)
+        self.assertTrue(np.isclose(a, b, rtol=0.01))
+
     def test_map_coordinates_2(self):
         orig = self.f2d_fine
 

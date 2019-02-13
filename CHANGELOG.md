@@ -3,6 +3,7 @@
 ## current master
 
 * New convenience method `Field.copy`
+* Parallelized implementation of `Field.map_coordinates`
 
 ## v0.4
 2019-01-14
