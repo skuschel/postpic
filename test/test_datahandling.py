@@ -464,11 +464,15 @@ class TestField(unittest.TestCase):
         # this calculates numerical approximation of jacobi determinant and thus also tests
         # helper.jac_det and
         # helper.approx_jacobian
-        polar = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear)
+        polar = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear, chunklen=10)
         b = polar.integrate().matrix
-
-        print(a, b)
         self.assertTrue(np.isclose(a, b, rtol=0.01))
+
+        polar_serial = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear, threads=1)
+        c = polar_serial.integrate().matrix
+        self.assertTrue(np.isclose(a, c, rtol=0.01))
+
+        self.assertAllClose(b, c)
 
     def test_map_coordinates_cmplx(self):
         complex_field = self.f2d + 1.j * self.f2d
