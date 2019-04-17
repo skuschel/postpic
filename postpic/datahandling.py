@@ -2214,13 +2214,15 @@ class Field(NDArrayOperatorsMixin):
         '''
         io.export_field(filename, self, **kwargs)
 
-    def saveto(self, filename):
+    def saveto(self, filename, compressed=True):
         '''
         Save a Field object as a file. Use `loadfrom()` to load Field objects.
+        The '.npz' file name extension will be added automatically, if missing.
+        Pass compressed=False to skip deflate compression, if compression takes too long.
         '''
         if not filename.endswith('.npz'):
             filename += '.npz'
-        self.export(filename)
+        self.export(filename, compressed=compressed)
 
     def __str__(self):
         s = '<postpic.Field "{:}" {:}>'
