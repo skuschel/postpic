@@ -42,6 +42,7 @@ def _export_field_npy(filename, field, compressed=True):
     max_length = np.max(length_edges)
 
     meta_ax_edges = np.zeros([naxes, max_length])
+    meta_ax_grids = np.zeros([naxes, max_length-1])
     meta_ax_names = np.array([''] * naxes)
     meta_ax_units = np.array([''] * naxes)
     meta_ax_transform_state = np.array([False] * naxes)
@@ -50,6 +51,7 @@ def _export_field_npy(filename, field, compressed=True):
     for nax in range(0, naxes):
         ax = field.axes[nax]
         meta_ax_edges[nax, 0:length_edges[nax]] = ax.grid_node
+        meta_ax_grids[nax, 0:length_edges[nax]-1] = ax.grid
         meta_ax_names[nax] = str(ax.name)
         meta_ax_units[nax] = str(ax.unit)
 
@@ -62,7 +64,9 @@ def _export_field_npy(filename, field, compressed=True):
     # save all the data in one file
     savefunc = np.savez_compressed if compressed else np.savez
     savefunc(filename, matrix=field.matrix, meta_field=meta_field,
-             meta_ax_edges=meta_ax_edges, meta_ax_names=meta_ax_names,
+             meta_ax_edges=meta_ax_edges,
+             meta_ax_grids=meta_ax_grids,
+             meta_ax_names=meta_ax_names,
              meta_ax_units=meta_ax_units,
              meta_length_edges=length_edges,
              meta_ax_transform_state=meta_ax_transform_state,
@@ -83,6 +87,7 @@ def _import_field_npy(filename):
     # Axes Objects
     length_edges = import_file['meta_length_edges']
     meta_ax_edges = import_file['meta_ax_edges']
+    meta_ax_grids = import_file['meta_ax_grids']
     meta_ax_names = import_file['meta_ax_names']
     meta_ax_units = import_file['meta_ax_units']
     meta_ax_transform_state = import_file['meta_ax_transform_state']
@@ -92,7 +97,8 @@ def _import_field_npy(filename):
     for nax in range(0, len(length_edges)):
         axes.append(Axis(name=meta_ax_names[nax],
                          unit=meta_ax_units[nax],
-                         grid_node=meta_ax_edges[nax, 0:length_edges[nax]]))
+                         grid_node=meta_ax_edges[nax, 0:length_edges[nax]],
+                         grid=meta_ax_grids[nax, 0:length_edges[nax]-1]))
 
     # field
     meta_field = import_file['meta_field']
