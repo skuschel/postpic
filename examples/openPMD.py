@@ -23,20 +23,28 @@ def download(url, file):
     import shutil
     import os
     if os.path.isfile(file):
-        return
-    urllib3.disable_warnings()
-    http = urllib3.PoolManager()
-    print('downloading {:} ...'.format(file))
-    with http.request('GET', url, preload_content=False) as r, open(file, 'wb') as out_file:
-        shutil.copyfileobj(r, out_file)
+        return True
+    try:
+        urllib3.disable_warnings()
+        http = urllib3.PoolManager()
+        print('downloading {:} ...'.format(file))
+        with http.request('GET', url, preload_content=False) as r, open(file, 'wb') as out_file:
+            shutil.copyfileobj(r, out_file)
+        success = True
+    except urllib3.exceptions.MaxRetryError:
+        success = False
+    return success
 
 def main():
     import os
     if not os.path.exists('examples/_openPMDdata'):
         os.mkdir('examples/_openPMDdata')
-    download('https://github.com/openPMD/openPMD-example-datasets/'
-           + 'raw/776ae3a96c02b20cfae56efafcbda6ca76d4c78d/example-2d.tar.gz',
-             'examples/_openPMDdata/example-2d.tar.gz')
+    s = download('https://github.com/openPMD/openPMD-example-datasets/'
+                + 'raw/776ae3a96c02b20cfae56efafcbda6ca76d4c78d/example-2d.tar.gz',
+                    'examples/_openPMDdata/example-2d.tar.gz')
+    if not s:
+        print('Failed to Download example data. Skipping this example.')
+        return
 
     import tarfile
     tar = tarfile.open('examples/_openPMDdata/example-2d.tar.gz')
