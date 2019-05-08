@@ -37,10 +37,10 @@ import math
 import numexpr as ne
 from scipy.ndimage import _ni_support, _nd_image, spline_filter
 
-try:
+if sys.version_info[0:2] >= (3, 5):
     from concurrent.futures import ThreadPoolExecutor
     have_concurrent_futures = True
-except ImportError:
+else:
     from multiprocessing.pool import ThreadPool as ThreadPoolExecutor
     have_concurrent_futures = False
 
