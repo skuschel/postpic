@@ -39,8 +39,10 @@ from scipy.ndimage import _ni_support, _nd_image, spline_filter
 
 try:
     from concurrent.futures import ThreadPoolExecutor
+    have_concurrent_futures = True
 except ImportError:
     from multiprocessing.pool import ThreadPool as ThreadPoolExecutor
+    have_concurrent_futures = False
 
 
 __all__ = ['PhysicalConstants', 'unstagger_fields', 'kspace_epoch_like', 'kspace',
@@ -301,7 +303,11 @@ def map_coordinates_parallel(input, coordinates, output=None, order=3, mode='con
     list(my_map(map_coordinates_chunk, list_of_chunk_args))
 
     if threads != 1:
-        threadpool.shutdown()
+        if have_concurrent_futures:
+            threadpool.shutdown()
+        else:
+            threadpool.close()
+            threadpool.join()
 
     return retval
 
