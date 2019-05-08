@@ -25,20 +25,26 @@ jobs:
       virtualenv:
         system_site_packages: true
       before_install: skip
-      install: pip install -r pip-requirements.txt
+      install:
+         - pip install 'matplotlib<3.1'
+         - pip install -r pip-requirements.txt
       before_script: skip
       script: ./run-tests.py --fast
 
     - stage: Tests
       python: 2.7
+      env: MATPLOTLIB_V=2.2.3
     - python: 3.5
+      env: MATPLOTLIB_V=3.0
     - python: 3.6
     - python: 3.7
-      # Ubuntu 14.04.5 LTS
-      # python 2.6 is explicitly NOT supported!
-      name: "Ubuntu 14.04.5 LTS - Python 3.4"
+
+    # Ubuntu 14.04.5 LTS
+    # python 2.6 is explicitly NOT supported!
+    - name: "Ubuntu 14.04.5 LTS - Python 3.4"
       python: 3.4
       env: MATPLOTLIB_V=1.3.1 NUMPY_V=1.8.1 SCIPY_V=0.13.3 CYTHON_V=0.20.1 EXTRAPACK="libgfortran<3"
+
     # Ubuntu 16.04.3 LTS
     - name: "Ubuntu 16.04.3 LTS - Python 2.7"
       python: 2.7
@@ -46,6 +52,7 @@ jobs:
     - name: "Ubuntu 16.04.3 LTS - Python 3.5"
       python: 3.5
       env: MATPLOTLIB_V=1.5.1 NUMPY_V=1.11.0 SCIPY_V=0.17.0 CYTHON_V=0.23.4
+
     # Ubuntu 18.04 LTS
     - name: "Ubuntu 18.04 LTS - Python 2.7"
       python: 2.7
