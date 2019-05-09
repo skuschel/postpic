@@ -639,7 +639,7 @@ class Field(NDArrayOperatorsMixin):
         Return a copy of the Field.
 
         deep: return a deep copy, optional
-        order: {‘C’, ‘F’, ‘A’, ‘K’}, optional
+        order: {'C', 'F', 'A', 'K'}, optional
             Controls the memory layout of the copy. Only applies to deep copies. See
             `numpy.ndarray.copy` for more details.
             Default is 'C'-Order.
