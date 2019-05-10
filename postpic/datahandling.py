@@ -1962,8 +1962,14 @@ class Field(NDArrayOperatorsMixin):
         if transform_state is None:
             raise ValueError("FFT only allowed if all mentioned axes are in same transform state")
 
+        # calculates the output axes, factoring in the "transformed_axes_origins"
+        new_axes = self._conjugate_grid(axes)
+
         # Record current axes origins of transformed axes
-        new_origins = {i: self.axes[i].grid[0] for i in axes}
+        input_origins = {i: self.axes[i].grid[0] for i in axes}
+        negative_input_origins = {i: -self.axes[i].grid[0] for i in axes}
+        output_origins = {i: new_axes[i][0] for i in axes}
+        phi0 = sum(input_origins[i] * output_origins[i] for i in axes)
 
         # Grid spacing
         dx = {i: self.axes[i].spacing for i in axes}
@@ -2000,50 +2006,37 @@ class Field(NDArrayOperatorsMixin):
             elif transform_state is True:
                 fftnorm *= np.sqrt(N)
 
-        mat = self.matrix
+        ret = self.copy(deep=False)
 
         if exponential_signs == 'temporal':
-            mat = np.conjugate(mat)
+            ret.matrix = np.conjugate(ret.matrix)
 
-        new_axes = self._conjugate_grid(axes)
+        ret = ret._apply_linear_phase(output_origins)
 
-        # Transforming from spatial domain to frequency domain ...
-        if transform_state is False:
-            new_axesobjs = {
-                i: Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
-                        '1/'+self.axes[i].unit,
-                        grid=new_axes[i])
-                for i in axes
-            }
-            mat = fftnorm \
-                * fft.fftshift(fft.fftn(mat, axes=axes, **my_fft_args), axes=axes)
-
-        # ... or transforming from frequency domain to spatial domain
-        elif transform_state is True:
-            new_axesobjs = {
-                i: Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
-                        self.axes[i].unit.lstrip('1/'),
-                        grid=new_axes[i])
-                for i in axes
-            }
-            mat = fftnorm \
-                * fft.ifftn(fft.ifftshift(mat, axes=axes), axes=axes, **my_fft_args)
-
-        if exponential_signs == 'temporal':
-            mat = np.conjugate(mat)
-
-        ret = copy.copy(self)
-        ret.matrix = mat
-
-        # Update axes objects
+        # Transforming...
+        fftfun = fft.ifftn if transform_state else fft.fftn
+        ret.matrix = fftnorm * fftfun(ret.matrix, axes=axes, **my_fft_args)
 
         for i in axes:
-            # update axes objects
-            ret.setaxisobj(i, new_axesobjs[i])
+            if transform_state is False:
+                newax = Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
+                             '1/'+self.axes[i].unit,
+                             grid=new_axes[i])
+            else:
+                newax = Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
+                             self.axes[i].unit.lstrip('1/'),
+                             grid=new_axes[i])
+
+            ret.setaxisobj(i, newax)
 
             # update transform state and record axes origins
             ret.axes_transform_state[i] = not transform_state
-            ret.transformed_axes_origins[i] = new_origins[i]
+            ret.transformed_axes_origins[i] = input_origins[i]
+
+        ret = ret._apply_linear_phase(negative_input_origins, phi0=phi0)
+
+        if exponential_signs == 'temporal':
+            ret.matrix = np.conjugate(ret.matrix)
 
         return ret
 
@@ -2075,7 +2068,7 @@ class Field(NDArrayOperatorsMixin):
     def ensure_frequency_domain(self):
         return self.ensure_transform_state(True)
 
-    def _apply_linear_phase(self, dx):
+    def _apply_linear_phase(self, dx, phi0=0.0):
         '''
         Apply a linear phase as part of translating the grid points.
 
@@ -2087,23 +2080,29 @@ class Field(NDArrayOperatorsMixin):
             raise ValueError("Translation only allowed if all mentioned axes"
                              "are in same transform state")
 
-        if any(self.transformed_axes_origins[i] is None for i in dx.keys()):
-            raise ValueError("Translation only allowed if all mentioned axes"
-                             "have transformed_axes_origins not None")
+        # exp_ikdx = helper.linear_phase(self, dx)
+        exp_ikdx_expr, expr_dict = helper._linear_phase(self, dx, phi0=phi0)
+        expr_dict['self'] = self
 
-        exp_ikdx = helper.linear_phase(self, dx)
-
-        ret = self * exp_ikdx
-
-        for i in dx.keys():
-            ret.transformed_axes_origins[i] += dx[i]
+        ret = self.evaluate('self * ({})'.format(exp_ikdx_expr),
+                            local_dict=expr_dict)
 
         return ret
 
     def _shift_grid_by_fourier(self, dx):
         axes = sorted(dx.keys())
         ret = self.fft(axes)
-        ret = ret._apply_linear_phase(dx)
+        transform_state = ret._transform_state(dx.keys())
+
+        if any(ret.transformed_axes_origins[i] is None for i in dx.keys()):
+            raise ValueError("Translation only allowed if all mentioned axes"
+                             "have transformed_axes_origins not None")
+
+        # if transform_state is False:
+        #     ret = ret._apply_linear_phase(dx)
+
+        for i in dx.keys():
+            ret.transformed_axes_origins[i] += dx[i]
         return ret.fft(axes)
 
     def _shift_grid_by_linear(self, dx):
