@@ -466,13 +466,13 @@ class TestField(unittest.TestCase):
         # helper.approx_jacobian
         polar = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear, chunklen=10)
         b = polar.integrate().matrix
-        self.assertTrue(np.isclose(a, b, rtol=0.01))
+        self.assertAllClose(a, b, rtol=0.01)
 
         polar_serial = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear, threads=1)
         c = polar_serial.integrate().matrix
-        self.assertTrue(np.isclose(a, c, rtol=0.01))
+        self.assertAllClose(a, c, rtol=0.01)
 
-        self.assertAllClose(b, c)
+        self.assertAllClose(polar, polar_serial)
 
     def test_map_coordinates_cmplx(self):
         complex_field = self.f2d + 1.j * self.f2d
@@ -489,7 +489,7 @@ class TestField(unittest.TestCase):
         b = abs(polar).integrate().matrix
 
         print(a, b)
-        self.assertTrue(np.isclose(a, b, rtol=0.01))
+        self.assertAllClose(a, b, rtol=0.01)
 
     def test_map_coordinates_2(self):
         orig = self.f2d_fine
