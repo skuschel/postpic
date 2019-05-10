@@ -2009,12 +2009,12 @@ class Field(NDArrayOperatorsMixin):
         ret = self.copy(deep=False)
 
         if exponential_signs == 'temporal':
-            ret.matrix = np.conjugate(ret.matrix)
+            ret = ret.conj()
 
         ret = ret._apply_linear_phase(output_origins)
 
         # Transforming...
-        fftfun = fft.ifftn if transform_state else fft.fftn
+        fftfun = {True: fft.ifftn, False: fft.fftn}[transform_state]
         ret.matrix = fftnorm * fftfun(ret.matrix, axes=axes, **my_fft_args)
 
         for i in axes:
@@ -2036,7 +2036,7 @@ class Field(NDArrayOperatorsMixin):
         ret = ret._apply_linear_phase(negative_input_origins, phi0=phi0)
 
         if exponential_signs == 'temporal':
-            ret.matrix = np.conjugate(ret.matrix)
+            ret = ret.conj()
 
         return ret
 
