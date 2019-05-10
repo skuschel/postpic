@@ -618,14 +618,7 @@ class Field(NDArrayOperatorsMixin):
         This method is called by `copy.copy(obj)`.
         Just copy enough to create copies for operator overloading.
         '''
-        cls = type(self)
-        ret = cls.__new__(cls)
-        ret.__dict__.update(self.__dict__)  # shallow copy
-        for k in ['infos', 'axes_transform_state', 'transformed_axes_origins', 'axes']:
-            # copy iterables one level deeper
-            # but matrix is not copied!
-            ret.__dict__[k] = copy.copy(self.__dict__[k])
-        return ret
+        return self.copy(deep=False)
 
     def __deepcopy__(self, memo=None):
         '''
@@ -639,22 +632,28 @@ class Field(NDArrayOperatorsMixin):
 
         As the contents of `axes` should be strictly immutable, they don't need to be copied.
         '''
-        ret = copy.copy(self)
-        ret.matrix = self.matrix.copy()
-        return ret
+        return self.copy(deep=True)
 
-    def copy(self, deep=True):
+    def copy(self, deep=True, order='C'):
         '''
         Return a copy of the Field.
 
-        deep: return a deep copy ()
+        deep: return a deep copy, optional
+        order: {'C', 'F', 'A', 'K'}, optional
+            Controls the memory layout of the copy. Only applies to deep copies. See
+            `numpy.ndarray.copy` for more details.
+            Default is 'C'-Order.
 
         Similar to `numpy.ndarray.copy`.
         '''
+        cls = type(self)
+        ret = cls.__new__(cls)
+        ret.__dict__.update(self.__dict__)  # shallow copy
+        for k in ['infos', 'axes_transform_state', 'transformed_axes_origins', 'axes']:
+            ret.__dict__[k] = copy.copy(self.__dict__[k])
         if deep:
-            return copy.deepcopy(self)
-        else:
-            return copy.copy(self)
+            ret.matrix = self.matrix.copy(order=order)
+        return ret
 
     # Stuff related with compatibility to Numpy's ufuncs starts here.
     def _get_axes_ats_tao_binary_ufunc_broadcasting(self, other):
