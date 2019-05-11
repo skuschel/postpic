@@ -385,7 +385,7 @@ class TestField(unittest.TestCase):
         f = self.f1d.fft()
         dk = f.grid[1] - f.grid[0]
         f2 = f.shift_grid_by([dk])
-        self.assertTrue(np.all(np.isclose(np.roll(f.matrix, -1), f2.matrix)))
+        self.assertAllClose(f[1:], f2[:-1])
         self.assertTrue(f.matrix is not f2.matrix)
 
         print('self.f2d.axes', self.f2d.axes)
@@ -394,22 +394,13 @@ class TestField(unittest.TestCase):
         dk = [ax.grid[1]-ax.grid[0] for ax in f.axes]
         f2 = f.shift_grid_by(dk)
         print('f2.axes', f2.axes)
-        self.assertTrue(np.all(np.isclose(np.roll(
-            np.roll(f.matrix, -1, axis=0), -1, axis=1),
-        f2.matrix)))
+        self.assertAllClose(f[1:, 1:], f2[:-1, :-1], atol=1e-12)
         self.assertTrue(f.matrix is not f2.matrix)
 
         f = self.f3d.fft()
         dk = [ax.grid[1]-ax.grid[0] for ax in f.axes]
-        f3d_orig = copy.deepcopy(self.f3d)
         f2 = f.shift_grid_by(dk)
-        self.assertTrue(np.all(np.isclose(
-            np.roll(
-                np.roll(
-                    np.roll(f.matrix, -1, axis=0),
-                -1, axis=1),
-            -1, axis=2),
-        f2.matrix)))
+        self.assertAllClose(f[1:, 1:, 1:], f2[:-1, :-1, :-1], atol=1e-12)
         self.assertTrue(f.matrix is not f2.matrix)
 
     def test_fourier_norm(self):
