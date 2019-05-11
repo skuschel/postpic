@@ -2,6 +2,9 @@
 
 import unittest
 import postpic as pp
+import numpy as np
+import numpy.testing as npt
+import scipy.ndimage
 
 class TestSpeciesIdentifier(unittest.TestCase):
 
@@ -128,12 +131,46 @@ class TestHelper(unittest.TestCase):
     def setUp(self):
         pass
 
+
+    def assertAllClose(self, a, b, **kwargs):
+        #self.assertTrue(np.allclose(a, b, **kwargs))
+        npt.assert_allclose(a, b, **kwargs)
+
+
     def test_fftpadsize(self):
         fft_padsize = pp.helper.FFTW_Pad(fftsize_max=10000, factors=(2, 3, 5, 7, 11, 13))
         self.assertEqual(fft_padsize(223), 224)
         self.assertEqual(fft_padsize(224), 224)
         self.assertEqual(fft_padsize(250), 250)
         self.assertEqual(fft_padsize(251), 252)
+
+    def test_map_coordinates_parallel(self):
+        xf = np.linspace(-1, 1, 128)
+        yf = xf
+        x, y = np.meshgrid(xf, yf, sparse=True)
+
+        Nr = 64
+        rf = np.linspace(0, 1, Nr)
+        i = lambda ri: (Nr-1) * ri / rf[-1]
+        self.assertAllClose(i(rf), np.arange(Nr))
+
+        Nphi = 256
+        phif = np.linspace(0, 2*np.pi, Nphi)
+        j = lambda phij: (Nphi-1) * phij / phif[-1]
+        self.assertAllClose(j(phif), np.arange(Nphi))
+
+        r, phi = np.meshgrid(rf, phif, sparse=True)
+
+        f = np.cos(phi) * (r-r**2)
+        f2 = np.cos(np.arctan2(y,x)+np.pi) * (np.sqrt(x**2 + y**2)-np.sqrt(x**2 + y**2)**2) * (np.sqrt(x**2 + y**2)<=1)
+
+        ic = i(np.sqrt(x**2 + y**2))
+        jc = j(np.arctan2(y,x)+np.pi)
+
+        f3 = scipy.ndimage.map_coordinates(f, (jc, ic))
+        f4 = pp.helper.map_coordinates_parallel(f, (jc, ic))
+        self.assertAllClose(f2, f3, atol=0.003)
+        self.assertAllClose(f3, f4)
 
 
 if __name__ == '__main__':

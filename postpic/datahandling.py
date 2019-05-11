@@ -1292,6 +1292,17 @@ class Field(NDArrayOperatorsMixin):
             not given, the jacobian is numerically approximated.
 
         **kwargs:
+            Keyword arguments captured by `helper.map_coordinates_parallel`:
+            `chunklen` and `threads`.
+
+            chunklen: Size of the chunks in pixels per axis. Default: None
+                Special values:
+                    None: Automatic (Chooses a default based on number of dimensions)
+                    0: Do not split data into chunks. (implicitly sets threads==1)
+
+            threads: Number of threads. Default: None
+                None: Automatic (One thread per available processing unit)
+
             Additional keyword arguments are passed to `scipy.ndimage.map_coordinates`,
             see the documentation of that function.
         '''
@@ -1331,18 +1342,21 @@ class Field(NDArrayOperatorsMixin):
         # Broadcast all coordinate arrays to the new shape
         coordinates_px = [broadcast_to(c, shape) for c in coordinates_px]
 
-        # Map the matrix using scipy.ndimage.map_coordinates
+        # Map the matrix using helper.map_coordinates_parallel
         if np.isrealobj(self.matrix):
-            ret._matrix = spnd.map_coordinates(self.matrix, coordinates_px, **kwargs)
+            ret._matrix = helper.map_coordinates_parallel(self.matrix, coordinates_px, **kwargs)
         else:
             if complex_mode == 'cartesian':
-                real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
+                real, imag = self.matrix.real, self.matrix.imag
                 ret._matrix = np.empty(np.broadcast(*coordinates_px).shape,
                                        dtype=self.matrix.dtype)
-                spnd.map_coordinates(real, coordinates_px, output=ret.matrix.real, **kwargs)
-                spnd.map_coordinates(imag, coordinates_px, output=ret.matrix.imag, **kwargs)
+                helper.map_coordinates_parallel(real, coordinates_px, output=ret.matrix.real,
+                                                **kwargs)
+                helper.map_coordinates_parallel(imag, coordinates_px, output=ret.matrix.imag,
+                                                **kwargs)
             elif complex_mode == 'polar':
-                angle = np.angle(self)
+                angle = ne.evaluate('arctan2(self.imag, self.real)')
+                absval = ne.evaluate('abs(self).real')
                 if do_unwrap_phase:
                     if unwrap_phase:
                         angle = unwrap_phase(angle)
@@ -1351,14 +1365,15 @@ class Field(NDArrayOperatorsMixin):
                                       "available! Install scikit-image or use complex_mode = "
                                       "'polar-no-unwrap' to get rid of this warning.")
 
-                absval = spnd.map_coordinates(abs(self), coordinates_px, **kwargs)
-                angle = spnd.map_coordinates(angle, coordinates_px, **kwargs)
-                ret._matrix = absval * np.exp(1.j * angle)
+                absval = helper.map_coordinates_parallel(absval, coordinates_px, **kwargs)
+                angle = helper.map_coordinates_parallel(angle, coordinates_px, **kwargs)
+                ret._matrix = ne.evaluate('absval * exp(1j * angle)')
             else:
                 raise ValueError('Invalid value of complex_mode.')
 
         if preserve_integral:
-            ret._matrix = ret._matrix * jacobian_determinant_func(*out_coords)
+            jac_det = jacobian_determinant_func(*out_coords)
+            ret = ret.evaluate('ret * jac_det')
 
         # This info is invalidated
         ret.transformed_axes_origins = [None]*ret.dimensions

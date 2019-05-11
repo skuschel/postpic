@@ -35,6 +35,14 @@ import warnings
 import functools
 import math
 import numexpr as ne
+from scipy.ndimage import _ni_support, _nd_image, spline_filter
+
+if sys.version_info[0:2] >= (3, 5):
+    from concurrent.futures import ThreadPoolExecutor
+    have_concurrent_futures = True
+else:
+    from multiprocessing.pool import ThreadPool as ThreadPoolExecutor
+    have_concurrent_futures = False
 
 
 __all__ = ['PhysicalConstants', 'unstagger_fields', 'kspace_epoch_like', 'kspace',
@@ -190,6 +198,118 @@ def linear2polar(x, y):
     r = np.sqrt(x**2 + y**2)
     theta = np.arctan2(y, x)
     return theta, r
+
+
+def map_coordinates_parallel(input, coordinates, output=None, order=3, mode='constant', cval=0.0,
+                             prefilter=True, chunklen=None, threads=None):
+    """
+
+    Parallalized version of `scipy.ndimage.map_coordinates`.
+
+    `scipy.ndimage.map_coordinates` is slow for large datasets. Speed improvement can be
+    achieved by
+
+     * Splitting the data into chunks
+     * Performing the transformation of chunks in parallel
+
+    New parameters:
+
+    chunklen: Size of the chunks in pixels per axis. Default: None
+        Special values:
+            None: Automatic (Chooses a default based on number of dimensions)
+            0: Do not split data into chunks. (implicitly sets threads==1)
+
+    threads: Number of threads. Default: None
+        None: Automatic (One thread per available processing unit)
+
+    """
+
+    # this part is taken without change from scipy's serial implementation
+    if order < 0 or order > 5:
+        raise RuntimeError('spline order not supported')
+    input = np.asarray(input)
+    if np.iscomplexobj(input):
+        raise TypeError('Complex type not supported')
+    coordinates = np.asarray(coordinates)
+    if np.iscomplexobj(coordinates):
+        raise TypeError('Complex type not supported')
+    output_shape = coordinates.shape[1:]
+    if input.ndim < 1 or len(output_shape) < 1:
+        raise RuntimeError('input and output rank must be > 0')
+    if coordinates.shape[0] != input.ndim:
+        raise RuntimeError('invalid shape for coordinate array')
+    mode = _ni_support._extend_mode_to_code(mode)
+    if prefilter and order > 1:
+        filtered = spline_filter(input, order, output=np.float64)
+    else:
+        filtered = input
+
+    # return value of `_ni_support._get_output` changed between scipy versions, code here is
+    # adapted to work with both
+    output = _ni_support._get_output(output, input, shape=output_shape)
+    retval = output
+    if isinstance(output, tuple):
+        output, retval = output
+
+    # below here there is the new code for splitting into chunks and parallel execution
+    if chunklen is None:
+        # set defaults
+        chunklen = 128
+        if output.ndim < 3:
+            chunklen = 1024
+
+    def chunk_arguments(filtered, coordinates, output):
+        chunks = []
+        for axis in range(output.ndim):
+            chunkstarts = np.arange(0, output.shape[axis], chunklen)
+            chunkends = chunkstarts + chunklen
+            chunkends[-1] = output.shape[axis]
+            chunks.append([slice(start, stop) for start, stop in zip(chunkstarts, chunkends)])
+
+        for chunk in itertools.product(*chunks):
+            sub_coordinates = coordinates[(slice(None),) + chunk].copy()
+            filtered_region = []
+            for in_axis in range(filtered.ndim):
+                c = sub_coordinates[in_axis, ...]
+                cmin = max(0, int(np.floor(np.min(c)))-5)
+                cmax = min(filtered.shape[in_axis], int(np.ceil(np.max(c)))+5)
+                sub_coordinates[in_axis, ...] -= cmin
+                filtered_region.append(slice(cmin, cmax))
+            sub_filtered = filtered[tuple(filtered_region)]
+            sub_output = output[chunk]
+
+            yield (sub_filtered, sub_coordinates, sub_output)
+
+    def map_coordinates_chunk(arg):
+        sub_filtered, sub_coordinates, sub_output = arg
+        _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
+                                      sub_output, order, mode, cval, None, None)
+
+    if chunklen > 0:
+        list_of_chunk_args = list(chunk_arguments(filtered, coordinates, output))
+    else:
+        list_of_chunk_args = [(filtered, coordinates, output)]
+
+    if len(list_of_chunk_args) == 1:
+        threads = 1
+
+    if threads != 1:
+        threadpool = ThreadPoolExecutor(threads)
+        my_map = threadpool.map
+    else:
+        my_map = map
+
+    # execution happens here
+    list(my_map(map_coordinates_chunk, list_of_chunk_args))
+
+    if threads != 1:
+        if have_concurrent_futures:
+            threadpool.shutdown()
+        else:
+            threadpool.close()
+            threadpool.join()
+
+    return retval
 
 
 def jac_det(jacobian_func):

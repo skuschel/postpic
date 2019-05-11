@@ -464,11 +464,32 @@ class TestField(unittest.TestCase):
         # this calculates numerical approximation of jacobi determinant and thus also tests
         # helper.jac_det and
         # helper.approx_jacobian
-        polar = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear)
+        polar = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear, chunklen=10)
         b = polar.integrate().matrix
+        self.assertAllClose(a, b, rtol=0.01)
+
+        polar_serial = self.f2d.map_coordinates([th_axis, r_axis], helper.polar2linear, threads=1)
+        c = polar_serial.integrate().matrix
+        self.assertAllClose(a, c, rtol=0.01)
+
+        self.assertAllClose(polar, polar_serial)
+
+    def test_map_coordinates_cmplx(self):
+        complex_field = self.f2d + 1.j * self.f2d
+
+        th_axis = dh.Axis(grid = np.linspace(0, 2*np.pi, 100))
+
+        r_axis = dh.Axis(grid = np.linspace(0, 1.5, 100))
+
+        # this calculates numerical approximation of jacobi determinant and thus also tests
+        # helper.jac_det and
+        # helper.approx_jacobian
+        polar = complex_field.map_coordinates([th_axis, r_axis], helper.polar2linear)
+        a = abs(complex_field).integrate().matrix
+        b = abs(polar).integrate().matrix
 
         print(a, b)
-        self.assertTrue(np.isclose(a, b, rtol=0.01))
+        self.assertAllClose(a, b, rtol=0.01)
 
     def test_map_coordinates_2(self):
         orig = self.f2d_fine
