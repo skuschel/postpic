@@ -2006,15 +2006,16 @@ class Field(NDArrayOperatorsMixin):
             elif transform_state is True:
                 fftnorm *= np.sqrt(N)
 
-        # fast method to make a copy with complex type
-        # copy is made explicitly once, so that all further operations (except fft itself, bummer)
-        # can be done in place
+        # make a copy with complex type
+        # copy is made explicitly once, so that all further operations (except fft itself,
+        # see below) can be done in place
+        # this is faster than `ndarray.astype()`
         ret = self.evaluate('self + 0j')
 
         if exponential_signs == 'temporal':
             ne.evaluate('conj(ret)', out=ret.matrix)
 
-        # apply phase to shift grid in output domain
+        # apply phase to shift grid in output domain according to the new_axes
         # old code: ret = ret._apply_linear_phase(output_origins)
         exp_ikdx_expr, expr_dict = helper._linear_phase(ret, output_origins)
         expr_dict['ret'] = ret
@@ -2024,6 +2025,7 @@ class Field(NDArrayOperatorsMixin):
 
         # Transforming...
         fftfun = {True: fft.ifftn, False: fft.fftn}[transform_state]
+        # numpys fft does not offer an in-place fft
         ret.matrix = fftfun(ret.matrix, axes=axes, **my_fft_args)
 
         for i in axes:
@@ -2109,19 +2111,15 @@ class Field(NDArrayOperatorsMixin):
 
     def _shift_grid_by_fourier(self, dx):
         axes = sorted(dx.keys())
+
+        # transform to conjugate space, shift grid origin, transform back
+        # all necessary phases are added by `fft()` method
         ret = self.fft(axes)
-        transform_state = ret._transform_state(dx.keys())
-
-        if any(ret.transformed_axes_origins[i] is None for i in dx.keys()):
-            raise ValueError("Translation only allowed if all mentioned axes"
-                             "have transformed_axes_origins not None")
-
-        # if transform_state is False:
-        #     ret = ret._apply_linear_phase(dx)
-
         for i in dx.keys():
             ret.transformed_axes_origins[i] += dx[i]
-        return ret.fft(axes)
+        ret = ret.fft(axes)
+
+        return ret
 
     def _shift_grid_by_linear(self, dx):
         axes = sorted(dx.keys())
