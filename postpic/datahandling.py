@@ -2006,16 +2006,25 @@ class Field(NDArrayOperatorsMixin):
             elif transform_state is True:
                 fftnorm *= np.sqrt(N)
 
-        ret = self.copy(deep=False)
+        # fast method to make a copy with complex type
+        # copy is made explicitly once, so that all further operations (except fft itself, bummer)
+        # can be done in place
+        ret = self.evaluate('self + 0j')
 
         if exponential_signs == 'temporal':
-            ret = ret.conj()
+            ne.evaluate('conj(ret)', out=ret.matrix)
 
-        ret = ret._apply_linear_phase(output_origins)
+        # apply phase to shift grid in output domain
+        # old code: ret = ret._apply_linear_phase(output_origins)
+        exp_ikdx_expr, expr_dict = helper._linear_phase(ret, output_origins)
+        expr_dict['ret'] = ret
+        ne.evaluate('ret * ({})'.format(exp_ikdx_expr),
+                    local_dict=expr_dict,
+                    out=ret.matrix)
 
         # Transforming...
         fftfun = {True: fft.ifftn, False: fft.fftn}[transform_state]
-        ret.matrix = fftnorm * fftfun(ret.matrix, axes=axes, **my_fft_args)
+        ret.matrix = fftfun(ret.matrix, axes=axes, **my_fft_args)
 
         for i in axes:
             if transform_state is False:
@@ -2033,10 +2042,19 @@ class Field(NDArrayOperatorsMixin):
             ret.axes_transform_state[i] = not transform_state
             ret.transformed_axes_origins[i] = input_origins[i]
 
-        ret = ret._apply_linear_phase(negative_input_origins, phi0=phi0)
+        # remove phase that stems from the input grid not starting at 0
+        # also removes global phase shift between both domains also to to grid origins not 0
+        # also applies fftnorm
+        # old code: ret = ret._apply_linear_phase(negative_input_origins, phi0=phi0)
+        exp_ikdx_expr, expr_dict = helper._linear_phase(ret, negative_input_origins, phi0=phi0)
+        expr_dict['ret'] = ret
+        expr_dict['fftnorm'] = fftnorm
+        ne.evaluate('fftnorm * ret * ({})'.format(exp_ikdx_expr),
+                    local_dict=expr_dict,
+                    out=ret.matrix)
 
         if exponential_signs == 'temporal':
-            ret = ret.conj()
+            ne.evaluate('conj(ret)', out=ret.matrix)
 
         return ret
 
