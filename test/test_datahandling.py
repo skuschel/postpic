@@ -9,7 +9,7 @@ import numexpr as ne
 import copy
 import scipy.integrate
 import pkg_resources as pr
-
+import sys
 
 class TestAxis(unittest.TestCase):
 
@@ -330,16 +330,22 @@ class TestField(unittest.TestCase):
         spectrum_reference[65] = np.sqrt(2*np.pi)
         spectrum_reference[69] = 2*np.sqrt(2*np.pi)
 
-        x = np.linspace(0, 2*np.pi, 128, endpoint=False, dtype=np.complex128)
-        y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+        x = np.linspace(0, 2*np.pi, 128, endpoint=False)
+        if sys.version_info.major == 3 and sys.version_info.minor < 5:
+            y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
+        else:
+            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
         # this is passed already with the old code
         self.assertAllClose(spectrum_reference, yf, atol=1e-10)
 
-        x = np.linspace(0, 2*np.pi, 128, endpoint=False, dtype=np.complex128) + 3*np.pi/4
-        y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+        x = np.linspace(0, 2*np.pi, 128, endpoint=False) + 3*np.pi/4
+        if sys.version_info.major == 3 and sys.version_info.minor < 5:
+            y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
+        else:
+            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
