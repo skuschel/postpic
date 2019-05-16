@@ -1917,7 +1917,7 @@ class Field(NDArrayOperatorsMixin):
                 new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
         return new_axes
 
-    def fft(self, axes=None, exponential_signs='spatial', **kwargs):
+    def fft(self, axes=None, exponential_signs='spatial', old_behaviour=False, **kwargs):
         '''
         Performs Fourier transform on any number of axes.
 
@@ -1930,11 +1930,15 @@ class Field(NDArrayOperatorsMixin):
         Parameters
         ----------
 
-        exponential_signs:
+        exponential_signs: string
             configures the sign convention of the exponential.
 
             * exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
             * exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+
+        old_behaviour: boolean
+            Do not remove the linear phase present in the fft of data that lie on a grid
+            that does not start at 0. Default is False.
 
         **kwargs:
             keyword-arguments are passed to the underlying fft implementation.
@@ -1970,6 +1974,11 @@ class Field(NDArrayOperatorsMixin):
         negative_input_origins = {i: -self.axes[i].grid[0] for i in axes}
         output_origins = {i: new_axes[i][0] for i in axes}
         phi0 = sum(input_origins[i] * output_origins[i] for i in axes)
+        if old_behaviour:
+            if transform_state is False:
+                negative_input_origins = {i: 0 for i in axes}
+            else:
+                output_origins = {i: 0 for i in axes}
 
         # Grid spacing
         dx = {i: self.axes[i].spacing for i in axes}
