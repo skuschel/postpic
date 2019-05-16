@@ -911,42 +911,39 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_
     return result
 
 
-def linear_phase(field, dx):
+def _linear_phase(field, dx, phi0=0.0):
     '''
     Calculates the linear phase as used in Field._apply_linear_phase and
     _kspace_propagate_generator.
     '''
     transform_state = field._transform_state(dx.keys())
-    axes = [ax.grid.copy() for ax in field.axes]
-    for i in range(len(axes)):
-        gridlen = len(axes[i])
-        if transform_state is True:
-            # center the axes around 0 to eliminate global phase
-            axes[i] -= axes[i][gridlen//2]
-        else:
-            # start the axes at 0 to eliminate global phase
-            axes[i] -= axes[i][0]
 
     # build mesh
-    mesh = meshgrid(*axes, indexing='ij', sparse=True)
+    mesh = field.meshgrid()
 
     # prepare mesh for numexpr-dict
     kdict = {'k{}'.format(i): k for i, k in enumerate(mesh)}
+    kdict['phi0'] = phi0
 
     # calculate linear phase
     # arg = sum([dx[i]*mesh[i] for i in dx.keys()])
     arg_expr = '+'.join('({}*k{})'.format(repr(v), i) for i, v in dx.items())
 
     if transform_state is True:
-        exp_ikdx_expr = 'exp(1j * ({arg}))'.format(arg=arg_expr)
+        exp_ikdx_expr = 'exp(1j * ({arg} + phi0))'.format(arg=arg_expr)
     else:
-        exp_ikdx_expr = 'exp(-1j * ({arg}))'.format(arg=arg_expr)
+        exp_ikdx_expr = 'exp(-1j * ({arg} + phi0))'.format(arg=arg_expr)
 
-    exp_ikdx = ne.evaluate(exp_ikdx_expr,
-                           local_dict=kdict,
-                           global_dict=None)
+    return exp_ikdx_expr, kdict
 
-    return exp_ikdx
+
+def linear_phase(field, dx, phi0=0.0):
+    '''
+    Calculates the linear phase as used in Field._apply_linear_phase and
+    _kspace_propagate_generator.
+    '''
+    exp_ikdx_expr, kdict = _linear_phase(field, dx, phi0=phi0)
+    return ne.evaluate(exp_ikdx_expr, local_dict=kdict, global_dict=None)
 
 
 def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,

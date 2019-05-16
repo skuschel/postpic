@@ -1917,7 +1917,7 @@ class Field(NDArrayOperatorsMixin):
                 new_axes[i] += self.transformed_axes_origins[i] - new_axes[i][0]
         return new_axes
 
-    def fft(self, axes=None, exponential_signs='spatial', **kwargs):
+    def fft(self, axes=None, exponential_signs='spatial', old_behaviour=False, **kwargs):
         '''
         Performs Fourier transform on any number of axes.
 
@@ -1930,11 +1930,15 @@ class Field(NDArrayOperatorsMixin):
         Parameters
         ----------
 
-        exponential_signs:
+        exponential_signs: string
             configures the sign convention of the exponential.
 
             * exponential_signs == 'spatial':  fft using exp(-ikx), ifft using exp(ikx)
             * exponential_signs == 'temporal':  fft using exp(iwt), ifft using exp(-iwt)
+
+        old_behaviour: boolean
+            Do not remove the linear phase present in the fft of data that lie on a grid
+            that does not start at 0. Default is False.
 
         **kwargs:
             keyword-arguments are passed to the underlying fft implementation.
@@ -1962,8 +1966,19 @@ class Field(NDArrayOperatorsMixin):
         if transform_state is None:
             raise ValueError("FFT only allowed if all mentioned axes are in same transform state")
 
+        # calculates the output axes, factoring in the "transformed_axes_origins"
+        new_axes = self._conjugate_grid(axes)
+
         # Record current axes origins of transformed axes
-        new_origins = {i: self.axes[i].grid[0] for i in axes}
+        input_origins = {i: self.axes[i].grid[0] for i in axes}
+        negative_input_origins = {i: -self.axes[i].grid[0] for i in axes}
+        output_origins = {i: new_axes[i][0] for i in axes}
+        phi0 = sum(input_origins[i] * output_origins[i] for i in axes)
+        if old_behaviour:
+            if transform_state is False:
+                negative_input_origins = {i: 0 for i in axes}
+            else:
+                output_origins = {i: 0 for i in axes}
 
         # Grid spacing
         dx = {i: self.axes[i].spacing for i in axes}
@@ -2000,50 +2015,57 @@ class Field(NDArrayOperatorsMixin):
             elif transform_state is True:
                 fftnorm *= np.sqrt(N)
 
-        mat = self.matrix
+        # make a copy with complex type
+        # copy is made explicitly once, so that all further operations (except fft itself,
+        # see below) can be done in place
+        # this is faster than `ndarray.astype()`
+        ret = self.evaluate('self + 0j')
 
         if exponential_signs == 'temporal':
-            mat = np.conjugate(mat)
+            ne.evaluate('conj(ret)', out=ret.matrix)
 
-        new_axes = self._conjugate_grid(axes)
+        # apply phase to shift grid in output domain according to the new_axes
+        # old code: ret = ret._apply_linear_phase(output_origins)
+        exp_ikdx_expr, expr_dict = helper._linear_phase(ret, output_origins)
+        expr_dict['ret'] = ret
+        ne.evaluate('ret * ({})'.format(exp_ikdx_expr),
+                    local_dict=expr_dict,
+                    out=ret.matrix)
 
-        # Transforming from spatial domain to frequency domain ...
-        if transform_state is False:
-            new_axesobjs = {
-                i: Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
-                        '1/'+self.axes[i].unit,
-                        grid=new_axes[i])
-                for i in axes
-            }
-            mat = fftnorm \
-                * fft.fftshift(fft.fftn(mat, axes=axes, **my_fft_args), axes=axes)
-
-        # ... or transforming from frequency domain to spatial domain
-        elif transform_state is True:
-            new_axesobjs = {
-                i: Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
-                        self.axes[i].unit.lstrip('1/'),
-                        grid=new_axes[i])
-                for i in axes
-            }
-            mat = fftnorm \
-                * fft.ifftn(fft.ifftshift(mat, axes=axes), axes=axes, **my_fft_args)
-
-        if exponential_signs == 'temporal':
-            mat = np.conjugate(mat)
-
-        ret = copy.copy(self)
-        ret.matrix = mat
-
-        # Update axes objects
+        # Transforming...
+        fftfun = {True: fft.ifftn, False: fft.fftn}[transform_state]
+        # numpys fft does not offer an in-place fft
+        ret.matrix = fftfun(ret.matrix, axes=axes, **my_fft_args)
 
         for i in axes:
-            # update axes objects
-            ret.setaxisobj(i, new_axesobjs[i])
+            if transform_state is False:
+                newax = Axis('w' if self.axes[i].name == 't' else 'k'+self.axes[i].name,
+                             '1/'+self.axes[i].unit,
+                             grid=new_axes[i])
+            else:
+                newax = Axis('t' if self.axes[i].name == 'w' else self.axes[i].name.lstrip('k'),
+                             self.axes[i].unit.lstrip('1/'),
+                             grid=new_axes[i])
+
+            ret.setaxisobj(i, newax)
 
             # update transform state and record axes origins
             ret.axes_transform_state[i] = not transform_state
-            ret.transformed_axes_origins[i] = new_origins[i]
+            ret.transformed_axes_origins[i] = input_origins[i]
+
+        # remove phase that stems from the input grid not starting at 0
+        # also removes global phase shift between both domains also to to grid origins not 0
+        # also applies fftnorm
+        # old code: ret = ret._apply_linear_phase(negative_input_origins, phi0=phi0)
+        exp_ikdx_expr, expr_dict = helper._linear_phase(ret, negative_input_origins, phi0=phi0)
+        expr_dict['ret'] = ret
+        expr_dict['fftnorm'] = fftnorm
+        ne.evaluate('fftnorm * ret * ({})'.format(exp_ikdx_expr),
+                    local_dict=expr_dict,
+                    out=ret.matrix)
+
+        if exponential_signs == 'temporal':
+            ne.evaluate('conj(ret)', out=ret.matrix)
 
         return ret
 
@@ -2075,7 +2097,7 @@ class Field(NDArrayOperatorsMixin):
     def ensure_frequency_domain(self):
         return self.ensure_transform_state(True)
 
-    def _apply_linear_phase(self, dx):
+    def _apply_linear_phase(self, dx, phi0=0.0):
         '''
         Apply a linear phase as part of translating the grid points.
 
@@ -2087,24 +2109,26 @@ class Field(NDArrayOperatorsMixin):
             raise ValueError("Translation only allowed if all mentioned axes"
                              "are in same transform state")
 
-        if any(self.transformed_axes_origins[i] is None for i in dx.keys()):
-            raise ValueError("Translation only allowed if all mentioned axes"
-                             "have transformed_axes_origins not None")
+        # exp_ikdx = helper.linear_phase(self, dx)
+        exp_ikdx_expr, expr_dict = helper._linear_phase(self, dx, phi0=phi0)
+        expr_dict['self'] = self
 
-        exp_ikdx = helper.linear_phase(self, dx)
-
-        ret = self * exp_ikdx
-
-        for i in dx.keys():
-            ret.transformed_axes_origins[i] += dx[i]
+        ret = self.evaluate('self * ({})'.format(exp_ikdx_expr),
+                            local_dict=expr_dict)
 
         return ret
 
     def _shift_grid_by_fourier(self, dx):
         axes = sorted(dx.keys())
+
+        # transform to conjugate space, shift grid origin, transform back
+        # all necessary phases are added by `fft()` method
         ret = self.fft(axes)
-        ret = ret._apply_linear_phase(dx)
-        return ret.fft(axes)
+        for i in dx.keys():
+            ret.transformed_axes_origins[i] += dx[i]
+        ret = ret.fft(axes)
+
+        return ret
 
     def _shift_grid_by_linear(self, dx):
         axes = sorted(dx.keys())

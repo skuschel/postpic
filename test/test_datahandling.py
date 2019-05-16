@@ -5,10 +5,11 @@ import postpic.datahandling as dh
 import postpic.helper as helper
 import numpy as np
 import numpy.testing as npt
+import numexpr as ne
 import copy
 import scipy.integrate
 import pkg_resources as pr
-
+import sys
 
 class TestAxis(unittest.TestCase):
 
@@ -323,6 +324,33 @@ class TestField(unittest.TestCase):
         self.assertEqual(s.shape, (99,96))
         s = self.f2d_fine[1:,5:].fft_autopad(fft_padsize=helper.fft_padsize_power2)
         self.assertEqual(s.shape, (128,128))
+
+    def test_fft_phases(self):
+        spectrum_reference = np.zeros((128,), dtype=np.complex128)
+        spectrum_reference[65] = np.sqrt(2*np.pi)
+        spectrum_reference[69] = 2*np.sqrt(2*np.pi)
+
+        x = np.linspace(0, 2*np.pi, 128, endpoint=False)
+        if sys.version_info.major == 3 and sys.version_info.minor < 5:
+            y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
+        else:
+            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+        y = dh.Field(y, axes=[dh.Axis(grid=x)])
+        yf = y.fft()
+
+        # this is passed already with the old code
+        self.assertAllClose(spectrum_reference, yf, atol=1e-10)
+
+        x = np.linspace(0, 2*np.pi, 128, endpoint=False) + 3*np.pi/4
+        if sys.version_info.major == 3 and sys.version_info.minor < 5:
+            y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
+        else:
+            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+        y = dh.Field(y, axes=[dh.Axis(grid=x)])
+        yf = y.fft()
+
+        # this is passed only with the new implementation
+        self.assertAllClose(spectrum_reference, yf, atol=1e-10)
 
     def test_conjugate_grid(self):
         f1d_grid = self.f1d.grid

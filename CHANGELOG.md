@@ -4,6 +4,7 @@
 
 * New convenience method `Field.copy`
 * Parallelized implementation of `Field.map_coordinates`
+* Reimplementation of `Field.fft`. This changes the phases of Fourier transforms in a way to make it more consistent. However, if your code depends on the phases, `Field.fft()` now has a parameter `old_behaviour` that can be used to switch back to the old behaviour.
 
 ## v0.4
 2019-01-14
