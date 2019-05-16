@@ -331,7 +331,7 @@ class TestField(unittest.TestCase):
         spectrum_reference[69] = 2*np.sqrt(2*np.pi)
 
         x = np.linspace(0, 2*np.pi, 128, endpoint=False)
-        y = ne.evaluate('exp(1j*x) + 2*exp(5j*x)')
+        y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
@@ -339,7 +339,7 @@ class TestField(unittest.TestCase):
         self.assertAllClose(spectrum_reference, yf, atol=1e-10)
 
         x = np.linspace(0, 2*np.pi, 128, endpoint=False) + 3*np.pi/4
-        y = ne.evaluate('exp(1j*x) + 2*exp(5j*x)')
+        y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
