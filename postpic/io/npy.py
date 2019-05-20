@@ -87,7 +87,8 @@ def _import_field_npy(filename):
     # Axes Objects
     length_edges = import_file['meta_length_edges']
     meta_ax_edges = import_file['meta_ax_edges']
-    meta_ax_grids = import_file['meta_ax_grids']
+    if 'meta_ax_grids' in import_file:
+        meta_ax_grids = import_file['meta_ax_grids']
     meta_ax_names = import_file['meta_ax_names']
     meta_ax_units = import_file['meta_ax_units']
     meta_ax_transform_state = import_file['meta_ax_transform_state']
@@ -95,10 +96,12 @@ def _import_field_npy(filename):
 
     axes = []
     for nax in range(0, len(length_edges)):
+        grid = meta_ax_grids[nax, 0:length_edges[nax]-1] \
+            if 'meta_ax_grids' in import_file else None
         axes.append(Axis(name=meta_ax_names[nax],
                          unit=meta_ax_units[nax],
                          grid_node=meta_ax_edges[nax, 0:length_edges[nax]],
-                         grid=meta_ax_grids[nax, 0:length_edges[nax]-1]))
+                         grid=grid))
 
     # field
     meta_field = import_file['meta_field']
