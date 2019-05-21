@@ -1056,27 +1056,16 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
     if move_window:
         if moving_window_vect is None:
             raise ValueError("Missing required argument moving_window_vect.")
-        exp_ikdx = linear_phase(kspace, moving_window_dict)
-        exp_ikdx_iwt = ne.evaluate('exp_iwt * exp_ikdx')
 
     while True:
-        if move_window:
-            # Apply the phase due the propagation via the dispersion relation omega
-            # and apply the linear phase due to the moving window
-            if use_numexpr_in_inner_loop:
-                kspace = kspace.replace_data(ne.evaluate('kspace * exp_ikdx_iwt'))
-            else:
-                kspace = kspace * exp_ikdx_iwt
-
-            for i in moving_window_dict.keys():
-                kspace.transformed_axes_origins[i] += moving_window_dict[i]
-
+        # Apply the phase due the propagation via the dispersion relation omega
+        if use_numexpr_in_inner_loop:
+            kspace = kspace.replace_data(ne.evaluate('kspace * exp_iwt'))
         else:
-            # Apply the phase due the propagation via the dispersion relation omega
-            if use_numexpr_in_inner_loop:
-                kspace = kspace.replace_data(ne.evaluate('kspace * exp_iwt'))
-            else:
-                kspace = kspace * exp_iwt
+            kspace = kspace * exp_iwt
+
+        for i in moving_window_dict.keys():
+            kspace.transformed_axes_origins[i] += moving_window_dict[i]
 
         if do_fft:
             yield kspace.fft()
