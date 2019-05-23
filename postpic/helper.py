@@ -1064,8 +1064,9 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
         else:
             kspace = kspace * exp_iwt
 
-        for i in moving_window_dict.keys():
-            kspace.transformed_axes_origins[i] += moving_window_dict[i]
+        if move_window:
+            for i in moving_window_dict.keys():
+                kspace.transformed_axes_origins[i] += moving_window_dict[i]
 
         if do_fft:
             yield kspace.fft()
@@ -1187,6 +1188,11 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
         initial_dt = dir * (value-r) / PhysicalConstants.c
 
     kspace = kspace_propagate(kspace, initial_dt, **kwargs)
+
+    input_origin = kspace.axes[axis].grid[0]
+    output_origin = kspace._conjugate_grid(axis)[axis][0]
+    phi0 = input_origin * output_origin
+    kspace = kspace._apply_linear_phase({axis: output_origin}, phi0=-phi0)
 
     # setup a generator for the propagated kspaces
     kwargs['nsteps'] = len(complex_field.axes[axis])
