@@ -129,7 +129,7 @@ html_theme_options = {
     'github_banner': True,  # fork me on github banner
     'github_button': True,
     'description': 'the open source partice-in-cell postprocessor.',
-    'page_width': '1000px',
+    'page_width': '1200px',
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
