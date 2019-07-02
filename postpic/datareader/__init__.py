@@ -165,7 +165,7 @@ def chooseCode(code):
         from .epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
-    elif code.lower() in ['openpmd', 'openpmdh5', 'picongpu']:
+    elif code.lower() in ['openpmd', 'openpmdh5', 'picongpu', 'fbpic']:
         from .openPMDh5 import OpenPMDreader, FileSeries
         setdumpreadercls(OpenPMDreader)
         setsimreadercls(FileSeries)
