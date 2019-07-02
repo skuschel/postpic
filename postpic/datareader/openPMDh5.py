@@ -127,11 +127,11 @@ class OpenPMDreader(Dumpreader_ifc):
         raise KeyError('number of simdimensions could not be retrieved for {}'.format(self))
 
     def _keyE(self, component, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
+        axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
         return 'fields/E/' + axsuffix
 
     def _keyB(self, component, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
+        axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
         return 'fields/B/' + axsuffix
 
     def _simgridkeys(self):
