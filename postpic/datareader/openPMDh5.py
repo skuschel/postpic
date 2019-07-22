@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel 2016
+# Copyright Stephan Kuschel, 2018-2019
 '''
 .. _openPMD: https://github.com/openPMD/openPMD-standard
 
@@ -33,7 +33,7 @@ import numpy as np
 import re
 from .. import helper
 
-__all__ = ['OpenPMDreader', 'FileSeries']
+__all__ = ['OpenPMDreader', 'FbpicReader', 'FileSeries']
 
 
 class OpenPMDreader(Dumpreader_ifc):
@@ -47,7 +47,7 @@ class OpenPMDreader(Dumpreader_ifc):
     '''
 
     def __init__(self, h5file, **kwargs):
-        super(self.__class__, self).__init__(h5file, **kwargs)
+        super().__init__(h5file, **kwargs)
         import os.path
         import h5py
         if not os.path.isfile(h5file):
@@ -182,6 +182,119 @@ class OpenPMDreader(Dumpreader_ifc):
         return '<OpenPMDh5reader at "' + str(self.dumpidentifier) + '">'
 
 
+class FbpicReader(OpenPMDreader):
+    '''
+    Special OpenPMDreader for FBpic, which is using an expansion into radial modes.
+
+    This is subclass of the OpenPMDreader which is converting the modes to
+    a radial representation.
+    '''
+    def __init__(self, simidentifier, **kwargs):
+        super().__init__(simidentifier, **kwargs)
+
+    @staticmethod
+    def modeexpansion(rawdata, theta=0):
+        '''
+        The mode representation will be expanded for a given theta.
+        rawdata has to have the shape (Nm, Nr, Nz).
+        the returned array will be of shape (Nr, Nz).
+        '''
+        rawdata = np.asarray(rawdata)
+        (Nm, Nr, Nz) = rawdata.shape
+        mult_above_axis = [1]
+        for mode in range(1, int(Nm / 2) + 1):
+            cos = np.cos(mode * theta)
+            sin = np.sin(mode * theta)
+            mult_above_axis += [cos, sin]
+        mult_above_axis = np.asarray(mult_above_axis)
+        F_total = np.tensordot(mult_above_axis,
+                               rawdata, axes=(0, 0))
+        assert F_total.shape == (Nr, Nz), \
+            '''
+            Assertion error. Please open a new issue on github to report this.
+            shape={}, Nr={}, Nz={}
+            '''.format(F_total.shape, Nr, Nz)
+        return F_total
+
+    @staticmethod
+    def _radialdata(component, rawdata, theta=0):
+        '''
+        converts to radial data using `modeexpansion`, possibly for multiple
+        theta at once.
+        '''
+        if np.asarray(theta).shape is ():
+            # single theta
+            data = FbpicReader.modeexpansion(rawdata, theta=theta)
+        else:
+            # multiple theta
+            data = np.asarray([FbpicReader.modeexpansion(rawdata, theta=t) for t in theta])
+        return data
+
+    # override inherited method to count points after mode expansion
+    def gridoffset(self, key, axis):
+        axid = helper.axesidentify[axis]
+        if axid == 91:  # theta
+            return 0
+        else:
+            # r, theta, z
+            axidremap = {90: 0, 2: 1}[axid]
+            return super().gridoffset(key, axidremap)
+
+    # override inherited method to count points after mode expansion
+    def gridspacing(self, key, axis):
+        axid = helper.axesidentify[axis]
+        if axid == 91:  # theta
+            return 2 * np.pi / self.gridpoints(key, axis)
+        else:
+            # r, theta, z
+            axidremap = {90: 0, 2: 1}[axid]
+            return super().gridspacing(key, axidremap)
+
+    # override inherited method to count points after mode expansion
+    def gridpoints(self, key, axis):
+        axid = helper.axesidentify[axis]
+        axid = axid % 90  # for r and theta
+        (Nm, Nr, Nz) = self[key].shape
+        # Ntheta does technically not exists because of the mode
+        # representation. To do a proper conversion from the modes to
+        # the grid, choose Ntheta based on the number of modes.
+        # Nyquist should be `Ntheta = 2*Nm + 1`
+        Ntheta = 2 * Nm + 1
+        return (Nr, Ntheta, Nz)[axid]
+
+    def rawdataE(self, component, **kwargs):
+        return np.float64(self.data(self._keyE(component, **kwargs)))
+
+    @helper.append_doc_of(modeexpansion)
+    def dataE(self, component, theta=0, **kwargs):
+        '''
+        Return the electric field data.
+
+        Circular modes will be expanded for the given `theta`, using the
+        modeexpansion for a single `theta` as shown below. If there are multiple
+        `theta` given, the result will be stacked in the first dimension.
+        '''
+        raw = self.rawdataE(component, **kwargs)
+        data = self._radialdata('E{}'.format(component), raw, theta=theta)
+        return data
+
+    def rawdataB(self, component, **kwargs):
+        return np.float64(self.data(self._keyB(component, **kwargs)))
+
+    @helper.append_doc_of(modeexpansion)
+    def dataB(self, component, theta=0, **kwargs):
+        '''
+        Return the magnetic field data.
+
+        Circular modes will be expanded for the given `theta`, using the
+        modeexpansion for a single `theta` as shown below. If there are multiple
+        `theta` given, the result will be stacked in the first dimension.
+        '''
+        raw = self.rawdataB(component, **kwargs)
+        data = self._radialdata('B{}'.format(component), raw, theta=theta)
+        return data
+
+
 class FileSeries(Simulationreader_ifc):
     '''
     Reads a time series of dumps from a given directory.
@@ -190,7 +303,7 @@ class FileSeries(Simulationreader_ifc):
     '''
 
     def __init__(self, simidentifier, dumpreadercls=OpenPMDreader, **kwargs):
-        super(self.__class__, self).__init__(simidentifier, **kwargs)
+        super().__init__(simidentifier, **kwargs)
         self.dumpreadercls = dumpreadercls
         import glob
         self._dumpfiles = glob.glob(simidentifier)

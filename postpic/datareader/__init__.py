@@ -165,9 +165,13 @@ def chooseCode(code):
         from .epochsdf import Sdfreader, Visitreader
         setdumpreadercls(Sdfreader)
         setsimreadercls(Visitreader)
-    elif code.lower() in ['openpmd', 'openpmdh5', 'picongpu', 'fbpic']:
+    elif code.lower() in ['openpmd', 'openpmdh5', 'picongpu']:
         from .openPMDh5 import OpenPMDreader, FileSeries
         setdumpreadercls(OpenPMDreader)
+        setsimreadercls(FileSeries)
+    elif code.lower() in ['fbpic']:
+        from .openPMDh5 import FbpicReader, FileSeries
+        setdumpreadercls(FbpicReader)
         setsimreadercls(FileSeries)
     elif code.lower() in ['vsim']:
         raise Exception('VSim reader requires update due to the interface change in '
