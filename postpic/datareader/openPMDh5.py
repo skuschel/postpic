@@ -128,11 +128,11 @@ class OpenPMDreader(Dumpreader_ifc):
 
     def _keyE(self, component, **kwargs):
         axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
-        return 'fields/E/' + axsuffix
+        return 'fields/E/{}'.format(axsuffix)
 
     def _keyB(self, component, **kwargs):
         axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
-        return 'fields/B/' + axsuffix
+        return 'fields/B/{}'.format(axsuffix)
 
     def _simgridkeys(self):
         return ['fields/E/x', 'fields/E/y', 'fields/E/z',
@@ -178,7 +178,7 @@ class OpenPMDreader(Dumpreader_ifc):
         '''
         ret = []
         self['fields'].visit(ret.append)
-        ret = ['fields/' + r for r in ret if not (r.startswith('E') or r.startswith('B'))]
+        ret = ['fields/{}'.format(r) for r in ret if not (r.startswith('E') or r.startswith('B'))]
         ret = [r for r in ret if hasattr(self[r], 'value')]
         ret.sort()
         return ret
@@ -222,7 +222,7 @@ class FbpicReader(OpenPMDreader):
         return F_total
 
     @staticmethod
-    def _radialdata(component, rawdata, theta=0):
+    def _radialdata(rawdata, theta=0):
         '''
         converts to radial data using `modeexpansion`, possibly for multiple
         theta at once.
@@ -267,6 +267,10 @@ class FbpicReader(OpenPMDreader):
         Ntheta = 2 * Nm + 1
         return (Nr, Ntheta, Nz)[axid]
 
+    # override
+    def _defaultaxisorder(self, gridkey):
+        return ('r', 'theta', 'z')
+
     def rawdataE(self, component, **kwargs):
         return np.float64(self.data(self._keyE(component, **kwargs)))
 
@@ -280,7 +284,7 @@ class FbpicReader(OpenPMDreader):
         `theta` given, the result will be stacked in the first dimension.
         '''
         raw = self.rawdataE(component, **kwargs)
-        data = self._radialdata('E{}'.format(component), raw, theta=theta)
+        data = self._radialdata(raw, theta=theta)
         return data
 
     def rawdataB(self, component, **kwargs):
@@ -296,7 +300,7 @@ class FbpicReader(OpenPMDreader):
         `theta` given, the result will be stacked in the first dimension.
         '''
         raw = self.rawdataB(component, **kwargs)
-        data = self._radialdata('B{}'.format(component), raw, theta=theta)
+        data = self._radialdata(raw, theta=theta)
         return data
 
     # override

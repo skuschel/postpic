@@ -72,19 +72,23 @@ class FieldAnalyzer(object):
         '''
         returns an Axis object for the "axis" and the grid defined by "gridkey".
         '''
-        name = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[axis]]
+        name = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 'theta'}[helper.axesidentify[axis]]
         ax = Axis(name=name, unit='m', grid_node=self.gridnode(gridkey, axis))
         return ax
+
+    def _defaultaxisorder(self, gridkey):
+        return ('x', 'y', 'z')
 
     def setgridtofield(self, field, gridkey):
         '''
         add spacial field information to the given field object.
         '''
-        field.setaxisobj('x', self.getaxisobj(gridkey, 'x'))
+        x, y, z = self._defaultaxisorder(gridkey)
+        field.setaxisobj(x, self.getaxisobj(gridkey, x))
         if field.dimensions > 1:
-            field.setaxisobj('y', self.getaxisobj(gridkey, 'y'))
+            field.setaxisobj(y, self.getaxisobj(gridkey, y))
         if field.dimensions > 2:
-            field.setaxisobj('z', self.getaxisobj(gridkey, 'z'))
+            field.setaxisobj(z, self.getaxisobj(gridkey, z))
 
     # --- Always return an object of Field type
     # just to shortcut
