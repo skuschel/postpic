@@ -233,6 +233,8 @@ class FbpicReader(OpenPMDreader):
         else:
             # multiple theta
             data = np.asarray([FbpicReader.modeexpansion(rawdata, theta=t) for t in theta])
+            # switch from (theta, r, z) to (r, theta, z)
+            data = data.swapaxes(0, 1)
         return data
 
     # override inherited method to count points after mode expansion
@@ -271,37 +273,23 @@ class FbpicReader(OpenPMDreader):
     def _defaultaxisorder(self, gridkey):
         return ('r', 'theta', 'z')
 
-    def rawdataE(self, component, **kwargs):
-        return np.float64(self.data(self._keyE(component, **kwargs)))
-
-    @helper.append_doc_of(modeexpansion)
-    def dataE(self, component, theta=0, **kwargs):
-        '''
-        Return the electric field data.
-
-        Circular modes will be expanded for the given `theta`, using the
-        modeexpansion for a single `theta` as shown below. If there are multiple
-        `theta` given, the result will be stacked in the first dimension.
-        '''
-        raw = self.rawdataE(component, **kwargs)
-        data = self._radialdata(raw, theta=theta)
+    # override from OpenPMDreader
+    def data(self, key, theta=None):
+        raw = super().data(key)  # SI conversion
+        if key.startswith('particles'):
+            return raw
+        # for fields expand the modes into a spatial grid first:
+        if theta is None:
+            # guess a proper grid. Number of points defined in `self.gridpoints`
+            theta = self.grid(key, 'theta')
+        data = self._radialdata(raw, theta=theta)  # modeexpansion
         return data
 
-    def rawdataB(self, component, **kwargs):
-        return np.float64(self.data(self._keyB(component, **kwargs)))
+    def dataE(self, component, theta=None, **kwargs):
+        return self.data(self._keyE(component, **kwargs), theta=theta)
 
-    @helper.append_doc_of(modeexpansion)
-    def dataB(self, component, theta=0, **kwargs):
-        '''
-        Return the magnetic field data.
-
-        Circular modes will be expanded for the given `theta`, using the
-        modeexpansion for a single `theta` as shown below. If there are multiple
-        `theta` given, the result will be stacked in the first dimension.
-        '''
-        raw = self.rawdataB(component, **kwargs)
-        data = self._radialdata(raw, theta=theta)
-        return data
+    def dataB(self, component, theta=None, **kwargs):
+        return self.data(self._keyB(component, **kwargs), theta=theta)
 
     # override
     def __str__(self):
