@@ -2282,7 +2282,7 @@ class Field(NDArrayOperatorsMixin):
             raise IndexError("{}D Field requires a {}-tuple of slices as index"
                              "".format(self.dimensions, self.dimensions))
 
-        return [ax._normalize_slice(sl) for ax, sl in zip(self.axes, key)]
+        return tuple(ax._normalize_slice(sl) for ax, sl in zip(self.axes, key))
 
     # Operator overloading
     def __getitem__(self, key):
