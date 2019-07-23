@@ -669,7 +669,7 @@ class MultiSpecies(object):
             # Happens, if only missing species were added with
             # ignore_missing_species = True.
             return np.array([])
-        data = (ssdata(ss) for ss in self._ssas)
+        data = tuple(ssdata(ss) for ss in self._ssas)
         return np.hstack(data)
 
     def __call_func(self, func):
