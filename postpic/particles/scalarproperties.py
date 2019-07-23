@@ -19,7 +19,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import warnings
-import collections
+import collections.abc
 import numexpr as ne
 
 __all__ = ['ScalarProperty']
@@ -96,7 +96,7 @@ class ScalarProperty(object):
         return formatstring.format(**dict(self))
 
 
-class ScalarPropertyContext(collections.Mapping):
+class ScalarPropertyContext(collections.abc.Mapping):
 
     def __init__(self):
         '''

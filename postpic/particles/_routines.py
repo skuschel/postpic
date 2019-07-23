@@ -21,7 +21,7 @@ Particle related functions.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
-import collections
+import collections.abc
 
 from . import _particlestogrid as ptg
 from ..helper import PhysicalConstants
@@ -92,7 +92,7 @@ def histogramdd(data, **kwargs):
         data = (data, )  # ([1,2,3],)
     if len(data) > 3:
         raise ValueError('Data with len {:} not supported. Maximum is 3D data.'.format(len(data)))
-    if isinstance(kwrange, collections.Iterable) and np.isscalar(kwrange[0]):
+    if isinstance(kwrange, collections.abc.Iterable) and np.isscalar(kwrange[0]):
         kwrange = (kwrange, )
     if np.isscalar(kwbins):
         kwbins = (kwbins, ) * len(data)

@@ -21,7 +21,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from future.utils import with_metaclass
 
 import abc
-import collections
+import collections.abc
 import warnings
 import numpy as np
 from .. import helper
@@ -295,7 +295,7 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
             return self.dumpidentifier == other.dumpidentifier
 
 
-class Simulationreader_ifc(collections.Sequence):
+class Simulationreader_ifc(collections.abc.Sequence):
     '''
     Interface for reading the data of a full Simulation.
 
@@ -304,7 +304,7 @@ class Simulationreader_ifc(collections.Sequence):
     the data of multiple dumps. In the easiest case this can be the .visit
     file.
 
-    The Simulationreader_ifc is subclass of collections.Sequence and will
+    The Simulationreader_ifc is subclass of collections.abc.Sequence and will
     thus behave as a Sequence. The Objects in the Sequence are supposed to be
     subclassed from Dumpreader_ifc.
 
