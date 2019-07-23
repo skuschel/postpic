@@ -1,6 +1,8 @@
 postpic
 =======
 
+![postpic-logo](postpic_wide3_800.jpg)
+
 [![Build Status](https://travis-ci.org/skuschel/postpic.svg?branch=master)](https://travis-ci.org/skuschel/postpic)
 [![PyPI version](https://badge.fury.io/py/postpic.png)](http://badge.fury.io/py/postpic)
 [![Documentation Status](https://readthedocs.org/projects/postpic/badge/?version=latest)](https://postpic.readthedocs.org/)
