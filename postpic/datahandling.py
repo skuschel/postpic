@@ -1183,7 +1183,7 @@ class Field(NDArrayOperatorsMixin):
         # Averaging over neighboring points
         s1[axis] = slice(0, lastpt, 2)
         s2[axis] = slice(1, lastpt, 2)
-        m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
+        m = (ret.matrix[tuple(s1)] + ret.matrix[tuple(s2)]) / 2.0
         ret._matrix = m
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
 
@@ -1815,7 +1815,7 @@ class Field(NDArrayOperatorsMixin):
         index2 = [slice(None) for _ in range(self.dimensions)]
         index2[axis] = slice(0, -1)
 
-        deriv = (self.matrix[index1] - self.matrix[index2])/oldax.spacing
+        deriv = (self.matrix[tuple(index1)] - self.matrix[tuple(index2)])/oldax.spacing
 
         return Field(deriv, name=self.name + "'", unit=self.unit, axes=axes)
 

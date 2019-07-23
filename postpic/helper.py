@@ -1210,7 +1210,7 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
         slices[axis] = i
         km = kspace_prop.matrix
         # newmat[slices] = np.sum(kspace_prop.matrix, axis=axis)
-        newmat[slices] = ne.evaluate(expr)
+        newmat[tuple(slices)] = ne.evaluate(expr)
 
     k_transverse_tprofile = kspace.replace_data(newmat)
     t_axis = datahandling.Axis(name='t', unit='s',
