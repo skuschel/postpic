@@ -46,7 +46,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 
-import collections
+try:
+    from collections.abc import Iterable, Mapping
+except ImportError:
+    from collections import Iterable, Mapping
+
 import copy
 import warnings
 import os
@@ -160,7 +164,7 @@ class Axis(object):
         self._extent = kwargs.pop('extent', None)
 
         if self._extent is not None:
-            if not isinstance(self._extent, collections.Iterable) or len(self._extent) != 2:
+            if not isinstance(self._extent, Iterable) or len(self._extent) != 2:
                 raise ValueError("Passed extent is not an iterable of length 2")
 
         self._n = kwargs.pop('n', None)
@@ -476,7 +480,7 @@ def _reducing_numpy_method(method):
         axisiter = axis
         if axisiter is None:
             axisiter = tuple(range(self.dimensions))
-        if not isinstance(axisiter, collections.Iterable):
+        if not isinstance(axisiter, Iterable):
             axisiter = (axis,)
 
         # no `out` argument supplied, we need to figure out the axes of the result
@@ -795,7 +799,7 @@ class Field(NDArrayOperatorsMixin):
                 ats = self.axes_transform_state[:]
                 tao = self.transformed_axes_origins[:]
                 reduceaxis = kwargs.get('axis', 0)
-                if not isinstance(reduceaxis, collections.Iterable):
+                if not isinstance(reduceaxis, Iterable):
                     reduceaxis = (reduceaxis,)
                 for axis in reversed(sorted(set(reduceaxis))):
                     del axes[axis]
@@ -1106,7 +1110,7 @@ class Field(NDArrayOperatorsMixin):
                              'Please apply np.pad to the matrix by yourself and update the axes'
                              'as you like.')
 
-        if not isinstance(pad_width, collections.Iterable):
+        if not isinstance(pad_width, Iterable):
             pad_width = [pad_width]
 
         if len(pad_width) == 1:
@@ -1121,7 +1125,7 @@ class Field(NDArrayOperatorsMixin):
         padded_axes = []
 
         for i, axis_pad in enumerate(pad_width):
-            if not isinstance(axis_pad, collections.Iterable):
+            if not isinstance(axis_pad, Iterable):
                 axis_pad = [axis_pad, axis_pad]
 
             if len(axis_pad) > 2:
@@ -1477,7 +1481,7 @@ class Field(NDArrayOperatorsMixin):
         if axes is None:
             axes = range(field.dimensions)
 
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes, )
 
         if len(axes) != len(set(axes)):
@@ -1772,7 +1776,7 @@ class Field(NDArrayOperatorsMixin):
         if axes is None:
             axes = range(self.dimensions)
 
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         if method == 'constant':
@@ -1879,7 +1883,7 @@ class Field(NDArrayOperatorsMixin):
         if axes is None:
             axes = range(self.dimensions)
 
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         pad = [0] * self.dimensions
@@ -1902,7 +1906,7 @@ class Field(NDArrayOperatorsMixin):
             axes = range(self.dimensions)
 
         # If axes is not a tuple, make it a one-tuple
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         dx = {i: self.axes[i].spacing for i in axes}
@@ -1948,7 +1952,7 @@ class Field(NDArrayOperatorsMixin):
             axes = range(self.dimensions)
 
         # If axes is not a tuple, make it a one-tuple
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         if exponential_signs not in ['spatial', 'temporal']:
@@ -2076,8 +2080,8 @@ class Field(NDArrayOperatorsMixin):
         It may be a list of the desired transform states for all the axes or a dictionary
         indicating the desired transform states of specific axes.
         """
-        if not isinstance(transform_states, collections.Mapping):
-            if not isinstance(transform_states, collections.Iterable):
+        if not isinstance(transform_states, Mapping):
+            if not isinstance(transform_states, Iterable):
                 transform_states = [transform_states] * self.dimensions
             transform_states = dict(enumerate(transform_states))
 
@@ -2169,7 +2173,7 @@ class Field(NDArrayOperatorsMixin):
         if interpolation not in methods.keys():
             raise ValueError("Requested method {} is not supported".format(interpolation))
 
-        if not isinstance(dx, collections.Mapping):
+        if not isinstance(dx, Mapping):
             dx = dict(enumerate(dx))
 
         dx = {helper.axesidentify[i]: v for i, v in dx.items()}
@@ -2276,7 +2280,7 @@ class Field(NDArrayOperatorsMixin):
         return [ax._extent_to_slice(ex) for ax, ex in zip(self.axes, extent)]
 
     def _normalize_slices(self, key):
-        if not isinstance(key, collections.Iterable):
+        if not isinstance(key, Iterable):
             key = (key,)
         if len(key) != self.dimensions:
             raise IndexError("{}D Field requires a {}-tuple of slices as index"
