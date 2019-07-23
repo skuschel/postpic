@@ -204,14 +204,14 @@ class FbpicReader(OpenPMDreader):
         rawdata has to have the shape (Nm, Nr, Nz).
         the returned array will be of shape (Nr, Nz).
         '''
-        rawdata = np.asarray(rawdata)
+        rawdata = np.float64(rawdata)
         (Nm, Nr, Nz) = rawdata.shape
         mult_above_axis = [1]
         for mode in range(1, int(Nm / 2) + 1):
             cos = np.cos(mode * theta)
             sin = np.sin(mode * theta)
             mult_above_axis += [cos, sin]
-        mult_above_axis = np.asarray(mult_above_axis)
+        mult_above_axis = np.float64(mult_above_axis)
         F_total = np.tensordot(mult_above_axis,
                                rawdata, axes=(0, 0))
         assert F_total.shape == (Nr, Nz), \
@@ -265,8 +265,10 @@ class FbpicReader(OpenPMDreader):
         # Ntheta does technically not exists because of the mode
         # representation. To do a proper conversion from the modes to
         # the grid, choose Ntheta based on the number of modes.
-        # Nyquist should be `Ntheta = 2*Nm + 1`
-        Ntheta = 2 * Nm + 1
+        # Nyquist should be `Ntheta = Nm`, but be generous and
+        # make sure that theta and -theta are
+        # always included: 2, 4, 8, 16, 32, 64,...
+        Ntheta = 2 * 2**np.ceil(np.log2(Nm))
         return (Nr, Ntheta, Nz)[axid]
 
     # override
