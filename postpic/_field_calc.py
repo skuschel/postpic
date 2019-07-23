@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Stephan Kuschel 2014
+# Stephan Kuschel 2014-2019
 # Alexander Blinne, 2017
 """
 Field related routines.
@@ -102,6 +102,12 @@ class FieldAnalyzer(object):
     def _Ez(self, **kwargs):
         return np.float64(self.dataE('z', **kwargs))
 
+    def _Er(self, **kwargs):
+        return np.float64(self.dataE('r', **kwargs))
+
+    def _Etheta(self, **kwargs):
+        return np.float64(self.dataE('theta', **kwargs))
+
     def _Bx(self, **kwargs):
         return np.float64(self.dataB('x', **kwargs))
 
@@ -110,6 +116,12 @@ class FieldAnalyzer(object):
 
     def _Bz(self, **kwargs):
         return np.float64(self.dataB('z', **kwargs))
+
+    def _Br(self, **kwargs):
+        return np.float64(self.dataB('r', **kwargs))
+
+    def _Btheta(self, **kwargs):
+        return np.float64(self.dataB('theta', **kwargs))
 
     def createfieldsfromkeys(self, *keys):
         for key in keys:
@@ -140,6 +152,22 @@ class FieldAnalyzer(object):
         ret.shortname = 'Ez'
         return ret
 
+    def Er(self, **kwargs):
+        ret = self._createfieldfromdata(self._Er(**kwargs),
+                                        self.gridkeyE('r', **kwargs))
+        ret.unit = 'V/m'
+        ret.name = 'Er'
+        ret.shortname = 'Er'
+        return ret
+
+    def Etheta(self, **kwargs):
+        ret = self._createfieldfromdata(self._Ez(**kwargs),
+                                        self.gridkeyE('Etheta', **kwargs))
+        ret.unit = 'V/m'
+        ret.name = 'Etheta'
+        ret.shortname = 'Etheta'
+        return ret
+
     def Bx(self, **kwargs):
         ret = self._createfieldfromdata(self._Bx(**kwargs),
                                         self.gridkeyB('x', **kwargs))
@@ -162,6 +190,22 @@ class FieldAnalyzer(object):
         ret.unit = 'T'
         ret.name = 'Bz'
         ret.shortname = 'Bz'
+        return ret
+
+    def Br(self, **kwargs):
+        ret = self._createfieldfromdata(self._Br(**kwargs),
+                                        self.gridkeyB('r', **kwargs))
+        ret.unit = 'V/m'
+        ret.name = 'Br'
+        ret.shortname = 'Br'
+        return ret
+
+    def Btheta(self, **kwargs):
+        ret = self._createfieldfromdata(self._Btheta(**kwargs),
+                                        self.gridkeyB('Btheta', **kwargs))
+        ret.unit = 'V/m'
+        ret.name = 'Btheta'
+        ret.shortname = 'Btheta'
         return ret
 
     # --- spezielle Funktionen
