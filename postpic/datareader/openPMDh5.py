@@ -294,6 +294,10 @@ class FbpicReader(OpenPMDreader):
         data = self._radialdata('B{}'.format(component), raw, theta=theta)
         return data
 
+    # override
+    def __str__(self):
+        return '<FbpicReader at "' + str(self.dumpidentifier) + '">'
+
 
 class FileSeries(Simulationreader_ifc):
     '''
