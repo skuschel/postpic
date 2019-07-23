@@ -148,21 +148,26 @@ class OpenPMDreader(Dumpreader_ifc):
         this particle species.
         """
         attribid = helper.attribidentify[attrib]
-        options = {9: lambda s: self.data('particles/' + s + '/weighting'),
-                   0: lambda s: self.data('particles/' + s + '/position/x') +
-                   self.data('particles/' + s + '/positionOffset/x'),
-                   1: lambda s: self.data('particles/' + s + '/position/y') +
-                   self.data('particles/' + s + '/positionOffset/y'),
-                   2: lambda s: self.data('particles/' + s + '/position/z') +
-                   self.data('particles/' + s + '/positionOffset/z'),
-                   3: lambda s: self.data('particles/' + s + '/momentum/x'),
-                   4: lambda s: self.data('particles/' + s + '/momentum/y'),
-                   5: lambda s: self.data('particles/' + s + '/momentum/z'),
-                   10: lambda s: self.data('particles/' + s + '/id'),
-                   11: lambda s: self.data('particles/' + s + '/mass'),
-                   12: lambda s: self.data('particles/' + s + '/charge')}
+        options = {9: 'particles/{}/weighting',
+                   0: 'particles/{}/position/x',
+                   1: 'particles/{}/position/y',
+                   2: 'particles/{}/position/z',
+                   3: 'particles/{}/momentum/x',
+                   4: 'particles/{}/momentum/y',
+                   5: 'particles/{}/momentum/z',
+                   10: 'particles/{}/id',
+                   11: 'particles/{}/mass',
+                   12: 'particles/{}/charge'}
+        optionsoffset = {0: 'particles/{}/positionOffset/x',
+                         1: 'particles/{}/positionOffset/y',
+                         2: 'particles/{}/positionOffset/z'}
+        key = options[attribid]
+        offsetkey = optionsoffset.get(attribid)
         try:
-            ret = np.float64(options[attribid](species))
+            data = self.data(key.format(species))
+            if offsetkey is not None:
+                data += self.data(offsetkey.format(species))
+            ret = np.asarray(data, dtype=np.float64)
         except(IndexError):
             raise KeyError
         return ret
