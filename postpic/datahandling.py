@@ -462,19 +462,20 @@ class Axis(object):
         a slice containing floats or integers or a float or an integer
         """
         sl = self._normalize_slice(key)
-        if isinstance(sl, slice):
-            if not (sl.step is None or np.abs(sl.step) == 1):
-                raise ValueError("slice.step must be 1, -1 or None (but is {})".format(sl.step))
-            grid = self.grid[sl]
-            stop = sl.stop
-            if stop is not None and stop > 0:
-                stop += -1 if sl.step == -1 else 1
-            sln = slice(sl.start if sl.start else None, stop)
-            grid_node = self.grid_node[sln]
-            ax = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
-            return ax
-        else:
+
+        if not isinstance(sl, slice):
             return self.grid[sl]
+
+        if not (sl.step is None or np.abs(sl.step) == 1):
+            raise ValueError("slice.step must be 1, -1 or None (but is {})".format(sl.step))
+        grid = self.grid[sl]
+        stop = sl.stop
+        if stop is not None and stop > 0:
+            stop += -1 if sl.step == -1 else 1
+        sln = slice(sl.start if sl.start else None, stop)
+        grid_node = self.grid_node[sln]
+        ax = type(self)(self.name, self.unit, grid=grid, grid_node=grid_node)
+        return ax
 
     def __len__(self):
         return self._n
