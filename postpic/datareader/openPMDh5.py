@@ -229,12 +229,11 @@ class FbpicReader(OpenPMDreader):
         '''
         if np.asarray(theta).shape is ():
             # single theta
-            data = FbpicReader.modeexpansion(rawdata, theta=theta)
-        else:
-            # multiple theta
-            data = np.asarray([FbpicReader.modeexpansion(rawdata, theta=t) for t in theta])
-            # switch from (theta, r, z) to (r, theta, z)
-            data = data.swapaxes(0, 1)
+            theta = [theta]
+        # multiple theta
+        data = np.asarray([FbpicReader.modeexpansion(rawdata, theta=t) for t in theta])
+        # switch from (theta, r, z) to (r, theta, z)
+        data = data.swapaxes(0, 1)
         return data
 
     # override inherited method to count points after mode expansion

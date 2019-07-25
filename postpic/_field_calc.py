@@ -51,12 +51,12 @@ class FieldAnalyzer(object):
         pass
 
     # General interface for everything
-    def _createfieldfromdata(self, data, gridkey):
+    def _createfieldfromdata(self, data, gridkey, **kwargs):
         ret = Field(np.float64(data))
-        self.setgridtofield(ret, gridkey)
+        self.setgridtofield(ret, gridkey, **kwargs)
         return ret
 
-    def createfieldfromkey(self, key, gridkey=None):
+    def createfieldfromkey(self, key, gridkey=None, **kwargs):
         '''
         This method creates a Field object from the data identified by "key".
         The Grid is also inferred from that key unless an alternate "gridkey"
@@ -64,31 +64,39 @@ class FieldAnalyzer(object):
         '''
         if gridkey is None:
             gridkey = key
-        ret = self._createfieldfromdata(self.data(key), gridkey)
+        ret = self._createfieldfromdata(self.data(key, **kwargs), gridkey, **kwargs)
         ret.name = key
         return ret
 
-    def getaxisobj(self, gridkey, axis):
+    def getaxisobj(self, gridkey, axis, **kwargs):
         '''
         returns an Axis object for the "axis" and the grid defined by "gridkey".
+
+        **kwargs can be any dictionary overriding from the grid for a specific axis,
+        e.g. {'theta': [0, pi/2, pi, 3/2*pi]}
         '''
         name = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 'theta'}[helper.axesidentify[axis]]
-        ax = Axis(name=name, unit='m', grid_node=self.gridnode(gridkey, axis))
+        grid = kwargs.pop(name, None)
+        if grid is not None:
+            # override with given grid
+            ax = Axis(name=name, unit='m', grid=grid)
+        else:
+            ax = Axis(name=name, unit='m', grid_node=self.gridnode(gridkey, axis))
         return ax
 
     def _defaultaxisorder(self, gridkey):
         return ('x', 'y', 'z')
 
-    def setgridtofield(self, field, gridkey):
+    def setgridtofield(self, field, gridkey, **kwargs):
         '''
         add spacial field information to the given field object.
         '''
         x, y, z = self._defaultaxisorder(gridkey)
-        field.setaxisobj(x, self.getaxisobj(gridkey, x))
+        field.setaxisobj(x, self.getaxisobj(gridkey, x, **kwargs))
         if field.dimensions > 1:
-            field.setaxisobj(y, self.getaxisobj(gridkey, y))
+            field.setaxisobj(y, self.getaxisobj(gridkey, y, **kwargs))
         if field.dimensions > 2:
-            field.setaxisobj(z, self.getaxisobj(gridkey, z))
+            field.setaxisobj(z, self.getaxisobj(gridkey, z, **kwargs))
 
     # --- Always return an object of Field type
     # just to shortcut
@@ -123,14 +131,14 @@ class FieldAnalyzer(object):
     def _Btheta(self, **kwargs):
         return np.float64(self.dataB('theta', **kwargs))
 
-    def createfieldsfromkeys(self, *keys):
+    def createfieldsfromkeys(self, *keys, **kwargs):
         for key in keys:
-            yield self.createfieldfromkey(key)
+            yield self.createfieldfromkey(key, **kwargs)
 
     # most common fields listed here nicely
     def Ex(self, **kwargs):
         ret = self._createfieldfromdata(self._Ex(**kwargs),
-                                        self.gridkeyE('x', **kwargs))
+                                        self.gridkeyE('x', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Ex'
         ret.shortname = 'Ex'
@@ -138,7 +146,7 @@ class FieldAnalyzer(object):
 
     def Ey(self, **kwargs):
         ret = self._createfieldfromdata(self._Ey(**kwargs),
-                                        self.gridkeyE('y', **kwargs))
+                                        self.gridkeyE('y', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Ey'
         ret.shortname = 'Ey'
@@ -146,7 +154,7 @@ class FieldAnalyzer(object):
 
     def Ez(self, **kwargs):
         ret = self._createfieldfromdata(self._Ez(**kwargs),
-                                        self.gridkeyE('z', **kwargs))
+                                        self.gridkeyE('z', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Ez'
         ret.shortname = 'Ez'
@@ -154,7 +162,7 @@ class FieldAnalyzer(object):
 
     def Er(self, **kwargs):
         ret = self._createfieldfromdata(self._Er(**kwargs),
-                                        self.gridkeyE('r', **kwargs))
+                                        self.gridkeyE('r', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Er'
         ret.shortname = 'Er'
@@ -162,7 +170,7 @@ class FieldAnalyzer(object):
 
     def Etheta(self, **kwargs):
         ret = self._createfieldfromdata(self._Ez(**kwargs),
-                                        self.gridkeyE('Etheta', **kwargs))
+                                        self.gridkeyE('Etheta', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Etheta'
         ret.shortname = 'Etheta'
@@ -170,7 +178,7 @@ class FieldAnalyzer(object):
 
     def Bx(self, **kwargs):
         ret = self._createfieldfromdata(self._Bx(**kwargs),
-                                        self.gridkeyB('x', **kwargs))
+                                        self.gridkeyB('x', **kwargs), **kwargs)
         ret.unit = 'T'
         ret.name = 'Bx'
         ret.shortname = 'Bx'
@@ -178,7 +186,7 @@ class FieldAnalyzer(object):
 
     def By(self, **kwargs):
         ret = self._createfieldfromdata(self._By(**kwargs),
-                                        self.gridkeyB('y', **kwargs))
+                                        self.gridkeyB('y', **kwargs), **kwargs)
         ret.unit = 'T'
         ret.name = 'By'
         ret.shortname = 'By'
@@ -186,7 +194,7 @@ class FieldAnalyzer(object):
 
     def Bz(self, **kwargs):
         ret = self._createfieldfromdata(self._Bz(**kwargs),
-                                        self.gridkeyB('z', **kwargs))
+                                        self.gridkeyB('z', **kwargs), **kwargs)
         ret.unit = 'T'
         ret.name = 'Bz'
         ret.shortname = 'Bz'
@@ -194,7 +202,7 @@ class FieldAnalyzer(object):
 
     def Br(self, **kwargs):
         ret = self._createfieldfromdata(self._Br(**kwargs),
-                                        self.gridkeyB('r', **kwargs))
+                                        self.gridkeyB('r', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Br'
         ret.shortname = 'Br'
@@ -202,7 +210,7 @@ class FieldAnalyzer(object):
 
     def Btheta(self, **kwargs):
         ret = self._createfieldfromdata(self._Btheta(**kwargs),
-                                        self.gridkeyB('Btheta', **kwargs))
+                                        self.gridkeyB('Btheta', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Btheta'
         ret.shortname = 'Btheta'
