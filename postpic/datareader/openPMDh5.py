@@ -47,7 +47,7 @@ class OpenPMDreader(Dumpreader_ifc):
     '''
 
     def __init__(self, h5file, **kwargs):
-        super().__init__(h5file, **kwargs)
+        super(OpenPMDreader, self).__init__(h5file, **kwargs)
         import os.path
         import h5py
         if not os.path.isfile(h5file):
@@ -195,7 +195,7 @@ class FbpicReader(OpenPMDreader):
     a radial representation.
     '''
     def __init__(self, simidentifier, **kwargs):
-        super().__init__(simidentifier, **kwargs)
+        super(FbpicReader, self).__init__(simidentifier, **kwargs)
 
     @staticmethod
     def modeexpansion(rawdata, theta=0):
@@ -244,7 +244,7 @@ class FbpicReader(OpenPMDreader):
         else:
             # r, theta, z
             axidremap = {90: 0, 2: 1}[axid]
-            return super().gridoffset(key, axidremap)
+            return super(FbpicReader, self).gridoffset(key, axidremap)
 
     # override inherited method to count points after mode expansion
     def gridspacing(self, key, axis):
@@ -254,7 +254,7 @@ class FbpicReader(OpenPMDreader):
         else:
             # r, theta, z
             axidremap = {90: 0, 2: 1}[axid]
-            return super().gridspacing(key, axidremap)
+            return super(FbpicReader, self).gridspacing(key, axidremap)
 
     # override inherited method to count points after mode expansion
     def gridpoints(self, key, axis):
@@ -276,7 +276,7 @@ class FbpicReader(OpenPMDreader):
 
     # override from OpenPMDreader
     def data(self, key, theta=None):
-        raw = super().data(key)  # SI conversion
+        raw = super(FbpicReader, self).data(key)  # SI conversion
         if key.startswith('particles'):
             return raw
         # for fields expand the modes into a spatial grid first:
@@ -305,7 +305,7 @@ class FileSeries(Simulationreader_ifc):
     '''
 
     def __init__(self, simidentifier, dumpreadercls=OpenPMDreader, **kwargs):
-        super().__init__(simidentifier, **kwargs)
+        super(FileSeries, self).__init__(simidentifier, **kwargs)
         self.dumpreadercls = dumpreadercls
         import glob
         self._dumpfiles = glob.glob(simidentifier)
