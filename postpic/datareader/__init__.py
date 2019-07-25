@@ -170,9 +170,9 @@ def chooseCode(code):
         setdumpreadercls(OpenPMDreader)
         setsimreadercls(FileSeries)
     elif code.lower() in ['fbpic']:
-        from .openPMDh5 import FbpicReader, FileSeries
+        from .openPMDh5 import FbpicReader, FbpicFileSeries
         setdumpreadercls(FbpicReader)
-        setsimreadercls(FileSeries)
+        setsimreadercls(FbpicFileSeries)
     elif code.lower() in ['vsim']:
         raise Exception('VSim reader requires update due to the interface change in '
                         'https://github.com/skuschel/postpic/commit/'

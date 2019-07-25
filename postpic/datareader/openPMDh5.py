@@ -33,7 +33,8 @@ import numpy as np
 import re
 from .. import helper
 
-__all__ = ['OpenPMDreader', 'FbpicReader', 'FileSeries']
+__all__ = ['OpenPMDreader', 'FileSeries',
+           'FbpicReader', 'FbpicFileSeries']
 
 
 class OpenPMDreader(Dumpreader_ifc):
@@ -323,3 +324,10 @@ class FileSeries(Simulationreader_ifc):
 
     def __str__(self):
         return '<FileSeries at "' + self.simidentifier + '">'
+
+
+class FbpicFileSeries(FileSeries):
+
+    def __init__(self, *args, **kwargs):
+        super(FbpicFileSeries, self).__init__(*args, **kwargs)
+        self.dumpreadercls = FbpicReader
