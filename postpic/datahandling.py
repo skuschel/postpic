@@ -422,32 +422,32 @@ class Axis(object):
         Applies some checks and transformations to the object passed
         to __getitem__
         """
+        if isinstance(index, KeepDim):
+            index = index.value
+            keepdim = True
+        else:
+            keepdim = False
+
         if isinstance(index, slice):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices must have step == None')
                 return self._extent_to_slice((index.start, index.stop))
             return index
+
+        if helper.is_non_integer_real_number(index):
+            # Indexing to a single position outside the extent
+            # will yield IndexError. Identical behaviour as numpy.ndarray
+            if not self._inside_domain(index):
+                msg = 'Physical index position {} is outside of the ' \
+                      'extent {} of axis {}'.format(index, self.extent, str(self))
+                raise IndexError(msg)
+            index = self._find_nearest_index(index)
+
+        if keepdim:
+            return slice(index, index+1)
         else:
-            if isinstance(index, KeepDim):
-                index = index.value
-                keepdim = True
-            else:
-                keepdim = False
-
-            if helper.is_non_integer_real_number(index):
-                # Indexing to a single position outside the extent
-                # will yield IndexError. Identical behaviour as numpy.ndarray
-                if not self._inside_domain(index):
-                    msg = 'Physical index position {} is outside of the ' \
-                          'extent {} of axis {}'.format(index, self.extent, str(self))
-                    raise IndexError(msg)
-                index = self._find_nearest_index(index)
-
-            if keepdim:
-                return slice(index, index+1)
-            else:
-                return index
+            return index
 
     def reversed(self):
         '''

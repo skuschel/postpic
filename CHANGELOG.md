@@ -10,12 +10,12 @@
 
 * Indexing a field by a number (integer or float) will now remove the according axis altogether, instead of leaving behind a length-1 axis.
 A new class `KeepDim` was introduced through which the old behaviour can still be used.
-Old behaviour:
+Behaviour of PostPic before this change:
 ```
 field.shape == (x,y,z)
 field[:, 0.0, :].shape == (x,1,z)
 ```
-New behaviour:
+Using the new class `KeepDim`, it is possible to retain that behaviour in the new version:
 ```
 field.shape == (x,y,z)
 field[:, 0.0, :].shape == (x, z)

@@ -262,6 +262,7 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(f1d_slice.grid >= 0.15))
         self.assertTrue(np.all(f1d_slice.grid <= 0.75))
         self.assertEqual(self.f1d[dh.KeepDim(5)].shape, (1,))
+        self.assertEqual(self.f1d[dh.KeepDim(slice(5,6))].shape, (1,))
         self.assertEqual(self.f1d[5].shape, ())
 
         self.assertEqual(self.f2d[0.5:, :].shape, (2, 5))
