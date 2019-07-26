@@ -157,9 +157,17 @@ def chooseCode(code):
         Possible options are:
           - "DUMMY": dummy class creating fake data.
           - "EPOCH": .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
-          - "openPMD": .h5 files written in openPMD Standard
-          - "piconGPU": same as "openPMD"
+            ( https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch )
+          - "openPMD": .h5 files written in openPMD Standard.
+            ( https://github.com/openPMD/ )
+          - "fbpic": .h5 files written by fbpic ( https://github.com/fbpic/fbpic ).
+            This is the openPMD reader, but includes the conversion from azimuthal modes
+            to a cylindrical grid.
+          - "piconGPU": same as "openPMD".
+            This reader can be used for piconGPU written h5 files.
+            ( https://github.com/ComputationalRadiationPhysics/picongpu )
           - "VSIM": .hdf5 files written by VSim.
+            Currently not working. Needs updating.
     '''
     if code.lower() in ['epoch', 'epoch1d', 'epoch2d', 'epoch3d']:
         from .epochsdf import Sdfreader, Visitreader
@@ -185,4 +193,4 @@ def chooseCode(code):
         setdumpreadercls(Dummyreader)
         setsimreadercls(Dummysim)
     else:
-        raise TypeError('Code "' + str(code) + '" not recognized.')
+        raise TypeError('Code "{}" not recognized.'.format(code))
