@@ -120,7 +120,12 @@ except ImportError:
     unwrap_phase = None
 
 
-__all__ = ['Field', 'Axis']
+__all__ = ['KeepDim', 'Field', 'Axis']
+
+
+class KeepDim(object):
+    def __init__(self, value):
+        self.value = value
 
 
 class Axis(object):
@@ -417,22 +422,32 @@ class Axis(object):
         Applies some checks and transformations to the object passed
         to __getitem__
         """
+        if isinstance(index, KeepDim):
+            index = index.value
+            keepdim = True
+        else:
+            keepdim = False
+
         if isinstance(index, slice):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices must have step == None')
                 return self._extent_to_slice((index.start, index.stop))
             return index
-        else:
-            if helper.is_non_integer_real_number(index):
-                # Indexing to a single position outside the extent
-                # will yield IndexError. Identical behaviour as numpy.ndarray
-                if not self._inside_domain(index):
-                    msg = 'Physical index position {} is outside of the ' \
-                          'extent {} of axis {}'.format(index, self.extent, str(self))
-                    raise IndexError(msg)
-                index = self._find_nearest_index(index)
+
+        if helper.is_non_integer_real_number(index):
+            # Indexing to a single position outside the extent
+            # will yield IndexError. Identical behaviour as numpy.ndarray
+            if not self._inside_domain(index):
+                msg = 'Physical index position {} is outside of the ' \
+                      'extent {} of axis {}'.format(index, self.extent, str(self))
+                raise IndexError(msg)
+            index = self._find_nearest_index(index)
+
+        if keepdim:
             return slice(index, index+1)
+        else:
+            return index
 
     def reversed(self):
         '''
@@ -447,6 +462,10 @@ class Axis(object):
         a slice containing floats or integers or a float or an integer
         """
         sl = self._normalize_slice(key)
+
+        if not isinstance(sl, slice):
+            return self.grid[sl]
+
         if not (sl.step is None or np.abs(sl.step) == 1):
             raise ValueError("slice.step must be 1, -1 or None (but is {})".format(sl.step))
         grid = self.grid[sl]
@@ -1536,23 +1555,32 @@ class Field(NDArrayOperatorsMixin):
 
         return field.replace_data(ne.evaluate(expr, local_dict=local_dict, global_dict=None))
 
-    def squeeze(self):
+    def squeeze(self, axis=None):
         '''
         removes axes that have length 1, reducing self.dimensions.
 
         Note, that axis with length 0 will not be removed! `numpy.squeeze` also does not
         remove length=0 directions.
 
+        axis: None or int or tuple of ints, optional
+          Selects a subset of the single-dimensional entries in the shape. If an axis is selected
+          with shape entry greater than one, an error is raised.
+
         Same as `numpy.squeeze`.
         '''
-        ret = copy.copy(self)
-        retained_axes = [i for i in range(len(self.shape)) if len(self.axes[i]) != 1]
+        squeezed_axes = [i for i in range(len(self.shape)) if len(self.axes[i]) == 1]
+        if axis is not None:
+            if not isinstance(axis, iterable):
+                axis = (axis,)
+            for i in axis:
+                squeezed_axes.remove(i)
 
-        ret.axes = [self.axes[i] for i in retained_axes]
-        ret.axes_transform_state = [self.axes_transform_state[i] for i in retained_axes]
-        ret.transformed_axes_origins = [self.transformed_axes_origins[i] for i in retained_axes]
+        sl = [slice(None)] * len(self.shape)
+        for i in squeezed_axes:
+            sl[i] = 0
 
-        ret._matrix = np.squeeze(ret.matrix)
+        ret = self[sl]
+
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
 
@@ -2292,20 +2320,27 @@ class Field(NDArrayOperatorsMixin):
     def __getitem__(self, key):
         old_shape = self.shape
 
-        key = self._normalize_slices(key)
-        field = copy.copy(self)
-        field._matrix = field.matrix[key]
-        for i, sl in enumerate(key):
-            field.setaxisobj(i, field.axes[i][sl])
+        slices = self._normalize_slices(key)
 
-        new_shape = field.shape
+        retained_axes = list(range(len(self.shape)))
+        new_axes = []
+        for i, sl in enumerate(slices):
+            ax = self.axes[i][sl]
+            if isinstance(ax, Axis):
+                new_axes.append(ax)
+            else:
+                retained_axes.remove(i)
 
-        # This info is invalidated
-        for i, (o, n) in enumerate(zip(old_shape, new_shape)):
-            if o != n:
-                field.transformed_axes_origins[i] = None
+        ret = copy.copy(self)
+        ret._matrix = ret.matrix[slices]
 
-        return field
+        ret.axes = [ret.axes[i] for i in retained_axes]
+        for i, ax in enumerate(new_axes):
+            ret.setaxisobj(i, ax)
+        ret.axes_transform_state = [ret.axes_transform_state[i] for i in retained_axes]
+        ret.transformed_axes_origins = [ret.transformed_axes_origins[i] for i in retained_axes]
+
+        return ret
 
     def __setitem__(self, key, other):
         key = self._normalize_slices(key)

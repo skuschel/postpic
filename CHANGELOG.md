@@ -6,6 +6,23 @@
 * Parallelized implementation of `Field.map_coordinates`
 * Reimplementation of `Field.fft`. This changes the phases of Fourier transforms in a way to make it more consistent. However, if your code depends on the phases, `Field.fft()` now has a parameter `old_behaviour` that can be used to switch back to the old behaviour.
 
+**Incompatible adjustments to previous version**
+
+* Indexing a field by a number (integer or float) will now remove the according axis altogether, instead of leaving behind a length-1 axis.
+A new class `KeepDim` was introduced through which the old behaviour can still be used.
+Behaviour of PostPic before this change:
+```
+field.shape == (x,y,z)
+field[:, 0.0, :].shape == (x,1,z)
+```
+Using the new class `KeepDim`, it is possible to retain that behaviour in the new version:
+```
+field.shape == (x,y,z)
+field[:, 0.0, :].shape == (x, z)
+field[:, KeepDim(0.0), :].shape == (x,1,z)
+```
+
+
 ## v0.4
 2019-01-14
 
