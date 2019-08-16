@@ -896,10 +896,9 @@ def kspace(component, fields, extent=None, interpolation=None, omega_func=omega_
 
             field = field.ensure_frequency_domain()
 
-            # fourier interpolation is done after the fft by applying a linear phase
+            # fourier interpolation is done implicitly by the fft code
             if interpolation == 'fourier':
-                # print('apply linear phase')
-                field = field._apply_linear_phase(dict(enumerate(grid_shift)))
+                field = field._shift_grid_by_fourier(dict(enumerate(grid_shift)), skip_fft=True)
 
             # add the field to the result with the appropriate prefactor
             # result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix

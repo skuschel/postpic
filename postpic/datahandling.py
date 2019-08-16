@@ -2150,15 +2150,18 @@ class Field(NDArrayOperatorsMixin):
 
         return ret
 
-    def _shift_grid_by_fourier(self, dx):
+    def _shift_grid_by_fourier(self, dx, skip_fft=False):
         axes = sorted(dx.keys())
 
         # transform to conjugate space, shift grid origin, transform back
         # all necessary phases are added by `fft()` method
-        ret = self.fft(axes)
+        ret = self
+        if not skip_fft:
+            ret = ret.fft(axes)
         for i in dx.keys():
             ret.transformed_axes_origins[i] += dx[i]
-        ret = ret.fft(axes)
+        if not skip_fft:
+            ret = ret.fft(axes)
 
         return ret
 
