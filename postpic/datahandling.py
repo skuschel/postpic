@@ -155,6 +155,9 @@ class Axis(object):
             if self._grid_node.ndim != 1:
                 raise ValueError("Passed array grid_node has ndim != 1.")
             if helper.monotonicity(self._grid_node) == 0:
+                if np.isclose(self._grid_node[0], self._grid_node[-1], atol=0):
+                    s = 'Grid_node spacing is zero on axis "{}" at value {}.'
+                    raise ValueError(s.format(self.name, self._grid_node[0]))
                 raise ValueError("Passed array grid_node is not monotonous.")
 
         self._grid = kwargs.pop('grid', None)
@@ -164,6 +167,9 @@ class Axis(object):
             if self._grid.ndim != 1:
                 raise ValueError("Passed array grid has ndim != 1.")
             if helper.monotonicity(self._grid) == 0:
+                if np.isclose(self._grid[0], self._grid[-1], atol=0):
+                    s = 'Grid spacing is zero on axis "{}" at value {}.'
+                    raise ValueError(s.format(self.name, self._grid[0]))
                 raise ValueError("Passed array grid is not monotonous.")
 
         self._extent = kwargs.pop('extent', None)
