@@ -102,6 +102,16 @@ class TestAxis(unittest.TestCase):
         with self.assertRaises(TypeError):
             dh.Axis(extent=(0,1), n=99, unknownarg=0)
 
+    def test_grid_spacing(self):
+        ax = dh.Axis(grid=[1])  # ok
+        with self.assertRaises(ValueError):
+            ax = dh.Axis(grid=[1,1])
+
+    def test_grid_node_spacing(self):
+        ax = dh.Axis(grid_node=[1])  # ok
+        with self.assertRaises(ValueError):
+            ax = dh.Axis(grid_node=[1,1])
+
     def test_reversed(self, n=100):
         ax = dh.Axis(extent=[-1,1], n=n)
         axri = dh.Axis(extent=[1,-1], n=n)
