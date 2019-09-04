@@ -27,8 +27,8 @@ def main():
     import os
     import os.path as osp
     datadir = 'examples/kspace-test-2d'
-    tarball = osp.join(datadir, 'kspace-test-2d-resources.tar.xz')
-    tarball_url = 'https://blinne.net/files/postpic/kspace-test-2d-resources.tar.xz'
+    tarball = osp.join(datadir, 'kspace-test-2d-resources.tar.gz')
+    tarball_url = 'https://blinne.net/files/postpic/kspace-test-2d-resources.tar.gz'
     if not os.path.exists(datadir):
         os.mkdir(datadir)
     s = download(tarball_url, tarball)
@@ -36,7 +36,7 @@ def main():
     if s:
         import hashlib
         chksum = hashlib.sha256(open(tarball, 'rb').read()).hexdigest()
-        if chksum != "ed1e05d31b3fc00d5827872c601dd1b4dad172dd9f9f48e6762b5f25e67c0f1d":
+        if chksum != "45549cc85bf1f8c60840a870c7279ddbc5f14f2bb9ff5de2728586b6198a8e20":
             os.remove(tarball)
             s = False
 
@@ -265,14 +265,17 @@ def main():
     # In[13]:
 
 
-    from skimage.restoration import unwrap_phase
     if sdfavail:
         kspace_ey = dump.kspace_Ey(solver='yee')
     else:
         kspace_ey = pp.helper.kspace_epoch_like(component, fields=fields, dt=dt, omega_func=omega_yee)
     complex_ey = kspace_ey.fft()
     envelope_ey_2d = abs(complex_ey)[:,:].squeeze()
-    phase_ey = complex_ey.replace_data( unwrap_phase(np.angle(complex_ey)) )
+    try:
+        from skimage.restoration import unwrap_phase
+        phase_ey = complex_ey.replace_data( unwrap_phase(np.angle(complex_ey)) )
+    except ImportError:
+        phase_ey = complex_ey.replace_data( np.angle(complex_ey) )
     phase_ey_2d = phase_ey[:,:].squeeze()
 
 
