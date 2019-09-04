@@ -1315,11 +1315,12 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
     ne_dict = {ki: km for ki, km in zip(keys_k, kspace.meshgrid())}
     ne_dict['kspace'] = kspace
     ne_dict['value'] = value
+    ne_dict['I'] = 1.j
 
     d = dict(key_klong=key_klong)
     d['on_axes_expr'] = " & ".join("({}==0)".format(k) for k in keys_k)
     d['forward_subspace_expr'] = '{key_klong}{cmp}0'.format(cmp='<' if dir > 0 else '>', **d)
-    d['phase_expr'] = 'exp(1j * value * {key_klong})'.format(**d)
+    d['phase_expr'] = 'exp(I * value * {key_klong})'.format(**d)
     jacobian_inner = " + ".join(ki+'**2' for ki in keys_k)
     d['jacobian_expr'] = '/ {key_klong} * ' \
         'sqrt({jacobian_inner})'.format(key_klong=key_klong, jacobian_inner=jacobian_inner)
@@ -1338,7 +1339,8 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
 
     w = Ef.meshgrid()[axis]
     # apply t0 shift
-    Ef = Ef.evaluate('where(w<0, 0.0, Ef * exp(1j * t_input * w))')
+    Im = 1.j
+    Ef = Ef.evaluate('where(w<0, 0.0, Ef * exp(Im * t_input * w))')
 
     # this info is destroyed by map_coordinates so needs to be recreated
     Ef.transformed_axes_origins[:] = kspace.transformed_axes_origins
