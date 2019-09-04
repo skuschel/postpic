@@ -36,7 +36,7 @@ def main():
     if s:
         import hashlib
         chksum = hashlib.sha256(open(tarball, 'rb').read()).hexdigest()
-        if chksum != "45549cc85bf1f8c60840a870c7279ddbc5f14f2bb9ff5de2728586b6198a8e20":
+        if chksum != "54bbeae19e1f412ddd475f565c2193e92922ed8a22e7eb3ecb4d73b5cf193b24":
             os.remove(tarball)
             s = False
 
@@ -76,6 +76,8 @@ def main():
     k0 = 2*np.pi/lam
     f0 = pp.PhysicalConstants.c/lam
 
+    pymajorver = str(sys.version_info[0])
+
     if sdfavail:
         pp.chooseCode("EPOCH")
 
@@ -84,15 +86,15 @@ def main():
         fields = dict()
         for fc in ['Ey', 'Bz']:
             fields[fc] = getattr(dump, fc)()
-            fields[fc].saveto('0002_'+fc, compressed=False)
+            fields[fc].saveto(osp.join(datadir, '0002_'+fc+pymajorver), compressed=False)
         t = dump.time()
         dt = t/dump.timestep()
-        pickle.dump(dict(t=t, dt=dt), open(osp.join(datadir,'0002_meta.pickle'), 'wb'))
+        pickle.dump(dict(t=t, dt=dt), open(osp.join(datadir,'0002_meta'+pymajorver+'.pickle'), 'wb'))
     else:
         fields = dict()
         for fc in ['Ey', 'Bz']:
-            fields[fc] = pp.Field.loadfrom(osp.join(datadir,'0002_{}.npz').format(fc))
-        meta = pickle.load(open(osp.join(datadir,'0002_meta.pickle'), 'rb'))
+            fields[fc] = pp.Field.loadfrom(osp.join(datadir,'0002_{}.npz').format(fc+pymajorver))
+        meta = pickle.load(open(osp.join(datadir,'0002_meta'+pymajorver+'.pickle'), 'rb'))
         t = meta['t']
         dt = meta['dt']
         plotter = pp.plotting.plottercls(None, autosave=False)
@@ -192,7 +194,7 @@ def main():
                                     fields=fields,
                                     interpolation='fourier')
                     ) * normalisation
-    kspace[key].name = r'naïve $\vec{k}$-space, $\omega_0=c|\vec{k}|$'
+    kspace[key].name = u'naïve $\\vec{k}$-space, $\\omega_0=c|\\vec{k}|$'
     kspace[key].unit = ''
 
 
@@ -204,7 +206,7 @@ def main():
                                     fields=fields, interpolation='fourier',
                                     omega_func=omega_yee)
                     ) * normalisation
-    kspace[key].name = r'naïve $\vec{k}$-space, $\omega_0=\omega_\mathrm{grid}$'
+    kspace[key].name = u'naïve $\\vec{k}$-space, $\\omega_0=\\omega_\\mathrm{grid}$'
     kspace[key].unit = ''
 
 
@@ -291,15 +293,18 @@ def main():
     figure = plotter.plotField2d(ey)
     figure.set_figwidth(6)
     figure.axes[0].set_title(r'')#$\Re E_y\ [\frac{\mathrm{V}}{\mathrm{m}}]$')
-    figure.axes[0].set_xlabel(r'$x\,[µm]$')
-    figure.axes[0].set_ylabel(r'$y\,[µm]$')
+    figure.axes[0].set_xlabel(u'$x\\,[µm]$')
+    figure.axes[0].set_ylabel(u'$y\\,[µm]$')
 
     import matplotlib.ticker as ticker
     ticks_x = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/1e-6))
     figure.axes[0].xaxis.set_major_formatter(ticks_x)
     figure.axes[0].yaxis.set_major_formatter(ticks_x)
 
-    figure.axes[0].images[0].colorbar.remove()
+    try:
+        figure.axes[0].images[0].colorbar.remove()
+    except AttributeError:
+        pass
     figure.colorbar(figure.axes[0].images[0], format='%6.0e', pad=0.15, label=r'$\Re E_y\ [\frac{\mathrm{V}}{\mathrm{m}}]$')
 
     axes2 = figure.axes[0].twinx()
