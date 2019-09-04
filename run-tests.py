@@ -87,7 +87,8 @@ def run_alltests(python='python', fast=False, skip_setup=False):
             '{python} ' + os.path.join('examples', 'simpleexample.py'),
             '{python} ' + os.path.join('examples', 'particleshapedemo.py'),
             '{python} ' + os.path.join('examples', 'time_cythonfunctions.py'),
-            '{python} ' + os.path.join('examples', 'openPMD.py')]
+            '{python} ' + os.path.join('examples', 'openPMD.py'),
+            '{python} ' + os.path.join('examples', 'kspace-test-2d.py')]
     if not fast:
         cmds += cmdo
     for cmd in cmds:

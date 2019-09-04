@@ -3,6 +3,8 @@
 
 # In[1]:
 
+import sys
+
 
 def download(url, file):
     import urllib3
@@ -245,6 +247,19 @@ def main():
     figure2.axes[0].set_xlabel(r'$k_x\,[m^{-1}]$')
     figure2.tight_layout()
     figure2.savefig(osp.join(datadir, 'gaussian-kspace.pdf'))
+
+    print("Integrated ghost peaks")
+    for k in keys:
+        I = kspace[k][:0.0,:].integrate().matrix
+        print(k, I)
+        if k == 'linresponse map=yee, omega=vac':
+            if I < 30000000.:
+                print('linresponse map=yee, omega=vac value is low enough: YES' )
+            else:
+                print('linresponse map=yee, omega=vac value is low enough: NO' )
+                print('Something is WRONG' )
+                sys.exit(1)
+
 
 
     # In[13]:
