@@ -1090,9 +1090,11 @@ def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
     return itertools.islice(gen, nsteps)
 
 
-def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0,
-                          **kwargs):
+def time_profile_at_plane_old(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0,
+                              **kwargs):
     '''
+    OLD VERSION, just for reference.
+
     'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
 
     The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.
@@ -1219,6 +1221,139 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
     k_transverse_tprofile.setaxisobj(axis, t_axis)
     k_transverse_tprofile.axes_transform_state[axis] = False
     k_transverse_tprofile.transformed_axes_origins[axis] = None
+
+    if do_fft:
+        return k_transverse_tprofile.fft(otheraxes)
+    else:
+        return k_transverse_tprofile
+
+
+def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0):
+    """
+    'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
+
+    The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.
+
+    `axis` specifies the axis perpendicular to the measurement plane.
+
+    `dir=1` specifies propagation towards positive `axis`, `dir=-1` specifies the opposite
+    direction of propagation.
+
+    `value` specifies the position of the plane along `axis`. If `value=None,` a default is chosen,
+    depending on `dir`.
+
+    If `dir=-1`, the starting point of the axis is used, which lies at the 0-component of the
+    inverse transform.
+
+    If `dir=1`, the end point of the axis + one axis spacing is used, which, via periodic boundary
+    conditions of the fft, also lies at the 0-component of the inverse transform.
+
+    If the given `value` differs from these defaults, an initial propagation with moving window
+    will be performed, such that the desired plane lies in the default position.
+
+    t_input specifies the point in time at which the input field or kspace is given. This is used
+    to specify the time axis of the output fields.
+
+    For example `axis='x'` and `value=0.0` specifies the 'x=0.0' plane while `dir=1` specifies
+    propagation towards positive 'x' values. The 'x' axis starts at 2e-5 and ends at 6e-5 with
+    a grid spacing of 1e-6. The default value for the measurement plane would have been 6.1e-5
+    so an initial backward propagation with dt = -6.1e-5/c is performed to move the pulse in front
+    of the'x=0.0 plane.
+    """
+    # can't import this at top of module because this would create a circular import
+    # importing here is ok, because helper and datahandling are both already interpreted
+    from . import datahandling
+
+    transform_state = kspace_or_complex_field._transform_state()
+    if transform_state is None:
+        raise ValueError("kspace_or_complex_field must have the same transform_state on all axes. "
+                         "Please make sure that either all axes 'live' in spatial domain or all "
+                         "axes 'live' in frequency domain.")
+
+    do_fft = not transform_state
+
+    if do_fft:
+        kspace = kspace_or_complex_field.fft()
+        complex_field = kspace_or_complex_field
+    else:
+        kspace = kspace_or_complex_field
+        complex_field = kspace_or_complex_field.fft()
+
+    axis = axesidentify[axis]
+    otheraxes = list(range(kspace.dimensions))
+    otheraxes.remove(axis)
+
+    keys_k = ['k'+'xyz'[ax] for ax in list(range(kspace.dimensions))]
+    keys_kperp = {oax: 'k'+'xyz'[oax] for oax in otheraxes}
+    key_klong = 'k'+'xyz'[axis]
+
+    def transform(*args):
+        ne_dict = dict()
+        ne_dict['c'] = PhysicalConstants.c
+        ne_dict['w'] = args[axis]
+        ne_dict.update({ki: args[oax] for oax, ki in keys_kperp.items()})
+
+        d = dict()
+        d['inner_term'] = "+".join(ki+'**2' for ki in keys_kperp.values())
+        d['inner_term'] = "(w/c)**2 - ({inner_term})".format(**d)
+        d['sign'] = '' if dir > 0 else "-"
+        expression = 'where({inner_term} > 0, {sign}sqrt({inner_term}), 0.0)'.format(**d)
+        # print(expression)
+        # print(ne_dict)
+        ne_dict[key_klong] = ne.evaluate(expression, local_dict=ne_dict, global_dict=dict())
+
+        return tuple(ne_dict['k'+'xyz'[ax]] for ax in list(range(kspace.dimensions)))
+
+    wkAxes = kspace.axes[:]
+    wkAxes[axis] = datahandling.Axis(grid=kspace.axes[axis].grid * PhysicalConstants.c)
+
+    # at which position do I want to have the result taken?
+    if value is None:
+        # default: middle of window
+        value = 0.5*(complex_field.extent[2*axis+1] + complex_field.extent[2*axis])
+
+    ne_dict = {ki: km for ki, km in zip(keys_k, kspace.meshgrid())}
+    ne_dict['kspace'] = kspace
+    ne_dict['value'] = value
+
+    d = dict(key_klong=key_klong)
+    d['on_axes_expr'] = " & ".join("({}==0)".format(k) for k in keys_k)
+    d['forward_subspace_expr'] = '{key_klong}{cmp}0'.format(cmp='<' if dir > 0 else '>', **d)
+    d['phase_expr'] = 'exp(1j * value * {key_klong})'.format(**d)
+    jacobian_inner = " + ".join(ki+'**2' for ki in keys_k)
+    d['jacobian_expr'] = '/ {key_klong} * ' \
+        'sqrt({jacobian_inner})'.format(key_klong=key_klong, jacobian_inner=jacobian_inner)
+    expression = 'where(({forward_subspace_expr}) | {on_axes_expr}, 0.0, ' \
+                 'kspace * {phase_expr} {jacobian_expr})'.format(**d)
+    # print(expression)
+
+    # apply x0 shift, apply formula
+    kspace = kspace.evaluate(expression, local_dict=ne_dict, global_dict=dict())
+    Ef = kspace.map_coordinates(wkAxes, transform=transform, preserve_integral=False)
+
+    # at which time is the input measured?
+    # (should be free parameter only changing the numbers on the result axis)
+    if t_input is None:
+        t_input = 0.0
+
+    w = Ef.meshgrid()[axis]
+    # apply t0 shift
+    Ef = Ef.evaluate('where(w<0, 0.0, Ef * exp(1j * t_input * w))')
+
+    # this info is destroyed by map_coordinates so needs to be recreated
+    Ef.transformed_axes_origins[:] = kspace.transformed_axes_origins
+
+    # middle of input window is mapped to
+    # tmiddle = t_input - (0.5*(Es.extent[1] + Es.extent[0]) - value) / pp.PhysicalConstants.c
+
+    # output window should start one half the window length to the left of that point
+    # torigin = tmiddle - 0.5*(Es.extent[1] - Es.extent[0])/pp.PhysicalConstants.c
+
+    # simplified:
+    #         = t_input - (Es.extent[1] - value)/pp.PhysicalConstants.c
+    Ef.transformed_axes_origins[axis] = t_input -  \
+        (complex_field.extent[2*axis+1] - value)/PhysicalConstants.c
+    k_transverse_tprofile = Ef.fft(axes=axis, exponential_signs='temporal')
 
     if do_fft:
         return k_transverse_tprofile.fft(otheraxes)
