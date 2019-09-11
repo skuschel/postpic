@@ -27,19 +27,26 @@ Additionally postpic can plot and label your plot automatically. This makes it e
 Installation
 ------------
 
-Postpic can be used with python2 and python3. However the usage of python3 is recommended.
+Postpic can be used with `python2` and `python3`. However the usage of `python3` is recommended.
 
-**Users** should install the latest version directly from github using pip (python package manager):
+**Users** should install the latest version directly from github using `pip` (python package manager):
 
 `pip install --user git+https://github.com/skuschel/postpic.git`
 
-The latest *release* is also available ib the python package index [pypi](https://pypi.python.org/pypi/postpic/), thus it can be installed by using the python package manager pip:
+Please note that, depending on your system python setup, `pip` may default to `python2`.
+In that case you will need use `pip3` instead to make sure that postpic is installed for `python3`:
 
-`pip install postpic`
+`pip3 install --user git+https://github.com/skuschel/postpic.git`
+
+The latest *release* is also available in the python package index [pypi](https://pypi.python.org/pypi/postpic/), thus it can be installed by using the python package manager pip:
+
+`pip install --user postpic`
+
+In both cases the `--user` option makes sure that the package can be installed without `root` privileges by installing it into your user profile.
 
 **Developers** should clone the git repository (or their fork of it) and install it using
 
-`python setup.py develop --user`
+`pip install --user -e .`
 
 This command will link the current folder to global python scope, such that changing the code will immediately update the installed package.
 
