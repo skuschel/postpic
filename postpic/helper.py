@@ -329,6 +329,8 @@ def jac_det(jacobian_func):
     '''
     def fun(*coords):
         jac = jacobian_func(*coords)
+        if len(jac) == 1:
+            return abs(jac[0])
         shape = np.broadcast(*coords).shape
         jacarray = np.asarray([[broadcast_to(a, shape) for a in row] for row in jac])
         jacarray = moveaxis(jacarray, [0, 1], [-2, -1])
