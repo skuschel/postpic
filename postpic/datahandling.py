@@ -1344,6 +1344,12 @@ class Field(NDArrayOperatorsMixin):
                 return 1.0
 
         if preserve_integral:
+            if len(newaxes) != self.dimensions:
+                raise ValueError('Preserving the integral through preserve_integral=True is only'
+                                 'possible for transforms that have the same number of input and'
+                                 'output dimensions.'
+                                 'Please pass preserve_integral=False explicitly to allow such'
+                                 'transforms.')
             if jacobian_determinant_func is None:
                 if jacobian_func is None:
                     jacobian_func = helper.approx_jacobian(transform)
