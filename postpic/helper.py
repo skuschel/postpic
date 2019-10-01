@@ -326,6 +326,10 @@ def jac_det(jacobian_func):
 
     det_fun = jac_det(polar2linear_jac)
     def = det_fun(theta, r)
+
+    In the case of a scalar function, this function expects jacobian_func to return
+    the derivative in a 1-element iterable. This behaviour is compatible to the output of
+    `np.gradient` and `approx_jacobian`.
     '''
     def fun(*coords):
         jac = jacobian_func(*coords)
