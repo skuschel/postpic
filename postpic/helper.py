@@ -386,7 +386,11 @@ def approx_jacobian(transform):
                                      'non-equidistant grid is not implemented for numpy < 1.13.')
             ravel_coords = [(r[-1]-r[0])/(len(r)-1) for r in ravel_coords]
 
-        shape = np.broadcast(*coords).shape
+        if len(coords) == 1:
+            # this specific case breaks np.broadcast in numpy 1.8.1 and older
+            shape = coords[0].shape
+        else:
+            shape = np.broadcast(*coords).shape
         mapped_coords = transform(*coords)
         mapped_coords = [broadcast_to(c, shape) for c in mapped_coords]
         jac = [np.gradient(c, *ravel_coords) for c in mapped_coords]
