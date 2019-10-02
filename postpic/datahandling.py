@@ -1319,6 +1319,8 @@ class Field(NDArrayOperatorsMixin):
         jacobian_func: callable
             a callable that returns the jacobian of the transform. If this is
             not given, the jacobian is numerically approximated.
+            In a 1D to 1D transform this callable should return just the derivative of the
+            transform wrapped in a 1-element iterable.
 
         **kwargs:
             Keyword arguments captured by `helper.map_coordinates_parallel`:
@@ -1344,6 +1346,12 @@ class Field(NDArrayOperatorsMixin):
                 return 1.0
 
         if preserve_integral:
+            if len(newaxes) != self.dimensions:
+                raise ValueError('Preserving the integral through preserve_integral=True is only'
+                                 'possible for transforms that have the same number of input and'
+                                 'output dimensions.'
+                                 'Please pass preserve_integral=False explicitly to allow such'
+                                 'transforms.')
             if jacobian_determinant_func is None:
                 if jacobian_func is None:
                     jacobian_func = helper.approx_jacobian(transform)
@@ -1454,6 +1462,14 @@ class Field(NDArrayOperatorsMixin):
                 \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
                 \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta}
                 \tilde{U}(r,\theta)\,.
+
+            In a 1D to 1D transform, please make sure that the transform function returns the
+            coordinates in a 1-element list, e.g.
+
+            >>> def T(r):
+            >>>    x = 2*r**2
+            >>>    return [x]
+
         '''
         return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
                                      preserve_integral=preserve_integral,
