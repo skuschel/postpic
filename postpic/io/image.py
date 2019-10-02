@@ -20,6 +20,8 @@
 The postpic.io subpackage provides free functions for importing and exporting data.
 '''
 
+import warnings
+
 import os.path as osp
 
 import numpy as np
@@ -33,7 +35,7 @@ def _import_field_image(filename, hotpixelremove=False):
     if filename.lower().endswith('png'):
         data = _readpng(filename)
     else:
-        data = _read_image_pil(filename)
+        data = _read_image(filename).astype(np.float64)
 
     if hotpixelremove:
         import scipy.ndimage
@@ -70,40 +72,57 @@ def _readpng(filename):
     Args:
         filename (str): Path and filename to the file to open
 
-    kwargs:
-        hotpixelremove (bool): Removes hotpixels if True. (Default: True)
-
     Returns:
         numpy.array: the png data as numpy array converted to float64
 
-    Author: Stephan Kuschel, 2015-2016
+    Author: Stephan Kuschel, 2015-2016, Alexander Blinne 2019
     '''
-    import png  # pypng
-    import scipy.misc as sm
-    import numpy as np
+    have_pypng = False
+    data = _read_image(filename)
+    try:
+        import png  # pypng
+        have_pypng = True
+    except ImportError:
+        pass
+
+    if not have_pypng:
+        warnings.warn('Can not import `PyPNG`. Png file can be imported, however it is not '
+                      'guaranteed, that the count values will be correct for non 8 or 16 bit '
+                      'images.')
+        return data.astype(np.float64)
+
     meta = png.Reader(filename)
     meta.preamble()
-    ret = sm.imread(filename)
     if meta.sbit is not None:
         significant_bits = ord(meta.sbit)
-        ret >>= 16 - significant_bits
+        data >>= 16 - significant_bits
     # else: 8 bit image, no need to modify data
-    return np.float64(ret)
+    return data.astype(np.float64)
 
 
-def _read_image_pil(filename):
+def _read_image(filename):
     '''
-    reads an image file using PIL.Image.open.
+    reads an image file using imageio.imread or PIL.Image.open.
 
     Args:
         filename (str): Path and filename to the file to open
 
     Returns:
-        numpy.array: the image data as numpy array converted to float64
+        numpy.array: the image data as numpy array
 
-    Author: Stephan Kuschel, 2015-2016
+    Author: Stephan Kuschel, 2015-2016, Alexander Blinne 2019
     '''
+    data = None
+    try:
+        import imageio
+        data = imageio.imread(filename)
+    except ImportError:
+        pass
+
+    if data is not None:
+        return data
+
     from PIL import Image
     im = Image.open(filename)
-    data = np.array(im, dtype=np.float64)
+    data = np.array(im)
     return data
