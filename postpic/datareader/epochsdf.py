@@ -167,7 +167,10 @@ class Sdfreader(Dumpreader_ifc):
         m = self['Grid/Grid']
         extents = m.extents
         dims = len(m.dims)
-        axid = helper.axesidentify[axis]
+        axid = helper.axesidentify.get(axis)
+        if axid is None or axid + dims >= len(extents):
+            s = 'Axis "{}" is not an axis of the simulation box. Extents are: "{}".'
+            raise KeyError(s.format(axis, extents))
         return np.array([extents[axid], extents[axid + dims]])
 
     def simgridpoints(self, axis):
