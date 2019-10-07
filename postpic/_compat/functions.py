@@ -27,6 +27,11 @@ import scipy as sp
 import scipy.signal as sps
 import collections
 
+try:
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Iterable
+
 
 def np_meshgrid(*args, **kwargs):
     if len(args) == 0:
@@ -50,9 +55,9 @@ def np_moveaxis(*args, **kwargs):
     a, source, destination = args
 
     # twice a quick implementation of numpy.numeric.normalize_axis_tuple
-    if not isinstance(source, collections.Iterable):
+    if not isinstance(source, Iterable):
         source = (source,)
-    if not isinstance(destination, collections.Iterable):
+    if not isinstance(destination, Iterable):
         destination = (destination,)
     source = [s % a.ndim for s in source]
     destination = [d % a.ndim for d in destination]

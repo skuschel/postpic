@@ -172,6 +172,71 @@ class TestHelper(unittest.TestCase):
         self.assertAllClose(f2, f3, atol=0.003)
         self.assertAllClose(f3, f4)
 
+    def test_approx_jacobian_1d(self):
+        def fun(x):
+            return [x**2]
+
+        def fun_jac(x):
+            return [2*x]
+
+        def fun_jd(x):
+            [da_dx] = fun_jac(x)
+            return abs(da_dx)
+
+        x = np.linspace(0.5, 2, 128)
+
+        fd = fun_jac(x)
+        fun_jac_approx = pp.helper.approx_jacobian(fun)
+        fda = fun_jac_approx(x)
+
+        self.assertAllClose(fd, fda,
+                            atol=0.02)
+
+        jd = fun_jd(x)
+        jd_approx = pp.helper.jac_det(fun_jac)(x)
+        jd_approx2 = pp.helper.jac_det(fun_jac_approx)(x)
+
+        self.assertAllClose(jd, jd_approx)
+        self.assertAllClose(jd, jd_approx2, rtol=0.02)
+
+
+    def test_approx_jacobian_2d(self):
+        def fun(x, y):
+            a = x**2
+            b = y**2 + x*y
+            return a, b
+
+        def fun_jac(x, y):
+            da_dx = 2*x
+            da_dy = 0
+            db_dx = y
+            db_dy = 2*y + x
+            return [[da_dx, da_dy], [db_dx, db_dy]]
+
+        def fun_jd(x, y):
+            [[da_dx, da_dy], [db_dx, db_dy]] = fun_jac(x, y)
+            return abs(da_dx * db_dy - da_dy * db_dx)
+
+        x = np.linspace(0.5, 2, 128)[:, np.newaxis]
+        y = np.linspace(2, 4, 128)[np.newaxis, :]
+
+        jac = fun_jac(x, y)
+        fun_jac_approx = pp.helper.approx_jacobian(fun)
+        jac_approx = fun_jac_approx(x, y)
+
+        for i in (0,1):
+            for j in (0,1):
+                self.assertAllClose(*np.broadcast_arrays(jac[i][j],
+                                                         jac_approx[i][j]),
+                                    atol=0.02)
+
+        jd = fun_jd(x, y)
+        jd_approx = pp.helper.jac_det(fun_jac)(x, y)
+        jd_approx2 = pp.helper.jac_det(fun_jac_approx)(x, y)
+
+        self.assertAllClose(jd, jd_approx)
+        self.assertAllClose(jd, jd_approx2, rtol=0.03)
+
 
 if __name__ == '__main__':
     unittest.main()

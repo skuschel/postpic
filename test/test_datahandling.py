@@ -102,6 +102,16 @@ class TestAxis(unittest.TestCase):
         with self.assertRaises(TypeError):
             dh.Axis(extent=(0,1), n=99, unknownarg=0)
 
+    def test_grid_spacing(self):
+        ax = dh.Axis(grid=[1])  # ok
+        with self.assertRaises(ValueError):
+            ax = dh.Axis(grid=[1,1])
+
+    def test_grid_node_spacing(self):
+        ax = dh.Axis(grid_node=[1])  # ok
+        with self.assertRaises(ValueError):
+            ax = dh.Axis(grid_node=[1,1])
+
     def test_reversed(self, n=100):
         ax = dh.Axis(extent=[-1,1], n=n)
         axri = dh.Axis(extent=[1,-1], n=n)
@@ -261,11 +271,14 @@ class TestField(unittest.TestCase):
         f1d_slice = self.f1d[0.15:0.75]
         self.assertTrue(np.all(f1d_slice.grid >= 0.15))
         self.assertTrue(np.all(f1d_slice.grid <= 0.75))
-        self.assertEqual(self.f1d[5].shape, (1,))
+        self.assertEqual(self.f1d[dh.KeepDim(5)].shape, (1,))
+        self.assertEqual(self.f1d[dh.KeepDim(slice(5,6))].shape, (1,))
+        self.assertEqual(self.f1d[5].shape, ())
 
         self.assertEqual(self.f2d[0.5:, :].shape, (2, 5))
 
-        self.assertEqual(self.f3d[0.5:, :, 0.5].shape, (2, 5, 1))
+        self.assertEqual(self.f3d[0.5:, :, dh.KeepDim(0.5)].shape, (2, 5, 1))
+        self.assertEqual(self.f3d[0.5:, :, 0.5].shape, (2, 5))
 
     def test_cutout(self):
         f1d_cutout = self.f1d.cutout((0.15, 0.75))
@@ -670,7 +683,7 @@ class TestField(unittest.TestCase):
 
     def test_operators_broadcasting(self):
         a = self.f2d
-        b = self.f2d[0.5, :]
+        b = self.f2d[dh.KeepDim(0.5), :]
 
         self.assertEqual(a.shape, (4,5))
         self.assertEqual(b.shape, (1,5))

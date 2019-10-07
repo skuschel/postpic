@@ -46,7 +46,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import sys
 
-import collections
+try:
+    from collections.abc import Iterable, Mapping
+except ImportError:
+    from collections import Iterable, Mapping
+
 import copy
 import warnings
 import os
@@ -116,7 +120,12 @@ except ImportError:
     unwrap_phase = None
 
 
-__all__ = ['Field', 'Axis']
+__all__ = ['KeepDim', 'Field', 'Axis']
+
+
+class KeepDim(object):
+    def __init__(self, value):
+        self.value = value
 
 
 class Axis(object):
@@ -146,6 +155,9 @@ class Axis(object):
             if self._grid_node.ndim != 1:
                 raise ValueError("Passed array grid_node has ndim != 1.")
             if helper.monotonicity(self._grid_node) == 0:
+                if np.isclose(self._grid_node[0], self._grid_node[-1], atol=0):
+                    s = 'Grid_node spacing is zero on axis "{}" at value {}.'
+                    raise ValueError(s.format(self.name, self._grid_node[0]))
                 raise ValueError("Passed array grid_node is not monotonous.")
 
         self._grid = kwargs.pop('grid', None)
@@ -155,12 +167,15 @@ class Axis(object):
             if self._grid.ndim != 1:
                 raise ValueError("Passed array grid has ndim != 1.")
             if helper.monotonicity(self._grid) == 0:
+                if np.isclose(self._grid[0], self._grid[-1], atol=0):
+                    s = 'Grid spacing is zero on axis "{}" at value {}.'
+                    raise ValueError(s.format(self.name, self._grid[0]))
                 raise ValueError("Passed array grid is not monotonous.")
 
         self._extent = kwargs.pop('extent', None)
 
         if self._extent is not None:
-            if not isinstance(self._extent, collections.Iterable) or len(self._extent) != 2:
+            if not isinstance(self._extent, Iterable) or len(self._extent) != 2:
                 raise ValueError("Passed extent is not an iterable of length 2")
 
         self._n = kwargs.pop('n', None)
@@ -413,22 +428,32 @@ class Axis(object):
         Applies some checks and transformations to the object passed
         to __getitem__
         """
+        if isinstance(index, KeepDim):
+            index = index.value
+            keepdim = True
+        else:
+            keepdim = False
+
         if isinstance(index, slice):
             if any(helper.is_non_integer_real_number(x) for x in (index.start, index.stop)):
                 if index.step is not None:
                     raise IndexError('Non-Integer slices must have step == None')
                 return self._extent_to_slice((index.start, index.stop))
             return index
-        else:
-            if helper.is_non_integer_real_number(index):
-                # Indexing to a single position outside the extent
-                # will yield IndexError. Identical behaviour as numpy.ndarray
-                if not self._inside_domain(index):
-                    msg = 'Physical index position {} is outside of the ' \
-                          'extent {} of axis {}'.format(index, self.extent, str(self))
-                    raise IndexError(msg)
-                index = self._find_nearest_index(index)
+
+        if helper.is_non_integer_real_number(index):
+            # Indexing to a single position outside the extent
+            # will yield IndexError. Identical behaviour as numpy.ndarray
+            if not self._inside_domain(index):
+                msg = 'Physical index position {} is outside of the ' \
+                      'extent {} of axis {}'.format(index, self.extent, str(self))
+                raise IndexError(msg)
+            index = self._find_nearest_index(index)
+
+        if keepdim:
             return slice(index, index+1)
+        else:
+            return index
 
     def reversed(self):
         '''
@@ -443,6 +468,10 @@ class Axis(object):
         a slice containing floats or integers or a float or an integer
         """
         sl = self._normalize_slice(key)
+
+        if not isinstance(sl, slice):
+            return self.grid[sl]
+
         if not (sl.step is None or np.abs(sl.step) == 1):
             raise ValueError("slice.step must be 1, -1 or None (but is {})".format(sl.step))
         grid = self.grid[sl]
@@ -476,7 +505,7 @@ def _reducing_numpy_method(method):
         axisiter = axis
         if axisiter is None:
             axisiter = tuple(range(self.dimensions))
-        if not isinstance(axisiter, collections.Iterable):
+        if not isinstance(axisiter, Iterable):
             axisiter = (axis,)
 
         # no `out` argument supplied, we need to figure out the axes of the result
@@ -795,7 +824,7 @@ class Field(NDArrayOperatorsMixin):
                 ats = self.axes_transform_state[:]
                 tao = self.transformed_axes_origins[:]
                 reduceaxis = kwargs.get('axis', 0)
-                if not isinstance(reduceaxis, collections.Iterable):
+                if not isinstance(reduceaxis, Iterable):
                     reduceaxis = (reduceaxis,)
                 for axis in reversed(sorted(set(reduceaxis))):
                     del axes[axis]
@@ -1107,7 +1136,7 @@ class Field(NDArrayOperatorsMixin):
                              'Please apply np.pad to the matrix by yourself and update the axes'
                              'as you like.')
 
-        if not isinstance(pad_width, collections.Iterable):
+        if not isinstance(pad_width, Iterable):
             pad_width = [pad_width]
 
         if len(pad_width) == 1:
@@ -1122,7 +1151,7 @@ class Field(NDArrayOperatorsMixin):
         padded_axes = []
 
         for i, axis_pad in enumerate(pad_width):
-            if not isinstance(axis_pad, collections.Iterable):
+            if not isinstance(axis_pad, Iterable):
                 axis_pad = [axis_pad, axis_pad]
 
             if len(axis_pad) > 2:
@@ -1184,7 +1213,7 @@ class Field(NDArrayOperatorsMixin):
         # Averaging over neighboring points
         s1[axis] = slice(0, lastpt, 2)
         s2[axis] = slice(1, lastpt, 2)
-        m = (ret.matrix[s1] + ret.matrix[s2]) / 2.0
+        m = (ret.matrix[tuple(s1)] + ret.matrix[tuple(s2)]) / 2.0
         ret._matrix = m
         ret.setaxisobj(axis, ret.axes[axis].half_resolution())
 
@@ -1291,6 +1320,8 @@ class Field(NDArrayOperatorsMixin):
         jacobian_func: callable
             a callable that returns the jacobian of the transform. If this is
             not given, the jacobian is numerically approximated.
+            In a 1D to 1D transform this callable should return just the derivative of the
+            transform wrapped in a 1-element iterable.
 
         **kwargs:
             Keyword arguments captured by `helper.map_coordinates_parallel`:
@@ -1316,6 +1347,12 @@ class Field(NDArrayOperatorsMixin):
                 return 1.0
 
         if preserve_integral:
+            if len(newaxes) != self.dimensions:
+                raise ValueError('Preserving the integral through preserve_integral=True is only'
+                                 'possible for transforms that have the same number of input and'
+                                 'output dimensions.'
+                                 'Please pass preserve_integral=False explicitly to allow such'
+                                 'transforms.')
             if jacobian_determinant_func is None:
                 if jacobian_func is None:
                     jacobian_func = helper.approx_jacobian(transform)
@@ -1426,6 +1463,14 @@ class Field(NDArrayOperatorsMixin):
                 \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
                 \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta}
                 \tilde{U}(r,\theta)\,.
+
+            In a 1D to 1D transform, please make sure that the transform function returns the
+            coordinates in a 1-element list, e.g.
+
+            >>> def T(r):
+            >>>    x = 2*r**2
+            >>>    return [x]
+
         '''
         return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
                                      preserve_integral=preserve_integral,
@@ -1478,7 +1523,7 @@ class Field(NDArrayOperatorsMixin):
         if axes is None:
             axes = range(field.dimensions)
 
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes, )
 
         if len(axes) != len(set(axes)):
@@ -1533,23 +1578,32 @@ class Field(NDArrayOperatorsMixin):
 
         return field.replace_data(ne.evaluate(expr, local_dict=local_dict, global_dict=None))
 
-    def squeeze(self):
+    def squeeze(self, axis=None):
         '''
         removes axes that have length 1, reducing self.dimensions.
 
         Note, that axis with length 0 will not be removed! `numpy.squeeze` also does not
         remove length=0 directions.
 
+        axis: None or int or tuple of ints, optional
+          Selects a subset of the single-dimensional entries in the shape. If an axis is selected
+          with shape entry greater than one, an error is raised.
+
         Same as `numpy.squeeze`.
         '''
-        ret = copy.copy(self)
-        retained_axes = [i for i in range(len(self.shape)) if len(self.axes[i]) != 1]
+        squeezed_axes = [i for i in range(len(self.shape)) if len(self.axes[i]) == 1]
+        if axis is not None:
+            if not isinstance(axis, iterable):
+                axis = (axis,)
+            for i in axis:
+                squeezed_axes.remove(i)
 
-        ret.axes = [self.axes[i] for i in retained_axes]
-        ret.axes_transform_state = [self.axes_transform_state[i] for i in retained_axes]
-        ret.transformed_axes_origins = [self.transformed_axes_origins[i] for i in retained_axes]
+        sl = [slice(None)] * len(self.shape)
+        for i in squeezed_axes:
+            sl[i] = 0
 
-        ret._matrix = np.squeeze(ret.matrix)
+        ret = self[sl]
+
         assert tuple(len(ax) for ax in ret.axes) == ret.shape
         return ret
 
@@ -1773,7 +1827,7 @@ class Field(NDArrayOperatorsMixin):
         if axes is None:
             axes = range(self.dimensions)
 
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         if method == 'constant':
@@ -1816,7 +1870,7 @@ class Field(NDArrayOperatorsMixin):
         index2 = [slice(None) for _ in range(self.dimensions)]
         index2[axis] = slice(0, -1)
 
-        deriv = (self.matrix[index1] - self.matrix[index2])/oldax.spacing
+        deriv = (self.matrix[tuple(index1)] - self.matrix[tuple(index2)])/oldax.spacing
 
         return Field(deriv, name=self.name + "'", unit=self.unit, axes=axes)
 
@@ -1880,7 +1934,7 @@ class Field(NDArrayOperatorsMixin):
         if axes is None:
             axes = range(self.dimensions)
 
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         pad = [0] * self.dimensions
@@ -1903,7 +1957,7 @@ class Field(NDArrayOperatorsMixin):
             axes = range(self.dimensions)
 
         # If axes is not a tuple, make it a one-tuple
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         dx = {i: self.axes[i].spacing for i in axes}
@@ -1949,7 +2003,7 @@ class Field(NDArrayOperatorsMixin):
             axes = range(self.dimensions)
 
         # If axes is not a tuple, make it a one-tuple
-        if not isinstance(axes, collections.Iterable):
+        if not isinstance(axes, Iterable):
             axes = (axes,)
 
         if exponential_signs not in ['spatial', 'temporal']:
@@ -2077,8 +2131,8 @@ class Field(NDArrayOperatorsMixin):
         It may be a list of the desired transform states for all the axes or a dictionary
         indicating the desired transform states of specific axes.
         """
-        if not isinstance(transform_states, collections.Mapping):
-            if not isinstance(transform_states, collections.Iterable):
+        if not isinstance(transform_states, Mapping):
+            if not isinstance(transform_states, Iterable):
                 transform_states = [transform_states] * self.dimensions
             transform_states = dict(enumerate(transform_states))
 
@@ -2119,15 +2173,18 @@ class Field(NDArrayOperatorsMixin):
 
         return ret
 
-    def _shift_grid_by_fourier(self, dx):
+    def _shift_grid_by_fourier(self, dx, skip_fft=False):
         axes = sorted(dx.keys())
 
         # transform to conjugate space, shift grid origin, transform back
         # all necessary phases are added by `fft()` method
-        ret = self.fft(axes)
+        ret = self
+        if not skip_fft:
+            ret = ret.fft(axes)
         for i in dx.keys():
             ret.transformed_axes_origins[i] += dx[i]
-        ret = ret.fft(axes)
+        if not skip_fft:
+            ret = ret.fft(axes)
 
         return ret
 
@@ -2170,7 +2227,7 @@ class Field(NDArrayOperatorsMixin):
         if interpolation not in methods.keys():
             raise ValueError("Requested method {} is not supported".format(interpolation))
 
-        if not isinstance(dx, collections.Mapping):
+        if not isinstance(dx, Mapping):
             dx = dict(enumerate(dx))
 
         dx = {helper.axesidentify[i]: v for i, v in dx.items()}
@@ -2277,32 +2334,39 @@ class Field(NDArrayOperatorsMixin):
         return [ax._extent_to_slice(ex) for ax, ex in zip(self.axes, extent)]
 
     def _normalize_slices(self, key):
-        if not isinstance(key, collections.Iterable):
+        if not isinstance(key, Iterable):
             key = (key,)
         if len(key) != self.dimensions:
             raise IndexError("{}D Field requires a {}-tuple of slices as index"
                              "".format(self.dimensions, self.dimensions))
 
-        return [ax._normalize_slice(sl) for ax, sl in zip(self.axes, key)]
+        return tuple(ax._normalize_slice(sl) for ax, sl in zip(self.axes, key))
 
     # Operator overloading
     def __getitem__(self, key):
         old_shape = self.shape
 
-        key = self._normalize_slices(key)
-        field = copy.copy(self)
-        field._matrix = field.matrix[key]
-        for i, sl in enumerate(key):
-            field.setaxisobj(i, field.axes[i][sl])
+        slices = self._normalize_slices(key)
 
-        new_shape = field.shape
+        retained_axes = list(range(len(self.shape)))
+        new_axes = []
+        for i, sl in enumerate(slices):
+            ax = self.axes[i][sl]
+            if isinstance(ax, Axis):
+                new_axes.append(ax)
+            else:
+                retained_axes.remove(i)
 
-        # This info is invalidated
-        for i, (o, n) in enumerate(zip(old_shape, new_shape)):
-            if o != n:
-                field.transformed_axes_origins[i] = None
+        ret = copy.copy(self)
+        ret._matrix = ret.matrix[slices]
 
-        return field
+        ret.axes = [ret.axes[i] for i in retained_axes]
+        for i, ax in enumerate(new_axes):
+            ret.setaxisobj(i, ax)
+        ret.axes_transform_state = [ret.axes_transform_state[i] for i in retained_axes]
+        ret.transformed_axes_origins = [ret.transformed_axes_origins[i] for i in retained_axes]
+
+        return ret
 
     def __setitem__(self, key, other):
         key = self._normalize_slices(key)
