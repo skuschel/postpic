@@ -78,6 +78,8 @@ _filterwarnings()
 axesidentify = {'X': 0, 'x': 0, 0: 0,
                 'Y': 1, 'y': 1, 1: 1,
                 'Z': 2, 'z': 2, 2: 2,
+                'R': 90, 'r': 90, 90: 90,
+                'theta': 91, 't': 91, 91: 91,
                 None: slice(None)}
 attribidentify = axesidentify.copy()
 attribidentify.update({'PX': 3, 'Px': 3, 'px': 3, 3: 3,

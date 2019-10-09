@@ -946,6 +946,7 @@ class Field(NDArrayOperatorsMixin):
         new axisobj axisobj.
         '''
         axid = helper.axesidentify[axis]
+        axid = axid % 90
         if not len(axisobj) == self.shape[axid]:
             raise ValueError('Axis object has {:3n} grid points, whereas '
                              'the data matrix has {:3n} on axis {:1n}'
