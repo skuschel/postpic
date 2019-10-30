@@ -200,19 +200,20 @@ class FbpicReader(OpenPMDreader):
         super(FbpicReader, self).__init__(simidentifier, **kwargs)
 
     @staticmethod
-    def modeexpansion(rawdata, theta=None):
+    def modeexpansion(rawdata, theta=None, Ntheta=None):
         '''
         rawdata has to be shaped (Nm, Nr, Nz).
 
         Returns an array of shape (Nr, Ntheta, Nz), with
-        `Ntheta = (Nm+1)//2`
+        `Ntheta = (Nm+1)//2`. If Ntheta is given only larger
+        values are permitted.
 
         The corresponding values for theta are given by
         `np.linspace(0, 2*np.pi, Ntheta, endpoint=False)`
         '''
         Nm, Nr, Nz = rawdata.shape
-        if theta is None:
-            return FbpicReader.modeexpansion_fft(rawdata)
+        if Ntheta is not None:
+            return FbpicReader.modeexpansion_fft(rawdata, Ntheta=Ntheta)
         else:
             return FbpicReader._modeexpansion_naiv(rawdata, theta=theta)
 
@@ -256,19 +257,21 @@ class FbpicReader(OpenPMDreader):
         return data
 
     @staticmethod
-    def _modeexpansion_fft(rawdata):
+    def _modeexpansion_fft(rawdata, Ntheta=None):
         '''
         calculate the radialdata using an fft. This is by far the fastest
         way to do the modeexpansion.
         '''
         Nm, Nr, Nz = rawdata.shape
-        Ntheta = (Nm+1)//2
+        Nth = (Nm+1)//2
+        if Ntheta is None or Ntheta < Nth:
+            Ntheta = Nth
         fd = np.empty((Ntheta, Nr, Nz), dtype=np.complex128)
 
         fd[:, 0, :].real = rawdata[0, :, :]
         rawdatasw = np.swapaxes(rawdata, 0, 1)
-        fd[:, 1:, :].real = rawdatasw[:, 1::2, :]
-        fd[:, 1:, :].imag = rawdatasw[:, 2::2, :]
+        fd[:, 1:Nth, :].real = rawdatasw[:, 1::2, :]
+        fd[:, 1:Nth, :].imag = rawdatasw[:, 2::2, :]
 
         fd = fft.fft(fd, axis=1).real
         return fd
@@ -309,19 +312,19 @@ class FbpicReader(OpenPMDreader):
         return ('r', 'theta', 'z')
 
     # override from OpenPMDreader
-    def data(self, key, theta=None):
+    def data(self, key, **kwargs):
         raw = super(FbpicReader, self).data(key)  # SI conversion
         if key.startswith('particles'):
             return raw
         # for fields expand the modes into a spatial grid first:
-        data = self.modeexpansion(raw, theta=theta)  # modeexpansion
+        data = self.modeexpansion(raw, **kwargs)  # modeexpansion
         return data
 
-    def dataE(self, component, theta=None, **kwargs):
-        return self.data(self._keyE(component, **kwargs), theta=theta)
+    def dataE(self, component, theta=None, Ntheta=None, **kwargs):
+        return self.data(self._keyE(component, **kwargs), theta=theta, Ntheta=Ntheta)
 
     def dataB(self, component, theta=None, **kwargs):
-        return self.data(self._keyB(component, **kwargs), theta=theta)
+        return self.data(self._keyB(component, **kwargs), theta=theta, Ntheta=Ntheta)
 
     # override
     def __str__(self):
