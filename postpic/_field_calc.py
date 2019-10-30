@@ -169,8 +169,8 @@ class FieldAnalyzer(object):
         return ret
 
     def Etheta(self, **kwargs):
-        ret = self._createfieldfromdata(self._Ez(**kwargs),
-                                        self.gridkeyE('Etheta', **kwargs), **kwargs)
+        ret = self._createfieldfromdata(self._Etheta(**kwargs),
+                                        self.gridkeyE('theta', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Etheta'
         ret.shortname = 'Etheta'
@@ -210,7 +210,7 @@ class FieldAnalyzer(object):
 
     def Btheta(self, **kwargs):
         ret = self._createfieldfromdata(self._Btheta(**kwargs),
-                                        self.gridkeyB('Btheta', **kwargs), **kwargs)
+                                        self.gridkeyB('theta', **kwargs), **kwargs)
         ret.unit = 'V/m'
         ret.name = 'Btheta'
         ret.shortname = 'Btheta'
