@@ -265,12 +265,12 @@ class FbpicReader(OpenPMDreader):
         Ntheta = (Nm+1)//2
         fd = np.empty((Ntheta, Nr, Nz), dtype=np.complex128)
 
-        # numpy copy:
-        fd[0, :, :].real = rawdata[0, :, :]
-        fd[1:, :, :].real = rawdata[1::2, :, :]
-        fd[1:, :, :].imag = rawdata[2::2, :, :]
+        fd[:, 0, :].real = rawdata[0, :, :]
+        rawdatasw = np.swapaxes(rawdata, 0, 1)
+        fd[:, 1:, :].real = rawdatasw[:, 1::2, :]
+        fd[:, 1:, :].imag = rawdatasw[:, 2::2, :]
 
-        fd = fft.fft(np.swapaxes(fd, 0, 1), axis=1).real
+        fd = fft.fft(fd, axis=1).real
         return fd
 
     # override inherited method to count points after mode expansion
