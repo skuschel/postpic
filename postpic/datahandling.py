@@ -66,6 +66,7 @@ import numexpr as ne
 from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
 from . import helper
 from . import io
+from .helper_fft import fft
 
 if sys.version[0] == '2':
     import functools32 as functools
@@ -76,38 +77,6 @@ if sys.version[0] == '2':
     from itertools import izip_longest as zip_longest
 else:
     from itertools import zip_longest
-
-
-try:
-    import psutil
-    nproc = psutil.cpu_count(logical=False)
-except ImportError:
-    try:
-        nproc = os.cpu_count()
-    except AttributeError:
-        import multiprocessing
-        nproc = multiprocessing.cpu_count()
-
-
-try:
-    # pyfftw is, in most situations, faster than numpys fft,
-    # although pyfftw will benefit from multithreading only on very large arrays
-    # on a 720x240x240 3D transform multithreading still doesn't give a large benefit
-    # benchmarks of a 720x240x240 transform of real data on a Intel(R) Xeon(R) CPU
-    # E5-1620 v4 @ 3.50GHz:
-    # numpy.fft: 3.6 seconds
-    # pyfftw, nproc=4: first transform 2.2s, further transforms 1.8s
-    # pyfftw, nproc=1: first transform 3.4s, further transforms 2.8s
-    # Try to import pyFFTW's numpy_fft interface
-    import pyfftw.interfaces.cache as fftw_cache
-    import pyfftw.interfaces.numpy_fft as fftw
-    fftw_cache.enable()
-    fft = fftw
-    fft_kwargs = dict(planner_effort='FFTW_ESTIMATE', threads=nproc)
-except ImportError:
-    # pyFFTW is not available, just import numpys fft
-    import numpy.fft as fft
-    fft_kwargs = dict()
 
 
 try:
@@ -2054,12 +2023,7 @@ class Field(NDArrayOperatorsMixin):
         # normalization factor ensuring Parseval's Theorem
         fftnorm = np.sqrt(V/Vk)
 
-        # compile fft arguments, starting from default arguments `fft_kwargs` ...
-        my_fft_args = fft_kwargs.copy()
-        # ... and adding the user supplied `kwargs`
-        my_fft_args.update(kwargs)
-        # ... and also norm = 'ortho'
-        my_fft_args['norm'] = 'ortho'
+        my_fft_args = dict(norm='ortho')
 
         # Workaround for missing `fft` argument `norm='ortho'`
         from pkg_resources import parse_version
