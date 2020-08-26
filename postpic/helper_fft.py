@@ -72,6 +72,7 @@ class _fft:
     @classmethod
     def _get_defaultkwargf(cls, name):
         wrapped = getattr(cls.fft_module, name)
+
         @functools.wraps(wrapped)
         def ret(*args, **kwargs):
             kws = cls.fft_kwargs.copy()
