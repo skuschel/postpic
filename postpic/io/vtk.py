@@ -224,7 +224,7 @@ class ArrayData(object):
         self.name = str(self.name).replace(' ', '_')
 
     def transform_data(self, dtype):
-        data = np.vstack((np.ravel(f, order='F') for f in self.fields))
+        data = np.vstack(tuple(np.ravel(f, order='F') for f in self.fields))
         data = data.ravel(order='F').astype(dtype)
         return data
 

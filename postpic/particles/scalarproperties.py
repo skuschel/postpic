@@ -19,7 +19,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import warnings
-import collections
+
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
+
 import numexpr as ne
 
 __all__ = ['ScalarProperty']
@@ -96,7 +101,7 @@ class ScalarProperty(object):
         return formatstring.format(**dict(self))
 
 
-class ScalarPropertyContext(collections.Mapping):
+class ScalarPropertyContext(Mapping):
 
     def __init__(self):
         '''
@@ -176,14 +181,18 @@ _defaultscalars = [
     ScalarProperty('pz', 'pz', 'kg*m/s'),
     ScalarProperty('sqrt(px**2 + py**2 + pz**2)', 'p', 'kg*m/s'),
     ScalarProperty('(px**2 + py**2 + pz**2)/(mass * c)**2', '_np2', ''),
-    ScalarProperty('_np2 / (sqrt(1 + _np2) + 1)', 'gamma_m1', ''),
+    ScalarProperty('_np2 / (sqrt(1 + _np2) + 1)', 'gamma_m1', ''),  # gamma - 1
     ScalarProperty('_np2 / (sqrt(1 + _np2) + 1) + 1', 'gamma', ''),
-    ScalarProperty('gamma * mass', 'gamma_m', 'kg'),
+    ScalarProperty('gamma * mass', 'gamma_m', 'kg'),  # gamma * mass
     ScalarProperty('beta * c', 'v', 'm/s'),
     ScalarProperty('px / (gamma * mass)', 'vx', 'm/s'),
     ScalarProperty('py / (gamma * mass)', 'vy', 'm/s'),
     ScalarProperty('pz / (gamma * mass)', 'vz', 'm/s'),
-    ScalarProperty('sqrt(gamma**2 - 1) / gamma', 'beta', ''),
+    # beta = sqrt(gamma**2 - 1) / gamma
+    #      = sqrt(gamma_m1**2 + 2 * gamma_m1) / gamma
+    #      = sqrt(gamma_m1**2 + 2 * gamma_m1) / (gamma_m1 + 1)
+    # numerically more stable and gamma_m1 has to be calculated just once.
+    ScalarProperty('sqrt(gamma_m1**2 + 2 * gamma_m1) / (gamma_m1 + 1)', 'beta', ''),
     ScalarProperty('vx / c', 'betax', ''),
     ScalarProperty('vy / c', 'betay', ''),
     ScalarProperty('vz / c', 'betaz', ''),

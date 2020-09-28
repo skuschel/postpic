@@ -63,7 +63,8 @@ def run_alltests(python='python', fast=False, skip_setup=False):
     cmdrpl = dict(python=python)
     # make sure .pyx sources are up to date and compiled
     if not skip_setup:
-        runcmd('{python} setup.py develop --user'.format(**cmdrpl))
+        # should be the same as `./setup.py develop --user`
+        runcmd('{python} -m pip install --user -e .'.format(**cmdrpl))
 
     # find pep8 or pycodestyle (its successor)
     try:
@@ -87,7 +88,8 @@ def run_alltests(python='python', fast=False, skip_setup=False):
             '{python} ' + os.path.join('examples', 'simpleexample.py'),
             '{python} ' + os.path.join('examples', 'particleshapedemo.py'),
             '{python} ' + os.path.join('examples', 'time_cythonfunctions.py'),
-            '{python} ' + os.path.join('examples', 'openPMD.py')]
+            '{python} ' + os.path.join('examples', 'openPMD.py'),
+            '{python} ' + os.path.join('examples', 'kspace-test-2d.py')]
     if not fast:
         cmds += cmdo
     for cmd in cmds:
