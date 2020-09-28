@@ -211,9 +211,10 @@ class FbpicReader(OpenPMDreader):
         The corresponding values for theta are given by
         `np.linspace(0, 2*np.pi, Ntheta, endpoint=False)`
         '''
+        rawdata = np.asarray(rawdata)
         Nm, Nr, Nz = rawdata.shape
-        if Ntheta is not None:
-            return FbpicReader.modeexpansion_fft(rawdata, Ntheta=Ntheta)
+        if Ntheta is not None or theta is None:
+            return FbpicReader._modeexpansion_fft(rawdata, Ntheta=Ntheta)
         else:
             return FbpicReader._modeexpansion_naiv(rawdata, theta=theta)
 
@@ -251,7 +252,8 @@ class FbpicReader(OpenPMDreader):
             # single theta
             theta = [theta]
         # multiple theta
-        data = np.asarray([FbpicReader._modeexpansion_np(rawdata, theta=t) for t in theta])
+        data = np.asarray([FbpicReader._modeexpansion_naiv_single(rawdata, theta=t)
+                           for t in theta])
         # switch from (theta, r, z) to (r, theta, z)
         data = data.swapaxes(0, 1)
         return data
@@ -266,7 +268,7 @@ class FbpicReader(OpenPMDreader):
         Nth = (Nm+1)//2
         if Ntheta is None or Ntheta < Nth:
             Ntheta = Nth
-        fd = np.empty((Ntheta, Nr, Nz), dtype=np.complex128)
+        fd = np.empty((Nr, Ntheta, Nz), dtype=np.complex128)
 
         fd[:, 0, :].real = rawdata[0, :, :]
         rawdatasw = np.swapaxes(rawdata, 0, 1)
