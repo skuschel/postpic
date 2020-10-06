@@ -32,6 +32,7 @@ from . import Simulationreader_ifc
 import numpy as np
 import re
 from .. import helper
+from ..helper_fft import fft
 
 __all__ = ['OpenPMDreader', 'FileSeries',
            'FbpicReader', 'FbpicFileSeries']
@@ -199,7 +200,26 @@ class FbpicReader(OpenPMDreader):
         super(FbpicReader, self).__init__(simidentifier, **kwargs)
 
     @staticmethod
-    def modeexpansion(rawdata, theta=0):
+    def modeexpansion(rawdata, theta=None, Ntheta=None):
+        '''
+        rawdata has to be shaped (Nm, Nr, Nz).
+
+        Returns an array of shape (Nr, Ntheta, Nz), with
+        `Ntheta = (Nm+1)//2`. If Ntheta is given only larger
+        values are permitted.
+
+        The corresponding values for theta are given by
+        `np.linspace(0, 2*np.pi, Ntheta, endpoint=False)`
+        '''
+        rawdata = np.asarray(rawdata)
+        Nm, Nr, Nz = rawdata.shape
+        if Ntheta is not None or theta is None:
+            return FbpicReader._modeexpansion_fft(rawdata, Ntheta=Ntheta)
+        else:
+            return FbpicReader._modeexpansion_naiv(rawdata, theta=theta)
+
+    @staticmethod
+    def _modeexpansion_naiv_single(rawdata, theta=0):
         '''
         The mode representation will be expanded for a given theta.
         rawdata has to have the shape (Nm, Nr, Nz).
@@ -208,7 +228,7 @@ class FbpicReader(OpenPMDreader):
         rawdata = np.float64(rawdata)
         (Nm, Nr, Nz) = rawdata.shape
         mult_above_axis = [1]
-        for mode in range(1, int(Nm / 2) + 1):
+        for mode in range(1, (Nm+1)//2):
             cos = np.cos(mode * theta)
             sin = np.sin(mode * theta)
             mult_above_axis += [cos, sin]
@@ -223,7 +243,7 @@ class FbpicReader(OpenPMDreader):
         return F_total
 
     @staticmethod
-    def _radialdata(rawdata, theta=0):
+    def _modeexpansion_naiv(rawdata, theta=0):
         '''
         converts to radial data using `modeexpansion`, possibly for multiple
         theta at once.
@@ -232,10 +252,31 @@ class FbpicReader(OpenPMDreader):
             # single theta
             theta = [theta]
         # multiple theta
-        data = np.asarray([FbpicReader.modeexpansion(rawdata, theta=t) for t in theta])
+        data = np.asarray([FbpicReader._modeexpansion_naiv_single(rawdata, theta=t)
+                           for t in theta])
         # switch from (theta, r, z) to (r, theta, z)
         data = data.swapaxes(0, 1)
         return data
+
+    @staticmethod
+    def _modeexpansion_fft(rawdata, Ntheta=None):
+        '''
+        calculate the radialdata using an fft. This is by far the fastest
+        way to do the modeexpansion.
+        '''
+        Nm, Nr, Nz = rawdata.shape
+        Nth = (Nm+1)//2
+        if Ntheta is None or Ntheta < Nth:
+            Ntheta = Nth
+        fd = np.empty((Nr, Ntheta, Nz), dtype=np.complex128)
+
+        fd[:, 0, :].real = rawdata[0, :, :]
+        rawdatasw = np.swapaxes(rawdata, 0, 1)
+        fd[:, 1:Nth, :].real = rawdatasw[:, 1::2, :]
+        fd[:, 1:Nth, :].imag = rawdatasw[:, 2::2, :]
+
+        fd = fft.fft(fd, axis=1).real
+        return fd
 
     # override inherited method to count points after mode expansion
     def gridoffset(self, key, axis):
@@ -265,10 +306,7 @@ class FbpicReader(OpenPMDreader):
         # Ntheta does technically not exists because of the mode
         # representation. To do a proper conversion from the modes to
         # the grid, choose Ntheta based on the number of modes.
-        # Nyquist should be `Ntheta = Nm`, but be generous and
-        # make sure that theta and -theta are
-        # always included: 2, 4, 8, 16, 32, 64,...
-        Ntheta = 2 * 2**np.ceil(np.log2(Nm))
+        Ntheta = (Nm + 1) // 2
         return (Nr, Ntheta, Nz)[axid]
 
     # override
@@ -276,22 +314,19 @@ class FbpicReader(OpenPMDreader):
         return ('r', 'theta', 'z')
 
     # override from OpenPMDreader
-    def data(self, key, theta=None):
+    def data(self, key, **kwargs):
         raw = super(FbpicReader, self).data(key)  # SI conversion
         if key.startswith('particles'):
             return raw
         # for fields expand the modes into a spatial grid first:
-        if theta is None:
-            # guess a proper grid. Number of points defined in `self.gridpoints`
-            theta = self.grid(key, 'theta')
-        data = self._radialdata(raw, theta=theta)  # modeexpansion
+        data = self.modeexpansion(raw, **kwargs)  # modeexpansion
         return data
 
-    def dataE(self, component, theta=None, **kwargs):
-        return self.data(self._keyE(component, **kwargs), theta=theta)
+    def dataE(self, component, theta=None, Ntheta=None, **kwargs):
+        return self.data(self._keyE(component, **kwargs), theta=theta, Ntheta=Ntheta)
 
     def dataB(self, component, theta=None, **kwargs):
-        return self.data(self._keyB(component, **kwargs), theta=theta)
+        return self.data(self._keyB(component, **kwargs), theta=theta, Ntheta=Ntheta)
 
     # override
     def __str__(self):

@@ -76,6 +76,10 @@ class FieldAnalyzer(object):
         e.g. {'theta': [0, pi/2, pi, 3/2*pi]}
         '''
         name = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 'theta'}[helper.axesidentify[axis]]
+        Ntheta = kwargs.pop('Ntheta', None)
+        if Ntheta is not None and name == 'theta':
+            # linear spacing from fft
+            return np.linspace(0, 2*np.pi, Ntheta, endpoint=False)
         grid = kwargs.pop(name, None)
         if grid is not None:
             # override with given grid
