@@ -59,6 +59,10 @@ class _fft:
         import pyfftw.interfaces.numpy_fft as fftw
         fftw_cache.enable()
         fft_module = fftw
+        # workaround for
+        # https://github.com/pyFFTW/pyFFTW/issues/135
+        # also, scaling is bad, so 1 process wont hurt too much
+        nproc = 1
         fft_kwargs = dict(planner_effort='FFTW_ESTIMATE', threads=nproc)
     except ImportError:
         # pyFFTW is not available, just import numpys fft
