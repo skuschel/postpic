@@ -1102,43 +1102,8 @@ def kspace_propagate(kspace, dt, nsteps=1, **kwargs):
     return itertools.islice(gen, nsteps)
 
 
-def time_profile_at_plane_old(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0,
-                              **kwargs):
-    '''
-    OLD VERSION, just for reference.
-
-    'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
-
-    The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.
-
-    `axis` specifies the axis perpendicular to the measurement plane.
-
-    `dir=1` specifies propagation towards positive `axis`, `dir=-1` specifies the opposite
-    direction of propagation.
-
-    `value` specifies the position of the plane along `axis`. If `value=None,` a default is chosen,
-    depending on `dir`.
-
-    If `dir=-1`, the starting point of the axis is used, which lies at the 0-component of the
-    inverse transform.
-
-    If `dir=1`, the end point of the axis + one axis spacing is used, which, via periodic boundary
-    conditions of the fft, also lies at the 0-component of the inverse transform.
-
-    If the given `value` differs from these defaults, an initial propagation with moving window
-    will be performed, such that the desired plane lies in the default position.
-
-    t_input specifies the point in time at which the input field or kspace is given. This is used
-    to specify the time axis of the output fields.
-
-    For example `axis='x'` and `value=0.0` specifies the 'x=0.0' plane while `dir=1` specifies
-    propagation towards positive 'x' values. The 'x' axis starts at 2e-5 and ends at 6e-5 with
-    a grid spacing of 1e-6. The default value for the measurement plane would have been 6.1e-5
-    so an initial backward propagation with dt = -6.1e-5/c is performed to move the pulse in front
-    of the'x=0.0 plane.
-
-    Additional `kwargs` are passed to kspace_propagate if they are not overridden by this function.
-    '''
+def _time_profile_at_plane_iterative(kspace_or_complex_field, axis='x', value=None, dir=1,
+                                     t_input=0.0, **kwargs):
     # can't import this at top of module because this would create a circular import
     # importing here is ok, because helper and datahandling are both already interpreted
     from . import datahandling
@@ -1240,38 +1205,8 @@ def time_profile_at_plane_old(kspace_or_complex_field, axis='x', value=None, dir
         return k_transverse_tprofile
 
 
-def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0):
-    """
-    'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
-
-    The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.
-
-    `axis` specifies the axis perpendicular to the measurement plane.
-
-    `dir=1` specifies propagation towards positive `axis`, `dir=-1` specifies the opposite
-    direction of propagation.
-
-    `value` specifies the position of the plane along `axis`. If `value=None,` a default is chosen,
-    depending on `dir`.
-
-    If `dir=-1`, the starting point of the axis is used, which lies at the 0-component of the
-    inverse transform.
-
-    If `dir=1`, the end point of the axis + one axis spacing is used, which, via periodic boundary
-    conditions of the fft, also lies at the 0-component of the inverse transform.
-
-    If the given `value` differs from these defaults, an initial propagation with moving window
-    will be performed, such that the desired plane lies in the default position.
-
-    t_input specifies the point in time at which the input field or kspace is given. This is used
-    to specify the time axis of the output fields.
-
-    For example `axis='x'` and `value=0.0` specifies the 'x=0.0' plane while `dir=1` specifies
-    propagation towards positive 'x' values. The 'x' axis starts at 2e-5 and ends at 6e-5 with
-    a grid spacing of 1e-6. The default value for the measurement plane would have been 6.1e-5
-    so an initial backward propagation with dt = -6.1e-5/c is performed to move the pulse in front
-    of the'x=0.0 plane.
-    """
+def _time_profile_at_plane_fourier(kspace_or_complex_field, axis='x', value=None, dir=1,
+                                   t_input=0.0):
     # can't import this at top of module because this would create a circular import
     # importing here is ok, because helper and datahandling are both already interpreted
     from . import datahandling
@@ -1373,3 +1308,63 @@ def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, 
         return k_transverse_tprofile.fft(otheraxes)
     else:
         return k_transverse_tprofile
+
+
+def time_profile_at_plane(kspace_or_complex_field, axis='x', value=None, dir=1, t_input=0.0,
+                          algorithm="fourier", **kwargs):
+    """
+    'Measure' the time-profile of the propagating `complex_field` while passing through a plane.
+
+    Two algorithms are available:
+     * algorithm = "fourier"
+     * algorithm = "iterative"
+
+    The fourier algorithm should be a lot faster, while special cases could work better with
+    the iterative algorithm.
+
+    The iterative algorithm uses kspace_propagate to propagate the field in steps, slice by slice.
+    Additional `kwargs` are used as arguments to kspace_propagate, but may be overriden by this
+    function.
+
+    The fourier algorithm transforms the field by applying the vacuum dispersion relation and
+    performing a direct coordinate transformation from, e. g,  (k_x, k_y, k_z) to (k_x, k_y, w)
+    coordinates.
+
+    The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.
+
+    `axis` specifies the axis perpendicular to the measurement plane.
+
+    `dir=1` specifies propagation towards positive `axis`, `dir=-1` specifies the opposite
+    direction of propagation.
+
+    `value` specifies the position of the plane along `axis`. If `value=None,` a default is chosen,
+    depending on `dir`.
+
+    If `dir=-1`, the starting point of the axis is used, which lies at the 0-component of the
+    inverse transform.
+
+    If `dir=1`, the end point of the axis + one axis spacing is used, which, via periodic boundary
+    conditions of the fft, also lies at the 0-component of the inverse transform.
+
+    If the given `value` differs from these defaults, an initial propagation with moving window
+    will be performed, such that the desired plane lies in the default position.
+
+    t_input specifies the point in time at which the input field or kspace is given. This is used
+    to specify the time axis of the output fields.
+
+    For example `axis='x'` and `value=0.0` specifies the 'x=0.0' plane while `dir=1` specifies
+    propagation towards positive 'x' values. The 'x' axis starts at 2e-5 and ends at 6e-5 with
+    a grid spacing of 1e-6. The default value for the measurement plane would have been 6.1e-5
+    so an initial backward propagation with dt = -6.1e-5/c is performed to move the pulse in front
+    of the'x=0.0 plane.
+    """
+    if algorithm == "fourier":
+        if len(kwargs) > 0:
+            warnings.warn("Additional keyword arguments are ignored by the selected algorithm")
+        return _time_profile_at_plane_fourier(kspace_or_complex_field, axis=axis, value=value,
+                                              dir=dir, t_input=t_input)
+    elif algorithm == "iterative":
+        return _time_profile_at_plane_iterative(kspace_or_complex_field, axis=axis, value=value,
+                                                dir=dir, t_input=t_input, **kwargs)
+    else:
+        raise RuntimeError("The chosen algorithm \"{}\" could not be selected.".format(algorithm))
