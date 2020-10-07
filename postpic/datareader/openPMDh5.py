@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright Stephan Kuschel 2016
+# Copyright Stephan Kuschel, 2018-2019
 '''
 .. _openPMD: https://github.com/openPMD/openPMD-standard
 
@@ -32,8 +32,10 @@ from . import Simulationreader_ifc
 import numpy as np
 import re
 from .. import helper
+from ..helper_fft import fft
 
-__all__ = ['OpenPMDreader', 'FileSeries']
+__all__ = ['OpenPMDreader', 'FileSeries',
+           'FbpicReader', 'FbpicFileSeries']
 
 
 class OpenPMDreader(Dumpreader_ifc):
@@ -47,7 +49,7 @@ class OpenPMDreader(Dumpreader_ifc):
     '''
 
     def __init__(self, h5file, **kwargs):
-        super(self.__class__, self).__init__(h5file, **kwargs)
+        super(OpenPMDreader, self).__init__(h5file, **kwargs)
         import os.path
         import h5py
         if not os.path.isfile(h5file):
@@ -83,7 +85,7 @@ class OpenPMDreader(Dumpreader_ifc):
             ret = np.float64(record.attrs['value']) * record.attrs['unitSI']
         else:
             # array data
-            ret = np.float64(record.value) * record.attrs['unitSI']
+            ret = np.float64(record[()]) * record.attrs['unitSI']
         return ret
 
     def gridoffset(self, key, axis):
@@ -127,12 +129,12 @@ class OpenPMDreader(Dumpreader_ifc):
         raise KeyError('number of simdimensions could not be retrieved for {}'.format(self))
 
     def _keyE(self, component, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
-        return 'fields/E/' + axsuffix
+        axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
+        return 'fields/E/{}'.format(axsuffix)
 
     def _keyB(self, component, **kwargs):
-        axsuffix = {0: 'x', 1: 'y', 2: 'z'}[helper.axesidentify[component]]
-        return 'fields/B/' + axsuffix
+        axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
+        return 'fields/B/{}'.format(axsuffix)
 
     def _simgridkeys(self):
         return ['fields/E/x', 'fields/E/y', 'fields/E/z',
@@ -148,21 +150,26 @@ class OpenPMDreader(Dumpreader_ifc):
         this particle species.
         """
         attribid = helper.attribidentify[attrib]
-        options = {9: lambda s: self.data('particles/' + s + '/weighting'),
-                   0: lambda s: self.data('particles/' + s + '/position/x') +
-                   self.data('particles/' + s + '/positionOffset/x'),
-                   1: lambda s: self.data('particles/' + s + '/position/y') +
-                   self.data('particles/' + s + '/positionOffset/y'),
-                   2: lambda s: self.data('particles/' + s + '/position/z') +
-                   self.data('particles/' + s + '/positionOffset/z'),
-                   3: lambda s: self.data('particles/' + s + '/momentum/x'),
-                   4: lambda s: self.data('particles/' + s + '/momentum/y'),
-                   5: lambda s: self.data('particles/' + s + '/momentum/z'),
-                   10: lambda s: self.data('particles/' + s + '/id'),
-                   11: lambda s: self.data('particles/' + s + '/mass'),
-                   12: lambda s: self.data('particles/' + s + '/charge')}
+        options = {9: 'particles/{}/weighting',
+                   0: 'particles/{}/position/x',
+                   1: 'particles/{}/position/y',
+                   2: 'particles/{}/position/z',
+                   3: 'particles/{}/momentum/x',
+                   4: 'particles/{}/momentum/y',
+                   5: 'particles/{}/momentum/z',
+                   10: 'particles/{}/id',
+                   11: 'particles/{}/mass',
+                   12: 'particles/{}/charge'}
+        optionsoffset = {0: 'particles/{}/positionOffset/x',
+                         1: 'particles/{}/positionOffset/y',
+                         2: 'particles/{}/positionOffset/z'}
+        key = options[attribid]
+        offsetkey = optionsoffset.get(attribid)
         try:
-            ret = np.float64(options[attribid](species))
+            data = self.data(key.format(species))
+            if offsetkey is not None:
+                data += self.data(offsetkey.format(species))
+            ret = np.asarray(data, dtype=np.float64)
         except(IndexError):
             raise KeyError
         return ret
@@ -173,13 +180,157 @@ class OpenPMDreader(Dumpreader_ifc):
         '''
         ret = []
         self['fields'].visit(ret.append)
-        ret = ['fields/' + r for r in ret if not (r.startswith('E') or r.startswith('B'))]
+        ret = ['fields/{}'.format(r) for r in ret if not (r.startswith('E') or r.startswith('B'))]
         ret = [r for r in ret if hasattr(self[r], 'value')]
         ret.sort()
         return ret
 
     def __str__(self):
         return '<OpenPMDh5reader at "' + str(self.dumpidentifier) + '">'
+
+
+class FbpicReader(OpenPMDreader):
+    '''
+    Special OpenPMDreader for FBpic, which is using an expansion into radial modes.
+
+    This is subclass of the OpenPMDreader which is converting the modes to
+    a radial representation.
+    '''
+    def __init__(self, simidentifier, **kwargs):
+        super(FbpicReader, self).__init__(simidentifier, **kwargs)
+
+    @staticmethod
+    def modeexpansion(rawdata, theta=None, Ntheta=None):
+        '''
+        rawdata has to be shaped (Nm, Nr, Nz).
+
+        Returns an array of shape (Nr, Ntheta, Nz), with
+        `Ntheta = (Nm+1)//2`. If Ntheta is given only larger
+        values are permitted.
+
+        The corresponding values for theta are given by
+        `np.linspace(0, 2*np.pi, Ntheta, endpoint=False)`
+        '''
+        rawdata = np.asarray(rawdata)
+        Nm, Nr, Nz = rawdata.shape
+        if Ntheta is not None or theta is None:
+            return FbpicReader._modeexpansion_fft(rawdata, Ntheta=Ntheta)
+        else:
+            return FbpicReader._modeexpansion_naiv(rawdata, theta=theta)
+
+    @staticmethod
+    def _modeexpansion_naiv_single(rawdata, theta=0):
+        '''
+        The mode representation will be expanded for a given theta.
+        rawdata has to have the shape (Nm, Nr, Nz).
+        the returned array will be of shape (Nr, Nz).
+        '''
+        rawdata = np.float64(rawdata)
+        (Nm, Nr, Nz) = rawdata.shape
+        mult_above_axis = [1]
+        for mode in range(1, (Nm+1)//2):
+            cos = np.cos(mode * theta)
+            sin = np.sin(mode * theta)
+            mult_above_axis += [cos, sin]
+        mult_above_axis = np.float64(mult_above_axis)
+        F_total = np.tensordot(mult_above_axis,
+                               rawdata, axes=(0, 0))
+        assert F_total.shape == (Nr, Nz), \
+            '''
+            Assertion error. Please open a new issue on github to report this.
+            shape={}, Nr={}, Nz={}
+            '''.format(F_total.shape, Nr, Nz)
+        return F_total
+
+    @staticmethod
+    def _modeexpansion_naiv(rawdata, theta=0):
+        '''
+        converts to radial data using `modeexpansion`, possibly for multiple
+        theta at once.
+        '''
+        if np.asarray(theta).shape is ():
+            # single theta
+            theta = [theta]
+        # multiple theta
+        data = np.asarray([FbpicReader._modeexpansion_naiv_single(rawdata, theta=t)
+                           for t in theta])
+        # switch from (theta, r, z) to (r, theta, z)
+        data = data.swapaxes(0, 1)
+        return data
+
+    @staticmethod
+    def _modeexpansion_fft(rawdata, Ntheta=None):
+        '''
+        calculate the radialdata using an fft. This is by far the fastest
+        way to do the modeexpansion.
+        '''
+        Nm, Nr, Nz = rawdata.shape
+        Nth = (Nm+1)//2
+        if Ntheta is None or Ntheta < Nth:
+            Ntheta = Nth
+        fd = np.empty((Nr, Ntheta, Nz), dtype=np.complex128)
+
+        fd[:, 0, :].real = rawdata[0, :, :]
+        rawdatasw = np.swapaxes(rawdata, 0, 1)
+        fd[:, 1:Nth, :].real = rawdatasw[:, 1::2, :]
+        fd[:, 1:Nth, :].imag = rawdatasw[:, 2::2, :]
+
+        fd = fft.fft(fd, axis=1).real
+        return fd
+
+    # override inherited method to count points after mode expansion
+    def gridoffset(self, key, axis):
+        axid = helper.axesidentify[axis]
+        if axid == 91:  # theta
+            return 0
+        else:
+            # r, theta, z
+            axidremap = {90: 0, 2: 1}[axid]
+            return super(FbpicReader, self).gridoffset(key, axidremap)
+
+    # override inherited method to count points after mode expansion
+    def gridspacing(self, key, axis):
+        axid = helper.axesidentify[axis]
+        if axid == 91:  # theta
+            return 2 * np.pi / self.gridpoints(key, axis)
+        else:
+            # r, theta, z
+            axidremap = {90: 0, 2: 1}[axid]
+            return super(FbpicReader, self).gridspacing(key, axidremap)
+
+    # override inherited method to count points after mode expansion
+    def gridpoints(self, key, axis):
+        axid = helper.axesidentify[axis]
+        axid = axid % 90  # for r and theta
+        (Nm, Nr, Nz) = self[key].shape
+        # Ntheta does technically not exists because of the mode
+        # representation. To do a proper conversion from the modes to
+        # the grid, choose Ntheta based on the number of modes.
+        Ntheta = (Nm + 1) // 2
+        return (Nr, Ntheta, Nz)[axid]
+
+    # override
+    def _defaultaxisorder(self, gridkey):
+        return ('r', 'theta', 'z')
+
+    # override from OpenPMDreader
+    def data(self, key, **kwargs):
+        raw = super(FbpicReader, self).data(key)  # SI conversion
+        if key.startswith('particles'):
+            return raw
+        # for fields expand the modes into a spatial grid first:
+        data = self.modeexpansion(raw, **kwargs)  # modeexpansion
+        return data
+
+    def dataE(self, component, theta=None, Ntheta=None, **kwargs):
+        return self.data(self._keyE(component, **kwargs), theta=theta, Ntheta=Ntheta)
+
+    def dataB(self, component, theta=None, **kwargs):
+        return self.data(self._keyB(component, **kwargs), theta=theta, Ntheta=Ntheta)
+
+    # override
+    def __str__(self):
+        return '<FbpicReader at "' + str(self.dumpidentifier) + '">'
 
 
 class FileSeries(Simulationreader_ifc):
@@ -190,7 +341,7 @@ class FileSeries(Simulationreader_ifc):
     '''
 
     def __init__(self, simidentifier, dumpreadercls=OpenPMDreader, **kwargs):
-        super(self.__class__, self).__init__(simidentifier, **kwargs)
+        super(FileSeries, self).__init__(simidentifier, **kwargs)
         self.dumpreadercls = dumpreadercls
         import glob
         self._dumpfiles = glob.glob(simidentifier)
@@ -208,3 +359,10 @@ class FileSeries(Simulationreader_ifc):
 
     def __str__(self):
         return '<FileSeries at "' + self.simidentifier + '">'
+
+
+class FbpicFileSeries(FileSeries):
+
+    def __init__(self, *args, **kwargs):
+        super(FbpicFileSeries, self).__init__(*args, **kwargs)
+        self.dumpreadercls = FbpicReader

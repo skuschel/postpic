@@ -2,12 +2,15 @@
 
 ## current master
 
-* New convenience method `Field.copy`
+**Highlights**
+
 * Parallelized implementation of `Field.map_coordinates`
-* Reimplementation of `Field.fft`. This changes the phases of Fourier transforms in a way to make it more consistent. However, if your code depends on the phases, `Field.fft()` now has a parameter `old_behaviour` that can be used to switch back to the old behaviour.
+* Added support for reading files written by the fbpic v0.13.0 code ( https://github.com/fbpic ). The fields can be accessed by `Er` and `Etheta`, which have been introduced to the fbpic data reader. Particles are saved in Cartesian coordinates, hence the interface does not change there.
+* Reimplementation of `Field.fft`, see below.
 
 **Incompatible adjustments to previous version**
 
+* Reimplementation of `Field.fft`. This changes the phases of Fourier transforms in a way to make it more consistent. However, if your code depends on the phases, `Field.fft()` now has a parameter `old_behaviour` that can be used to switch back to the old behaviour.
 * Indexing a field by a number (integer or float) will now remove the according axis altogether, instead of leaving behind a length-1 axis.
 A new class `KeepDim` was introduced through which the old behaviour can still be used.
 Behaviour of PostPic before this change:
@@ -21,6 +24,10 @@ field.shape == (x,y,z)
 field[:, 0.0, :].shape == (x, z)
 field[:, KeepDim(0.0), :].shape == (x,1,z)
 ```
+
+**Other improvements and new features**
+
+* New convenience method `Field.copy`
 
 
 ## v0.4

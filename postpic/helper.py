@@ -78,6 +78,8 @@ _filterwarnings()
 axesidentify = {'X': 0, 'x': 0, 0: 0,
                 'Y': 1, 'y': 1, 1: 1,
                 'Z': 2, 'z': 2, 2: 2,
+                'R': 90, 'r': 90, 90: 90,
+                'theta': 91, 't': 91, 91: 91,
                 None: slice(None)}
 attribidentify = axesidentify.copy()
 attribidentify.update({'PX': 3, 'Px': 3, 'px': 3, 3: 3,
@@ -326,9 +328,15 @@ def jac_det(jacobian_func):
 
     det_fun = jac_det(polar2linear_jac)
     def = det_fun(theta, r)
+
+    In the case of a scalar function, this function expects jacobian_func to return
+    the derivative in a 1-element iterable. This behaviour is compatible to the output of
+    `np.gradient` and `approx_jacobian`.
     '''
     def fun(*coords):
         jac = jacobian_func(*coords)
+        if len(jac) == 1:
+            return abs(jac[0])
         shape = np.broadcast(*coords).shape
         jacarray = np.asarray([[broadcast_to(a, shape) for a in row] for row in jac])
         jacarray = moveaxis(jacarray, [0, 1], [-2, -1])
@@ -380,7 +388,11 @@ def approx_jacobian(transform):
                                      'non-equidistant grid is not implemented for numpy < 1.13.')
             ravel_coords = [(r[-1]-r[0])/(len(r)-1) for r in ravel_coords]
 
-        shape = np.broadcast(*coords).shape
+        if len(coords) == 1:
+            # this specific case breaks np.broadcast in numpy 1.8.1 and older
+            shape = coords[0].shape
+        else:
+            shape = np.broadcast(*coords).shape
         mapped_coords = transform(*coords)
         mapped_coords = [broadcast_to(c, shape) for c in mapped_coords]
         jac = [np.gradient(c, *ravel_coords) for c in mapped_coords]

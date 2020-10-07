@@ -148,6 +148,9 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
                            offset + self.gridspacing(key, axis) * n,
                            n + 1)
 
+    def grid(self, key, axis):
+        return np.convolve(self.gridnode(key, axis), [0.5, 0.5], mode='valid')
+
 # --- Level 2 methods ---
 
     # --- General Information ---

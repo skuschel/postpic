@@ -66,6 +66,7 @@ import numexpr as ne
 from ._compat import tukey, meshgrid, broadcast_to, NDArrayOperatorsMixin
 from . import helper
 from . import io
+from .helper_fft import fft
 
 if sys.version[0] == '2':
     import functools32 as functools
@@ -76,38 +77,6 @@ if sys.version[0] == '2':
     from itertools import izip_longest as zip_longest
 else:
     from itertools import zip_longest
-
-
-try:
-    import psutil
-    nproc = psutil.cpu_count(logical=False)
-except ImportError:
-    try:
-        nproc = os.cpu_count()
-    except AttributeError:
-        import multiprocessing
-        nproc = multiprocessing.cpu_count()
-
-
-try:
-    # pyfftw is, in most situations, faster than numpys fft,
-    # although pyfftw will benefit from multithreading only on very large arrays
-    # on a 720x240x240 3D transform multithreading still doesn't give a large benefit
-    # benchmarks of a 720x240x240 transform of real data on a Intel(R) Xeon(R) CPU
-    # E5-1620 v4 @ 3.50GHz:
-    # numpy.fft: 3.6 seconds
-    # pyfftw, nproc=4: first transform 2.2s, further transforms 1.8s
-    # pyfftw, nproc=1: first transform 3.4s, further transforms 2.8s
-    # Try to import pyFFTW's numpy_fft interface
-    import pyfftw.interfaces.cache as fftw_cache
-    import pyfftw.interfaces.numpy_fft as fftw
-    fftw_cache.enable()
-    fft = fftw
-    fft_kwargs = dict(planner_effort='FFTW_ESTIMATE', threads=nproc)
-except ImportError:
-    # pyFFTW is not available, just import numpys fft
-    import numpy.fft as fft
-    fft_kwargs = dict()
 
 
 try:
@@ -946,6 +915,7 @@ class Field(NDArrayOperatorsMixin):
         new axisobj axisobj.
         '''
         axid = helper.axesidentify[axis]
+        axid = axid % 90
         if not len(axisobj) == self.shape[axid]:
             raise ValueError('Axis object has {:3n} grid points, whereas '
                              'the data matrix has {:3n} on axis {:1n}'
@@ -1319,6 +1289,8 @@ class Field(NDArrayOperatorsMixin):
         jacobian_func: callable
             a callable that returns the jacobian of the transform. If this is
             not given, the jacobian is numerically approximated.
+            In a 1D to 1D transform this callable should return just the derivative of the
+            transform wrapped in a 1-element iterable.
 
         **kwargs:
             Keyword arguments captured by `helper.map_coordinates_parallel`:
@@ -1344,6 +1316,12 @@ class Field(NDArrayOperatorsMixin):
                 return 1.0
 
         if preserve_integral:
+            if len(newaxes) != self.dimensions:
+                raise ValueError('Preserving the integral through preserve_integral=True is only'
+                                 'possible for transforms that have the same number of input and'
+                                 'output dimensions.'
+                                 'Please pass preserve_integral=False explicitly to allow such'
+                                 'transforms.')
             if jacobian_determinant_func is None:
                 if jacobian_func is None:
                     jacobian_func = helper.approx_jacobian(transform)
@@ -1454,6 +1432,14 @@ class Field(NDArrayOperatorsMixin):
                 \int_V \mathop{\mathrm{d}x} \mathop{\mathrm{d}y} U(x,y) =
                 \int_{T^{-1}(V)} \mathop{\mathrm{d}r}\mathop{\mathrm{d}\theta}
                 \tilde{U}(r,\theta)\,.
+
+            In a 1D to 1D transform, please make sure that the transform function returns the
+            coordinates in a 1-element list, e.g.
+
+            >>> def T(r):
+            >>>    x = 2*r**2
+            >>>    return [x]
+
         '''
         return self._map_coordinates(newaxes, transform=transform, complex_mode=complex_mode,
                                      preserve_integral=preserve_integral,
@@ -2037,12 +2023,7 @@ class Field(NDArrayOperatorsMixin):
         # normalization factor ensuring Parseval's Theorem
         fftnorm = np.sqrt(V/Vk)
 
-        # compile fft arguments, starting from default arguments `fft_kwargs` ...
-        my_fft_args = fft_kwargs.copy()
-        # ... and adding the user supplied `kwargs`
-        my_fft_args.update(kwargs)
-        # ... and also norm = 'ortho'
-        my_fft_args['norm'] = 'ortho'
+        my_fft_args = dict(norm='ortho')
 
         # Workaround for missing `fft` argument `norm='ortho'`
         from pkg_resources import parse_version
