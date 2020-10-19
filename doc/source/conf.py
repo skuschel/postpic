@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../'))
 
 # numpy and scipy are installed on readthedocs.org
-autodoc_mock_imports = ['skimage', 'pyfftw',
+autodoc_mock_imports = ['skimage',
                         'h5py', 'argparse']
 
 # -- General configuration ------------------------------------------------
