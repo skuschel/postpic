@@ -78,7 +78,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'postpic'
-copyright = '2017, the postpic developers'
+copyright = '2020, the postpic developers'
 author = 'the postpic developers'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -128,8 +128,7 @@ html_theme_options = {
     'github_repo': 'postpic',
     'github_banner': True,  # fork me on github banner
     'github_button': True,
-    'description': 'the open source partice-in-cell postprocessor.',
-    'page_width': '1200px',
+    'description': 'the open-source partice-in-cell postprocessor.'
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
