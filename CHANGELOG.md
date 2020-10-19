@@ -1,6 +1,8 @@
-# Changelog of postpic
+Changelog of postpic
+====================
 
-## current master
+current master
+--------------
 
 **Highlights**
 
@@ -30,7 +32,9 @@ field[:, KeepDim(0.0), :].shape == (x,1,z)
 * New convenience method `Field.copy`
 
 
-## v0.4
+v0.4
+----
+
 2019-01-14
 
 **Highlights**
@@ -80,12 +84,17 @@ new: `ms = ms.filter('gamma > 2')`
 * k-space reconstruction from EPOCH dumps has greatly improved accuracy due to a new algorithm correctly incorporating the frequency response of the implicit linear interpolation performed by EPOCH's half-steps
 * `plotter_matplotlib.plotField` allows to override `aspect` option to `imshow`
 
-## v0.3.1
+v0.3.1
+------
+
 2017-10-03
 
 Only internal changes. Versioning is handled by [versioneer](https://github.com/warner/python-versioneer).
 
-## v0.3
+
+v0.3
+----
+
 2017-09-28
 
 Many improvements in terms of speed and features. Unfortunately some changes are not backwards-compatible to v0.2.3, so you may have to adapt your code to the new interface. For details, see the corresponding section below.
@@ -117,9 +126,9 @@ In case you find particle scalar that you use regularly which is not in the list
 * Lots of fixes
 
 
+v0.2.3
+------
 
-
-## v0.2.3
 2017-02-17
 
 This release brings some bugfixes and various new features.
@@ -135,6 +144,7 @@ This release brings some bugfixes and various new features.
 * Lots of performance improvemts: particle data will be much less copied in memory now.
 
 
-## v0.2.2 and earlier
+v0.2.2 and earlier
+------------------
 
 There hasnt been any changelog. Dont use those versions anymore.

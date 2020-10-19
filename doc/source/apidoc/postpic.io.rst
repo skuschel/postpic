@@ -1,44 +1,50 @@
-postpic\.io package
-===================
+postpic.io package
+==================
 
 .. automodule:: postpic.io
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Submodules
 ----------
 
-postpic\.io\.common module
---------------------------
+postpic.io.common module
+------------------------
 
 .. automodule:: postpic.io.common
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-postpic\.io\.csv module
------------------------
+postpic.io.csv module
+---------------------
 
 .. automodule:: postpic.io.csv
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-postpic\.io\.npy module
+postpic.io.image module
 -----------------------
+
+.. automodule:: postpic.io.image
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+postpic.io.npy module
+---------------------
 
 .. automodule:: postpic.io.npy
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-postpic\.io\.vtk module
------------------------
+postpic.io.vtk module
+---------------------
 
 .. automodule:: postpic.io.vtk
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
+   :members:
+   :undoc-members:
+   :show-inheritance:

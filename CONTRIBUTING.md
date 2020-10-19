@@ -19,7 +19,8 @@ For any coding you need to be familiar with [git](http://git-scm.com/). Its a di
 
 One of the most comprehensive guides is probably [this book](http://git-scm.com/doc). Just start reading from the beginning. It is worth it!
 
-## The Workflow
+The Workflow
+------------
 
 Adding a feature is often triggered by the personal demand for it. Thats why production ready features should propagte to master as fast as possible. Everything on master is considered to be production ready. We follow the  [github-flow](http://scottchacon.com/2011/08/31/github-flow.html) describing this very nicely.
 
@@ -44,15 +45,17 @@ In short:
     * ensure early feedback on your work
 
 
-## Coding and general remaks
+Coding and general remaks
+-------------------------
 
-  *  Make sure, that the `run-tests.py` script exits without error on EVERY commit. To do so, it is HIGHLY RECOMMENDED to add the `pre-commit` script as the git pre-commit hook. For instructions see [pre-commit](../master/pre-commit).
+  * Make sure, that the `run-tests.py` script exits without error on EVERY commit. To do so, it is HIGHLY RECOMMENDED to add the `pre-commit` script as the git pre-commit hook. For instructions see [pre-commit](../master/pre-commit).
   * The Coding style is according to slightly simplified pep8 rules. This is included in the `run-tests.py` script. If that script runs without error, you should be good to <del>go</del> commit.
   * Add the GPLv3+ licence notice on top of every new file. If you add a new file you are free to add your name as a author. This will let other people know that you are in charge if there is any trouble with the code. This is only useful if the file you provide adds functionality like a new datareader. Thats why the `__init__.py` files typically do not have a name written. In doubt, the git revision history will always show who added which line.
 
 
+What to contribute?
+-------------------
 
-## What to contribute?
 
 Here is a list for your inspiration:
 
