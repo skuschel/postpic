@@ -1,7 +1,7 @@
 postpic
 =======
 
-[![Build Status](https://travis-ci.org/skuschel/postpic.svg?branch=master)](https://travis-ci.org/skuschel/postpic)
+[![run-tests](https://github.com/skuschel/postpic/workflows/run-tests/badge.svg)](https://github.com/skuschel/postpic/actions?query=workflow%3Arun-tests)
 [![PyPI version](https://badge.fury.io/py/postpic.png)](http://badge.fury.io/py/postpic)
 [![Documentation Status](https://readthedocs.org/projects/postpic/badge/?version=latest)](https://postpic.readthedocs.org/)
 
