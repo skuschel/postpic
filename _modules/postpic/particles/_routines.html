@@ -1,0 +1,413 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.particles._routines &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.particles._routines</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel 2017</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Particle related functions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Iterable</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_particlestogrid</span> <span class="k">as</span> <span class="n">ptg</span>
+<span class="kn">from</span> <span class="nn">..helper</span> <span class="kn">import</span> <span class="n">PhysicalConstants</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">particleshapes</span> <span class="o">=</span> <span class="n">ptg</span><span class="o">.</span><span class="n">shapes</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;histogramdd&#39;</span><span class="p">,</span> <span class="s1">&#39;SpeciesIdentifier&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="histogramdd"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.histogramdd">[docs]</a><span class="k">def</span> <span class="nf">histogramdd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Creates a histogram of the data. This function has the similar signature and return values as</span>
+<span class="sd">    `numpy.histogramdd`.</span>
+<span class="sd">    In addition this function supports the `shape` keyword argument to choose</span>
+<span class="sd">    the particle shape used. If used with `shape=0` the results of this function and the</span>
+<span class="sd">    `numpy.histogramdd` are identical, however, this function is approx. factor 2 or 3 faster.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data: sequence of ndarray or ndarray (1D or 2D)</span>
+<span class="sd">        The input (particle) data for the histogram.</span>
+<span class="sd">         * A 1D numpy array (for 1D histogram).</span>
+<span class="sd">         * A sequence providing the data for the different axis, i.e.</span>
+<span class="sd">           `(datax, datay, dataz)` (preferred).</span>
+<span class="sd">         * A (N, D)-array, i.e. `[[x1, y1, z1], [x2, y2, z2]]` -- must be a numpy array!</span>
+<span class="sd">    bins: sequence or int</span>
+<span class="sd">        The number of bins to use for each dimension</span>
+<span class="sd">    range: sequence, optional</span>
+<span class="sd">        A sequence of lower and upper bin edges to be used if the edges are not given</span>
+<span class="sd">        explicitly in bins. Defaults to the minimum and maximum values along each dimension.</span>
+<span class="sd">    weights: 1D numpy array</span>
+<span class="sd">        The weights to be used for each data point</span>
+<span class="sd">    shape: int</span>
+<span class="sd">        possible choices are:</span>
+<span class="sd">         * 0 - use nearest grid point (NGP)</span>
+<span class="sd">         * 1 - use tophat shape of width 1 bin</span>
+<span class="sd">         * 2 - triangular shape (default)</span>
+<span class="sd">         * 3 - spline 3 shape</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    H : ndarray</span>
+<span class="sd">        the final histogram</span>
+<span class="sd">    edges : list</span>
+<span class="sd">        A list of D arrays describing the edges for each dimension</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">kwshape</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">kwshape</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">kwshape</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">kwshape</span>  <span class="c1"># default value</span>
+    <span class="c1"># default value need to be set separately, such that calling the function</span>
+    <span class="c1"># with `shape=None` or the shape argument not given yields the same result.</span>
+    <span class="n">kwrange</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;range&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">kwweights</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">kwbins</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;bins&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;got an unexpected keyword argument </span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># (N, D) array</span>
+            <span class="c1"># data[:,i] will create a view consuming only microseconds</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+    <span class="k">except</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># upcast 1D if length 1 dimensions are omitted</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>  <span class="c1"># [1,2,3]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">)</span>  <span class="c1"># ([1,2,3],)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Data with len </span><span class="si">{:}</span><span class="s1"> not supported. Maximum is 3D data.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwrange</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">kwrange</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">kwrange</span> <span class="o">=</span> <span class="p">(</span><span class="n">kwrange</span><span class="p">,</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">kwbins</span><span class="p">):</span>
+        <span class="n">kwbins</span> <span class="o">=</span> <span class="p">(</span><span class="n">kwbins</span><span class="p">,</span> <span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kwbins</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">binsdefs</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="mi">800</span><span class="p">],</span>
+                    <span class="mi">2</span><span class="p">:</span> <span class="p">[</span><span class="mi">500</span><span class="p">,</span> <span class="mi">500</span><span class="p">],</span>
+                    <span class="mi">3</span><span class="p">:</span> <span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">]}</span>
+        <span class="n">kwbins</span> <span class="o">=</span> <span class="n">binsdefs</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)]</span>
+
+    <span class="c1"># data is now (datax, datay, dataz)</span>
+    <span class="c1"># make sure each is an ndarray. If it is already, this operation is fast.</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float64&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">kwweights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kwweights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">kwweights</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float64&#39;</span><span class="p">)</span>
+    <span class="c1"># 1D, 2D, 3D</span>
+    <span class="n">ranges</span> <span class="o">=</span> <span class="p">[[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">]):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ranges</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwrange</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">ranges</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span>  <span class="c1"># catch exception and fill value</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="n">i</span><span class="p">]):</span>
+                    <span class="c1"># if value can be accessed it must be a scalar value</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;range=&quot;</span><span class="si">{}</span><span class="s1">&quot; not properly formatted.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kwrange</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">):</span>
+                <span class="n">ranges</span><span class="p">[</span><span class="n">ax</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">kwrange</span> <span class="o">=</span> <span class="n">ranges</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># ([1,2,3],)</span>
+        <span class="n">kwrange</span> <span class="o">=</span> <span class="n">kwrange</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">kwbins</span> <span class="o">=</span> <span class="n">kwbins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">xedges</span> <span class="o">=</span> <span class="n">ptg</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                  <span class="nb">range</span><span class="o">=</span><span class="n">kwrange</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">kwbins</span><span class="p">,</span>
+                                  <span class="n">weights</span><span class="o">=</span><span class="n">kwweights</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">kwshape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="p">(</span><span class="n">xedges</span><span class="p">,)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># [[1,2,3], [4,5,6]]</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">xedges</span><span class="p">,</span> <span class="n">yedges</span> <span class="o">=</span> <span class="n">ptg</span><span class="o">.</span><span class="n">histogram2d</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                            <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                            <span class="nb">range</span><span class="o">=</span><span class="n">kwrange</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">kwbins</span><span class="p">,</span>
+                                            <span class="n">weights</span><span class="o">=</span><span class="n">kwweights</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">kwshape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="p">(</span><span class="n">xedges</span><span class="p">,</span> <span class="n">yedges</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># [[1,2,3], [4,5,6], [7,8,9]]</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">xe</span><span class="p">,</span> <span class="n">ye</span><span class="p">,</span> <span class="n">ze</span> <span class="o">=</span> <span class="n">ptg</span><span class="o">.</span><span class="n">histogram3d</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                        <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                        <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                        <span class="nb">range</span><span class="o">=</span><span class="n">kwrange</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">kwbins</span><span class="p">,</span>
+                                        <span class="n">weights</span><span class="o">=</span><span class="n">kwweights</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">kwshape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="p">(</span><span class="n">xe</span><span class="p">,</span> <span class="n">ye</span><span class="p">,</span> <span class="n">ze</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Internal error&#39;</span></div>
+
+
+<div class="viewcode-block" id="SpeciesIdentifier"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.SpeciesIdentifier">[docs]</a><span class="k">class</span> <span class="nc">SpeciesIdentifier</span><span class="p">(</span><span class="n">PhysicalConstants</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This Class provides static methods for deriving particle properties</span>
+<span class="sd">    from species Names. The only reason for this to be a class is that it</span>
+<span class="sd">    can be used as a mixin.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_specdict</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">ision</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mass</span><span class="o">=</span><span class="n">mass</span> <span class="o">*</span> <span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">me</span><span class="p">,</span>
+                    <span class="n">charge</span><span class="o">=</span><span class="n">charge</span> <span class="o">*</span> <span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">qe</span><span class="p">,</span>
+                    <span class="n">ision</span><span class="o">=</span><span class="n">ision</span><span class="p">)</span>
+
+    <span class="c1"># if in default, use this</span>
+    <span class="n">_defaults</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;electrongold&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;proton&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;Proton&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;ionp&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;ion&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;c6&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;ionf&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;Palladium&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">106</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;Palladium1&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">106</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;Palladium2&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">106</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;Ion&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;Photon&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;Positron&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;positron&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;bw_positron&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;bw_electron&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;photon&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                 <span class="s1">&#39;gold1&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;gold3&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;gold4&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;gold2&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;gold7&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;gold10&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                 <span class="s1">&#39;gold20&#39;</span><span class="p">:</span> <span class="n">_specdict</span><span class="p">(</span><span class="mf">1836.2</span> <span class="o">*</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="kc">True</span><span class="p">)}</span>
+
+    <span class="c1">#  unit: amu</span>
+    <span class="n">_masslistelement</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;He&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                        <span class="s1">&#39;Li&#39;</span><span class="p">:</span> <span class="mf">6.9</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span> <span class="s1">&#39;Ne&#39;</span><span class="p">:</span> <span class="mf">20.2</span><span class="p">,</span>
+                        <span class="s1">&#39;Na&#39;</span><span class="p">:</span> <span class="mi">23</span><span class="p">,</span> <span class="s1">&#39;Al&#39;</span><span class="p">:</span> <span class="mi">27</span><span class="p">,</span> <span class="s1">&#39;Si&#39;</span><span class="p">:</span> <span class="mi">28</span><span class="p">,</span> <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span> <span class="s1">&#39;Cl&#39;</span><span class="p">:</span> <span class="mf">35.5</span><span class="p">,</span> <span class="s1">&#39;Ar&#39;</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span>
+                        <span class="s1">&#39;Ti&#39;</span><span class="p">:</span> <span class="mf">47.9</span><span class="p">,</span> <span class="s1">&#39;Cr&#39;</span><span class="p">:</span> <span class="mi">52</span><span class="p">,</span> <span class="s1">&#39;Fe&#39;</span><span class="p">:</span> <span class="mf">55.8</span><span class="p">,</span> <span class="s1">&#39;Cu&#39;</span><span class="p">:</span> <span class="mf">63.5</span><span class="p">,</span> <span class="s1">&#39;Zn&#39;</span><span class="p">:</span> <span class="mf">65.4</span><span class="p">,</span> <span class="s1">&#39;Kr&#39;</span><span class="p">:</span> <span class="mf">83.8</span><span class="p">,</span>
+                        <span class="s1">&#39;Rb&#39;</span><span class="p">:</span> <span class="mf">85.5</span><span class="p">,</span> <span class="s1">&#39;Zr&#39;</span><span class="p">:</span> <span class="mf">91.2</span><span class="p">,</span> <span class="s1">&#39;Pd&#39;</span><span class="p">:</span> <span class="mf">106.4</span><span class="p">,</span> <span class="s1">&#39;Ag&#39;</span><span class="p">:</span> <span class="mf">107.8</span><span class="p">,</span> <span class="s1">&#39;Sn&#39;</span><span class="p">:</span> <span class="mf">118.7</span><span class="p">,</span>
+                        <span class="s1">&#39;Xe&#39;</span><span class="p">:</span> <span class="mf">131.3</span><span class="p">,</span>
+                        <span class="s1">&#39;W&#39;</span><span class="p">:</span> <span class="mf">183.8</span><span class="p">,</span> <span class="s1">&#39;Pt&#39;</span><span class="p">:</span> <span class="mi">195</span><span class="p">,</span> <span class="s1">&#39;Au&#39;</span><span class="p">:</span> <span class="mi">197</span><span class="p">,</span> <span class="s1">&#39;Hg&#39;</span><span class="p">:</span> <span class="mf">200.6</span><span class="p">,</span> <span class="s1">&#39;Pb&#39;</span><span class="p">:</span> <span class="mf">207.2</span><span class="p">}</span>
+
+<div class="viewcode-block" id="SpeciesIdentifier.isejected"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.SpeciesIdentifier.isejected">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">isejected</span><span class="p">(</span><span class="n">species</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">species</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(ejected_)(.*)&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SpeciesIdentifier.ision"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.SpeciesIdentifier.ision">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">ision</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">species</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">identifyspecies</span><span class="p">(</span><span class="n">species</span><span class="p">)[</span><span class="s1">&#39;ision&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SpeciesIdentifier.identifyspecies"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.SpeciesIdentifier.identifyspecies">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">identifyspecies</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">species</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary containing particle informations deduced from</span>
+<span class="sd">        the species name.</span>
+<span class="sd">        The following keys in the dictionary will always be present:</span>
+<span class="sd">        name   species name string</span>
+<span class="sd">        mass    kg (SI)</span>
+<span class="sd">        charge  C (SI)</span>
+<span class="sd">        tracer  boolean</span>
+<span class="sd">        ejected boolean</span>
+
+<span class="sd">        Valid Examples:</span>
+<span class="sd">        Periodic Table symbol + charge state: c6, F2, H1, C6b</span>
+<span class="sd">        ionm#c# defining mass and charge:  ionm12c2, ionc20m110</span>
+<span class="sd">        advanced examples:</span>
+<span class="sd">        ejected_tracer_ionc5m20b, ejected_tracer_electronx,</span>
+<span class="sd">        ejected_c6b, tracer_proton, protonb</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;tracer&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;ejected&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">species</span><span class="p">}</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">species</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_defaults</span><span class="p">:</span>
+            <span class="c1"># if species name is found in cls._defaults use it and</span>
+            <span class="c1"># return result.</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_defaults</span><span class="p">[</span><span class="n">s</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">ret</span>
+
+        <span class="c1"># Regex for parsing ion species name.</span>
+        <span class="c1"># See docsting for valid examples</span>
+        <span class="n">regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(?P&lt;prae&gt;(.*_)*)&#39;</span> \
+                <span class="sa">r</span><span class="s1">&#39;((?P&lt;elem&gt;((?!El)[A-Z][a-z]?))(?P&lt;elem_c&gt;\d*)|&#39;</span> \
+                <span class="sa">r</span><span class="s1">&#39;(?P&lt;ionmc&gt;(ionc(?P&lt;c1&gt;\d+)m(?P&lt;m2&gt;\d+)|ionm(?P&lt;m1&gt;\d+)c(?P&lt;c2&gt;\d+)))&#39;</span> \
+                <span class="sa">r</span><span class="s1">&#39;)?&#39;</span> \
+                <span class="sa">r</span><span class="s1">&#39;(?P&lt;plus&gt;(Plus)*)&#39;</span> \
+                <span class="sa">r</span><span class="s1">&#39;(?P&lt;electron&gt;[Ee]le[ck])?&#39;</span> \
+                <span class="sa">r</span><span class="s1">&#39;(?P&lt;suffix&gt;\w*?)$&#39;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Species &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">+</span>
+                            <span class="s1">&#39; does not match regex name pattern: &#39;</span> <span class="o">+</span>
+                            <span class="nb">str</span><span class="p">(</span><span class="n">regex</span><span class="p">))</span>
+        <span class="n">regexdict</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span>
+        <span class="c1"># print(regexdict)</span>
+
+        <span class="c1"># recognize anz prae and add dictionary key</span>
+        <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;prae&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;prae&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">ret</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Excluding patterns start here</span>
+        <span class="c1"># 1) Name Element + charge state: C1, C6, F2, F9, Au20, Pb34a</span>
+        <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;elem&#39;</span><span class="p">]:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_masslistelement</span><span class="p">[</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;elem&#39;</span><span class="p">]])</span> <span class="o">*</span> \
+                <span class="mf">1836.2</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">me</span>
+            <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;elem_c&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;elem_c&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">qe</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;ision&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># 2) ionmc like</span>
+        <span class="k">elif</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;ionmc&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;c1&#39;</span><span class="p">]:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;m2&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1836.2</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">me</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;c1&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">qe</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;ision&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;c2&#39;</span><span class="p">]:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;m1&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1836.2</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">me</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;c2&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">qe</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;ision&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># charge may be given via plus</span>
+        <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;plus&#39;</span><span class="p">]:</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;plus&#39;</span><span class="p">])</span><span class="o">/</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">qe</span>
+            <span class="k">if</span> <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">charge</span>
+
+        <span class="c1"># Elektron can be appended to any ion name, so overwrite.</span>
+        <span class="k">if</span> <span class="n">regexdict</span><span class="p">[</span><span class="s1">&#39;electron&#39;</span><span class="p">]:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">me</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">qe</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;ision&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="s1">&#39;mass&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;charge&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;ision&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;species &#39;</span> <span class="o">+</span> <span class="n">species</span> <span class="o">+</span> <span class="s1">&#39; not recognized.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

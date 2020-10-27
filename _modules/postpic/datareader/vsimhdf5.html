@@ -1,0 +1,299 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.datareader.vsimhdf5 &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.datareader.vsimhdf5</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Georg Wittig, Stephan Kuschel 2014</span>
+
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Reader for HDF5 File format written by the VSim Code:</span>
+<span class="sd">http://www.txcorp.com/support/vsim-support-menu/vsim-documentation</span>
+<span class="sd">Dependecies:</span>
+<span class="sd">h5py  The Python actual reader for hdf5 file format.</span>
+<span class="sd">Georg Wittig, Stephan Kuschel 2014</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Dumpreader_ifc</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Simulationreader_ifc</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">helper</span>
+
+
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Hdf5reader&#39;</span><span class="p">,</span> <span class="s1">&#39;VSimReader&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Hdf5reader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader">[docs]</a><span class="k">class</span> <span class="nc">Hdf5reader</span><span class="p">(</span><span class="n">Dumpreader_ifc</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The Reader implementation for HDF5 Data written by the VSim Code.</span>
+<span class="sd">    as argument h5file can be any *.h5 file of the dump of consideration.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5file</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Initializes the Hdf5reader for a specific h5file.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">h5file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;File &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5file</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot; doesnt exist.&#39;</span><span class="p">)</span>
+        <span class="n">pathname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">h5file</span><span class="p">))</span>
+        <span class="n">filelist</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pathname</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.h5&quot;</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">)[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;vsTime&quot;</span><span class="p">]</span>
+        <span class="c1"># all dumped h5 files at the same time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dumplist</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filelist</span>
+                          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span> <span class="o">==</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;vsTime&quot;</span><span class="p">]]</span>
+
+<div class="viewcode-block" id="Hdf5reader.keys"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumplist</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                    <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">keys</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; delivers one dataset with the key key.&#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumplist</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="n">key</span><span class="p">]</span>
+        <span class="c1"># print &quot; couldn&#39;t find key &quot;, key</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Hdf5reader.timestep"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.timestep">[docs]</a>    <span class="k">def</span> <span class="nf">timestep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;vsStep&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.time"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.time">[docs]</a>    <span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.simdimensions"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.simdimensions">[docs]</a>    <span class="k">def</span> <span class="nf">simdimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;compGridGlobal&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;vsNumCells&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.dataE"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.dataE">[docs]</a>    <span class="k">def</span> <span class="nf">dataE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># x, y, z, px, py, pz same as in sdf. weigt and ID not included.</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s2">&quot;ElecMultiField&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">,</span> <span class="n">axis</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.dataB"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.dataB">[docs]</a>    <span class="k">def</span> <span class="nf">dataB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># x, y, z, px, py, pz same as in sdf. wweigt and ID not included.</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s2">&quot;MagMultiField&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">,</span> <span class="n">axis</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.grid"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.grid">[docs]</a>    <span class="k">def</span> <span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; returns the array of the positions of all cells on axis = axis.  &#39;&#39;&#39;</span>
+        <span class="c1"># x, y, z, px, py, pz same as in sdf. weigt and ID not included.</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s2">&quot;compGridGlobal&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;vsLowerBounds&quot;</span><span class="p">][</span><span class="n">axis</span><span class="p">],</span>
+                           <span class="n">temp</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;vsUpperBounds&quot;</span><span class="p">][</span><span class="n">axis</span><span class="p">],</span> <span class="n">temp</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;vsNumCells&quot;</span><span class="p">][</span><span class="n">axis</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.listSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.listSpecies">[docs]</a>    <span class="k">def</span> <span class="nf">listSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; returns all h5 dumps that have a attribute &quot;mass&quot; &#39;&#39;&#39;</span>
+        <span class="n">specieslist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumplist</span><span class="p">:</span>
+            <span class="n">h5</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">h5</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;mass&#39;</span> <span class="ow">in</span> <span class="n">h5</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+                    <span class="n">specieslist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">specieslist</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.getSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.getSpecies">[docs]</a>    <span class="k">def</span> <span class="nf">getSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID) of</span>
+<span class="sd">        this particle species.</span>
+<span class="sd">        Valid Scalar attributes are (mass, charge).</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c1"># x, y, z, px, py, pz same as in sdf. weigt and ID not included.</span>
+        <span class="n">attrib</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">attribidentify</span><span class="p">[</span><span class="n">attrib</span><span class="p">]</span>
+        <span class="n">attrib</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">:</span> <span class="s1">&#39;numPtclsInMacro&#39;</span><span class="p">,</span>
+                  <span class="mi">11</span><span class="p">:</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="mi">12</span><span class="p">:</span> <span class="s1">&#39;charge&#39;</span><span class="p">}[</span><span class="n">attrib</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrib</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">species</span><span class="p">])[:,</span> <span class="n">attrib</span><span class="p">]</span>
+            <span class="c1"># VSim dumps gamma*v = p/m0, so multiply by mass if px, pz or pz requested</span>
+            <span class="k">if</span> <span class="n">attrib</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">ret</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSpecies</span><span class="p">(</span><span class="n">species</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ret</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">species</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attrib</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Hdf5reader.getderived"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.Hdf5reader.getderived">[docs]</a>    <span class="k">def</span> <span class="nf">getderived</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns all Keys starting with &quot;Derived/&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;Hdf5reader at &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;&gt;&#39;</span></div>
+
+
+<div class="viewcode-block" id="VSimReader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.VSimReader">[docs]</a><span class="k">class</span> <span class="nc">VSimReader</span><span class="p">(</span><span class="n">Simulationreader_ifc</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Represents a full Simulation ( = Series of Dumps with equal output). The VSimReader must be</span>
+<span class="sd">    initialized with the path to a folder containing all the dumps. It will then walk through</span>
+<span class="sd">    all available .h5 files in this directory to identify the available timesteps of the</span>
+<span class="sd">    simulation.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="kn">import</span> <span class="nn">os.path</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;Path &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot; is no directory.&#39;</span><span class="p">)</span>
+        <span class="c1"># check every .h5 file in directory path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filelist</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.h5&quot;</span><span class="p">)]</span>
+        <span class="c1"># only use dumps with time &gt; 0</span>
+        <span class="n">h5s</span> <span class="o">=</span> <span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filelist</span><span class="p">]</span>
+        <span class="n">boollist</span> <span class="o">=</span> <span class="p">[</span><span class="n">h5</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;vsTime&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">h5</span> <span class="ow">in</span> <span class="n">h5s</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filelist</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_filelist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filelist</span><span class="p">))</span> <span class="k">if</span> <span class="n">boollist</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">h5s</span> <span class="o">=</span> <span class="p">[</span><span class="n">h5s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h5s</span><span class="p">))</span> <span class="k">if</span> <span class="n">boollist</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="c1"># find all possible timesteps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_steplist</span> <span class="o">=</span> <span class="p">[</span><span class="n">h5</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;vsStep&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h5</span> <span class="ow">in</span> <span class="n">h5s</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stepsdumped</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steplist</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stepsdumped</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stepsdumped</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VSimReader.getDumpreader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.vsimhdf5.VSimReader.getDumpreader">[docs]</a>    <span class="k">def</span> <span class="nf">getDumpreader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="n">fileindex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steplist</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stepsdumped</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">Hdf5reader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filelist</span><span class="p">[</span><span class="n">fileindex</span><span class="p">])</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;VSimReader at &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;&gt;&#39;</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../datareader.html">postpic.datareader</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

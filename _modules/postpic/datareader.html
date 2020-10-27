@@ -1,0 +1,310 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.datareader &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.datareader</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel 2014-2018</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">The Datareader package contains methods and interfaces to read data from</span>
+<span class="sd">any Simulation.</span>
+
+<span class="sd">The basic concept consits of two different types of readers:</span>
+
+<span class="sd">The Dumpreader</span>
+<span class="sd">--------------</span>
+<span class="sd">This has to be subclassed from Dumpreader_ifc and allows to read a single dump</span>
+<span class="sd">created by the simulation. To identify which dump should be read its</span>
+<span class="sd">initialized with a dumpidentifier. This dumpidentifier can be almost anything,</span>
+<span class="sd">but in the easiest case this is the filepath pointing to a single file</span>
+<span class="sd">containing every information about this simulation dump. With this information</span>
+<span class="sd">the dumpreader must be able to read all data regarding this dump (which is a</span>
+<span class="sd">lot: X, Y, Z, Px, Py, Py, weight, mass, charge, ID,.. for all particle species,</span>
+<span class="sd">electric and magnetic fields on grid, the grid itself, mabe particle ids,...)</span>
+
+<span class="sd">The Simulationreader</span>
+<span class="sd">--------------------</span>
+<span class="sd">This has to be subclassed from Simulationreader_ifc and allows to read a full</span>
+<span class="sd">list of simulation dumps. Thus an alternate Name for this class could be</span>
+<span class="sd">&quot;Dumpsequence&quot;. This allows the code to track particles from different times</span>
+<span class="sd">of the simulation or create plots with a time axis.</span>
+
+<span class="sd">Stephan Kuschel 2014</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">from</span> <span class="nn">.datareader</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;chooseCode&#39;</span><span class="p">,</span> <span class="s1">&#39;readDump&#39;</span><span class="p">,</span> <span class="s1">&#39;readSim&#39;</span><span class="p">,</span> <span class="s1">&#39;setdumpreadercls&#39;</span><span class="p">,</span> <span class="s1">&#39;setsimreadercls&#39;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">+=</span> <span class="n">datareader</span><span class="o">.</span><span class="n">__all__</span>
+
+<span class="n">_dumpreadercls</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">_simreadercls</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="setdumpreadercls"><a class="viewcode-back" href="../../apidoc/postpic.datareader.html#postpic.setdumpreadercls">[docs]</a><span class="k">def</span> <span class="nf">setdumpreadercls</span><span class="p">(</span><span class="n">dumpreadercls</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Sets the class that is used for reading dumps on later calls of :func:`postpic.readDump`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dumpreadercls : Dumpreader_ifc</span>
+
+<span class="sd">    Note</span>
+<span class="sd">    ----</span>
+<span class="sd">        This should only be used, for testing.</span>
+<span class="sd">        A set of presets is provided by</span>
+<span class="sd">        :func:`postpic.chooseCode`.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">dumpreadercls</span><span class="p">,</span> <span class="n">Dumpreader_ifc</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_dumpreadercls</span>
+        <span class="n">_dumpreadercls</span> <span class="o">=</span> <span class="n">dumpreadercls</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;In order to set a reader class for a new file&#39;</span>
+                        <span class="s1">&#39; format it needs to be subclass of &quot;Dumpreader_ifc&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="setsimreadercls"><a class="viewcode-back" href="../../apidoc/postpic.datareader.html#postpic.setsimreadercls">[docs]</a><span class="k">def</span> <span class="nf">setsimreadercls</span><span class="p">(</span><span class="n">simreadercls</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Sets the class that is used for reading a simulation on later calls of :func:`postpic.readSim`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    simreadercls : Simulationreader_ifc</span>
+
+<span class="sd">    Note</span>
+<span class="sd">    ----</span>
+<span class="sd">        This should only be used, for testing.</span>
+<span class="sd">        A set of presets is provided by</span>
+<span class="sd">        :func:`postpic.chooseCode`.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">simreadercls</span><span class="p">,</span> <span class="n">Simulationreader_ifc</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_simreadercls</span>
+        <span class="n">_simreadercls</span> <span class="o">=</span> <span class="n">simreadercls</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;In order to set a reader for a new file&#39;</span>
+                        <span class="s1">&#39; format it needs to be subclass of &#39;</span>
+                        <span class="s1">&#39;&quot;Simulationreader_ifc&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="readDump"><a class="viewcode-back" href="../../introduction.html#postpic.readDump">[docs]</a><span class="k">def</span> <span class="nf">readDump</span><span class="p">(</span><span class="n">dumpidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    After using the fucntion :func:`postpic.chooseCode`, this function should</span>
+<span class="sd">    be the main function for reading a dump into postpic.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dumpidentifier : str</span>
+<span class="sd">        Identifies the dump. For most dumpreaders this is a string</span>
+<span class="sd">        poining to the file or folder. See what the specific</span>
+<span class="sd">        reader of your format expects.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        will be forwarded to the dumpreader.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Dumpreader</span>
+<span class="sd">        the dumpreader for this specific data dump.</span>
+<span class="sd">    &#39;&#39;&#39;</span>  <span class="c1"># numpy like docstring</span>
+    <span class="k">global</span> <span class="n">_dumpreadercls</span>
+    <span class="k">if</span> <span class="n">_dumpreadercls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Specify dumpreaderclass first.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_dumpreadercls</span><span class="p">(</span><span class="n">dumpidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="readSim"><a class="viewcode-back" href="../../introduction.html#postpic.readSim">[docs]</a><span class="k">def</span> <span class="nf">readSim</span><span class="p">(</span><span class="n">simidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    After using the function :func:`postpic.chooseCode`, this function should</span>
+<span class="sd">    be the main function for reading a simulation into postpic.</span>
+<span class="sd">    A simulation is equivalent to a series of dumps in a specific order</span>
+<span class="sd">    (not neccessarily time order).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        simidentifier (str): Identifies the simulation.</span>
+<span class="sd">            For EPOCH this should be a string pointing to a `.visit` file.</span>
+<span class="sd">            Specifics depend on the current simreader class,</span>
+<span class="sd">            as set by `chooseCode`.</span>
+<span class="sd">        **kwargs: will be forwarded to the simreader.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        the Simulationreader</span>
+<span class="sd">    &#39;&#39;&#39;</span>  <span class="c1"># google like docstring</span>
+    <span class="k">global</span> <span class="n">_simreadercls</span>
+    <span class="k">if</span> <span class="n">_simreadercls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Specify simreaderclass first.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_simreadercls</span><span class="p">(</span><span class="n">simidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="chooseCode"><a class="viewcode-back" href="../../apidoc/postpic.datareader.html#postpic.chooseCode">[docs]</a><span class="k">def</span> <span class="nf">chooseCode</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Chooses appropriate reader for the given simulation code.</span>
+<span class="sd">    After choosing a preset of the correct reader, the functions</span>
+<span class="sd">    :func:`postpic.readDump` and :func:`postpic.readSim` are setup for this preset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">      code : string</span>
+<span class="sd">        Possible options are:</span>
+<span class="sd">          - &quot;DUMMY&quot;: dummy class creating fake data.</span>
+<span class="sd">          - &quot;EPOCH&quot;: .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.</span>
+<span class="sd">            ( https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch )</span>
+<span class="sd">          - &quot;openPMD&quot;: .h5 files written in openPMD Standard.</span>
+<span class="sd">            ( https://github.com/openPMD/ )</span>
+<span class="sd">          - &quot;fbpic&quot;: .h5 files written by fbpic ( https://github.com/fbpic/fbpic ).</span>
+<span class="sd">            This is the openPMD reader, but includes the conversion from azimuthal modes</span>
+<span class="sd">            to a cylindrical grid.</span>
+<span class="sd">          - &quot;piconGPU&quot;: same as &quot;openPMD&quot;.</span>
+<span class="sd">            This reader can be used for piconGPU written h5 files.</span>
+<span class="sd">            ( https://github.com/ComputationalRadiationPhysics/picongpu )</span>
+<span class="sd">          - &quot;VSIM&quot;: .hdf5 files written by VSim.</span>
+<span class="sd">            Currently not working. Needs updating.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">,</span> <span class="s1">&#39;epoch1d&#39;</span><span class="p">,</span> <span class="s1">&#39;epoch2d&#39;</span><span class="p">,</span> <span class="s1">&#39;epoch3d&#39;</span><span class="p">]:</span>
+        <span class="kn">from</span> <span class="nn">.epochsdf</span> <span class="kn">import</span> <span class="n">Sdfreader</span><span class="p">,</span> <span class="n">Visitreader</span>
+        <span class="n">setdumpreadercls</span><span class="p">(</span><span class="n">Sdfreader</span><span class="p">)</span>
+        <span class="n">setsimreadercls</span><span class="p">(</span><span class="n">Visitreader</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;openpmd&#39;</span><span class="p">,</span> <span class="s1">&#39;openpmdh5&#39;</span><span class="p">,</span> <span class="s1">&#39;picongpu&#39;</span><span class="p">]:</span>
+        <span class="kn">from</span> <span class="nn">.openPMDh5</span> <span class="kn">import</span> <span class="n">OpenPMDreader</span><span class="p">,</span> <span class="n">FileSeries</span>
+        <span class="n">setdumpreadercls</span><span class="p">(</span><span class="n">OpenPMDreader</span><span class="p">)</span>
+        <span class="n">setsimreadercls</span><span class="p">(</span><span class="n">FileSeries</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;fbpic&#39;</span><span class="p">]:</span>
+        <span class="kn">from</span> <span class="nn">.openPMDh5</span> <span class="kn">import</span> <span class="n">FbpicReader</span><span class="p">,</span> <span class="n">FbpicFileSeries</span>
+        <span class="n">setdumpreadercls</span><span class="p">(</span><span class="n">FbpicReader</span><span class="p">)</span>
+        <span class="n">setsimreadercls</span><span class="p">(</span><span class="n">FbpicFileSeries</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vsim&#39;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;VSim reader requires update due to the interface change in &#39;</span>
+                        <span class="s1">&#39;https://github.com/skuschel/postpic/commit/&#39;</span>
+                        <span class="s1">&#39;c3d5b9d7afda3b3b0ebf57cd3199567a5a494803&#39;</span><span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">.vsimhdf5</span> <span class="kn">import</span> <span class="n">Hdf5reader</span><span class="p">,</span> <span class="n">VSimReader</span>
+        <span class="n">setdumpreadercls</span><span class="p">(</span><span class="n">Hdf5reader</span><span class="p">)</span>
+        <span class="n">setsimreadercls</span><span class="p">(</span><span class="n">VSimReader</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;dummy&#39;</span><span class="p">]:</span>
+        <span class="kn">from</span> <span class="nn">.dummy</span> <span class="kn">import</span> <span class="n">Dummyreader</span><span class="p">,</span> <span class="n">Dummysim</span>
+        <span class="n">setdumpreadercls</span><span class="p">(</span><span class="n">Dummyreader</span><span class="p">)</span>
+        <span class="n">setsimreadercls</span><span class="p">(</span><span class="n">Dummysim</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Code &quot;</span><span class="si">{}</span><span class="s1">&quot; not recognized.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

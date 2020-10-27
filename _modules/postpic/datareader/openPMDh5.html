@@ -1,0 +1,484 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.datareader.openPMDh5 &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.datareader.openPMDh5</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright Stephan Kuschel, 2018-2019</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">.. _openPMD: https://github.com/openPMD/openPMD-standard</span>
+
+<span class="sd">Support for hdf5 files following the openPMD_ Standard.</span>
+
+<span class="sd">Dependecies:</span>
+<span class="sd">  - h5py: read hdf5 files with python</span>
+
+<span class="sd">Written by Stephan Kuschel 2016</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Dumpreader_ifc</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Simulationreader_ifc</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">helper</span>
+<span class="kn">from</span> <span class="nn">..helper_fft</span> <span class="kn">import</span> <span class="n">fft</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;OpenPMDreader&#39;</span><span class="p">,</span> <span class="s1">&#39;FileSeries&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;FbpicReader&#39;</span><span class="p">,</span> <span class="s1">&#39;FbpicFileSeries&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="OpenPMDreader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader">[docs]</a><span class="k">class</span> <span class="nc">OpenPMDreader</span><span class="p">(</span><span class="n">Dumpreader_ifc</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The Reader implementation for Data written in the hdf5 file</span>
+<span class="sd">    format following openPMD_ naming conventions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      h5file : String</span>
+<span class="sd">        A String containing the relative Path to the .h5 file.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5file</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OpenPMDreader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">os.path</span>
+        <span class="kn">import</span> <span class="nn">h5py</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">h5file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;File &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5file</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot; doesnt exist.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h5</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_h5</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h5</span><span class="p">[</span><span class="s1">&#39;/data/</span><span class="si">{:d}</span><span class="s1">/&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">attrs</span>
+
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+
+<span class="c1"># --- Level 0 methods ---</span>
+
+<div class="viewcode-block" id="OpenPMDreader.keys"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+<span class="c1"># --- Level 1 methods ---</span>
+
+<div class="viewcode-block" id="OpenPMDreader.data"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.data">[docs]</a>    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        should work with any key, that contains data, thus on every hdf5.Dataset,</span>
+<span class="sd">        but not on hdf5.Group. Will extract the data, convert it to SI and return it</span>
+<span class="sd">        as a numpy array. Constant records will be detected and converted to</span>
+<span class="sd">        a numpy array containing a single value only.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;value&quot;</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="c1"># constant data (a single int or float)</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">record</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;unitSI&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># array data</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">record</span><span class="p">[()])</span> <span class="o">*</span> <span class="n">record</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;unitSI&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.gridoffset"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.gridoffset">[docs]</a>    <span class="k">def</span> <span class="nf">gridoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;gridUnitSI&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="k">return</span> <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;gridGlobalOffset&#39;</span><span class="p">][</span><span class="n">axid</span><span class="p">]</span> <span class="o">*</span> <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;gridUnitSI&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.gridspacing"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.gridspacing">[docs]</a>    <span class="k">def</span> <span class="nf">gridspacing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;gridUnitSI&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="k">return</span> <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;gridSpacing&#39;</span><span class="p">][</span><span class="n">axid</span><span class="p">]</span> <span class="o">*</span> <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;gridUnitSI&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.gridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.gridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">gridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axid</span><span class="p">]</span></div>
+
+<span class="c1"># --- Level 2 methods ---</span>
+
+<div class="viewcode-block" id="OpenPMDreader.timestep"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.timestep">[docs]</a>    <span class="k">def</span> <span class="nf">timestep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteration</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.time"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.time">[docs]</a>    <span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;timeUnitSI&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.simdimensions"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.simdimensions">[docs]</a>    <span class="k">def</span> <span class="nf">simdimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        the number of spatial dimensions the simulation was using.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simgridkeys</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">gs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridspacing</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">gs</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;number of simdimensions could not be retrieved for </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_keyE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">axsuffix</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="mi">90</span><span class="p">:</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="mi">91</span><span class="p">:</span> <span class="s1">&#39;t&#39;</span><span class="p">}[</span><span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="s1">&#39;fields/E/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axsuffix</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_keyB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">axsuffix</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="mi">90</span><span class="p">:</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="mi">91</span><span class="p">:</span> <span class="s1">&#39;t&#39;</span><span class="p">}[</span><span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="s1">&#39;fields/B/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axsuffix</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_simgridkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;fields/E/x&#39;</span><span class="p">,</span> <span class="s1">&#39;fields/E/y&#39;</span><span class="p">,</span> <span class="s1">&#39;fields/E/z&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;fields/B/x&#39;</span><span class="p">,</span> <span class="s1">&#39;fields/B/y&#39;</span><span class="p">,</span> <span class="s1">&#39;fields/B/z&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="OpenPMDreader.listSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.listSpecies">[docs]</a>    <span class="k">def</span> <span class="nf">listSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;particles&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.getSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.getSpecies">[docs]</a>    <span class="k">def</span> <span class="nf">getSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of</span>
+<span class="sd">        this particle species.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attribid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">attribidentify</span><span class="p">[</span><span class="n">attrib</span><span class="p">]</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="mi">9</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/weighting&#39;</span><span class="p">,</span>
+                   <span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/position/x&#39;</span><span class="p">,</span>
+                   <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/position/y&#39;</span><span class="p">,</span>
+                   <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/position/z&#39;</span><span class="p">,</span>
+                   <span class="mi">3</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/momentum/x&#39;</span><span class="p">,</span>
+                   <span class="mi">4</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/momentum/y&#39;</span><span class="p">,</span>
+                   <span class="mi">5</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/momentum/z&#39;</span><span class="p">,</span>
+                   <span class="mi">10</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/id&#39;</span><span class="p">,</span>
+                   <span class="mi">11</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/mass&#39;</span><span class="p">,</span>
+                   <span class="mi">12</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/charge&#39;</span><span class="p">}</span>
+        <span class="n">optionsoffset</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/positionOffset/x&#39;</span><span class="p">,</span>
+                         <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/positionOffset/y&#39;</span><span class="p">,</span>
+                         <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;particles/</span><span class="si">{}</span><span class="s1">/positionOffset/z&#39;</span><span class="p">}</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="n">attribid</span><span class="p">]</span>
+        <span class="n">offsetkey</span> <span class="o">=</span> <span class="n">optionsoffset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attribid</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">species</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">offsetkey</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">offsetkey</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">species</span><span class="p">))</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">IndexError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="OpenPMDreader.getderived"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.OpenPMDreader.getderived">[docs]</a>    <span class="k">def</span> <span class="nf">getderived</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        return all other fields dumped, except E and B.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;fields&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fields/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ret</span> <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;E&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">r</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">))]</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ret</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">r</span><span class="p">],</span> <span class="s1">&#39;value&#39;</span><span class="p">)]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;OpenPMDh5reader at &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;&gt;&#39;</span></div>
+
+
+<div class="viewcode-block" id="FbpicReader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader">[docs]</a><span class="k">class</span> <span class="nc">FbpicReader</span><span class="p">(</span><span class="n">OpenPMDreader</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Special OpenPMDreader for FBpic, which is using an expansion into radial modes.</span>
+
+<span class="sd">    This is subclass of the OpenPMDreader which is converting the modes to</span>
+<span class="sd">    a radial representation.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FbpicReader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">simidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FbpicReader.modeexpansion"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.modeexpansion">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">modeexpansion</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Ntheta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        rawdata has to be shaped (Nm, Nr, Nz).</span>
+
+<span class="sd">        Returns an array of shape (Nr, Ntheta, Nz), with</span>
+<span class="sd">        `Ntheta = (Nm+1)//2`. If Ntheta is given only larger</span>
+<span class="sd">        values are permitted.</span>
+
+<span class="sd">        The corresponding values for theta are given by</span>
+<span class="sd">        `np.linspace(0, 2*np.pi, Ntheta, endpoint=False)`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">rawdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rawdata</span><span class="p">)</span>
+        <span class="n">Nm</span><span class="p">,</span> <span class="n">Nr</span><span class="p">,</span> <span class="n">Nz</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">Ntheta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">theta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">FbpicReader</span><span class="o">.</span><span class="n">_modeexpansion_fft</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">Ntheta</span><span class="o">=</span><span class="n">Ntheta</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">FbpicReader</span><span class="o">.</span><span class="n">_modeexpansion_naiv</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_modeexpansion_naiv_single</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The mode representation will be expanded for a given theta.</span>
+<span class="sd">        rawdata has to have the shape (Nm, Nr, Nz).</span>
+<span class="sd">        the returned array will be of shape (Nr, Nz).</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">rawdata</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">rawdata</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">Nm</span><span class="p">,</span> <span class="n">Nr</span><span class="p">,</span> <span class="n">Nz</span><span class="p">)</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">mult_above_axis</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">mode</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">Nm</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">cos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">mode</span> <span class="o">*</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="n">sin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">mode</span> <span class="o">*</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="n">mult_above_axis</span> <span class="o">+=</span> <span class="p">[</span><span class="n">cos</span><span class="p">,</span> <span class="n">sin</span><span class="p">]</span>
+        <span class="n">mult_above_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">mult_above_axis</span><span class="p">)</span>
+        <span class="n">F_total</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">mult_above_axis</span><span class="p">,</span>
+                               <span class="n">rawdata</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">F_total</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">Nr</span><span class="p">,</span> <span class="n">Nz</span><span class="p">),</span> \
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Assertion error. Please open a new issue on github to report this.</span>
+<span class="sd">            shape={}, Nr={}, Nz={}</span>
+<span class="sd">            &#39;&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">F_total</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">Nr</span><span class="p">,</span> <span class="n">Nz</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">F_total</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_modeexpansion_naiv</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        converts to radial data using `modeexpansion`, possibly for multiple</span>
+<span class="sd">        theta at once.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="p">():</span>
+            <span class="c1"># single theta</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="p">]</span>
+        <span class="c1"># multiple theta</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">FbpicReader</span><span class="o">.</span><span class="n">_modeexpansion_naiv_single</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="n">t</span><span class="p">)</span>
+                           <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">theta</span><span class="p">])</span>
+        <span class="c1"># switch from (theta, r, z) to (r, theta, z)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_modeexpansion_fft</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="n">Ntheta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        calculate the radialdata using an fft. This is by far the fastest</span>
+<span class="sd">        way to do the modeexpansion.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">Nm</span><span class="p">,</span> <span class="n">Nr</span><span class="p">,</span> <span class="n">Nz</span> <span class="o">=</span> <span class="n">rawdata</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">Nth</span> <span class="o">=</span> <span class="p">(</span><span class="n">Nm</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
+        <span class="k">if</span> <span class="n">Ntheta</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">Ntheta</span> <span class="o">&lt;</span> <span class="n">Nth</span><span class="p">:</span>
+            <span class="n">Ntheta</span> <span class="o">=</span> <span class="n">Nth</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">Nr</span><span class="p">,</span> <span class="n">Ntheta</span><span class="p">,</span> <span class="n">Nz</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+
+        <span class="n">fd</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">rawdata</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="n">rawdatasw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">rawdata</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">fd</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="n">Nth</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">rawdatasw</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">fd</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="n">Nth</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">rawdatasw</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+        <span class="k">return</span> <span class="n">fd</span>
+
+    <span class="c1"># override inherited method to count points after mode expansion</span>
+<div class="viewcode-block" id="FbpicReader.gridoffset"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.gridoffset">[docs]</a>    <span class="k">def</span> <span class="nf">gridoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">axid</span> <span class="o">==</span> <span class="mi">91</span><span class="p">:</span>  <span class="c1"># theta</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># r, theta, z</span>
+            <span class="n">axidremap</span> <span class="o">=</span> <span class="p">{</span><span class="mi">90</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">}[</span><span class="n">axid</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">FbpicReader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">gridoffset</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axidremap</span><span class="p">)</span></div>
+
+    <span class="c1"># override inherited method to count points after mode expansion</span>
+<div class="viewcode-block" id="FbpicReader.gridspacing"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.gridspacing">[docs]</a>    <span class="k">def</span> <span class="nf">gridspacing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">axid</span> <span class="o">==</span> <span class="mi">91</span><span class="p">:</span>  <span class="c1"># theta</span>
+            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridpoints</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># r, theta, z</span>
+            <span class="n">axidremap</span> <span class="o">=</span> <span class="p">{</span><span class="mi">90</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">}[</span><span class="n">axid</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">FbpicReader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">gridspacing</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axidremap</span><span class="p">)</span></div>
+
+    <span class="c1"># override inherited method to count points after mode expansion</span>
+<div class="viewcode-block" id="FbpicReader.gridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.gridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">gridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">axid</span> <span class="o">%</span> <span class="mi">90</span>  <span class="c1"># for r and theta</span>
+        <span class="p">(</span><span class="n">Nm</span><span class="p">,</span> <span class="n">Nr</span><span class="p">,</span> <span class="n">Nz</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># Ntheta does technically not exists because of the mode</span>
+        <span class="c1"># representation. To do a proper conversion from the modes to</span>
+        <span class="c1"># the grid, choose Ntheta based on the number of modes.</span>
+        <span class="n">Ntheta</span> <span class="o">=</span> <span class="p">(</span><span class="n">Nm</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">Nr</span><span class="p">,</span> <span class="n">Ntheta</span><span class="p">,</span> <span class="n">Nz</span><span class="p">)[</span><span class="n">axid</span><span class="p">]</span></div>
+
+    <span class="c1"># override</span>
+    <span class="k">def</span> <span class="nf">_defaultaxisorder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gridkey</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">)</span>
+
+    <span class="c1"># override from OpenPMDreader</span>
+<div class="viewcode-block" id="FbpicReader.data"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.data">[docs]</a>    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FbpicReader</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>  <span class="c1"># SI conversion</span>
+        <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;particles&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">raw</span>
+        <span class="c1"># for fields expand the modes into a spatial grid first:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modeexpansion</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># modeexpansion</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="FbpicReader.dataE"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.dataE">[docs]</a>    <span class="k">def</span> <span class="nf">dataE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Ntheta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keyE</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">Ntheta</span><span class="o">=</span><span class="n">Ntheta</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FbpicReader.dataB"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicReader.dataB">[docs]</a>    <span class="k">def</span> <span class="nf">dataB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keyB</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">Ntheta</span><span class="o">=</span><span class="n">Ntheta</span><span class="p">)</span></div>
+
+    <span class="c1"># override</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;FbpicReader at &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot;&gt;&#39;</span></div>
+
+
+<div class="viewcode-block" id="FileSeries"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FileSeries">[docs]</a><span class="k">class</span> <span class="nc">FileSeries</span><span class="p">(</span><span class="n">Simulationreader_ifc</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Reads a time series of dumps from a given directory.</span>
+<span class="sd">    The simidentifier is expanded using glob in order to</span>
+<span class="sd">    find matching files.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simidentifier</span><span class="p">,</span> <span class="n">dumpreadercls</span><span class="o">=</span><span class="n">OpenPMDreader</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FileSeries</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">simidentifier</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dumpreadercls</span> <span class="o">=</span> <span class="n">dumpreadercls</span>
+        <span class="kn">import</span> <span class="nn">glob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">simidentifier</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_getDumpreader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Do not use this method. It will be called by __getitem__.</span>
+<span class="sd">        Use __getitem__ instead.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dumpreadercls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;FileSeries at &quot;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">simidentifier</span> <span class="o">+</span> <span class="s1">&#39;&quot;&gt;&#39;</span></div>
+
+
+<div class="viewcode-block" id="FbpicFileSeries"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.openPMDh5.FbpicFileSeries">[docs]</a><span class="k">class</span> <span class="nc">FbpicFileSeries</span><span class="p">(</span><span class="n">FileSeries</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FbpicFileSeries</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dumpreadercls</span> <span class="o">=</span> <span class="n">FbpicReader</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../datareader.html">postpic.datareader</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

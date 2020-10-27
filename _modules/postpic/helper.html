@@ -1,0 +1,1352 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.helper &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.helper</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel 2014-2017</span>
+<span class="c1"># Alexander Blinne, 2017</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Some global constants that are used in the code.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">npl</span>
+<span class="kn">from</span> <span class="nn">._compat</span> <span class="kn">import</span> <span class="n">meshgrid</span><span class="p">,</span> <span class="n">moveaxis</span><span class="p">,</span> <span class="n">broadcast_to</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numexpr</span> <span class="k">as</span> <span class="nn">ne</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">_ni_support</span><span class="p">,</span> <span class="n">_nd_image</span><span class="p">,</span> <span class="n">spline_filter</span>
+
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+    <span class="n">have_concurrent_futures</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="kn">import</span> <span class="n">ThreadPool</span> <span class="k">as</span> <span class="n">ThreadPoolExecutor</span>
+    <span class="n">have_concurrent_futures</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;PhysicalConstants&#39;</span><span class="p">,</span> <span class="s1">&#39;unstagger_fields&#39;</span><span class="p">,</span> <span class="s1">&#39;kspace_epoch_like&#39;</span><span class="p">,</span> <span class="s1">&#39;kspace&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;kspace_propagate&#39;</span><span class="p">,</span> <span class="s1">&#39;time_profile_at_plane&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">isnotebook</span><span class="p">():</span>
+    <span class="k">return</span> <span class="s1">&#39;ipykernel&#39;</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span>
+
+
+<span class="k">def</span> <span class="nf">jupyter_client_version</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">jupyter_client</span>
+        <span class="k">return</span> <span class="n">jupyter_client</span><span class="o">.</span><span class="n">__version__</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">def</span> <span class="nf">_filterwarnings</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">isnotebook</span><span class="p">():</span>
+        <span class="n">jver</span> <span class="o">=</span> <span class="n">jupyter_client_version</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">jver</span><span class="p">:</span>
+            <span class="n">jmajor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">jver</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">jmajor</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">return</span>
+
+    <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;once&#39;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+
+
+<span class="n">_filterwarnings</span><span class="p">()</span>
+
+
+<span class="n">axesidentify</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;Y&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;Z&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s1">&#39;R&#39;</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">90</span><span class="p">:</span> <span class="mi">90</span><span class="p">,</span>
+                <span class="s1">&#39;theta&#39;</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">91</span><span class="p">:</span> <span class="mi">91</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)}</span>
+<span class="n">attribidentify</span> <span class="o">=</span> <span class="n">axesidentify</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">attribidentify</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;PX&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Px&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;px&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                       <span class="s1">&#39;PY&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Py&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;py&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                       <span class="s1">&#39;PZ&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;Pz&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;pz&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+                       <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                       <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;ID&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                       <span class="s1">&#39;mass&#39;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;Mass&#39;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+                       <span class="s1">&#39;charge&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;Charge&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">})</span>
+
+
+<span class="k">def</span> <span class="nf">deprecated</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Mark functions as deprecated by using this decorator.</span>
+<span class="sd">    msg is an additioanl message that will be displayed.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">_deprecated</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">msg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;The function </span><span class="si">{name}</span><span class="s1"> is deprecated.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># format 2 times, so {name} can be used within {msg}</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;The function </span><span class="si">{name}</span><span class="s2"> is deprecated. </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">deprdoc</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">                .. deprecated:: </span><span class="si">{}</span><span class="s1"></span>
+<span class="s1">                    </span><span class="si">{}</span><span class="s1"></span>
+<span class="s1">                &#39;&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">ret</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">deprdoc</span> <span class="k">if</span> <span class="n">ret</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ret</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">+</span> <span class="n">deprdoc</span>
+        <span class="k">return</span> <span class="n">ret</span>
+    <span class="k">return</span> <span class="n">_deprecated</span>
+
+
+<span class="k">def</span> <span class="nf">append_doc_of</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    decorator to append the doc of `obj` to decorated object/class.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">ret</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">a</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="n">a</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span> <span class="o">+</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="k">return</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">prepend_doc_of</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    decorator to append the doc of `obj` to decorated object/class.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">ret</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">a</span><span class="o">.</span><span class="vm">__doc__</span>
+        <span class="n">a</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">+</span> <span class="n">doc</span>
+        <span class="k">return</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">class</span> <span class="nc">float_with_name</span><span class="p">(</span><span class="nb">float</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="nb">float</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+
+<div class="viewcode-block" id="PhysicalConstants"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.PhysicalConstants">[docs]</a><span class="k">class</span> <span class="nc">PhysicalConstants</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    gives you some constants.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">float_with_name</span><span class="p">(</span><span class="mf">299792458.0</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+    <span class="n">me</span> <span class="o">=</span> <span class="n">float_with_name</span><span class="p">(</span><span class="mf">9.109383e-31</span><span class="p">,</span> <span class="s1">&#39;me&#39;</span><span class="p">)</span>
+    <span class="n">mass_u</span> <span class="o">=</span> <span class="n">float_with_name</span><span class="p">(</span><span class="n">me</span> <span class="o">*</span> <span class="mf">1836.2</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">)</span>
+    <span class="n">qe</span> <span class="o">=</span> <span class="n">float_with_name</span><span class="p">(</span><span class="mf">1.602176565e-19</span><span class="p">,</span> <span class="s1">&#39;qe&#39;</span><span class="p">)</span>
+    <span class="n">mu0</span> <span class="o">=</span> <span class="n">float_with_name</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mf">4e-7</span><span class="p">,</span> <span class="s1">&#39;mu0&#39;</span><span class="p">)</span>  <span class="c1"># N/A^2</span>
+    <span class="n">epsilon0</span> <span class="o">=</span> <span class="n">float_with_name</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">mu0</span> <span class="o">*</span> <span class="n">c</span> <span class="o">**</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">&#39;eps0&#39;</span><span class="p">)</span>  <span class="c1"># 8.85419e-12 As/Vm</span>
+
+<div class="viewcode-block" id="PhysicalConstants.ncrit_um"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.PhysicalConstants.ncrit_um">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ncrit_um</span><span class="p">(</span><span class="n">lambda_um</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Critical plasma density in particles per m^3 for a given</span>
+<span class="sd">        wavelength lambda_um in microns.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">float_with_name</span><span class="p">(</span><span class="mf">1.11e27</span> <span class="o">*</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">lambda_um</span> <span class="o">**</span> <span class="mi">2</span><span class="p">),</span> <span class="s1">&#39;ncrit_um&#39;</span><span class="p">)</span>  <span class="c1"># 1/m^3</span></div>
+
+<div class="viewcode-block" id="PhysicalConstants.ncrit"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.PhysicalConstants.ncrit">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ncrit</span><span class="p">(</span><span class="n">laslambda</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Critical plasma density in particles per m^3 for a given</span>
+<span class="sd">        wavelength laslambda in m.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">float_with_name</span><span class="p">(</span><span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">ncrit_um</span><span class="p">(</span><span class="n">laslambda</span> <span class="o">*</span> <span class="mf">1e6</span><span class="p">),</span> <span class="s1">&#39;ncrit&#39;</span><span class="p">)</span>  <span class="c1"># 1/m^3</span></div></div>
+
+
+<span class="c1"># Some static functions</span>
+<span class="k">def</span> <span class="nf">polar2linear</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">r</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">r</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+
+<span class="k">def</span> <span class="nf">polar2linear_jac</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+    <span class="n">x_theta</span> <span class="o">=</span> <span class="o">-</span><span class="n">r</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">x_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">y_theta</span> <span class="o">=</span> <span class="n">r</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">y_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[[</span><span class="n">x_theta</span><span class="p">,</span> <span class="n">x_r</span><span class="p">],</span> <span class="p">[</span><span class="n">y_theta</span><span class="p">,</span> <span class="n">y_r</span><span class="p">]]</span>
+
+
+<span class="k">def</span> <span class="nf">polar2linear_jacdet</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">r</span>
+
+
+<span class="k">def</span> <span class="nf">linear2polar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">theta</span><span class="p">,</span> <span class="n">r</span>
+
+
+<span class="k">def</span> <span class="nf">map_coordinates_parallel</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">cval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                             <span class="n">prefilter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">chunklen</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Parallalized version of `scipy.ndimage.map_coordinates`.</span>
+
+<span class="sd">    `scipy.ndimage.map_coordinates` is slow for large datasets. Speed improvement can be</span>
+<span class="sd">    achieved by</span>
+
+<span class="sd">     * Splitting the data into chunks</span>
+<span class="sd">     * Performing the transformation of chunks in parallel</span>
+
+<span class="sd">    New parameters:</span>
+
+<span class="sd">    chunklen: Size of the chunks in pixels per axis. Default: None</span>
+<span class="sd">        Special values:</span>
+<span class="sd">            None: Automatic (Chooses a default based on number of dimensions)</span>
+<span class="sd">            0: Do not split data into chunks. (implicitly sets threads==1)</span>
+
+<span class="sd">    threads: Number of threads. Default: None</span>
+<span class="sd">        None: Automatic (One thread per available processing unit)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># this part is taken without change from scipy&#39;s serial implementation</span>
+    <span class="k">if</span> <span class="n">order</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">order</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;spline order not supported&#39;</span><span class="p">)</span>
+    <span class="nb">input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">iscomplexobj</span><span class="p">(</span><span class="nb">input</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Complex type not supported&#39;</span><span class="p">)</span>
+    <span class="n">coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">iscomplexobj</span><span class="p">(</span><span class="n">coordinates</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Complex type not supported&#39;</span><span class="p">)</span>
+    <span class="n">output_shape</span> <span class="o">=</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">if</span> <span class="nb">input</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;input and output rank must be &gt; 0&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">input</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;invalid shape for coordinate array&#39;</span><span class="p">)</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">_ni_support</span><span class="o">.</span><span class="n">_extend_mode_to_code</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">prefilter</span> <span class="ow">and</span> <span class="n">order</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">filtered</span> <span class="o">=</span> <span class="n">spline_filter</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">filtered</span> <span class="o">=</span> <span class="nb">input</span>
+
+    <span class="c1"># return value of `_ni_support._get_output` changed between scipy versions, code here is</span>
+    <span class="c1"># adapted to work with both</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">_ni_support</span><span class="o">.</span><span class="n">_get_output</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">output_shape</span><span class="p">)</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="n">output</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">retval</span> <span class="o">=</span> <span class="n">output</span>
+
+    <span class="c1"># below here there is the new code for splitting into chunks and parallel execution</span>
+    <span class="k">if</span> <span class="n">chunklen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># set defaults</span>
+        <span class="n">chunklen</span> <span class="o">=</span> <span class="mi">128</span>
+        <span class="k">if</span> <span class="n">output</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">chunklen</span> <span class="o">=</span> <span class="mi">1024</span>
+
+    <span class="k">def</span> <span class="nf">chunk_arguments</span><span class="p">(</span><span class="n">filtered</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">ndim</span><span class="p">):</span>
+            <span class="n">chunkstarts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">],</span> <span class="n">chunklen</span><span class="p">)</span>
+            <span class="n">chunkends</span> <span class="o">=</span> <span class="n">chunkstarts</span> <span class="o">+</span> <span class="n">chunklen</span>
+            <span class="n">chunkends</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+            <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span> <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chunkstarts</span><span class="p">,</span> <span class="n">chunkends</span><span class="p">)])</span>
+
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">chunks</span><span class="p">):</span>
+            <span class="n">sub_coordinates</span> <span class="o">=</span> <span class="n">coordinates</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">+</span> <span class="n">chunk</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">filtered_region</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">in_axis</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">filtered</span><span class="o">.</span><span class="n">ndim</span><span class="p">):</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">sub_coordinates</span><span class="p">[</span><span class="n">in_axis</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+                <span class="n">cmin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">c</span><span class="p">)))</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>
+                <span class="n">cmax</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">filtered</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">in_axis</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">c</span><span class="p">)))</span><span class="o">+</span><span class="mi">5</span><span class="p">)</span>
+                <span class="n">sub_coordinates</span><span class="p">[</span><span class="n">in_axis</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">-=</span> <span class="n">cmin</span>
+                <span class="n">filtered_region</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="n">cmin</span><span class="p">,</span> <span class="n">cmax</span><span class="p">))</span>
+            <span class="n">sub_filtered</span> <span class="o">=</span> <span class="n">filtered</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">filtered_region</span><span class="p">)]</span>
+            <span class="n">sub_output</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="n">chunk</span><span class="p">]</span>
+
+            <span class="k">yield</span> <span class="p">(</span><span class="n">sub_filtered</span><span class="p">,</span> <span class="n">sub_coordinates</span><span class="p">,</span> <span class="n">sub_output</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">map_coordinates_chunk</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+        <span class="n">sub_filtered</span><span class="p">,</span> <span class="n">sub_coordinates</span><span class="p">,</span> <span class="n">sub_output</span> <span class="o">=</span> <span class="n">arg</span>
+        <span class="n">_nd_image</span><span class="o">.</span><span class="n">geometric_transform</span><span class="p">(</span><span class="n">sub_filtered</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sub_coordinates</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                                      <span class="n">sub_output</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">cval</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chunklen</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">list_of_chunk_args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chunk_arguments</span><span class="p">(</span><span class="n">filtered</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">output</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">list_of_chunk_args</span> <span class="o">=</span> <span class="p">[(</span><span class="n">filtered</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">output</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_chunk_args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">threads</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">threads</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">threadpool</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">threads</span><span class="p">)</span>
+        <span class="n">my_map</span> <span class="o">=</span> <span class="n">threadpool</span><span class="o">.</span><span class="n">map</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">my_map</span> <span class="o">=</span> <span class="nb">map</span>
+
+    <span class="c1"># execution happens here</span>
+    <span class="nb">list</span><span class="p">(</span><span class="n">my_map</span><span class="p">(</span><span class="n">map_coordinates_chunk</span><span class="p">,</span> <span class="n">list_of_chunk_args</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">threads</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">have_concurrent_futures</span><span class="p">:</span>
+            <span class="n">threadpool</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">threadpool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">threadpool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">retval</span>
+
+
+<span class="k">def</span> <span class="nf">jac_det</span><span class="p">(</span><span class="n">jacobian_func</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculate the determinant of the jacobian as returned by jacobian_func.</span>
+<span class="sd">    Example:</span>
+
+<span class="sd">    def polar2linear_jac(theta, r):</span>
+<span class="sd">        x_theta = -r*np.sin(theta)</span>
+<span class="sd">        x_r = np.cos(theta)</span>
+<span class="sd">        y_theta = r*np.cos(theta)</span>
+<span class="sd">        y_r = np.sin(theta)</span>
+<span class="sd">        return [[x_theta, x_r], [y_theta, y_r]]</span>
+
+<span class="sd">    det_fun = jac_det(polar2linear_jac)</span>
+<span class="sd">    def = det_fun(theta, r)</span>
+
+<span class="sd">    In the case of a scalar function, this function expects jacobian_func to return</span>
+<span class="sd">    the derivative in a 1-element iterable. This behaviour is compatible to the output of</span>
+<span class="sd">    `np.gradient` and `approx_jacobian`.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">):</span>
+        <span class="n">jac</span> <span class="o">=</span> <span class="n">jacobian_func</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">jac</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">jac</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">jacarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([[</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">row</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">jac</span><span class="p">])</span>
+        <span class="n">jacarray</span> <span class="o">=</span> <span class="n">moveaxis</span><span class="p">(</span><span class="n">jacarray</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">npl</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">jacarray</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">fun</span>
+
+
+<span class="k">def</span> <span class="nf">islinear</span><span class="p">(</span><span class="n">grid</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">))))</span>
+
+
+<span class="k">def</span> <span class="nf">monotonicity</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks if an array is strictly monotonically increasing or decreasing.</span>
+<span class="sd">    arr:  Array to be tested</span>
+<span class="sd">    axis: axis along which monotonicality is to be tested. Like np.diff() this</span>
+<span class="sd">          defaults to the last axis.</span>
+<span class="sd">    Returns &quot;1&quot; for a strictly monotonically increasing array, &quot;-1&quot; for a strictly</span>
+<span class="sd">    monotonically decreasing array and &quot;0&quot; for an array that is neither.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dx</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">dx</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="k">def</span> <span class="nf">approx_jacobian</span><span class="p">(</span><span class="n">transform</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Approximate the jacobian of the transformation given by transform.</span>
+<span class="sd">    Example:</span>
+
+<span class="sd">    def polar2linear(theta, r):</span>
+<span class="sd">        x = r*np.cos(theta)</span>
+<span class="sd">        y = r*np.sin(theta)</span>
+<span class="sd">        return x, y</span>
+
+<span class="sd">    polar2linear_jac_approx = approx_jacobian(polar2linear)</span>
+<span class="sd">    jacobian = polar2linear_jac_approx(theta, r)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">):</span>
+        <span class="n">ravel_coords</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">]</span>
+
+        <span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="kn">import</span> <span class="n">parse_version</span>
+        <span class="k">if</span> <span class="n">parse_version</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">parse_version</span><span class="p">(</span><span class="s1">&#39;1.13&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">islinear</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ravel_coords</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="bp">NotImplemented</span><span class="p">(</span><span class="s1">&#39;Numerically approximating the Jacobian on a transform to a &#39;</span>
+                                     <span class="s1">&#39;non-equidistant grid is not implemented for numpy &lt; 1.13.&#39;</span><span class="p">)</span>
+            <span class="n">ravel_coords</span> <span class="o">=</span> <span class="p">[(</span><span class="n">r</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ravel_coords</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># this specific case breaks np.broadcast in numpy 1.8.1 and older</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">mapped_coords</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">mapped_coords</span> <span class="o">=</span> <span class="p">[</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mapped_coords</span><span class="p">]</span>
+        <span class="n">jac</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">ravel_coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">mapped_coords</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">jac</span>
+    <span class="k">return</span> <span class="n">fun</span>
+
+
+<span class="k">def</span> <span class="nf">approx_1d_jacobian_det</span><span class="p">(</span><span class="n">transform</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Approximate the &quot;Jacobian determinant&quot; of a 1d transformation, which is basically</span>
+<span class="sd">    just the derivative.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">coords</span><span class="p">):</span>
+        <span class="n">epsilon</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">epsilon</span> <span class="o">+</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="n">coords</span>
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">((</span><span class="n">transform</span><span class="p">(</span><span class="n">coords</span> <span class="o">+</span> <span class="n">dx</span><span class="p">)</span> <span class="o">-</span> <span class="n">transform</span><span class="p">(</span><span class="n">coords</span> <span class="o">-</span> <span class="n">dx</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">dx</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">fun</span>
+
+
+<span class="k">def</span> <span class="nf">is_non_integer_real_number</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tests if an object ix is a real number and not an integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">max_frac_bounds</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">fraction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For a 1d Array `array` this function gives indices `a`, `b` such that all values</span>
+<span class="sd">    `array[:a]` and `array[b:]` are smaller than `fraction*max(array)`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">array</span><span class="p">)</span><span class="o">*</span><span class="n">fraction</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">array</span> <span class="o">&gt;</span> <span class="n">c</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span>
+
+
+<span class="k">def</span> <span class="nf">product</span><span class="p">(</span><span class="n">iterable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the cumulative product of objects from iterable.</span>
+<span class="sd">    This uses the first object from the iterable as a starting point and thus the iterable</span>
+<span class="sd">    must have at least one object in it, otherwise the function will fail.</span>
+
+<span class="sd">    Example: product(range(n)) == math.factorial(n)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+
+<span class="k">class</span> <span class="nc">FFTW_Pad</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    FFTW_Pad is a class whichs objects are callables that are suitable as `fft_padsize`</span>
+<span class="sd">    arguments to `Field.fft_autopad` and calculate optimal padding sizes for FFTW.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fftsize_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">)):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Calculate all &#39;good&#39; sizes up to fftsize_max, using the given factors.</span>
+<span class="sd">        While at it, make sure that at most one factor 11 or 13 exists.</span>
+
+<span class="sd">        FFTW documentation says: &quot;FFTW is best at handling sizes of the form 2^a 3^b 5^c</span>
+<span class="sd">        7^d 11^e 13^f, where e+f is either 0 or 1, and the other exponents are arbitrary.&quot;</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="o">=</span> <span class="n">factors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fftsize_max</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">fftsize_max</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">fftsize_max</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fftsize_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fftsize_max</span>
+
+    <span class="nd">@fftsize_max</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fftsize_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fftsize_max</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fftsize_max</span> <span class="o">=</span> <span class="n">fftsize_max</span>
+
+        <span class="n">extra_factors</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">:</span>
+                <span class="n">extra_factors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">factors</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">fftsizes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">extra_factor</span> <span class="ow">in</span> <span class="n">extra_factors</span><span class="p">:</span>
+            <span class="n">max_powers</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">fftsize_max</span><span class="o">/</span><span class="n">extra_factor</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">]</span>
+            <span class="n">powers_ranges</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">range</span><span class="p">,</span> <span class="n">max_powers</span><span class="p">)</span>
+            <span class="n">fftsizes</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">extra_factor</span><span class="o">*</span><span class="n">product</span><span class="p">(</span><span class="n">f</span><span class="o">**</span><span class="n">p</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">powers</span><span class="p">))</span>
+                            <span class="k">for</span> <span class="n">powers</span>
+                            <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">powers_ranges</span><span class="p">)</span>  <span class="c1"># build all combination of pwrs</span>
+                            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fftsizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">fftsize_max</span><span class="p">,</span> <span class="n">fftsizes</span><span class="p">))))</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        In the list of sizes calculated at initialization, find the next good value equal</span>
+<span class="sd">        or larger than a given `n`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftsizes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># make sure values are calculated, such that a good fftsize</span>
+            <span class="c1"># larger than n can be found. +10000 sould be safe for that purpose</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fftsize_max</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">10000</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fftsizes</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftsizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+
+<span class="n">fftw_padsize</span> <span class="o">=</span> <span class="n">FFTW_Pad</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">fft_padsize_power2</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">n</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">omega_yee_factory</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a function omega_yee that is suitable as input for kspace.</span>
+<span class="sd">    Pass the returned function as omega_func to kspace</span>
+
+<span class="sd">    dx: a list of the grid spacings, e. g.</span>
+<span class="sd">    dx = [ax.grid[1] - ax.grid[0] for ax in dumpreader.Ey().axes]</span>
+
+<span class="sd">    dt: time step, e. g.</span>
+<span class="sd">    dt = dumpreader.time()/dumpreader.timestep()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">omega_yee</span><span class="p">(</span><span class="n">kmesh</span><span class="p">):</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">kxi</span> <span class="o">*</span> <span class="n">dxi</span><span class="p">)</span> <span class="o">/</span> <span class="n">dxi</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">kxi</span><span class="p">,</span> <span class="n">dxi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">kmesh</span><span class="p">,</span> <span class="n">dx</span><span class="p">))</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span><span class="o">/</span><span class="n">dt</span>
+        <span class="k">return</span> <span class="n">omega</span>
+    <span class="k">return</span> <span class="n">omega_yee</span>
+
+
+<span class="k">def</span> <span class="nf">omega_free</span><span class="p">(</span><span class="n">mesh</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the free space (vacuum) dispersion relation on the k-mesh `mesh`.</span>
+
+<span class="sd">    `mesh`: a mesh grid of the k vector space, typically a sparse grid as provided by</span>
+<span class="sd">    Field.meshgrid().</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k2</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ki</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="n">mesh</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">k2</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="unstagger_fields"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.unstagger_fields">[docs]</a><span class="k">def</span> <span class="nf">unstagger_fields</span><span class="p">(</span><span class="o">*</span><span class="n">fields</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Unstagger a collection of fields.</span>
+
+<span class="sd">    This functions shifts the origins of the grids of the given fields such that they coincide.</span>
+<span class="sd">    Since the choice of the common origin is somewhat arbitrary, it might be overriden by a</span>
+<span class="sd">    keyword-argument `origin`, as may be the interpolation `method`. See `Field.shift_grid_by`</span>
+<span class="sd">    for available methods.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">method</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s2">&quot;fourier&quot;</span><span class="p">)</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">field</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fields have different shapes&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="nb">all</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">islinear</span><span class="p">())</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fields have non-linear axes&quot;</span><span class="p">)</span>
+
+    <span class="n">spacing</span> <span class="o">=</span> <span class="p">[</span><span class="n">ax</span><span class="o">.</span><span class="n">spacing</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">spacing</span><span class="p">,</span> <span class="p">[</span><span class="n">ax</span><span class="o">.</span><span class="n">spacing</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">axes</span><span class="p">]))</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fields have unequal grid spacing&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">origin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">origins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
+                            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span>
+                            <span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">origins</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="n">origins</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="n">new_fields</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="n">fo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">axes</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">fo</span><span class="p">)):</span>
+            <span class="n">new_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">origin</span><span class="o">-</span><span class="n">fo</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">dx</span><span class="o">/</span><span class="n">spacing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Distance of grids is larger than twice the grid spacing&#39;</span><span class="p">)</span>
+
+        <span class="n">nf</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">shift_grid_by</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isrealobj</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+            <span class="n">nf</span> <span class="o">=</span> <span class="n">nf</span><span class="o">.</span><span class="n">real</span>
+        <span class="n">new_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nf</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_fields</span></div>
+
+
+<span class="k">def</span> <span class="nf">_kspace_helper_cutfields</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">extent</span><span class="p">):</span>
+    <span class="n">slices</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="n">component</span><span class="p">]</span><span class="o">.</span><span class="n">_extent_to_slices</span><span class="p">(</span><span class="n">extent</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">f</span><span class="p">[</span><span class="n">slices</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
+<span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;This function is left in postpic only for comparison. Use `kspace_epoch_like` &quot;</span>
+            <span class="s2">&quot;for real work.&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">kspace_epoch_like_old</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omega_func</span><span class="o">=</span><span class="n">omega_free</span><span class="p">,</span> <span class="n">align_to</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Reconstruct the physical kspace of one polarization component</span>
+<span class="sd">    See documentation of kspace</span>
+
+<span class="sd">    This will choose the alignment of the fields in a way to improve</span>
+<span class="sd">    accuracy on EPOCH-like staggered dumps.</span>
+
+<span class="sd">    This is the old version of the function and will be removed once the new method</span>
+<span class="sd">    is sufficiently tested</span>
+
+<span class="sd">    For the current version of EPOCH, v4.9, use the following:</span>
+<span class="sd">    align_to == &#39;B&#39; for intermediate dumps, align_to == &quot;E&quot; for final dumps</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">polfield</span> <span class="o">=</span> <span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">polaxis</span> <span class="o">=</span> <span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+    <span class="c1"># apply extent to all fields</span>
+    <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">ensure_spatial_domain</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">_kspace_helper_cutfields</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">extent</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">polfield</span> <span class="o">==</span> <span class="n">align_to</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">kspace</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">omega_func</span><span class="o">=</span><span class="n">omega_func</span><span class="p">)</span>
+
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">[</span><span class="n">component</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">])</span><span class="o">/</span><span class="mf">2.0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dx</span><span class="p">[</span><span class="n">polaxis</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">polfield</span> <span class="o">==</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span>
+        <span class="n">dx</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">fields</span><span class="p">[</span><span class="n">component</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="n">component</span><span class="p">])</span>
+    <span class="n">fields</span><span class="p">[</span><span class="n">component</span><span class="p">]</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="n">component</span><span class="p">]</span><span class="o">.</span><span class="n">shift_grid_by</span><span class="p">(</span><span class="n">dx</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kspace</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;fourier&#39;</span><span class="p">,</span> <span class="n">omega_func</span><span class="o">=</span><span class="n">omega_func</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_linear_interpolation_frequency_response</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the frequency response of a convolution with a [1-a, a] kernel, which is</span>
+<span class="sd">    basically a linear interpolation.</span>
+<span class="sd">    Assume a grid-step of `dt` and use a grid which `n` points.</span>
+
+<span class="sd">    `dt`: physical grid-step on which linear interpolation is done</span>
+<span class="sd">    `a`: shift distance of the linear interpolation in units of dt</span>
+
+<span class="sd">    Returns a function which takes omega as an input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">omega</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">a</span><span class="p">)</span><span class="o">+</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">dt</span><span class="o">*</span><span class="n">omega</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">f</span>
+
+
+<span class="k">def</span> <span class="nf">_linear_interpolation_frequency_response_on_k</span><span class="p">(</span><span class="n">lin_response_omega</span><span class="p">,</span> <span class="n">k_axes</span><span class="p">,</span> <span class="n">omega_func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remap the frequency response `lin_response_omega` from frequencies to wave-vectors.</span>
+
+<span class="sd">    `lin_response_omega`: frequency response function depending on omega, e.g. output of</span>
+<span class="sd">                          `_linear_interpolation_frequency_response`.</span>
+<span class="sd">    `k_axes`: A list of axes objects to map the response to, e.g. Field.axes</span>
+<span class="sd">    `omega_func`: The dispersion relation used to map k vectors to omega, e.g.</span>
+<span class="sd">                  `omega_yee_factory(dx, dt)`.</span>
+
+<span class="sd">    Returns the function f(k) as a Field object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">datahandling</span>
+
+    <span class="n">kmesh</span> <span class="o">=</span> <span class="n">meshgrid</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">k_axes</span><span class="p">],</span> <span class="n">indexing</span><span class="o">=</span><span class="s1">&#39;ij&#39;</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">resp_mat</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lin_response_omega</span><span class="p">(</span><span class="n">omega_func</span><span class="p">(</span><span class="n">kmesh</span><span class="p">)))</span>
+
+    <span class="n">lin_res_k</span> <span class="o">=</span> <span class="n">datahandling</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="n">resp_mat</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;f&#39;</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">k_axes</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lin_res_k</span>
+
+
+<div class="viewcode-block" id="kspace_epoch_like"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.kspace_epoch_like">[docs]</a><span class="k">def</span> <span class="nf">kspace_epoch_like</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omega_func</span><span class="o">=</span><span class="n">omega_free</span><span class="p">,</span> <span class="n">align_to</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Reconstruct the physical kspace of one polarization component</span>
+<span class="sd">    See documentation of kspace</span>
+
+<span class="sd">    This function will use special care to make sure, that the implicit linear interpolation</span>
+<span class="sd">    introduced by Epochs half-steps will not impede the accuracy of the reconstructed k-space.</span>
+<span class="sd">    The frequency response of the linear interpolation is modelled and removed from the</span>
+<span class="sd">    interpolated fields.</span>
+
+<span class="sd">    `dt`: time-step of the simulation, this is used to calculate the frequency response due</span>
+<span class="sd">    to the linear interpolated half-steps</span>
+
+<span class="sd">    For the current version of EPOCH, v4.9, use the following:</span>
+<span class="sd">    align_to == &#39;B&#39; for intermediate dumps, align_to == &quot;E&quot; for final dumps</span>
+
+<span class="sd">    As of Jan 2019 the devel branch contains a change, that will modify the behaviour of final</span>
+<span class="sd">    dumps to be the same as intermediate dumps. This change is supposed to be released with</span>
+<span class="sd">    Epoch v5.0. See https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch/issues/1896 for details. From</span>
+<span class="sd">    Epoch v5.0 onwards, align_to should always be set to &#39;B&#39;.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">polfield</span> <span class="o">=</span> <span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">polaxis</span> <span class="o">=</span> <span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+    <span class="n">main_field_key</span> <span class="o">=</span> <span class="n">component</span>
+    <span class="n">other_field_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">other_field_keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">main_field_key</span><span class="p">)</span>
+
+    <span class="c1"># apply extent to all fields</span>
+    <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">ensure_spatial_domain</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">_kspace_helper_cutfields</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">extent</span><span class="p">)</span>
+
+    <span class="c1"># for k, v in fields.items():</span>
+    <span class="c1">#     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])</span>
+
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">ensure_frequency_domain</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="n">lin_res</span> <span class="o">=</span> <span class="n">_linear_interpolation_frequency_response</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+    <span class="n">lin_res_k</span> <span class="o">=</span> <span class="n">_linear_interpolation_frequency_response_on_k</span><span class="p">(</span><span class="n">lin_res</span><span class="p">,</span> <span class="n">fields</span><span class="p">[</span><span class="n">main_field_key</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">,</span>
+                                                              <span class="n">omega_func</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">polfield</span> <span class="o">!=</span> <span class="n">align_to</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">other_field_keys</span><span class="p">:</span>
+            <span class="c1"># print(&#39;apply lin_response to &#39;, c, &#39;transform_state is&#39;,</span>
+            <span class="c1">#       fields[c]._transform_state())</span>
+            <span class="n">fields</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">/</span> <span class="n">lin_res_k</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># print(&#39;apply lin_response to &#39;, main_field_key, &#39;transform_state is&#39;,</span>
+        <span class="c1">#       fields[main_field_key]._transform_state())</span>
+        <span class="n">fields</span><span class="p">[</span><span class="n">main_field_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="n">main_field_key</span><span class="p">]</span> <span class="o">/</span> <span class="n">lin_res_k</span>
+
+    <span class="c1"># for k, v in fields.items():</span>
+    <span class="c1">#     print(k, v.extent, [(a[0], a[-1]) for a in v._conjugate_grid().values()])</span>
+
+    <span class="k">return</span> <span class="n">kspace</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;fourier&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="kspace"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.kspace">[docs]</a><span class="k">def</span> <span class="nf">kspace</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omega_func</span><span class="o">=</span><span class="n">omega_free</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Reconstruct the physical kspace of one polarization component</span>
+<span class="sd">    This function basically computes one component of</span>
+<span class="sd">        E = 0.5*(E - omega/k^2 * Cross[k, B])</span>
+<span class="sd">    or</span>
+<span class="sd">        B = 0.5*(B + 1/omega * Cross[k, E]).</span>
+
+<span class="sd">    component must be one of [&quot;Ex&quot;, &quot;Ey&quot;, &quot;Ez&quot;, &quot;Bx&quot;, &quot;By&quot;, &quot;Bz&quot;].</span>
+
+<span class="sd">    The necessary fields must be given in the dict fields with keys</span>
+<span class="sd">    chosen from [&quot;Ex&quot;, &quot;Ey&quot;, &quot;Ez&quot;, &quot;Bx&quot;, &quot;By&quot;, &quot;Bz&quot;].</span>
+<span class="sd">    Which are needed depends on the chosen component and</span>
+<span class="sd">    the dimensionality of the fields. In 3D the following fields are necessary:</span>
+
+<span class="sd">    Ex, By, Bz -&gt; Ex</span>
+<span class="sd">    Ey, Bx, Bz -&gt; Ey</span>
+<span class="sd">    Ez, Bx, By -&gt; Ez</span>
+
+<span class="sd">    Bx, Ey, Ez -&gt; Bx</span>
+<span class="sd">    By, Ex, Ez -&gt; By</span>
+<span class="sd">    Bz, Ex, Ey -&gt; Bz</span>
+
+<span class="sd">    In 2D, components which have &quot;k_z&quot; in front of them (see cross-product in</span>
+<span class="sd">    equations above) are not needed.</span>
+<span class="sd">    In 1D, components which have &quot;k_y&quot; or &quot;k_z&quot; in front of them (see</span>
+<span class="sd">    cross-product in equations above) are not needed.</span>
+
+<span class="sd">    The keyword-argument extent may be a list of values [xmin, xmax, ymin, ymax, ...]</span>
+<span class="sd">    which denote a region of the Fields on which to execute the kspace</span>
+<span class="sd">    reconstruction.</span>
+
+<span class="sd">    The keyword-argument interpolation indicates whether interpolation should be</span>
+<span class="sd">    used to remove the grid stagger. If interpolation is None, this function</span>
+<span class="sd">    works only for non-staggered grids. Other choices for interpolation are</span>
+<span class="sd">    &quot;linear&quot; and &quot;fourier&quot;.</span>
+
+<span class="sd">    The keyword-argument omega_func may be used to pass a function that will</span>
+<span class="sd">    calculate the dispersion relation of the simulation may be given. The</span>
+<span class="sd">    function will receive one argument that contains the k mesh.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># target field is polfield and the other field is otherfield</span>
+    <span class="n">polfield</span> <span class="o">=</span> <span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">otherfield</span> <span class="o">=</span> <span class="s1">&#39;B&#39;</span> <span class="k">if</span> <span class="n">polfield</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span> <span class="k">else</span> <span class="s1">&#39;E&#39;</span>
+
+    <span class="c1"># apply extent to all fields</span>
+    <span class="k">if</span> <span class="n">extent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">ensure_spatial_domain</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">_kspace_helper_cutfields</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">extent</span><span class="p">)</span>
+
+    <span class="c1"># polarization axis</span>
+    <span class="n">polaxis</span> <span class="o">=</span> <span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+    <span class="c1"># build a dict of the keys of the fields-dict</span>
+    <span class="n">field_keys</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;Ex&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;Ey&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;Ez&#39;</span><span class="p">},</span>
+                  <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;Bx&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;By&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;Bz&#39;</span><span class="p">}}</span>
+
+    <span class="c1"># copy the polfield as a starting point for the result</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="n">field_keys</span><span class="p">[</span><span class="n">polfield</span><span class="p">][</span><span class="n">polaxis</span><span class="p">]]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Required field </span><span class="si">{}</span><span class="s2"> not present in fields&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">component</span><span class="p">))</span>
+
+    <span class="c1"># Change to frequency domain</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">ensure_frequency_domain</span><span class="p">()</span>
+
+    <span class="n">result_spatial_grid</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">_conjugate_grid</span><span class="p">()</span>
+    <span class="n">result_spatial_grid</span> <span class="o">=</span> <span class="p">[</span><span class="n">result_spatial_grid</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">result_spatial_grid</span><span class="o">.</span><span class="n">keys</span><span class="p">())]</span>
+
+    <span class="c1"># remember the origins of result&#39;s axes to compare with other fields</span>
+    <span class="n">result_origin</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">result_spatial_grid</span><span class="p">]</span>
+
+    <span class="c1"># store box size of input field</span>
+    <span class="n">Dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">g</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">result_spatial_grid</span><span class="p">])</span>
+
+    <span class="c1"># store grid spacing of input field</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">result_spatial_grid</span><span class="p">])</span>
+
+    <span class="c1"># print(&#39;result_origin&#39;, result_origin, Dx, dx)</span>
+
+    <span class="c1"># calculate the k mesh and k^2</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">meshgrid</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">axes</span><span class="p">],</span> <span class="n">indexing</span><span class="o">=</span><span class="s1">&#39;ij&#39;</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">k2</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ki</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">ki</span> <span class="ow">in</span> <span class="n">mesh</span><span class="p">)</span>
+
+    <span class="c1"># calculate omega, either using the vacuum expression or omega_func()</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="n">omega_func</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
+
+    <span class="c1"># calculate the prefactor in front of the cross product</span>
+    <span class="c1"># this will produce nan/inf in specific places, which are replaced by 0</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">divide</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">polfield</span> <span class="o">==</span> <span class="s2">&quot;E&quot;</span><span class="p">:</span>
+            <span class="n">prefactor</span> <span class="o">=</span> <span class="n">omega</span><span class="o">/</span><span class="n">k2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prefactor</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="n">omega</span>
+
+    <span class="n">prefactor</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">prefactor</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">prefactor</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">prefactor</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># add/subtract the two terms of the cross-product</span>
+    <span class="c1"># i chooses the otherfield component  (polaxis+i) % 3</span>
+    <span class="c1"># mesh_i chooses the k-axis component (polaxis-i) % 3</span>
+    <span class="c1"># which recreates the crossproduct</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">mesh_i</span> <span class="o">=</span> <span class="p">(</span><span class="n">polaxis</span><span class="o">-</span><span class="n">i</span><span class="p">)</span> <span class="o">%</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">mesh_i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">mesh</span><span class="p">):</span>
+            <span class="c1"># copy the otherfield component, transform and reverse the grid stagger</span>
+            <span class="n">field_key</span> <span class="o">=</span> <span class="n">field_keys</span><span class="p">[</span><span class="n">otherfield</span><span class="p">][(</span><span class="n">polaxis</span><span class="o">+</span><span class="n">i</span><span class="p">)</span> <span class="o">%</span> <span class="mi">3</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">field</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="n">field_key</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Required field </span><span class="si">{}</span><span class="s2"> not present in fields&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="p">))</span>
+
+            <span class="n">field_transform_state</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">_transform_state</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">field_transform_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">interpolation</span> <span class="o">==</span> <span class="s1">&#39;linear&#39;</span><span class="p">:</span>
+                    <span class="n">field</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">ensure_spatial_domain</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">field</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">ensure_frequency_domain</span><span class="p">()</span>
+
+            <span class="n">field_transform_state</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">_transform_state</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">field_transform_state</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">field_spatial_grid</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">_conjugate_grid</span><span class="p">()</span>
+                <span class="n">field_spatial_grid</span> <span class="o">=</span> <span class="p">[</span><span class="n">field_spatial_grid</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span>
+                                      <span class="nb">sorted</span><span class="p">(</span><span class="n">field_spatial_grid</span><span class="o">.</span><span class="n">keys</span><span class="p">())]</span>
+
+                <span class="c1"># remember the origins of result&#39;s axes to compare with other fields</span>
+                <span class="n">field_origin</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">field_spatial_grid</span><span class="p">]</span>
+
+                <span class="c1"># store box size of input field</span>
+                <span class="n">oDx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">g</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">field_spatial_grid</span><span class="p">])</span>
+
+                <span class="c1"># store grid spacing of input field</span>
+                <span class="c1"># odx = np.array([g[1] - g[0] for g in field_spatial_grid])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">field_origin</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
+
+                <span class="c1"># remember the origin and box size of the field</span>
+                <span class="n">oDx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">field</span><span class="o">.</span><span class="n">axes</span><span class="p">])</span>
+
+            <span class="c1"># Test if all fields have the same number of grid points</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">field</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All given Fields must have the same number of grid points. &quot;</span>
+                                 <span class="s2">&quot;Field </span><span class="si">{}</span><span class="s2"> has a different shape than </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_key</span><span class="p">,</span>
+                                                                                  <span class="n">component</span><span class="p">))</span>
+
+            <span class="c1"># Test if the axes of all fields have the same lengths</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">Dx</span><span class="p">,</span> <span class="n">oDx</span><span class="p">)):</span>
+                <span class="c1"># print(Dx, oDx)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The axes of all given Fields must have the same length. &quot;</span>
+                                 <span class="s2">&quot;Field </span><span class="si">{}</span><span class="s2"> has a different extent than </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_key</span><span class="p">,</span>
+                                                                                   <span class="n">component</span><span class="p">))</span>
+
+            <span class="c1"># Test if all fields have same grid origin...</span>
+            <span class="k">if</span> <span class="n">interpolation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">result_origin</span><span class="p">,</span> <span class="n">field_origin</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The grids of all given Fields should have the same origin.&quot;</span>
+                                     <span class="s2">&quot;The origin of </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">) differs from the origin of </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">).&quot;</span>
+                                     <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_key</span><span class="p">,</span> <span class="n">field_origin</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">result_origin</span><span class="p">))</span>
+
+            <span class="c1"># ...or at least approximately the same origin, when interpolation is activated</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">grid_shift</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">so</span><span class="o">-</span><span class="n">to</span> <span class="k">for</span> <span class="n">so</span><span class="p">,</span> <span class="n">to</span> <span class="ow">in</span>
+                    <span class="nb">zip</span><span class="p">(</span><span class="n">result_origin</span><span class="p">,</span> <span class="n">field_origin</span><span class="p">)</span>
+                <span class="p">]</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">grid_shift</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">2.</span><span class="o">*</span><span class="n">dx</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The grids of all given Fields should have approximately the &quot;</span>
+                                     <span class="s2">&quot;same origin. The origin of </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">) differs from the origin &quot;</span>
+                                     <span class="s2">&quot;of </span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">) by more than 2 dx.&quot;</span>
+                                     <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field_key</span><span class="p">,</span> <span class="n">field_origin</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">result_origin</span><span class="p">))</span>
+
+            <span class="c1"># linear interpolation is applied before the fft</span>
+            <span class="k">if</span> <span class="n">interpolation</span> <span class="o">==</span> <span class="s1">&#39;linear&#39;</span><span class="p">:</span>
+                <span class="n">field</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">ensure_spatial_domain</span><span class="p">()</span><span class="o">.</span><span class="n">shift_grid_by</span><span class="p">(</span><span class="n">grid_shift</span><span class="p">,</span>
+                                                                    <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+
+            <span class="n">field</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">ensure_frequency_domain</span><span class="p">()</span>
+
+            <span class="c1"># fourier interpolation is done implicitly by the fft code</span>
+            <span class="k">if</span> <span class="n">interpolation</span> <span class="o">==</span> <span class="s1">&#39;fourier&#39;</span><span class="p">:</span>
+                <span class="n">field</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">_shift_grid_by_fourier</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">grid_shift</span><span class="p">)),</span> <span class="n">skip_fft</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># add the field to the result with the appropriate prefactor</span>
+            <span class="c1"># result.matrix += (-1)**(i-1) * prefactor * mesh[mesh_i] * field.matrix</span>
+            <span class="n">mesh_mesh_i</span> <span class="o">=</span> <span class="n">mesh</span><span class="p">[</span><span class="n">mesh_i</span><span class="p">]</span>
+            <span class="n">rm</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">matrix</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">matrix</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">matrix</span> <span class="o">=</span> <span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;rm + (-1)**(i-1) * prefactor * mesh_mesh_i * fm&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="k">def</span> <span class="nf">_linear_phase</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">phi0</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculates the linear phase as used in Field._apply_linear_phase and</span>
+<span class="sd">    _kspace_propagate_generator.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">transform_state</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">_transform_state</span><span class="p">(</span><span class="n">dx</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="c1"># build mesh</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">()</span>
+
+    <span class="c1"># prepare mesh for numexpr-dict</span>
+    <span class="n">kdict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;k</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">k</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mesh</span><span class="p">)}</span>
+    <span class="n">kdict</span><span class="p">[</span><span class="s1">&#39;phi0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi0</span>
+
+    <span class="c1"># calculate linear phase</span>
+    <span class="c1"># arg = sum([dx[i]*mesh[i] for i in dx.keys()])</span>
+    <span class="n">arg_expr</span> <span class="o">=</span> <span class="s1">&#39;+&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">*k</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dx</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">transform_state</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">exp_ikdx_expr</span> <span class="o">=</span> <span class="s1">&#39;exp(1j * (</span><span class="si">{arg}</span><span class="s1"> + phi0))&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg</span><span class="o">=</span><span class="n">arg_expr</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">exp_ikdx_expr</span> <span class="o">=</span> <span class="s1">&#39;exp(-1j * (</span><span class="si">{arg}</span><span class="s1"> + phi0))&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg</span><span class="o">=</span><span class="n">arg_expr</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exp_ikdx_expr</span><span class="p">,</span> <span class="n">kdict</span>
+
+
+<span class="k">def</span> <span class="nf">linear_phase</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">phi0</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculates the linear phase as used in Field._apply_linear_phase and</span>
+<span class="sd">    _kspace_propagate_generator.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">exp_ikdx_expr</span><span class="p">,</span> <span class="n">kdict</span> <span class="o">=</span> <span class="n">_linear_phase</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">phi0</span><span class="o">=</span><span class="n">phi0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">exp_ikdx_expr</span><span class="p">,</span> <span class="n">local_dict</span><span class="o">=</span><span class="n">kdict</span><span class="p">,</span> <span class="n">global_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_kspace_propagate_generator</span><span class="p">(</span><span class="n">kspace</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">moving_window_vect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">move_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">remove_antipropagating_waves</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">yield_zeroth_step</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">use_numexpr_in_inner_loop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Evolve time on a field.</span>
+<span class="sd">    This function checks the transform_state of the field and transforms first from spatial</span>
+<span class="sd">    domain to frequency domain if necessary. In this case the inverse transform will also</span>
+<span class="sd">    be applied to the result before returning it. This works, however, only correctly with</span>
+<span class="sd">    fields that are the inverse transforms of a k-space reconstruction, i.e. with complex</span>
+<span class="sd">    fields.</span>
+
+<span class="sd">    dt: time in seconds</span>
+
+<span class="sd">    This function will return an infinite generator that will do arbitrary many time steps.</span>
+
+<span class="sd">    If yield_zeroth_step is True, then the kspace will also be yielded after removing the</span>
+<span class="sd">    antipropagating waves, but before the first actual step is done.</span>
+
+<span class="sd">    If a vector moving_window_vect is passed to this function, which is ideally identical</span>
+<span class="sd">    to the mean propagation direction of the field in forward time direction,</span>
+<span class="sd">    an additional linear phase is applied in order to keep the pulse inside of the box.</span>
+<span class="sd">    This effectively enables propagation in a moving window.</span>
+<span class="sd">    If dt is negative, the window will actually move the opposite direction of</span>
+<span class="sd">    moving_window_vect.</span>
+<span class="sd">    Additionally, all modes which propagate in the opposite direction of the moving window,</span>
+<span class="sd">    i.e. all modes for which dot(moving_window_vect, k)&lt;0, will be deleted.</span>
+
+<span class="sd">    The motion of the window can be inhibited by specifying move_window=False.</span>
+<span class="sd">    If move_window is None, the moving window is automatically enabled if moving_window_vect</span>
+<span class="sd">    is given.</span>
+
+<span class="sd">    The deletion of the antipropagating modes can be inhibited by specifying</span>
+<span class="sd">    remove_antipropagating_waves=False.</span>
+<span class="sd">    If remove_antipropagating_waves is None, the deletion of the antipropagating modes</span>
+<span class="sd">    is automatically enabled if moving_window_vect is given.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">transform_state</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">_transform_state</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">transform_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;kspace must have the same transform_state on all axes. &quot;</span>
+                         <span class="s2">&quot;Please make sure that either all axes &#39;live&#39; in spatial domain or all &quot;</span>
+                         <span class="s2">&quot;axes &#39;live&#39; in frequency domain.&quot;</span><span class="p">)</span>
+
+    <span class="n">do_fft</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">transform_state</span>
+
+    <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+
+    <span class="c1"># calculate free space dispersion relation</span>
+
+    <span class="c1"># optimized version of</span>
+    <span class="c1"># omega = PhysicalConstants.c * np.sqrt(sum(k**2 for k in kspace.meshgrid()))</span>
+    <span class="c1"># using numexpr:</span>
+    <span class="n">kdict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;k</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">):</span> <span class="n">k</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">())}</span>
+    <span class="n">k2_expr</span> <span class="o">=</span> <span class="s1">&#39;+&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">**2&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">kdict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="n">numexpr_vars</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+    <span class="n">numexpr_vars</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kdict</span><span class="p">)</span>
+    <span class="n">omega_expr</span> <span class="o">=</span> <span class="s1">&#39;c*sqrt(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k2_expr</span><span class="p">)</span>
+    <span class="n">exp_iwt_expr</span> <span class="o">=</span> <span class="s1">&#39;exp(-1j * </span><span class="si">{omega}</span><span class="s1"> * dt)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">omega</span><span class="o">=</span><span class="n">omega_expr</span><span class="p">)</span>
+    <span class="n">exp_iwt</span> <span class="o">=</span> <span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">exp_iwt_expr</span><span class="p">,</span>
+                          <span class="n">local_dict</span><span class="o">=</span><span class="n">numexpr_vars</span><span class="p">,</span>
+                          <span class="n">global_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># calculate propagation distance for the moving window</span>
+    <span class="n">dz</span> <span class="o">=</span> <span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="n">dt</span>
+
+    <span class="c1"># process argument moving_window_vect</span>
+    <span class="k">if</span> <span class="n">moving_window_vect</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">moving_window_vect</span><span class="p">)</span> <span class="o">!=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">dimensions</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Argument moving_window_vect has the wrong length. &quot;</span>
+                             <span class="s2">&quot;Please make sure that len(moving_window_vect) == kspace.dimensions.&quot;</span><span class="p">)</span>
+
+        <span class="n">moving_window_vect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asfarray</span><span class="p">(</span><span class="n">moving_window_vect</span><span class="p">)</span>
+        <span class="n">moving_window_vect</span> <span class="o">/=</span> <span class="n">npl</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">moving_window_vect</span><span class="p">)</span>
+        <span class="n">moving_window_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">([</span><span class="n">dz</span><span class="o">*</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">moving_window_vect</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">remove_antipropagating_waves</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">remove_antipropagating_waves</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">move_window</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">move_window</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># remove antipropagating waves, if requested</span>
+    <span class="k">if</span> <span class="n">remove_antipropagating_waves</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">moving_window_vect</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing required argument moving_window_vect.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># m = kspace.matrix.copy()</span>
+        <span class="c1"># m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) &lt; 0.0] = 0.0</span>
+        <span class="c1"># kspace = kspace.replace_data(m)</span>
+        <span class="n">arg_expr</span> <span class="o">=</span> <span class="s1">&#39;+&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">*k</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">i</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span>
+                            <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">moving_window_vect</span><span class="p">))</span>
+        <span class="n">numexpr_vars</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kspace</span><span class="o">=</span><span class="n">kspace</span><span class="p">)</span>
+        <span class="n">numexpr_vars</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kdict</span><span class="p">)</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">replace_data</span><span class="p">(</span><span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;where(</span><span class="si">{}</span><span class="s1"> &lt; 0, 0, kspace)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg_expr</span><span class="p">),</span>
+                                                 <span class="n">local_dict</span><span class="o">=</span><span class="n">numexpr_vars</span><span class="p">,</span>
+                                                 <span class="n">global_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">yield_zeroth_step</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">kspace</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">kspace</span>
+
+    <span class="k">if</span> <span class="n">move_window</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">moving_window_vect</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing required argument moving_window_vect.&quot;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># Apply the phase due the propagation via the dispersion relation omega</span>
+        <span class="k">if</span> <span class="n">use_numexpr_in_inner_loop</span><span class="p">:</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">replace_data</span><span class="p">(</span><span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;kspace * exp_iwt&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span> <span class="o">*</span> <span class="n">exp_iwt</span>
+
+        <span class="k">if</span> <span class="n">move_window</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">moving_window_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">kspace</span><span class="o">.</span><span class="n">transformed_axes_origins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">moving_window_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">kspace</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">kspace</span>
+
+
+<div class="viewcode-block" id="kspace_propagate"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.kspace_propagate">[docs]</a><span class="nd">@prepend_doc_of</span><span class="p">(</span><span class="n">_kspace_propagate_generator</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">kspace_propagate</span><span class="p">(</span><span class="n">kspace</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    nsteps: number of steps to take</span>
+
+<span class="sd">    If nsteps == 1, this function will just return the result.</span>
+<span class="sd">    If nsteps &gt; 1, this function will return a generator that will generate the results.</span>
+<span class="sd">    If you want a list, just put list(...) around the return value.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">gen</span> <span class="o">=</span> <span class="n">_kspace_propagate_generator</span><span class="p">(</span><span class="n">kspace</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">nsteps</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">(</span><span class="n">gen</span><span class="p">,</span> <span class="n">nsteps</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="time_profile_at_plane"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.time_profile_at_plane">[docs]</a><span class="k">def</span> <span class="nf">time_profile_at_plane</span><span class="p">(</span><span class="n">kspace_or_complex_field</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">t_input</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                          <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    &#39;Measure&#39; the time-profile of the propagating `complex_field` while passing through a plane.</span>
+
+<span class="sd">    The arguments `axis`, `value` and `dir` specify the plane and main propagation direction.</span>
+
+<span class="sd">    `axis` specifies the axis perpendicular to the measurement plane.</span>
+
+<span class="sd">    `dir=1` specifies propagation towards positive `axis`, `dir=-1` specifies the opposite</span>
+<span class="sd">    direction of propagation.</span>
+
+<span class="sd">    `value` specifies the position of the plane along `axis`. If `value=None,` a default is chosen,</span>
+<span class="sd">    depending on `dir`.</span>
+
+<span class="sd">    If `dir=-1`, the starting point of the axis is used, which lies at the 0-component of the</span>
+<span class="sd">    inverse transform.</span>
+
+<span class="sd">    If `dir=1`, the end point of the axis + one axis spacing is used, which, via periodic boundary</span>
+<span class="sd">    conditions of the fft, also lies at the 0-component of the inverse transform.</span>
+
+<span class="sd">    If the given `value` differs from these defaults, an initial propagation with moving window</span>
+<span class="sd">    will be performed, such that the desired plane lies in the default position.</span>
+
+<span class="sd">    t_input specifies the point in time at which the input field or kspace is given. This is used</span>
+<span class="sd">    to specify the time axis of the output fields.</span>
+
+<span class="sd">    For example `axis=&#39;x&#39;` and `value=0.0` specifies the &#39;x=0.0&#39; plane while `dir=1` specifies</span>
+<span class="sd">    propagation towards positive &#39;x&#39; values. The &#39;x&#39; axis starts at 2e-5 and ends at 6e-5 with</span>
+<span class="sd">    a grid spacing of 1e-6. The default value for the measurement plane would have been 6.1e-5</span>
+<span class="sd">    so an initial backward propagation with dt = -6.1e-5/c is performed to move the pulse in front</span>
+<span class="sd">    of the&#39;x=0.0 plane.</span>
+
+<span class="sd">    Additional `kwargs` are passed to kspace_propagate if they are not overridden by this function.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># can&#39;t import this at top of module because this would create a circular import</span>
+    <span class="c1"># importing here is ok, because helper and datahandling are both already interpreted</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">datahandling</span>
+
+    <span class="n">transform_state</span> <span class="o">=</span> <span class="n">kspace_or_complex_field</span><span class="o">.</span><span class="n">_transform_state</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">transform_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;kspace_or_complex_field must have the same transform_state on all axes. &quot;</span>
+                         <span class="s2">&quot;Please make sure that either all axes &#39;live&#39; in spatial domain or all &quot;</span>
+                         <span class="s2">&quot;axes &#39;live&#39; in frequency domain.&quot;</span><span class="p">)</span>
+
+    <span class="n">do_fft</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">transform_state</span>
+
+    <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace_or_complex_field</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+        <span class="n">complex_field</span> <span class="o">=</span> <span class="n">kspace_or_complex_field</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace_or_complex_field</span>
+        <span class="n">complex_field</span> <span class="o">=</span> <span class="n">kspace_or_complex_field</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+
+    <span class="c1"># interpret axis</span>
+    <span class="n">axis</span> <span class="o">=</span> <span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+    <span class="n">otheraxes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">dimensions</span><span class="p">))</span>
+    <span class="n">otheraxes</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+
+    <span class="n">dr</span> <span class="o">=</span> <span class="n">complex_field</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">spacing</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">dr</span><span class="o">/</span><span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span>
+
+    <span class="n">dV</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">spacing</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+    <span class="n">V</span> <span class="o">=</span> <span class="n">dV</span><span class="o">*</span><span class="n">N</span>
+    <span class="n">Vk</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="n">dV</span>
+    <span class="n">fftnorm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">V</span><span class="o">/</span><span class="n">Vk</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+
+    <span class="c1"># apply the fft norm just once</span>
+    <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span> <span class="o">*</span> <span class="n">fftnorm</span>
+
+    <span class="c1"># updating the kwargs for kspace_propagate</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;moving_window_vect&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">kspace</span><span class="o">.</span><span class="n">dimensions</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;moving_window_vect&#39;</span><span class="p">][</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dir</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;move_window&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># only remove backwards-propagating waves:</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;nsteps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;yield_zeroth_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">initial_dt</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="c1"># do an initial propagation with moving window to align the data with the measuring plane</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">dir</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># measuring at the 0-component is just like measuring at the end of the grid + one</span>
+            <span class="c1"># axis spacing if propagating is assumed to be in positive axis direction</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">complex_field</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">complex_field</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">spacing</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># measuring at the 0-component is just like measuring at the beginning of the grid</span>
+            <span class="c1"># if propagating is assumed to be in negative axis direction</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="n">complex_field</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># do propagating of initial_dt such that the measurement plane is at `value`</span>
+        <span class="n">initial_dt</span> <span class="o">=</span> <span class="nb">dir</span> <span class="o">*</span> <span class="p">(</span><span class="n">value</span><span class="o">-</span><span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span>
+
+    <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace_propagate</span><span class="p">(</span><span class="n">kspace</span><span class="p">,</span> <span class="n">initial_dt</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">input_origin</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">output_origin</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">_conjugate_grid</span><span class="p">(</span><span class="n">axis</span><span class="p">)[</span><span class="n">axis</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">phi0</span> <span class="o">=</span> <span class="n">input_origin</span> <span class="o">*</span> <span class="n">output_origin</span>
+    <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">_apply_linear_phase</span><span class="p">({</span><span class="n">axis</span><span class="p">:</span> <span class="n">output_origin</span><span class="p">},</span> <span class="n">phi0</span><span class="o">=-</span><span class="n">phi0</span><span class="p">)</span>
+
+    <span class="c1"># setup a generator for the propagated kspaces</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;nsteps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">complex_field</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;move_window&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;yield_zeroth_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">gen</span> <span class="o">=</span> <span class="n">kspace_propagate</span><span class="p">(</span><span class="n">kspace</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># initialize an empty matrix</span>
+    <span class="n">newmat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">kspace</span><span class="o">.</span><span class="n">matrix</span><span class="p">)</span>
+    <span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span> <span class="o">*</span> <span class="n">kspace</span><span class="o">.</span><span class="n">dimensions</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="s1">&#39;sum(km, </span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">kspace_prop</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gen</span><span class="p">):</span>
+        <span class="c1"># fill the new matrix line by line by calculating the 0-component of the inverse</span>
+        <span class="c1"># transform after each propagation step</span>
+        <span class="n">slices</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="n">km</span> <span class="o">=</span> <span class="n">kspace_prop</span><span class="o">.</span><span class="n">matrix</span>
+        <span class="c1"># newmat[slices] = np.sum(kspace_prop.matrix, axis=axis)</span>
+        <span class="n">newmat</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">slices</span><span class="p">)]</span> <span class="o">=</span> <span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+
+    <span class="n">k_transverse_tprofile</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">replace_data</span><span class="p">(</span><span class="n">newmat</span><span class="p">)</span>
+    <span class="n">t_axis</span> <span class="o">=</span> <span class="n">datahandling</span><span class="o">.</span><span class="n">Axis</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;s&#39;</span><span class="p">,</span>
+                               <span class="n">grid</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">t_input</span> <span class="o">+</span> <span class="n">initial_dt</span><span class="p">,</span>
+                                                <span class="n">t_input</span> <span class="o">+</span> <span class="n">initial_dt</span> <span class="o">+</span> <span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">dt</span><span class="p">,</span>
+                                                <span class="n">N</span><span class="p">))</span>
+    <span class="n">k_transverse_tprofile</span><span class="o">.</span><span class="n">setaxisobj</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">t_axis</span><span class="p">)</span>
+    <span class="n">k_transverse_tprofile</span><span class="o">.</span><span class="n">axes_transform_state</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">k_transverse_tprofile</span><span class="o">.</span><span class="n">transformed_axes_origins</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">k_transverse_tprofile</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">otheraxes</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">k_transverse_tprofile</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

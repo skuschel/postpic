@@ -1,0 +1,377 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.datareader.epochsdf &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.datareader.epochsdf</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright Stephan Kuschel 2014, 2015</span>
+<span class="c1"># Alexander Blinne, 2017</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">.. _EPOCH: https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch</span>
+<span class="sd">.. _SDF: https://github.com/keithbennett/SDF</span>
+
+<span class="sd">Reader for SDF_ File format written by the EPOCH_ Code.</span>
+
+<span class="sd">Dependecies:</span>
+<span class="sd">  - sdf: The actual python reader for the .sdf file format written in C.</span>
+<span class="sd">    It is part of the EPOCH_ code base and needs to be</span>
+<span class="sd">    compiled and installed from there.</span>
+
+<span class="sd">Written by Stephan Kuschel 2014, 2015</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Dumpreader_ifc</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">Simulationreader_ifc</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">helper</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Sdfreader&#39;</span><span class="p">,</span> <span class="s1">&#39;Visitreader&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># The default staggering of the Grid.</span>
+<span class="c1"># Newer versions of EPOCH dump it (certainly v4.9.2)</span>
+<span class="c1"># older versions dont. The defaults will only be used,</span>
+<span class="c1"># if the stagger was not found in the dump.</span>
+<span class="n">_default_stagger</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Electric Field/Ex&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s1">&#39;Electric Field/Ey&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="s1">&#39;Electric Field/Ez&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                    <span class="s1">&#39;Magnetic Field/Bx&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+                    <span class="s1">&#39;Magnetic Field/By&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+                    <span class="s1">&#39;Magnetic Field/Bz&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                    <span class="s1">&#39;Current/Jx&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s1">&#39;Current/Jy&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                    <span class="s1">&#39;Current/Jz&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+<span class="n">_default_stagger</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="o">+</span><span class="s1">&#39;_averaged&#39;</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_default_stagger</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+
+
+<div class="viewcode-block" id="Sdfreader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader">[docs]</a><span class="k">class</span> <span class="nc">Sdfreader</span><span class="p">(</span><span class="n">Dumpreader_ifc</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The Reader implementation for Data written by the EPOCH_ Code</span>
+<span class="sd">    in .sdf format. Written for SDF v2.2.0 or higher.</span>
+<span class="sd">    SDF_ can be obtained without EPOCH_ from SDF_.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sdffile : String</span>
+<span class="sd">        A String containing the relative Path to the .sdf file.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sdffile</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">sdffile</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">os.path</span>
+        <span class="kn">import</span> <span class="nn">sdf</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sdfversion</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">__version__</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+            <span class="n">sdfversion</span> <span class="o">=</span> <span class="s1">&#39;0.0.0&#39;</span>
+        <span class="k">if</span> <span class="n">sdfversion</span> <span class="o">&lt;</span> <span class="s1">&#39;2.2.0&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s1">&#39;Upgrade sdf package to 2.2.0 or higher.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">sdffile</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;File &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sdffile</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot; doesnt exist.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sdffile</span> <span class="o">=</span> <span class="n">sdffile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sdfreader</span> <span class="o">=</span> <span class="n">sdf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">sdffile</span><span class="p">,</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># --- Level 0 methods ---</span>
+
+<div class="viewcode-block" id="Sdfreader.keys"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sdfreader</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sdfreader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Sdfreader.dumpsize"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.dumpsize">[docs]</a>    <span class="k">def</span> <span class="nf">dumpsize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns the file size of the sdf file in bytes.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">import</span> <span class="nn">os</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sdffile</span><span class="p">)</span></div>
+
+<span class="c1"># --- Level 1 methods ---</span>
+
+<div class="viewcode-block" id="Sdfreader.data"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.data">[docs]</a>    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span></div>
+
+<div class="viewcode-block" id="Sdfreader.gridoffset"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.gridoffset">[docs]</a>    <span class="k">def</span> <span class="nf">gridoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridspacing</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="s1">&#39;stagger&#39;</span><span class="p">):</span>
+            <span class="c1"># best case: stagger is saved</span>
+            <span class="n">stagger</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">stagger</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_default_stagger</span><span class="p">:</span>
+            <span class="n">stagger</span> <span class="o">=</span> <span class="n">_default_stagger</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Derived/&#39;</span><span class="p">):</span>
+            <span class="c1"># c_stagger_cell_centre in EPOCH code</span>
+            <span class="n">stagger</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Stagger of &quot;</span><span class="si">{:}</span><span class="s1">&quot; could not be found. </span><span class="se">\</span>
+<span class="s1">                  Assuming no stagger (that is cell center).&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="n">stagger</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">staggered</span> <span class="o">=</span> <span class="n">stagger</span> <span class="o">&amp;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">axid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">staggered</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">grid_mid</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">axid</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">dx</span><span class="o">/</span><span class="mf">2.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">axid</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">dx</span><span class="o">/</span><span class="mf">2.0</span></div>
+
+<div class="viewcode-block" id="Sdfreader.gridspacing"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.gridspacing">[docs]</a>    <span class="k">def</span> <span class="nf">gridspacing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">extents</span><span class="p">[</span><span class="n">axid</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">dims</span><span class="p">)]</span> <span class="o">-</span> <span class="n">grid</span><span class="o">.</span><span class="n">extents</span><span class="p">[</span><span class="n">axid</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">extent</span> <span class="o">/</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="n">axid</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Sdfreader.gridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.gridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">gridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="n">axid</span><span class="p">]</span></div>
+
+<span class="c1"># --- Level 2 methods ---</span>
+
+<div class="viewcode-block" id="Sdfreader.timestep"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.timestep">[docs]</a>    <span class="k">def</span> <span class="nf">timestep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Header&#39;</span><span class="p">][</span><span class="s1">&#39;step&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Sdfreader.time"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.time">[docs]</a>    <span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Header&#39;</span><span class="p">][</span><span class="s1">&#39;time&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Sdfreader.simdimensions"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.simdimensions">[docs]</a>    <span class="k">def</span> <span class="nf">simdimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Epoch(\d)d&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Header&#39;</span><span class="p">][</span><span class="s1">&#39;code_name&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_keyE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">axsuffix</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;z&#39;</span><span class="p">}[</span><span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">]]</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="s1">&#39;Electric Field/E&#39;</span> <span class="o">+</span> <span class="n">axsuffix</span>
+        <span class="k">if</span> <span class="n">average</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="s1">&#39;_averaged&#39;</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">_keyB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">axsuffix</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;z&#39;</span><span class="p">}[</span><span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">component</span><span class="p">]]</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="s1">&#39;Magnetic Field/B&#39;</span> <span class="o">+</span> <span class="n">axsuffix</span>
+        <span class="k">if</span> <span class="n">average</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="s1">&#39;_averaged&#39;</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+<div class="viewcode-block" id="Sdfreader.simextent"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.simextent">[docs]</a>    <span class="k">def</span> <span class="nf">simextent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the extent of the actual simulation box.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Grid/Grid&#39;</span><span class="p">]</span>
+        <span class="n">extents</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">extents</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">axid</span> <span class="o">+</span> <span class="n">dims</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">extents</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;Axis &quot;</span><span class="si">{}</span><span class="s1">&quot; is not an axis of the simulation box. Extents are: &quot;</span><span class="si">{}</span><span class="s1">&quot;.&#39;</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">extents</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">extents</span><span class="p">[</span><span class="n">axid</span><span class="p">],</span> <span class="n">extents</span><span class="p">[</span><span class="n">axid</span> <span class="o">+</span> <span class="n">dims</span><span class="p">]])</span></div>
+
+<div class="viewcode-block" id="Sdfreader.simgridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.simgridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">simgridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns the number of grid points of the actual simulation.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">mesh</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Grid/Grid&#39;</span><span class="p">]</span>
+        <span class="n">axid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">mesh</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="n">axid</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Sdfreader.listSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.listSpecies">[docs]</a>    <span class="k">def</span> <span class="nf">listSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Particles/\w+/([\w-]+(/[\w-]+)?)&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Sdfreader.getSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.getSpecies">[docs]</a>    <span class="k">def</span> <span class="nf">getSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of</span>
+<span class="sd">        this particle species.</span>
+<span class="sd">        raises KeyError if the requested species or property wasnt dumped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attribid</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">attribidentify</span><span class="p">[</span><span class="n">attrib</span><span class="p">]</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="mi">9</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/Weight/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                   <span class="mi">0</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Grid/Particles/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                   <span class="mi">1</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Grid/Particles/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                   <span class="mi">2</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Grid/Particles/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                   <span class="mi">3</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/Px/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                   <span class="mi">4</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/Py/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                   <span class="mi">5</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/Pz/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                   <span class="mi">10</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/ID/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                   <span class="mi">11</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/Mass/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                   <span class="mi">12</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;Particles/Charge/&#39;</span> <span class="o">+</span> <span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">options</span><span class="p">[</span><span class="n">attribid</span><span class="p">](</span><span class="n">species</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">IndexError</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;Attribute &quot;</span><span class="si">{}</span><span class="s1">&quot; of species &quot;</span><span class="si">{}</span><span class="s1">&quot; not found.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attrib</span><span class="p">,</span> <span class="n">species</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Sdfreader.getderived"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Sdfreader.getderived">[docs]</a>    <span class="k">def</span> <span class="nf">getderived</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns all Keys starting with &quot;Derived/&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Derived/[\w/ ]*&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">r</span><span class="p">:</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;Sdfreader at &quot;</span><span class="si">{:}</span><span class="s1">&quot;&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Visitreader"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.epochsdf.Visitreader">[docs]</a><span class="k">class</span> <span class="nc">Visitreader</span><span class="p">(</span><span class="n">Simulationreader_ifc</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Reads a series of dumps specified in a .visit file. This is specifically</span>
+<span class="sd">    written for .visit files from the EPOCH_ code, but should also work for</span>
+<span class="sd">    any other code using these files.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visitfile</span><span class="p">,</span> <span class="n">dumpreadercls</span><span class="o">=</span><span class="n">Sdfreader</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">visitfile</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visitfile</span> <span class="o">=</span> <span class="n">visitfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dumpreadercls</span> <span class="o">=</span> <span class="n">dumpreadercls</span>
+        <span class="kn">import</span> <span class="nn">os.path</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">visitfile</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;File &quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">visitfile</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&quot; doesnt exist.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">visitfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">visitfile</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span>
+                                                    <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_getDumpreader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dumpreadercls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dumpfiles</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;Visitreader at &quot;</span><span class="si">{:}</span><span class="s1">&quot; (</span><span class="si">{:}</span><span class="s1"> dumps)&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">visitfile</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../datareader.html">postpic.datareader</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

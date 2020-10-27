@@ -1,0 +1,1230 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.datareader package &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="postpic.io package" href="postpic.io.html" />
+    <link rel="prev" title="postpic package" href="postpic.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-postpic.datareader">
+<span id="postpic-datareader-package"></span><h1>postpic.datareader package<a class="headerlink" href="#module-postpic.datareader" title="Permalink to this headline">¶</a></h1>
+<p>The Datareader package contains methods and interfaces to read data from
+any Simulation.</p>
+<p>The basic concept consits of two different types of readers:</p>
+<div class="section" id="the-dumpreader">
+<h2>The Dumpreader<a class="headerlink" href="#the-dumpreader" title="Permalink to this headline">¶</a></h2>
+<p>This has to be subclassed from Dumpreader_ifc and allows to read a single dump
+created by the simulation. To identify which dump should be read its
+initialized with a dumpidentifier. This dumpidentifier can be almost anything,
+but in the easiest case this is the filepath pointing to a single file
+containing every information about this simulation dump. With this information
+the dumpreader must be able to read all data regarding this dump (which is a
+lot: X, Y, Z, Px, Py, Py, weight, mass, charge, ID,.. for all particle species,
+electric and magnetic fields on grid, the grid itself, mabe particle ids,…)</p>
+</div>
+<div class="section" id="the-simulationreader">
+<h2>The Simulationreader<a class="headerlink" href="#the-simulationreader" title="Permalink to this headline">¶</a></h2>
+<p>This has to be subclassed from Simulationreader_ifc and allows to read a full
+list of simulation dumps. Thus an alternate Name for this class could be
+“Dumpsequence”. This allows the code to track particles from different times
+of the simulation or create plots with a time axis.</p>
+<p>Stephan Kuschel 2014</p>
+<dl class="py class">
+<dt id="postpic.datareader.Dumpreader_ifc">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">Dumpreader_ifc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpidentifier</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">postpic._field_calc.FieldAnalyzer</span></code></p>
+<p>Interface class for reading a single dump. A dump contains informations
+about the  simulation at a single timestep (Usually E- and B-Fields on
+grid + particles).</p>
+<p>Any Dumpreader_ifc implementation will always be initialized using a
+dumpidentifier. This dumpidentifier can be anything, that points to
+the data of a dump. In the easiest case this is just the filename of
+the dump holding all data of that timestep
+(for example .sdf file for EPOCH, .hdf5 for some other code).</p>
+<p>The dumpreader should provide all necessary informations in a unified interface
+but at the same time it should not restrict the user to these properties of there
+dump only. The recommended implementation is shown here (EPOCH and VSim reader
+work like this):
+All (!) data, that is saved in a single dump should be accessible via the
+self.__getitem__(key) method. Together with the self.keys() method, this will ensure,
+that every dumpreader works as a dictionary and every dump attribute is accessible
+via this dictionary.</p>
+<ul class="simple">
+<li><p>Level 0:</p></li>
+</ul>
+<p>__getitem__ and keys(self) are level 0 methods, meaning it must be possible to access
+everthing with those methods.</p>
+<ul class="simple">
+<li><p>Level 1:</p></li>
+</ul>
+<p>provide direct data access by forwarding the requests to the corresponding Level 0
+or Level 1 methods.</p>
+<ul class="simple">
+<li><p>Level 2:</p></li>
+</ul>
+<p>provide user access to the data by forwarding the request to Level 1 or Level 2 methods,
+but NOT to Level 0 methods.</p>
+<p>If some attribute wasnt dumped a KeyError must be thrown. This allows
+classes which are using the reader to just exit if a needed property wasnt dumped
+or to catch the KeyError and proceed by actively ignoring it.</p>
+<p>It is highly recommended to also override the functions __str__ and gridpoints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpidentifier</strong> – variable type
+whatever identifies the dump. It is recommended to use a String
+here pointing to a file.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.data">
+<em class="property">abstract </em><code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>access to every raw data. needs to return numpy arrays corresponding to the “key”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.dataB">
+<code class="sig-name descname">dataB</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.dataB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.dataB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.dataE">
+<code class="sig-name descname">dataE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.dataE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.dataE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.getSpecies">
+<em class="property">abstract </em><code class="sig-name descname">getSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">attrib</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.getSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.getSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function gives access to any of the particle properties in
+..helper.attribidentify
+This method can behave in the following ways:
+1) Return a list of scalar properties for each particle of this species
+2) Return a single float (i.e. <cite>1.2</cite>, NOT <cite>[1.2]</cite>) to show that</p>
+<blockquote>
+<div><p>every particle of this species has the same scalar value to thisdimmax
+property assigned. This might be quite often used for charge or mass
+that are defined per species.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Raise a KeyError if the requested property or species wasn dumped.</p></li>
+</ol>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.grid">
+<code class="sig-name descname">grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.grid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.gridkeyB">
+<code class="sig-name descname">gridkeyB</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridkeyB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.gridkeyB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.gridkeyE">
+<code class="sig-name descname">gridkeyE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridkeyE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.gridkeyE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.gridnode">
+<code class="sig-name descname">gridnode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridnode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.gridnode" title="Permalink to this definition">¶</a></dt>
+<dd><p>The grid nodes along “axis”. Grid nodes include the beginning and the end of the grid.
+Example: If the grid has 20 grid points, it has 21 grid nodes or grid edges.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.gridoffset">
+<em class="property">abstract </em><code class="sig-name descname">gridoffset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridoffset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.gridoffset" title="Permalink to this definition">¶</a></dt>
+<dd><p>offset of the beginning of the first cell of the grid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.gridpoints">
+<code class="sig-name descname">gridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.gridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of grid points along “axis”. It is highly recommended to override this
+method due to performance reasons.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.gridspacing">
+<em class="property">abstract </em><code class="sig-name descname">gridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.gridspacing" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of one grid cell in the direction “axis”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.keys">
+<em class="property">abstract </em><code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.keys" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a list of keys, that can be used in __getitem__ to read
+any information from this dump.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.listSpecies">
+<em class="property">abstract </em><code class="sig-name descname">listSpecies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.listSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.listSpecies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.simdimensions">
+<em class="property">abstract </em><code class="sig-name descname">simdimensions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simdimensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.simdimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of spatial dimensions the simulations was using.
+Must be 1, 2 or 3.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.simextent">
+<code class="sig-name descname">simextent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simextent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.simextent" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the extent of the actual simulation box.
+Override in your own reader class for better performance implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.simgridpoints">
+<code class="sig-name descname">simgridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simgridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.simgridpoints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.simgridspacing">
+<code class="sig-name descname">simgridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simgridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.simgridspacing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.time">
+<em class="property">abstract </em><code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Dumpreader_ifc.timestep">
+<em class="property">abstract </em><code class="sig-name descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.timestep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Dumpreader_ifc.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.Simulationreader_ifc">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">Simulationreader_ifc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simidentifier</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Simulationreader_ifc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Simulationreader_ifc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Sequence</span></code></p>
+<p>Interface for reading the data of a full Simulation.</p>
+<p>Any Simulationreader_ifc implementation will always be initialized using a
+simidentifier. This simidentifier can be anything, that points to
+the data of multiple dumps. In the easiest case this can be the .visit
+file.</p>
+<p>The Simulationreader_ifc is subclass of Sequence and will
+thus behave as a Sequence. The Objects in the Sequence are supposed to be
+subclassed from Dumpreader_ifc.</p>
+<p>It is highly recommended to also override the __str__ function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>simidentifier</strong> – variable type
+something identifiying a series of dumps.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.Simulationreader_ifc.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.datareader.Simulationreader_ifc.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.Simulationreader_ifc.times">
+<code class="sig-name descname">times</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Simulationreader_ifc.times"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.Simulationreader_ifc.times" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.datareader.chooseCode">
+<code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">chooseCode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader.html#chooseCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.chooseCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Chooses appropriate reader for the given simulation code.
+After choosing a preset of the correct reader, the functions
+<a class="reference internal" href="../introduction.html#postpic.readDump" title="postpic.readDump"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.readDump()</span></code></a> and <a class="reference internal" href="../introduction.html#postpic.readSim" title="postpic.readSim"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.readSim()</span></code></a> are setup for this preset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>code</strong> (<em>string</em>) – <dl class="simple">
+<dt>Possible options are:</dt><dd><ul class="simple">
+<li><p>”DUMMY”: dummy class creating fake data.</p></li>
+<li><p>”EPOCH”: .sdf files written by EPOCH1D, EPOCH2D or EPOCH3D.
+( <a class="reference external" href="https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch">https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch</a> )</p></li>
+<li><p>”openPMD”: .h5 files written in openPMD Standard.
+( <a class="reference external" href="https://github.com/openPMD/">https://github.com/openPMD/</a> )</p></li>
+<li><p>”fbpic”: .h5 files written by fbpic ( <a class="reference external" href="https://github.com/fbpic/fbpic">https://github.com/fbpic/fbpic</a> ).
+This is the openPMD reader, but includes the conversion from azimuthal modes
+to a cylindrical grid.</p></li>
+<li><p>”piconGPU”: same as “openPMD”.
+This reader can be used for piconGPU written h5 files.
+( <a class="reference external" href="https://github.com/ComputationalRadiationPhysics/picongpu">https://github.com/ComputationalRadiationPhysics/picongpu</a> )</p></li>
+<li><p>”VSIM”: .hdf5 files written by VSim.
+Currently not working. Needs updating.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.datareader.readDump">
+<code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">readDump</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpidentifier</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader.html#readDump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.readDump" title="Permalink to this definition">¶</a></dt>
+<dd><p>After using the fucntion <a class="reference internal" href="postpic.html#postpic.chooseCode" title="postpic.chooseCode"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.chooseCode()</span></code></a>, this function should
+be the main function for reading a dump into postpic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dumpidentifier</strong> (<em>str</em>) – Identifies the dump. For most dumpreaders this is a string
+poining to the file or folder. See what the specific
+reader of your format expects.</p></li>
+<li><p><strong>**kwargs</strong> – will be forwarded to the dumpreader.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the dumpreader for this specific data dump.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dumpreader</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.datareader.readSim">
+<code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">readSim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simidentifier</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader.html#readSim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.readSim" title="Permalink to this definition">¶</a></dt>
+<dd><p>After using the function <a class="reference internal" href="postpic.html#postpic.chooseCode" title="postpic.chooseCode"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.chooseCode()</span></code></a>, this function should
+be the main function for reading a simulation into postpic.
+A simulation is equivalent to a series of dumps in a specific order
+(not neccessarily time order).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>simidentifier</strong> (<em>str</em>) – Identifies the simulation.
+For EPOCH this should be a string pointing to a <cite>.visit</cite> file.
+Specifics depend on the current simreader class,
+as set by <cite>chooseCode</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – will be forwarded to the simreader.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the Simulationreader</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.datareader.setdumpreadercls">
+<code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">setdumpreadercls</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpreadercls</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader.html#setdumpreadercls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.setdumpreadercls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the class that is used for reading dumps on later calls of <a class="reference internal" href="../introduction.html#postpic.readDump" title="postpic.readDump"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.readDump()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpreadercls</strong> (<a class="reference internal" href="#postpic.datareader.Dumpreader_ifc" title="postpic.datareader.Dumpreader_ifc"><em>Dumpreader_ifc</em></a>) – </p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should only be used, for testing.
+A set of presets is provided by
+<a class="reference internal" href="postpic.html#postpic.chooseCode" title="postpic.chooseCode"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.chooseCode()</span></code></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.datareader.setsimreadercls">
+<code class="sig-prename descclassname">postpic.datareader.</code><code class="sig-name descname">setsimreadercls</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simreadercls</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader.html#setsimreadercls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.setsimreadercls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the class that is used for reading a simulation on later calls of <a class="reference internal" href="../introduction.html#postpic.readSim" title="postpic.readSim"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.readSim()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>simreadercls</strong> (<a class="reference internal" href="#postpic.datareader.Simulationreader_ifc" title="postpic.datareader.Simulationreader_ifc"><em>Simulationreader_ifc</em></a>) – </p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should only be used, for testing.
+A set of presets is provided by
+<a class="reference internal" href="postpic.html#postpic.chooseCode" title="postpic.chooseCode"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.chooseCode()</span></code></a>.</p>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-postpic.datareader.datareader">
+<span id="postpic-datareader-datareader-module"></span><h2>postpic.datareader.datareader module<a class="headerlink" href="#module-postpic.datareader.datareader" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.datareader.</code><code class="sig-name descname">Dumpreader_ifc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpidentifier</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">postpic._field_calc.FieldAnalyzer</span></code></p>
+<p>Interface class for reading a single dump. A dump contains informations
+about the  simulation at a single timestep (Usually E- and B-Fields on
+grid + particles).</p>
+<p>Any Dumpreader_ifc implementation will always be initialized using a
+dumpidentifier. This dumpidentifier can be anything, that points to
+the data of a dump. In the easiest case this is just the filename of
+the dump holding all data of that timestep
+(for example .sdf file for EPOCH, .hdf5 for some other code).</p>
+<p>The dumpreader should provide all necessary informations in a unified interface
+but at the same time it should not restrict the user to these properties of there
+dump only. The recommended implementation is shown here (EPOCH and VSim reader
+work like this):
+All (!) data, that is saved in a single dump should be accessible via the
+self.__getitem__(key) method. Together with the self.keys() method, this will ensure,
+that every dumpreader works as a dictionary and every dump attribute is accessible
+via this dictionary.</p>
+<ul class="simple">
+<li><p>Level 0:</p></li>
+</ul>
+<p>__getitem__ and keys(self) are level 0 methods, meaning it must be possible to access
+everthing with those methods.</p>
+<ul class="simple">
+<li><p>Level 1:</p></li>
+</ul>
+<p>provide direct data access by forwarding the requests to the corresponding Level 0
+or Level 1 methods.</p>
+<ul class="simple">
+<li><p>Level 2:</p></li>
+</ul>
+<p>provide user access to the data by forwarding the request to Level 1 or Level 2 methods,
+but NOT to Level 0 methods.</p>
+<p>If some attribute wasnt dumped a KeyError must be thrown. This allows
+classes which are using the reader to just exit if a needed property wasnt dumped
+or to catch the KeyError and proceed by actively ignoring it.</p>
+<p>It is highly recommended to also override the functions __str__ and gridpoints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpidentifier</strong> – variable type
+whatever identifies the dump. It is recommended to use a String
+here pointing to a file.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.data">
+<em class="property">abstract </em><code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>access to every raw data. needs to return numpy arrays corresponding to the “key”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.dataB">
+<code class="sig-name descname">dataB</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.dataB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.dataB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.dataE">
+<code class="sig-name descname">dataE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.dataE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.dataE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.getSpecies">
+<em class="property">abstract </em><code class="sig-name descname">getSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">attrib</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.getSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.getSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function gives access to any of the particle properties in
+..helper.attribidentify
+This method can behave in the following ways:
+1) Return a list of scalar properties for each particle of this species
+2) Return a single float (i.e. <cite>1.2</cite>, NOT <cite>[1.2]</cite>) to show that</p>
+<blockquote>
+<div><p>every particle of this species has the same scalar value to thisdimmax
+property assigned. This might be quite often used for charge or mass
+that are defined per species.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Raise a KeyError if the requested property or species wasn dumped.</p></li>
+</ol>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.grid">
+<code class="sig-name descname">grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.grid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.gridkeyB">
+<code class="sig-name descname">gridkeyB</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridkeyB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.gridkeyB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.gridkeyE">
+<code class="sig-name descname">gridkeyE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridkeyE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.gridkeyE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.gridnode">
+<code class="sig-name descname">gridnode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridnode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.gridnode" title="Permalink to this definition">¶</a></dt>
+<dd><p>The grid nodes along “axis”. Grid nodes include the beginning and the end of the grid.
+Example: If the grid has 20 grid points, it has 21 grid nodes or grid edges.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.gridoffset">
+<em class="property">abstract </em><code class="sig-name descname">gridoffset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridoffset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.gridoffset" title="Permalink to this definition">¶</a></dt>
+<dd><p>offset of the beginning of the first cell of the grid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.gridpoints">
+<code class="sig-name descname">gridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.gridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of grid points along “axis”. It is highly recommended to override this
+method due to performance reasons.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.gridspacing">
+<em class="property">abstract </em><code class="sig-name descname">gridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.gridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.gridspacing" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of one grid cell in the direction “axis”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.keys">
+<em class="property">abstract </em><code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.keys" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a list of keys, that can be used in __getitem__ to read
+any information from this dump.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.listSpecies">
+<em class="property">abstract </em><code class="sig-name descname">listSpecies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.listSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.listSpecies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.simdimensions">
+<em class="property">abstract </em><code class="sig-name descname">simdimensions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simdimensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.simdimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of spatial dimensions the simulations was using.
+Must be 1, 2 or 3.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.simextent">
+<code class="sig-name descname">simextent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simextent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.simextent" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the extent of the actual simulation box.
+Override in your own reader class for better performance implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.simgridpoints">
+<code class="sig-name descname">simgridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simgridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.simgridpoints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.simgridspacing">
+<code class="sig-name descname">simgridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.simgridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.simgridspacing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.time">
+<em class="property">abstract </em><code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Dumpreader_ifc.timestep">
+<em class="property">abstract </em><code class="sig-name descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Dumpreader_ifc.timestep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Dumpreader_ifc.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.datareader.Simulationreader_ifc">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.datareader.</code><code class="sig-name descname">Simulationreader_ifc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simidentifier</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Simulationreader_ifc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Simulationreader_ifc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Sequence</span></code></p>
+<p>Interface for reading the data of a full Simulation.</p>
+<p>Any Simulationreader_ifc implementation will always be initialized using a
+simidentifier. This simidentifier can be anything, that points to
+the data of multiple dumps. In the easiest case this can be the .visit
+file.</p>
+<p>The Simulationreader_ifc is subclass of Sequence and will
+thus behave as a Sequence. The Objects in the Sequence are supposed to be
+subclassed from Dumpreader_ifc.</p>
+<p>It is highly recommended to also override the __str__ function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>simidentifier</strong> – variable type
+something identifiying a series of dumps.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Simulationreader_ifc.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.datareader.datareader.Simulationreader_ifc.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.datareader.Simulationreader_ifc.times">
+<code class="sig-name descname">times</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/datareader.html#Simulationreader_ifc.times"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.datareader.Simulationreader_ifc.times" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-postpic.datareader.dummy">
+<span id="postpic-datareader-dummy-module"></span><h2>postpic.datareader.dummy module<a class="headerlink" href="#module-postpic.datareader.dummy" title="Permalink to this headline">¶</a></h2>
+<p>Dummy reader for creating fake simulation Data for testing purposes.</p>
+<p>Stephan Kuschel 2014</p>
+<dl class="py class">
+<dt id="postpic.datareader.dummy.Dummyreader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.dummy.</code><code class="sig-name descname">Dummyreader</code><span class="sig-paren">(</span><em class="sig-param">dumpid</em>, <em class="sig-param">dimensions=2</em>, <em class="sig-param">randfunc=&lt;built-in method normal of numpy.random.mtrand.RandomState object&gt;</em>, <em class="sig-param">seed=0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Dumpreader_ifc" title="postpic.datareader.datareader.Dumpreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Dumpreader_ifc</span></code></a></p>
+<p>Dummyreader creates fake Data for testing purposes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dumpid</strong> – int
+the dumpidentifier is the dumpid in this case. It is a float variable,
+that will also change the dummyreaders output (for example it
+will pretend to have dumpid many particles).</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.data">
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>access to every raw data. needs to return numpy arrays corresponding to the “key”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.getSpecies">
+<code class="sig-name descname">getSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">attrib</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.getSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.getSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function gives access to any of the particle properties in
+..helper.attribidentify
+This method can behave in the following ways:
+1) Return a list of scalar properties for each particle of this species
+2) Return a single float (i.e. <cite>1.2</cite>, NOT <cite>[1.2]</cite>) to show that</p>
+<blockquote>
+<div><p>every particle of this species has the same scalar value to thisdimmax
+property assigned. This might be quite often used for charge or mass
+that are defined per species.</p>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Raise a KeyError if the requested property or species wasn dumped.</p></li>
+</ol>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.grid">
+<code class="sig-name descname">grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.grid" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>axis</strong> – string or int
+the axisidentifier</p>
+</dd>
+</dl>
+<p>Returns: list of grid points of the axis specified.</p>
+<p>Thus only regular grids are supported currently.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.gridnode">
+<code class="sig-name descname">gridnode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.gridnode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.gridnode" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>axis</strong> – string or int
+the axisidentifier</p>
+</dd>
+</dl>
+<p>Returns: list of grid points of the axis specified.</p>
+<p>Thus only regular grids are supported currently.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.gridoffset">
+<code class="sig-name descname">gridoffset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.gridoffset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.gridoffset" title="Permalink to this definition">¶</a></dt>
+<dd><p>offset of the beginning of the first cell of the grid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.gridspacing">
+<code class="sig-name descname">gridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.gridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.gridspacing" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of one grid cell in the direction “axis”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns:
+a list of keys, that can be used in __getitem__ to read
+any information from this dump.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.listSpecies">
+<code class="sig-name descname">listSpecies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.listSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.listSpecies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.simdimensions">
+<code class="sig-name descname">simdimensions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.simdimensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.simdimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of spatial dimensions the simulations was using.
+Must be 1, 2 or 3.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.simextent">
+<code class="sig-name descname">simextent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.simextent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.simextent" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the extent of the actual simulation box.
+Override in your own reader class for better performance implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.simgridpoints">
+<code class="sig-name descname">simgridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.simgridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.simgridpoints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.time">
+<code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.dummy.Dummyreader.timestep">
+<code class="sig-name descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummyreader.timestep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummyreader.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.dummy.Dummysim">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.dummy.</code><code class="sig-name descname">Dummysim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simidentifier</span></em>, <em class="sig-param"><span class="n">dimensions</span><span class="o">=</span><span class="default_value">2</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/dummy.html#Dummysim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.dummy.Dummysim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Simulationreader_ifc" title="postpic.datareader.datareader.Simulationreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Simulationreader_ifc</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-postpic.datareader.epochsdf">
+<span id="postpic-datareader-epochsdf-module"></span><h2>postpic.datareader.epochsdf module<a class="headerlink" href="#module-postpic.datareader.epochsdf" title="Permalink to this headline">¶</a></h2>
+<p>Reader for <a class="reference external" href="https://github.com/keithbennett/SDF">SDF</a> File format written by the <a class="reference external" href="https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch">EPOCH</a> Code.</p>
+<dl class="simple">
+<dt>Dependecies:</dt><dd><ul class="simple">
+<li><p>sdf: The actual python reader for the .sdf file format written in C.
+It is part of the <a class="reference external" href="https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch">EPOCH</a> code base and needs to be
+compiled and installed from there.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Written by Stephan Kuschel 2014, 2015</p>
+<dl class="py class">
+<dt id="postpic.datareader.epochsdf.Sdfreader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.epochsdf.</code><code class="sig-name descname">Sdfreader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sdffile</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Dumpreader_ifc" title="postpic.datareader.datareader.Dumpreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Dumpreader_ifc</span></code></a></p>
+<p>The Reader implementation for Data written by the <a class="reference external" href="https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch">EPOCH</a> Code
+in .sdf format. Written for SDF v2.2.0 or higher.
+<a class="reference external" href="https://github.com/keithbennett/SDF">SDF</a> can be obtained without <a class="reference external" href="https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch">EPOCH</a> from <a class="reference external" href="https://github.com/keithbennett/SDF">SDF</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sdffile</strong> – String
+A String containing the relative Path to the .sdf file.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.data">
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>access to every raw data. needs to return numpy arrays corresponding to the “key”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.dumpsize">
+<code class="sig-name descname">dumpsize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.dumpsize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.dumpsize" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the file size of the sdf file in bytes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.getSpecies">
+<code class="sig-name descname">getSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">attrib</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.getSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.getSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of
+this particle species.
+raises KeyError if the requested species or property wasnt dumped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.getderived">
+<code class="sig-name descname">getderived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.getderived"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.getderived" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all Keys starting with “Derived/”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.gridoffset">
+<code class="sig-name descname">gridoffset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.gridoffset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.gridoffset" title="Permalink to this definition">¶</a></dt>
+<dd><p>offset of the beginning of the first cell of the grid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.gridpoints">
+<code class="sig-name descname">gridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.gridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.gridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of grid points along “axis”. It is highly recommended to override this
+method due to performance reasons.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.gridspacing">
+<code class="sig-name descname">gridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.gridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.gridspacing" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of one grid cell in the direction “axis”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns:
+a list of keys, that can be used in __getitem__ to read
+any information from this dump.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.listSpecies">
+<code class="sig-name descname">listSpecies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.listSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.listSpecies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.simdimensions">
+<code class="sig-name descname">simdimensions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.simdimensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.simdimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of spatial dimensions the simulations was using.
+Must be 1, 2 or 3.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.simextent">
+<code class="sig-name descname">simextent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.simextent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.simextent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the extent of the actual simulation box.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.simgridpoints">
+<code class="sig-name descname">simgridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.simgridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.simgridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the number of grid points of the actual simulation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.time">
+<code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.epochsdf.Sdfreader.timestep">
+<code class="sig-name descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Sdfreader.timestep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Sdfreader.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.epochsdf.Visitreader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.epochsdf.</code><code class="sig-name descname">Visitreader</code><span class="sig-paren">(</span><em class="sig-param">visitfile</em>, <em class="sig-param">dumpreadercls=&lt;class 'postpic.datareader.epochsdf.Sdfreader'&gt;</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/epochsdf.html#Visitreader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.epochsdf.Visitreader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Simulationreader_ifc" title="postpic.datareader.datareader.Simulationreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Simulationreader_ifc</span></code></a></p>
+<p>Reads a series of dumps specified in a .visit file. This is specifically
+written for .visit files from the <a class="reference external" href="https://cfsa-pmw.warwick.ac.uk/EPOCH/epoch">EPOCH</a> code, but should also work for
+any other code using these files.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-postpic.datareader.openPMDh5">
+<span id="postpic-datareader-openpmdh5-module"></span><h2>postpic.datareader.openPMDh5 module<a class="headerlink" href="#module-postpic.datareader.openPMDh5" title="Permalink to this headline">¶</a></h2>
+<p>Support for hdf5 files following the <a class="reference external" href="https://github.com/openPMD/openPMD-standard">openPMD</a> Standard.</p>
+<dl class="simple">
+<dt>Dependecies:</dt><dd><ul class="simple">
+<li><p>h5py: read hdf5 files with python</p></li>
+</ul>
+</dd>
+</dl>
+<p>Written by Stephan Kuschel 2016</p>
+<dl class="py class">
+<dt id="postpic.datareader.openPMDh5.FbpicFileSeries">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.openPMDh5.</code><code class="sig-name descname">FbpicFileSeries</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicFileSeries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicFileSeries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.openPMDh5.FileSeries" title="postpic.datareader.openPMDh5.FileSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.openPMDh5.FileSeries</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.openPMDh5.FbpicReader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.openPMDh5.</code><code class="sig-name descname">FbpicReader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simidentifier</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.openPMDh5.OpenPMDreader" title="postpic.datareader.openPMDh5.OpenPMDreader"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.openPMDh5.OpenPMDreader</span></code></a></p>
+<p>Special OpenPMDreader for FBpic, which is using an expansion into radial modes.</p>
+<p>This is subclass of the OpenPMDreader which is converting the modes to
+a radial representation.</p>
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.data">
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>should work with any key, that contains data, thus on every hdf5.Dataset,
+but not on hdf5.Group. Will extract the data, convert it to SI and return it
+as a numpy array. Constant records will be detected and converted to
+a numpy array containing a single value only.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.dataB">
+<code class="sig-name descname">dataB</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="n">theta</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.dataB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.dataB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.dataE">
+<code class="sig-name descname">dataE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">component</span></em>, <em class="sig-param"><span class="n">theta</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">Ntheta</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.dataE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.dataE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.gridoffset">
+<code class="sig-name descname">gridoffset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.gridoffset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.gridoffset" title="Permalink to this definition">¶</a></dt>
+<dd><p>offset of the beginning of the first cell of the grid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.gridpoints">
+<code class="sig-name descname">gridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.gridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.gridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of grid points along “axis”. It is highly recommended to override this
+method due to performance reasons.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.gridspacing">
+<code class="sig-name descname">gridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.gridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.gridspacing" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of one grid cell in the direction “axis”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.FbpicReader.modeexpansion">
+<em class="property">static </em><code class="sig-name descname">modeexpansion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rawdata</span></em>, <em class="sig-param"><span class="n">theta</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">Ntheta</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FbpicReader.modeexpansion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FbpicReader.modeexpansion" title="Permalink to this definition">¶</a></dt>
+<dd><p>rawdata has to be shaped (Nm, Nr, Nz).</p>
+<p>Returns an array of shape (Nr, Ntheta, Nz), with
+<cite>Ntheta = (Nm+1)//2</cite>. If Ntheta is given only larger
+values are permitted.</p>
+<p>The corresponding values for theta are given by
+<cite>np.linspace(0, 2*np.pi, Ntheta, endpoint=False)</cite></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.openPMDh5.FileSeries">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.openPMDh5.</code><code class="sig-name descname">FileSeries</code><span class="sig-paren">(</span><em class="sig-param">simidentifier</em>, <em class="sig-param">dumpreadercls=&lt;class 'postpic.datareader.openPMDh5.OpenPMDreader'&gt;</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#FileSeries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.FileSeries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Simulationreader_ifc" title="postpic.datareader.datareader.Simulationreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Simulationreader_ifc</span></code></a></p>
+<p>Reads a time series of dumps from a given directory.
+The simidentifier is expanded using glob in order to
+find matching files.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.openPMDh5.</code><code class="sig-name descname">OpenPMDreader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5file</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Dumpreader_ifc" title="postpic.datareader.datareader.Dumpreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Dumpreader_ifc</span></code></a></p>
+<p>The Reader implementation for Data written in the hdf5 file
+format following <a class="reference external" href="https://github.com/openPMD/openPMD-standard">openPMD</a> naming conventions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>h5file</strong> – String
+A String containing the relative Path to the .h5 file.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.data">
+<code class="sig-name descname">data</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>should work with any key, that contains data, thus on every hdf5.Dataset,
+but not on hdf5.Group. Will extract the data, convert it to SI and return it
+as a numpy array. Constant records will be detected and converted to
+a numpy array containing a single value only.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.getSpecies">
+<code class="sig-name descname">getSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">attrib</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.getSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.getSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of
+this particle species.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.getderived">
+<code class="sig-name descname">getderived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.getderived"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.getderived" title="Permalink to this definition">¶</a></dt>
+<dd><p>return all other fields dumped, except E and B.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.gridoffset">
+<code class="sig-name descname">gridoffset</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.gridoffset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.gridoffset" title="Permalink to this definition">¶</a></dt>
+<dd><p>offset of the beginning of the first cell of the grid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.gridpoints">
+<code class="sig-name descname">gridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.gridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.gridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of grid points along “axis”. It is highly recommended to override this
+method due to performance reasons.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.gridspacing">
+<code class="sig-name descname">gridspacing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.gridspacing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.gridspacing" title="Permalink to this definition">¶</a></dt>
+<dd><p>size of one grid cell in the direction “axis”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns:
+a list of keys, that can be used in __getitem__ to read
+any information from this dump.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.listSpecies">
+<code class="sig-name descname">listSpecies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.listSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.listSpecies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.simdimensions">
+<code class="sig-name descname">simdimensions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.simdimensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.simdimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of spatial dimensions the simulation was using.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.time">
+<code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.openPMDh5.OpenPMDreader.timestep">
+<code class="sig-name descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/openPMDh5.html#OpenPMDreader.timestep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.openPMDh5.OpenPMDreader.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-postpic.datareader.vsimhdf5">
+<span id="postpic-datareader-vsimhdf5-module"></span><h2>postpic.datareader.vsimhdf5 module<a class="headerlink" href="#module-postpic.datareader.vsimhdf5" title="Permalink to this headline">¶</a></h2>
+<p>Reader for HDF5 File format written by the VSim Code:
+<a class="reference external" href="http://www.txcorp.com/support/vsim-support-menu/vsim-documentation">http://www.txcorp.com/support/vsim-support-menu/vsim-documentation</a>
+Dependecies:
+h5py  The Python actual reader for hdf5 file format.
+Georg Wittig, Stephan Kuschel 2014</p>
+<dl class="py class">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.vsimhdf5.</code><code class="sig-name descname">Hdf5reader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5file</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Dumpreader_ifc" title="postpic.datareader.datareader.Dumpreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Dumpreader_ifc</span></code></a></p>
+<p>The Reader implementation for HDF5 Data written by the VSim Code.
+as argument h5file can be any <a href="#id1"><span class="problematic" id="id2">*</span></a>.h5 file of the dump of consideration.</p>
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.dataB">
+<code class="sig-name descname">dataB</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.dataB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.dataB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.dataE">
+<code class="sig-name descname">dataE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.dataE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.dataE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.getSpecies">
+<code class="sig-name descname">getSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">attrib</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.getSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.getSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID) of
+this particle species.
+Valid Scalar attributes are (mass, charge).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.getderived">
+<code class="sig-name descname">getderived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.getderived"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.getderived" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all Keys starting with “Derived/”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.grid">
+<code class="sig-name descname">grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.grid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.grid" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the array of the positions of all cells on axis = axis.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns:
+a list of keys, that can be used in __getitem__ to read
+any information from this dump.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.listSpecies">
+<code class="sig-name descname">listSpecies</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.listSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.listSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns all h5 dumps that have a attribute “mass”</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.simdimensions">
+<code class="sig-name descname">simdimensions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.simdimensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.simdimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>the number of spatial dimensions the simulations was using.
+Must be 1, 2 or 3.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.time">
+<code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.Hdf5reader.timestep">
+<code class="sig-name descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#Hdf5reader.timestep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.Hdf5reader.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.datareader.vsimhdf5.VSimReader">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.datareader.vsimhdf5.</code><code class="sig-name descname">VSimReader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#VSimReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.VSimReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#postpic.datareader.datareader.Simulationreader_ifc" title="postpic.datareader.datareader.Simulationreader_ifc"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.datareader.datareader.Simulationreader_ifc</span></code></a></p>
+<p>Represents a full Simulation ( = Series of Dumps with equal output). The VSimReader must be
+initialized with the path to a folder containing all the dumps. It will then walk through
+all available .h5 files in this directory to identify the available timesteps of the
+simulation.</p>
+<dl class="py method">
+<dt id="postpic.datareader.vsimhdf5.VSimReader.getDumpreader">
+<code class="sig-name descname">getDumpreader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/datareader/vsimhdf5.html#VSimReader.getDumpreader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.datareader.vsimhdf5.VSimReader.getDumpreader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">postpic</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="postpic.html">postpic package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="postpic.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">postpic.datareader package</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#the-dumpreader">The Dumpreader</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#the-simulationreader">The Simulationreader</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.datareader.datareader">postpic.datareader.datareader module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.datareader.dummy">postpic.datareader.dummy module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.datareader.epochsdf">postpic.datareader.epochsdf module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.datareader.openPMDh5">postpic.datareader.openPMDh5 module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.datareader.vsimhdf5">postpic.datareader.vsimhdf5 module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.io.html">postpic.io package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.particles.html">postpic.particles package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.plotting.html">postpic.plotting package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.datahandling">postpic.datahandling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.experimental">postpic.experimental module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.helper">postpic.helper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.helper_fft">postpic.helper_fft module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">postpic</a><ul>
+  <li><a href="postpic.html">postpic package</a><ul>
+      <li>Previous: <a href="postpic.html" title="previous chapter">postpic package</a></li>
+      <li>Next: <a href="postpic.io.html" title="next chapter">postpic.io package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/apidoc/postpic.datareader.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc/postpic.datareader.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

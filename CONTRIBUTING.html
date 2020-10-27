@@ -1,0 +1,198 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contributing to the postpic code base &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="postpic" href="apidoc/modules.html" />
+    <link rel="prev" title="Changelog of postpic" href="CHANGELOG.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="contributing-to-the-postpic-code-base">
+<h1>Contributing to the postpic code base<a class="headerlink" href="#contributing-to-the-postpic-code-base" title="Permalink to this headline">¶</a></h1>
+<p>Any help contributing to the postpic project ist greatly appreciated! Feel free to contact any of the developers or ask for help using the [Issues](<a class="reference external" href="https://github.com/skuschel/postpic/issues">https://github.com/skuschel/postpic/issues</a>) Page.</p>
+<div class="section" id="why-me">
+<h2>Why me?<a class="headerlink" href="#why-me" title="Permalink to this headline">¶</a></h2>
+<p>because you are using it!</p>
+</div>
+<div class="section" id="how-to-contribute">
+<h2>How to contribute?<a class="headerlink" href="#how-to-contribute" title="Permalink to this headline">¶</a></h2>
+<p>Reporting bugs or asking questions works with a GitHub account simply on the [Issues](<a class="reference external" href="https://github.com/skuschel/postpic/issues">https://github.com/skuschel/postpic/issues</a>) page.</p>
+<p>For any coding you need to be familiar with [git](<a class="reference external" href="http://git-scm.com/">http://git-scm.com/</a>). Its a distributed version control system created by Linus Torvalds (and more importantly: he is also using it for maintaining the linux kernel). There is a nice introduction to git at [try.github.io/](<a class="reference external" href="http://try.github.io/">http://try.github.io/</a>), but in general you can follow the bootcamp section at [<a class="reference external" href="https://help.github.com/](https://help.github.com/">https://help.github.com/](https://help.github.com/</a>) for your first steps.</p>
+<p>One of the most comprehensive guides is probably [this book](<a class="reference external" href="http://git-scm.com/doc">http://git-scm.com/doc</a>). Just start reading from the beginning. It is worth it!</p>
+</div>
+<div class="section" id="the-workflow">
+<h2>The Workflow<a class="headerlink" href="#the-workflow" title="Permalink to this headline">¶</a></h2>
+<p>Adding a feature is often triggered by the personal demand for it. Thats why production ready features should propagte to master as fast as possible. Everything on master is considered to be production ready. We follow the  [github-flow](<a class="reference external" href="http://scottchacon.com/2011/08/31/github-flow.html">http://scottchacon.com/2011/08/31/github-flow.html</a>) describing this very nicely.</p>
+<p>In short:</p>
+<blockquote>
+<div><p>0. [Fork](<a class="reference external" href="https://help.github.com/articles/fork-a-repo">https://help.github.com/articles/fork-a-repo</a>) the PostPic repo to your own GitHub account.
+0. Clone from your fork to your local computer.
+0. Create a branch whose name tells what you do. Something like <cite>codexy-reader</cite> or <cite>fixwhatever</cite>,… is a good choice. Do NOT call it <cite>issue42</cite>. Git history should be clearly readable without external information. If its somehow unspecific in the worst case call it <cite>dev</cite> or even commit onto your <cite>master</cite> branch.
+0. Implement a new feature/bugfix/documentation/whatever commit to your local repository. It is highly recommended that the new features will have test cases.
+0. KEEP YOUR FORK UP TO DATE! Your fork is yours, only. So you have to update it to whatever happens in the main repository. To do so add the main repository as a second remote with</p>
+<blockquote>
+<div><p><cite>git remote add upstream git&#64;github.com:skuschel/postpic.git</cite></p>
+<p>and pull from it regularly with</p>
+</div></blockquote>
+<p><cite>git pull –rebase upstream master</cite></p>
+<p>0. Make sure all tests are running smoothly (the <cite>run-tests.py</cite> script also involves pep8 style verification!) Run <cite>run-tests.py</cite> before EVERY commit!
+0. push to your fork and create a [pull request](<a class="reference external" href="https://help.github.com/articles/using-pull-requests/">https://help.github.com/articles/using-pull-requests/</a>) EARLY! Even if your feature or fix is not yet finished, create the pull request and start it with <cite>WIP:</cite> or <cite>[WIP]</cite> (work-in-progress) to show its not yet ready to merge in. But the pull request will</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>trigger travis.ci to run the tests whenever you push</p></li>
+<li><p>show other people what you work on</p></li>
+<li><p>ensure early feedback on your work</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="coding-and-general-remaks">
+<h2>Coding and general remaks<a class="headerlink" href="#coding-and-general-remaks" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Make sure, that the <cite>run-tests.py</cite> script exits without error on EVERY commit. To do so, it is HIGHLY RECOMMENDED to add the <cite>pre-commit</cite> script as the git pre-commit hook. For instructions see [pre-commit](../master/pre-commit).</p></li>
+<li><p>The Coding style is according to slightly simplified pep8 rules. This is included in the <cite>run-tests.py</cite> script. If that script runs without error, you should be good to &lt;del&gt;go&lt;/del&gt; commit.</p></li>
+<li><p>Add the GPLv3+ licence notice on top of every new file. If you add a new file you are free to add your name as a author. This will let other people know that you are in charge if there is any trouble with the code. This is only useful if the file you provide adds functionality like a new datareader. Thats why the <cite>__init__.py</cite> files typically do not have a name written. In doubt, the git revision history will always show who added which line.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="what-to-contribute">
+<h2>What to contribute?<a class="headerlink" href="#what-to-contribute" title="Permalink to this headline">¶</a></h2>
+<p>Here is a list for your inspiration:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Add Documentation and usage examples.</p></li>
+<li><p>Report bugs at the [Issues](<a class="reference external" href="https://github.com/skuschel/postpic/issues">https://github.com/skuschel/postpic/issues</a>) page.</p></li>
+<li><p>Fix bugs from the [Issues](<a class="reference external" href="https://github.com/skuschel/postpic/issues">https://github.com/skuschel/postpic/issues</a>) page.</p></li>
+<li><p>Add python docstrings to the codebase.</p></li>
+<li><p>Add new features.</p></li>
+<li><p>Add new datareader for additional file formats.</p></li>
+<li><p>Add test cases</p></li>
+<li><p>…</p></li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing to the postpic code base</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#why-me">Why me?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-contribute">How to contribute?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-workflow">The Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coding-and-general-remaks">Coding and general remaks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-to-contribute">What to contribute?</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="CHANGELOG.html" title="previous chapter">Changelog of postpic</a></li>
+      <li>Next: <a href="apidoc/modules.html" title="next chapter">postpic</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/CONTRIBUTING.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/CONTRIBUTING.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

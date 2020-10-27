@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Getting started &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Changelog of postpic" href="CHANGELOG.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started">
+<h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<p>The following script should just show an example how to get started using the postpic postprocessor. This script uses the dummy reader (thus auto generated random data). Thats why there is no input file needed to read the simulation data from.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright Stephan Kuschel 2015</span>
+<span class="c1">#</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="kn">import</span> <span class="nn">postpic</span> <span class="k">as</span> <span class="nn">pp</span>
+
+    <span class="c1"># postpic will use matplotlib for plotting. Changing matplotlibs backend</span>
+    <span class="c1"># to &quot;Agg&quot; makes it possible to save plots without a display attached.</span>
+    <span class="c1"># This is necessary to run this example within the &quot;run-tests&quot; script</span>
+    <span class="c1"># on travis-ci.</span>
+    <span class="kn">import</span> <span class="nn">matplotlib</span><span class="p">;</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Agg&#39;</span><span class="p">)</span>
+
+
+    <span class="c1"># choose the dummy reader. This reader will create fake data for testing.</span>
+    <span class="n">pp</span><span class="o">.</span><span class="n">chooseCode</span><span class="p">(</span><span class="s1">&#39;dummy&#39;</span><span class="p">)</span>
+
+    <span class="n">dr</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">readDump</span><span class="p">(</span><span class="mf">3e5</span><span class="p">)</span>  <span class="c1"># Dummyreader takes a float as argument, not a string.</span>
+    <span class="c1"># set and create directory for pictures.</span>
+    <span class="n">savedir</span> <span class="o">=</span> <span class="s1">&#39;_examplepictures/&#39;</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">savedir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">savedir</span><span class="p">)</span>
+
+    <span class="c1"># initialze the plotter object.</span>
+    <span class="c1"># project name will be prepended to all output names</span>
+    <span class="n">plotter</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">plotting</span><span class="o">.</span><span class="n">plottercls</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="n">savedir</span><span class="p">,</span> <span class="n">autosave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s1">&#39;simpleexample&#39;</span><span class="p">)</span>
+
+    <span class="c1"># we will need a refrence to the MultiSpecies quite often</span>
+    <span class="kn">from</span> <span class="nn">postpic.particles</span> <span class="kn">import</span> <span class="n">MultiSpecies</span>
+
+    <span class="c1"># create MultiSpecies Object for every particle species that exists.</span>
+    <span class="n">pas</span> <span class="o">=</span> <span class="p">[</span><span class="n">MultiSpecies</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">dr</span><span class="o">.</span><span class="n">listSpecies</span><span class="p">()]</span>
+
+    <span class="k">if</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="c1"># Plot Data from the FieldAnalyzer fa. This is very simple: every line creates one plot</span>
+        <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">Ex</span><span class="p">())</span>  <span class="c1"># plot 0</span>
+        <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">Ey</span><span class="p">())</span>  <span class="c1"># plot 1</span>
+        <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">Ez</span><span class="p">())</span>  <span class="c1"># plot 2</span>
+        <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">energydensityEM</span><span class="p">())</span>  <span class="c1"># plot 3</span>
+
+        <span class="c1"># Using the MultiSpecies requires an additional step:</span>
+        <span class="c1"># 1) The MultiSpecies.createField method will be used to create a Field object</span>
+        <span class="c1"># with choosen particle scalars on every axis</span>
+        <span class="c1"># 2) Plot the Field object</span>
+        <span class="n">optargsh</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;bins&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">300</span><span class="p">,</span><span class="mi">300</span><span class="p">]}</span>
+        <span class="k">for</span> <span class="n">pa</span> <span class="ow">in</span> <span class="n">pas</span><span class="p">:</span>
+            <span class="c1"># create a Field object nd holding the number density</span>
+            <span class="n">nd</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">simextent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">optargsh</span><span class="p">)</span>
+            <span class="c1"># plot the Field object nd</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">nd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;NumberDensity&#39;</span><span class="p">)</span>   <span class="c1"># plot 4</span>
+            <span class="c1"># if you like to keep working with the just created number density</span>
+            <span class="c1"># yourself, it will convert to an numpy array whenever needed:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Shape of number density: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+
+            <span class="c1"># more advanced: create a field holding the total kinetic energy on grid</span>
+            <span class="n">ekin</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s1">&#39;Ekin_MeV&#39;</span><span class="p">,</span> <span class="n">simextent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">optargsh</span><span class="p">)</span>
+            <span class="c1"># The Field objectes can be used for calculations. Here we use this to</span>
+            <span class="c1"># calculate the average kinetic energy on grid and plot</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">ekin</span> <span class="o">/</span> <span class="n">nd</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Avg Kin Energy (MeV)&#39;</span><span class="p">)</span>  <span class="c1"># plot 5</span>
+            <span class="c1"># use optargsh to force lower resolution</span>
+            <span class="c1"># plot number density</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">optargsh</span><span class="p">),</span> <span class="n">lineoutx</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lineouty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># plot 6</span>
+            <span class="c1"># plot phase space</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">optargsh</span><span class="p">))</span>  <span class="c1"># plot 7</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">optargsh</span><span class="p">))</span>  <span class="c1"># plot 8</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">optargsh</span><span class="p">))</span>  <span class="c1"># plot 9</span>
+
+            <span class="c1"># same with high resolution</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1000</span><span class="p">]))</span>  <span class="c1"># plot 10</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1000</span><span class="p">]))</span>  <span class="c1"># plot 11</span>
+
+            <span class="c1"># advanced: postpic has already defined a lot of particle scalars as Px, Py, Pz, P, X, Y, Z, gamma, beta, Ekin, Ekin_MeV, Ekin_MeV_amu, ... but if needed you can also define your own particle scalar on the fly.</span>
+            <span class="c1"># In case its regularly used it should be added to postpic. If you dont know how, just let us know about your own useful particle scalar by email or adding an issue at</span>
+            <span class="c1"># https://github.com/skuschel/postpic/issues</span>
+
+            <span class="c1"># define your own particle scalar: p_r = sqrt(px**2 + py**2)/p</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;sqrt(px**2 + py**2)/p&#39;</span><span class="p">,</span> <span class="s1">&#39;sqrt(x**2 + y**2)&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">400</span><span class="p">,</span><span class="mi">400</span><span class="p">]))</span>  <span class="c1"># plot 12</span>
+
+            <span class="c1"># however, since its unknown to the program, what quantities were calculated the axis of plot 12 will only say &quot;unknown&quot;</span>
+            <span class="c1"># this can be avoided in two ways:</span>
+            <span class="c1"># 1st: define your own ScalarProperty(name, expr, unit):</span>
+            <span class="n">p_perp</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(px**2 + py**2)/p&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;p_perp&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;kg*m/s&#39;</span><span class="p">)</span>
+            <span class="n">r_xy</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(x**2 + y**2)&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;r_xy&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+            <span class="c1"># this will create an identical plot, but correcly labled</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="n">p_perp</span><span class="p">,</span> <span class="n">r_xy</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">400</span><span class="p">,</span><span class="mi">400</span><span class="p">]))</span>  <span class="c1"># plot 13</span>
+            <span class="c1"># if those quantities are reused often, teach postip to recognize them within the string expression:</span>
+            <span class="n">pp</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">particle_scalars</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p_perp</span><span class="p">)</span>
+            <span class="c1">#pp.particles.scalars.add(r_xy)  # we cannot execute this line, because r_xy is already predefinded</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;p_perp&#39;</span><span class="p">,</span> <span class="s1">&#39;r_xy&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">400</span><span class="p">,</span><span class="mi">400</span><span class="p">]))</span>  <span class="c1"># plot 14</span>
+
+
+
+            <span class="c1"># choose particles by their properies</span>
+            <span class="c1"># this has been the old interface, which would still work</span>
+            <span class="c1"># def cf(ms):</span>
+            <span class="c1">#     return ms(&#39;x&#39;) &gt; 0.0  # only use particles with x &gt; 0.0</span>
+            <span class="c1"># cf.name = &#39;x&gt;0.0&#39;</span>
+            <span class="c1"># pa.compress(cf)</span>
+            <span class="c1"># nicer is the new filter function, which does exactly the same:</span>
+            <span class="n">pf</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;x&gt;0&#39;</span><span class="p">)</span>
+            <span class="c1"># plot 15, compare with plot 10</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pf</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span><span class="mi">1000</span><span class="p">]))</span>
+            <span class="c1"># plot 16, compare with plot 12</span>
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">pf</span><span class="o">.</span><span class="n">createField</span><span class="p">(</span><span class="s1">&#39;p_perp&#39;</span><span class="p">,</span> <span class="s1">&#39;r_xy&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">[</span><span class="mi">400</span><span class="p">,</span><span class="mi">400</span><span class="p">]))</span>
+
+            <span class="n">plotter</span><span class="o">.</span><span class="n">plotField</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">divE</span><span class="p">())</span>  <span class="c1"># plot 13</span>
+
+<span class="k">if</span> <span class="vm">__name__</span><span class="o">==</span><span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="introduction.html" title="previous chapter">Introduction</a></li>
+      <li>Next: <a href="CHANGELOG.html" title="next chapter">Changelog of postpic</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/getstarted.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/getstarted.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

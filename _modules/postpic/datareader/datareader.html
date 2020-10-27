@@ -1,0 +1,488 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.datareader.datareader &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.datareader.datareader</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel 2015</span>
+<span class="c1"># Alexander Blinne, 2017</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">helper</span>
+<span class="kn">from</span> <span class="nn">.._field_calc</span> <span class="kn">import</span> <span class="n">FieldAnalyzer</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Dumpreader_ifc&#39;</span><span class="p">,</span> <span class="s1">&#39;Simulationreader_ifc&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Dumpreader_ifc"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc">[docs]</a><span class="k">class</span> <span class="nc">Dumpreader_ifc</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">,</span> <span class="n">FieldAnalyzer</span><span class="p">)):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Interface class for reading a single dump. A dump contains informations</span>
+<span class="sd">    about the  simulation at a single timestep (Usually E- and B-Fields on</span>
+<span class="sd">    grid + particles).</span>
+
+<span class="sd">    Any Dumpreader_ifc implementation will always be initialized using a</span>
+<span class="sd">    dumpidentifier. This dumpidentifier can be anything, that points to</span>
+<span class="sd">    the data of a dump. In the easiest case this is just the filename of</span>
+<span class="sd">    the dump holding all data of that timestep</span>
+<span class="sd">    (for example .sdf file for EPOCH, .hdf5 for some other code).</span>
+
+<span class="sd">    The dumpreader should provide all necessary informations in a unified interface</span>
+<span class="sd">    but at the same time it should not restrict the user to these properties of there</span>
+<span class="sd">    dump only. The recommended implementation is shown here (EPOCH and VSim reader</span>
+<span class="sd">    work like this):</span>
+<span class="sd">    All (!) data, that is saved in a single dump should be accessible via the</span>
+<span class="sd">    self.__getitem__(key) method. Together with the self.keys() method, this will ensure,</span>
+<span class="sd">    that every dumpreader works as a dictionary and every dump attribute is accessible</span>
+<span class="sd">    via this dictionary.</span>
+
+<span class="sd">    Hirachy of methods</span>
+<span class="sd">    ------------------</span>
+<span class="sd">    * Level 0:</span>
+<span class="sd">    __getitem__ and keys(self) are level 0 methods, meaning it must be possible to access</span>
+<span class="sd">    everthing with those methods.</span>
+
+<span class="sd">    * Level 1:</span>
+<span class="sd">    provide direct data access by forwarding the requests to the corresponding Level 0</span>
+<span class="sd">    or Level 1 methods.</span>
+
+<span class="sd">    * Level 2:</span>
+<span class="sd">    provide user access to the data by forwarding the request to Level 1 or Level 2 methods,</span>
+<span class="sd">    but NOT to Level 0 methods.</span>
+
+<span class="sd">    If some attribute wasnt dumped a KeyError must be thrown. This allows</span>
+<span class="sd">    classes which are using the reader to just exit if a needed property wasnt dumped</span>
+<span class="sd">    or to catch the KeyError and proceed by actively ignoring it.</span>
+
+<span class="sd">    It is highly recommended to also override the functions __str__ and gridpoints.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      dumpidentifier : variable type</span>
+<span class="sd">        whatever identifies the dump. It is recommended to use a String</span>
+<span class="sd">        here pointing to a file.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dumpidentifier</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Dumpreader_ifc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span> <span class="o">=</span> <span class="n">dumpidentifier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+
+<span class="c1"># --- Level 0 methods ---</span>
+
+<div class="viewcode-block" id="Dumpreader_ifc.keys"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.keys">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns:</span>
+<span class="sd">          a list of keys, that can be used in __getitem__ to read</span>
+<span class="sd">          any information from this dump.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        access to everything. May return hd5 objects corresponding to the &quot;key&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+<span class="c1"># --- Level 1 methods ---</span>
+
+<div class="viewcode-block" id="Dumpreader_ifc.data"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.data">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        access to every raw data. needs to return numpy arrays corresponding to the &quot;key&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.gridoffset"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.gridoffset">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">gridoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        offset of the beginning of the first cell of the grid.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.gridspacing"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.gridspacing">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">gridspacing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        size of one grid cell in the direction &quot;axis&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.gridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.gridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">gridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Number of grid points along &quot;axis&quot;. It is highly recommended to override this</span>
+<span class="sd">        method due to performance reasons.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Method &quot;gridpoints(self, key, axis)&quot; is not overridden in datareader. &#39;</span>
+                      <span class="s1">&#39;This is may alter performance.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">helper</span><span class="o">.</span><span class="n">axesidentify</span><span class="p">[</span><span class="n">axis</span><span class="p">]]</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.gridnode"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.gridnode">[docs]</a>    <span class="k">def</span> <span class="nf">gridnode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The grid nodes along &quot;axis&quot;. Grid nodes include the beginning and the end of the grid.</span>
+<span class="sd">        Example: If the grid has 20 grid points, it has 21 grid nodes or grid edges.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridoffset</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridpoints</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span>
+                           <span class="n">offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridspacing</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span>
+                           <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.grid"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.grid">[docs]</a>    <span class="k">def</span> <span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gridnode</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">),</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;valid&#39;</span><span class="p">)</span></div>
+
+<span class="c1"># --- Level 2 methods ---</span>
+
+    <span class="c1"># --- General Information ---</span>
+<div class="viewcode-block" id="Dumpreader_ifc.timestep"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.timestep">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">timestep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.time"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.time">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.simdimensions"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.simdimensions">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">simdimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        the number of spatial dimensions the simulations was using.</span>
+<span class="sd">        Must be 1, 2 or 3.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+    <span class="c1"># --- Data on Grid ---</span>
+    <span class="c1"># _key[E,B] methods are ONLY used inside the datareader class</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_keyE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The key where the E field component can be found.</span>
+<span class="sd">        kwargs will be forwarded and can be used here to specify that alternate</span>
+<span class="sd">        keys will be used instead. For example you might have dumped a default Ex</span>
+<span class="sd">        field (no kwargs), but also another one with low resolution (lowres=2)</span>
+<span class="sd">        and another one with low resolution and averaged over some laser periods</span>
+<span class="sd">        (lowres=3, average=100).</span>
+<span class="sd">        The naming of those kwargs is reader specific.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_keyB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The key where the B field component can be found.</span>
+<span class="sd">        see _keyE for a description of kwargs.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># if you need to customize more, just skip _key[E,B] methods and</span>
+    <span class="c1"># override the following 4 methods to have full control.</span>
+<div class="viewcode-block" id="Dumpreader_ifc.dataE"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.dataE">[docs]</a>    <span class="k">def</span> <span class="nf">dataE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keyE</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.gridkeyE"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.gridkeyE">[docs]</a>    <span class="k">def</span> <span class="nf">gridkeyE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyE</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.dataB"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.dataB">[docs]</a>    <span class="k">def</span> <span class="nf">dataB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keyB</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.gridkeyB"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.gridkeyB">[docs]</a>    <span class="k">def</span> <span class="nf">gridkeyB</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keyB</span><span class="p">(</span><span class="n">component</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_simgridkeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns a list of keys that can be tried one after another to determine the grid,</span>
+<span class="sd">        that the actual simulations was running on.</span>
+<span class="sd">        This is dirty. Rather override self.simgridpoints and self.simextent</span>
+<span class="sd">        with your own (better performance) implementation.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="Dumpreader_ifc.simgridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.simgridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">simgridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simgridkeys</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridpoints</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.simextent"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.simextent">[docs]</a>    <span class="k">def</span> <span class="nf">simextent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns the extent of the actual simulation box.</span>
+<span class="sd">        Override in your own reader class for better performance implementation.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simgridkeys</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridoffset</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridpoints</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">offset</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">gridspacing</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">*</span> <span class="n">n</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;Unable to resolve &quot;simexent&quot; for axis &quot;</span><span class="si">{:}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.simgridspacing"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.simgridspacing">[docs]</a>    <span class="k">def</span> <span class="nf">simgridspacing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="n">extent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simextent</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">extent</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">extent</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">simgridpoints</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span></div>
+
+    <span class="c1"># --- Particle Data ---</span>
+<div class="viewcode-block" id="Dumpreader_ifc.listSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.listSpecies">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">listSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Dumpreader_ifc.getSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Dumpreader_ifc.getSpecies">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">getSpecies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This function gives access to any of the particle properties in</span>
+<span class="sd">        ..helper.attribidentify</span>
+<span class="sd">        This method can behave in the following ways:</span>
+<span class="sd">        1) Return a list of scalar properties for each particle of this species</span>
+<span class="sd">        2) Return a single float (i.e. `1.2`, NOT `[1.2]`) to show that</span>
+<span class="sd">           every particle of this species has the same scalar value to thisdimmax</span>
+<span class="sd">           property assigned. This might be quite often used for charge or mass</span>
+<span class="sd">           that are defined per species.</span>
+<span class="sd">        3) Raise a KeyError if the requested property or species wasn dumped.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="nd">@name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;Dumpreader at &quot;</span><span class="si">{:}</span><span class="s1">&quot;&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Two dumpreader are equal, if they represent the same dump.</span>
+
+<span class="sd">        Assuming both dumpidentifier are paths to the dumpfiles, simple string comparison</span>
+<span class="sd">        may give a &quot;False&quot;,</span>
+<span class="sd">        although they both point to the same file:</span>
+<span class="sd">        * ./path/to/file</span>
+<span class="sd">        * path/to/file</span>
+<span class="sd">        * /absolute/path/to/file</span>
+
+<span class="sd">        Therefore this functions tries to interpret the dumpidentifier as paths/to/files.</span>
+<span class="sd">        In case this is successful and both files exist,</span>
+<span class="sd">        the function checks if they point to the same file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">osp</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">dumpidentifier</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">osp</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">osp</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">s2</span><span class="p">):</span>
+            <span class="c1"># osp.samefile available under Windows since python 3.2</span>
+            <span class="k">return</span> <span class="n">osp</span><span class="o">.</span><span class="n">samefile</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># seems to be something else than a path to a file</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dumpidentifier</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">dumpidentifier</span></div>
+
+
+<div class="viewcode-block" id="Simulationreader_ifc"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Simulationreader_ifc">[docs]</a><span class="k">class</span> <span class="nc">Simulationreader_ifc</span><span class="p">(</span><span class="n">Sequence</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Interface for reading the data of a full Simulation.</span>
+
+<span class="sd">    Any Simulationreader_ifc implementation will always be initialized using a</span>
+<span class="sd">    simidentifier. This simidentifier can be anything, that points to</span>
+<span class="sd">    the data of multiple dumps. In the easiest case this can be the .visit</span>
+<span class="sd">    file.</span>
+
+<span class="sd">    The Simulationreader_ifc is subclass of Sequence and will</span>
+<span class="sd">    thus behave as a Sequence. The Objects in the Sequence are supposed to be</span>
+<span class="sd">    subclassed from Dumpreader_ifc.</span>
+
+<span class="sd">    It is highly recommended to also override the __str__ function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      simidentifier : variable type</span>
+<span class="sd">        something identifiying a series of dumps.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">simidentifier</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simidentifier</span> <span class="o">=</span> <span class="n">simidentifier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">*</span><span class="n">key</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)))]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Handle negative indices</span>
+                <span class="n">key</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;The index (</span><span class="si">%d</span><span class="s2">) is out of range.&quot;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getDumpreader</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid argument type.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_getDumpreader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        :returns: the corresponding Dumpreader.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">simidentifier</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="nd">@name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&lt;Simulationreader initialized with &quot;</span><span class="si">{:}</span><span class="s1">&quot; (</span><span class="si">{:}</span><span class="s1"> dumps)&#39;</span>
+        <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">simidentifier</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+    <span class="c1"># Higher Level Functions for usability</span>
+
+<div class="viewcode-block" id="Simulationreader_ifc.times"><a class="viewcode-back" href="../../../apidoc/postpic.datareader.html#postpic.datareader.Simulationreader_ifc.times">[docs]</a>    <span class="k">def</span> <span class="nf">times</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../datareader.html">postpic.datareader</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

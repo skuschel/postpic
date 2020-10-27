@@ -1,0 +1,1395 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.particles.particles &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.particles.particles</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel 2014-2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Particle related routines.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">..helper</span> <span class="kn">import</span> <span class="n">PhysicalConstants</span> <span class="k">as</span> <span class="n">pc</span>
+<span class="kn">import</span> <span class="nn">scipy.constants</span>
+<span class="kn">from</span> <span class="nn">._routines</span> <span class="kn">import</span> <span class="n">SpeciesIdentifier</span><span class="p">,</span> <span class="n">histogramdd</span>
+<span class="kn">from</span> <span class="nn">..helper</span> <span class="kn">import</span> <span class="n">deprecated</span><span class="p">,</span> <span class="n">append_doc_of</span>
+<span class="kn">from</span> <span class="nn">..datahandling</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.scalarproperties</span> <span class="kn">import</span> <span class="n">ScalarProperty</span><span class="p">,</span> <span class="n">ScalarPropertyContext</span><span class="p">,</span> <span class="n">createdefaultscalarcontext</span>
+
+<span class="n">identifyspecies</span> <span class="o">=</span> <span class="n">SpeciesIdentifier</span><span class="o">.</span><span class="n">identifyspecies</span>
+
+<span class="c1"># this file</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MultiSpecies&#39;</span><span class="p">,</span> <span class="s1">&#39;ParticleHistory&#39;</span><span class="p">,</span> <span class="s1">&#39;particle_scalars&#39;</span><span class="p">]</span>
+<span class="c1"># imported</span>
+<span class="n">__all__</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;identifyspecies&#39;</span><span class="p">]</span>
+
+
+<span class="n">particle_scalars</span> <span class="o">=</span> <span class="n">createdefaultscalarcontext</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_findscalarattr</span><span class="p">(</span><span class="n">scalarf</span><span class="p">,</span> <span class="n">attrib</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Tries to find the scalarf&#39;s attribute attrib like name or unit.</span>
+<span class="sd">    returns None if not found</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">scalarf</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="c1"># scalarf is function or ScalarProperty</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">scalarf</span><span class="p">,</span> <span class="n">attrib</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scalarf</span> <span class="ow">in</span> <span class="n">particle_scalars</span><span class="p">:</span>
+        <span class="c1"># scalarf is a string</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">particle_scalars</span><span class="p">[</span><span class="n">scalarf</span><span class="p">],</span> <span class="n">attrib</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">particle_scalars</span><span class="p">[</span><span class="n">scalarf</span><span class="p">],</span> <span class="n">attrib</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">default</span> <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ret</span>
+
+
+<span class="k">class</span> <span class="nc">_SingleSpecies</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    used by the MultiSpecies class only.</span>
+<span class="sd">    The _SingleSpecies will return atomic particle properties</span>
+<span class="sd">    (see list below) as given by the dumpreader. Each property can thus</span>
+<span class="sd">    return:</span>
+<span class="sd">    1) a list (one value for each particle)</span>
+<span class="sd">    2) a single scalar value if this property is equal for the entire</span>
+<span class="sd">    species (as usual for &#39;mass&#39; or &#39;charge&#39;).</span>
+<span class="sd">    3) raise a KeyError on request if the property wasnt dumped.</span>
+<span class="sd">    Once initiated, all implemented methods leave the object unchanged.</span>
+<span class="sd">    A new instance is returned if needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># List of atomic particle properties. Those will be requested from the dumpreader</span>
+    <span class="c1"># All other particle properties will be calculated from these.</span>
+    <span class="n">_atomicprops</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;px&#39;</span><span class="p">,</span> <span class="s1">&#39;py&#39;</span><span class="p">,</span> <span class="s1">&#39;pz&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">]</span>
+    <span class="n">_atomicprops_synonyms</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="s1">&#39;time&#39;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dumpreader</span><span class="p">,</span> <span class="n">species</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">species</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dumpreader</span><span class="o">.</span><span class="n">listSpecies</span><span class="p">():</span>
+            <span class="c1"># A better way would be to test if len(self) == 0,</span>
+            <span class="c1"># but that may require heavy IO</span>
+            <span class="k">raise</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;species &quot;</span><span class="si">{:}</span><span class="s1">&quot; does not exist in </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">species</span><span class="p">,</span> <span class="n">dumpreader</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">species</span> <span class="o">=</span> <span class="n">species</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dumpreader</span> <span class="o">=</span> <span class="n">dumpreader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compresslog</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># create a method for every _atomicprops item.</span>
+        <span class="k">def</span> <span class="nf">makefunc</span><span class="p">(</span><span class="n">_self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">ret</span><span class="p">(</span><span class="n">_self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">_self</span><span class="o">.</span><span class="n">_readatomic</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ret</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atomicprops</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">_SingleSpecies</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">makefunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns a shallow copy of the object.</span>
+<span class="sd">        This method is called by `copy.copy(obj)`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="c1"># the content of _cache will be updated in the compress function,</span>
+        <span class="c1"># But the copy needs its own dictionary</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;_cache&#39;</span><span class="p">,</span> <span class="s1">&#39;_compressboollist&#39;</span><span class="p">,</span> <span class="s1">&#39;compresslog&#39;</span><span class="p">]:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dumpreader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumpreader</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_npart</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&lt;SingleSpecies &quot;</span><span class="si">{}</span><span class="s1">&quot; (</span><span class="si">{}</span><span class="s1">) from &quot;</span><span class="si">{}</span><span class="s1">&quot;&gt;&#39;</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dumpreader</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&lt;SingleSpecies &quot;</span><span class="si">{}</span><span class="s1">&quot; (</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1"> - </span><span class="si">{:.2%}</span><span class="s1">) from &quot;</span><span class="si">{}</span><span class="s1">&quot;&gt;&#39;</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">/</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dumpreader</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_readatomic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Reads an atomic property, thus one out of</span>
+<span class="sd">        weight, x, y, z, px, py, pz, mass, charge, ID</span>
+<span class="sd">        (self._atomicprops)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="c1"># if not cached, try to to find it</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumpreader</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;charge&#39;</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumpreader</span><span class="o">.</span><span class="n">getSpecies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="c1"># in the special case of mass or charge try to deduce mass or charge</span>
+                <span class="c1"># from the species name.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_idfy</span> <span class="o">=</span> <span class="n">identifyspecies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">)</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idfy</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dumpreader</span><span class="o">.</span><span class="n">getSpecies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="c1"># now that we have got the data, check if compress was used and/or maybe cache value</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;id&#39;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ret</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="p">():</span>  <span class="c1"># cache single scalars always</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span><span class="p">]</span>  <span class="c1"># avoid executing this line too often.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span>
+            <span class="c1"># if memomry is low, caching could be skipped entirely.</span>
+            <span class="c1"># See commit message for benchmark.</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        like :meth:`compress`, but takes a ScalarProperty object instead which is required</span>
+<span class="sd">        to evalute to a boolean list. Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; ms2 = ms.filter(&#39;gamma &gt; 12&#39;)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        condition: str</span>
+<span class="sd">          A string, which can also be used at `ms(condition)` and evaluates</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">expr</span> <span class="k">if</span> <span class="n">condition</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">condition</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unknown condition&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        works like numpy.compress.</span>
+<span class="sd">        Additionaly you can specify a name, that gets saved in the compresslog.</span>
+<span class="sd">        Returns a new MultiSpecies instance. `compress` gives you a lot of control,</span>
+<span class="sd">        but in most cases :meth:`filter` will be sufficient and keeps your code more readable.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        condition: 1D numpy array</span>
+<span class="sd">          Condition can be one out of two choices:</span>
+
+<span class="sd">          * `condition =  [True, False, True, True, ... , True, False]`</span>
+
+<span class="sd">            condition is a list of length N, specifing which particles to keep. The length</span>
+<span class="sd">            of the list must be equal to the length of the MultiSpecies instance,</span>
+<span class="sd">            otherwise a ValueError is raised.</span>
+<span class="sd">            Example:</span>
+
+<span class="sd">            &gt;&gt;&gt; cfintospectrometer = lambda ms: ms(&#39;abs(angle_xaxis) &lt; 30e-3&#39;)</span>
+<span class="sd">            &gt;&gt;&gt; ms2 = ms.compress(cfintospectrometer(ms), name=&#39;&lt; 30mrad offaxis&#39;)</span>
+
+<span class="sd">            Consider using :meth:`filter` instead.</span>
+
+<span class="sd">          * `condtition = [7, 2000, 4, 5, 91, ... , 765, 809]`</span>
+
+<span class="sd">            condition can be a list of arbitraty length. Only the particles</span>
+<span class="sd">            with the ids listed here will be kept.</span>
+
+<span class="sd">        name: str, optional</span>
+<span class="sd">          an optional name of the condition. This can later be reviewed by</span>
+<span class="sd">          calling &#39;self.compresslog()&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">condition</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;bool&#39;</span><span class="p">):</span>
+            <span class="c1"># Case 1:</span>
+            <span class="c1"># condition is list of boolean values specifying particles to use</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compress_bool</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Case 2:</span>
+            <span class="c1"># condition is list of particle IDs to use</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compress_int</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">compresslog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compresslog</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">_compress_bool</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;number of particles (</span><span class="si">{:7n}</span><span class="s1">) has to match&#39;</span>
+                             <span class="s1">&#39;length of condition (</span><span class="si">{:7n}</span><span class="s1">)&#39;</span>
+                             <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition</span><span class="p">)))</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="o">=</span> <span class="n">condition</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span><span class="p">[</span><span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span><span class="p">]</span> <span class="o">=</span> <span class="n">condition</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ret</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="p">():</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">condition</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">_compress_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+        <span class="c1"># same as</span>
+        <span class="c1"># bools = np.array([idx in condition for idx in self.ID()])</span>
+        <span class="c1"># but benchmarked to be 1500 times faster :)</span>
+        <span class="n">condition</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">()</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
+        <span class="n">idx</span><span class="p">[</span><span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">bools</span> <span class="o">=</span> <span class="n">condition</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="n">ids</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compress_bool</span><span class="p">(</span><span class="n">bools</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">uncompress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Discard all previous runs of &#39;compress&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">dumpreader</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        inverts which particles have been taken and which have not.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># clear cache</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="p">()</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">compresslog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compresslog</span><span class="p">,</span> <span class="s1">&#39;inverted&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="c1"># --- Only very basic functions</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># = number of particles</span>
+        <span class="c1"># find a valid dataset to count number of paricles</span>
+        <span class="c1"># return 0 if no valid dataset can be found</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atomicprops</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># len(3) will yield a TypeError, len([3]) returns 1</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_readatomic</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+                <span class="k">break</span>
+            <span class="k">except</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">initial_npart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        return the original number of particles.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compressboollist</span><span class="p">)</span>
+
+    <span class="c1"># --- The Interface for particle properties using __call__ ---</span>
+
+    <span class="k">def</span> <span class="nf">_eval_single_sp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># sp MUST be ScalarProperty</span>
+        <span class="c1"># this docsting is forwared to __call__</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Variable resolution order</span>
+<span class="sd">          1. try to find the value as a atomic particle property.</span>
+<span class="sd">          2. try to find the value as a defined particle property in ``particle_scalars``.</span>
+<span class="sd">          3. if not found look for an equally named attribute in ``scipy.constants``.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">_vars</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span> <span class="k">if</span> <span class="n">_vars</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_vars</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">expr</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">sp</span><span class="o">.</span><span class="n">input_names</span><span class="p">:</span>
+            <span class="c1"># load each variable needed</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_vars</span><span class="p">:</span>
+                <span class="c1"># already loaded -&gt; skip</span>
+                <span class="k">continue</span>
+            <span class="n">fullname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atomicprops_synonyms</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">fullname</span> <span class="ow">in</span> <span class="n">_vars</span><span class="p">:</span>
+                <span class="n">_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_vars</span><span class="p">[</span><span class="n">fullname</span><span class="p">]</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">fullname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atomicprops</span><span class="p">:</span>
+                <span class="n">_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fullname</span><span class="p">)()</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">particle_scalars</span><span class="p">:</span>  <span class="c1"># the public list of scalar values</span>
+                <span class="n">_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_single_sp</span><span class="p">(</span><span class="n">particle_scalars</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">_vars</span><span class="o">=</span><span class="n">_vars</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="p">[</span><span class="n">np</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">constants</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+                    <span class="k">pass</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_vars</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot; not found!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">_vars</span><span class="p">)</span>
+
+    <span class="nd">@append_doc_of</span><span class="p">(</span><span class="n">_eval_single_sp</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">ScalarProperty</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Argument must be a ScalarProperty object&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_single_sp</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">_vars</span><span class="o">=</span><span class="n">_vars</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MultiSpecies"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies">[docs]</a><span class="k">class</span> <span class="nc">MultiSpecies</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The MultiSpecies class. Different MultiSpecies can be</span>
+<span class="sd">    added together to create a combined collection.</span>
+
+<span class="sd">    **kwargs</span>
+<span class="sd">    --------</span>
+<span class="sd">    ignore_missing_species = False</span>
+<span class="sd">        set to true to ignore missing species.</span>
+
+<span class="sd">    The MultiSpecies class will return a list of values for every</span>
+<span class="sd">    particle property.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dumpreader</span><span class="p">,</span> <span class="o">*</span><span class="n">speciess</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># create &#39;empty&#39; MultiSpecies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_species</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># trivial name if set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compresslog</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># add particle species one by one</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">speciess</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dumpreader</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns a shallow copy of the object.</span>
+<span class="sd">        This method is called by `copy.copy(obj)`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_ssas</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_compresslog</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compresslog</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_npart</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&lt;MultiSpecies including all &quot;</span><span class="si">{:}</span><span class="s1">&quot; (</span><span class="si">{:}</span><span class="s1">)&gt;&#39;</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&lt;MultiSpecies including &quot;</span><span class="si">{:}</span><span class="s1">&quot; (</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1"> - </span><span class="si">{:.2%}</span><span class="s1">)&gt;&#39;</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">species</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="o">/</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dumpreader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns the dumpreader if the dumpreader of **all** species</span>
+<span class="sd">        are pointing to the same dump. This should be mostly the case.</span>
+
+<span class="sd">        Otherwise returns None.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dr0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dumpreader</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">dr0</span> <span class="o">==</span> <span class="n">ssa</span><span class="o">.</span><span class="n">dumpreader</span> <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="n">dr0</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="MultiSpecies.simextent"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.simextent">[docs]</a>    <span class="k">def</span> <span class="nf">simextent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        the combined simextent for all species and dumps included in this MultiSpecies object.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">extents</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">ssa</span><span class="o">.</span><span class="n">dumpreader</span><span class="o">.</span><span class="n">simextent</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span> <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">])</span>
+        <span class="n">mins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">extents</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">maxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">extents</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">mins</span><span class="p">,</span> <span class="n">maxs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.simgridpoints"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.simgridpoints">[docs]</a>    <span class="k">def</span> <span class="nf">simgridpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        this function is for convenience only and is likely to be removed in the future.</span>
+<span class="sd">        Particlarly it is impossible to define the grid of the simulation if the</span>
+<span class="sd">        MultiSpecies object consists of multiple dumps from different simulations.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dumpreader</span><span class="o">.</span><span class="n">simgridpoints</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">npart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Number of Particles.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ssa</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">initial_npart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Original number of particles (before the use of compression or filter).</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="n">ssa</span><span class="o">.</span><span class="n">initial_npart</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nspecies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Number of species.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">npart</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">species</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns an string name for the species involved.</span>
+<span class="sd">        Basically only returns unique names from all species</span>
+<span class="sd">        (used for plotting and labeling purposes -- not for completeness).</span>
+<span class="sd">        May be overwritten.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_species</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># return trivial name if set</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_species</span>
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">speciess</span><span class="p">))</span>
+
+    <span class="nd">@species</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">species</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_species</span> <span class="o">=</span> <span class="n">species</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        an alias to self.species</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">speciess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        a complete list of all species involved.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">ssa</span><span class="o">.</span><span class="n">species</span> <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MultiSpecies.add"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dumpreader</span><span class="p">,</span> <span class="n">species</span><span class="p">,</span> <span class="n">ignore_missing_species</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        adds a species to this MultiSpecies.</span>
+<span class="sd">        This function modifies the current Object and always returns None.</span>
+
+<span class="sd">        Attributes</span>
+<span class="sd">        ----------</span>
+<span class="sd">        species can be a single species name</span>
+<span class="sd">                or a reserved name for collection of species, such as</span>
+<span class="sd">                ions    adds all available particles that are ions</span>
+<span class="sd">                nonions adds all available particles that are not ions</span>
+<span class="sd">                ejected</span>
+<span class="sd">                noejected</span>
+<span class="sd">                all</span>
+
+<span class="sd">        Optional arguments</span>
+<span class="sd">        --------</span>
+<span class="sd">        ignore_missing_species = False</span>
+<span class="sd">            set to True to ignore if the species is missing.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;_ions&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">identifyspecies</span><span class="p">(</span><span class="n">s</span><span class="p">)[</span><span class="s1">&#39;ision&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;_nonions&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="ow">not</span> <span class="n">identifyspecies</span><span class="p">(</span><span class="n">s</span><span class="p">)[</span><span class="s1">&#39;ision&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;_ejected&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">identifyspecies</span><span class="p">(</span><span class="n">s</span><span class="p">)[</span><span class="s1">&#39;ejected&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;_noejected&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="ow">not</span> <span class="n">identifyspecies</span><span class="p">(</span><span class="n">s</span><span class="p">)[</span><span class="s1">&#39;ejected&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;_all&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">species</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">ls</span> <span class="o">=</span> <span class="n">dumpreader</span><span class="o">.</span><span class="n">listSpecies</span><span class="p">()</span>
+            <span class="n">toadd</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">ls</span> <span class="k">if</span> <span class="n">keys</span><span class="p">[</span><span class="n">species</span><span class="p">](</span><span class="n">s</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">toadd</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dumpreader</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ignore_missing_species</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_SingleSpecies</span><span class="p">(</span><span class="n">dumpreader</span><span class="p">,</span> <span class="n">species</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                    <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_SingleSpecies</span><span class="p">(</span><span class="n">dumpreader</span><span class="p">,</span> <span class="n">species</span><span class="p">))</span>
+        <span class="k">return</span></div>
+
+    <span class="c1"># --- Operator overloading</span>
+
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>  <span class="c1"># self + other</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Operator overloading for the ``+`` operator.</span>
+
+<span class="sd">        :returns: A new MultiSpecies object containing the combined collection</span>
+<span class="sd">          of particles.</span>
+
+<span class="sd">        .. note:: Particles present in ``self`` and ``other`` will be present twice in the</span>
+<span class="sd">          returned object!</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">+=</span> <span class="n">other</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>  <span class="c1"># self += other</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Operator overloading for the ``+=`` operator.</span>
+<span class="sd">        Adding MultiSpecies should give the feeling as if you were adding</span>
+<span class="sd">        their particle lists. That is why there is no append function.</span>
+<span class="sd">        Compare those outputs (numpy.array handles that differently!):</span>
+
+<span class="sd">        &gt;&gt;&gt; a=[1,2,3]; a.append([4,5]); print a</span>
+<span class="sd">        &gt;&gt;&gt; [1,2,3,[4,5]]</span>
+<span class="sd">        &gt;&gt;&gt; a=[1,2,3]; a += [4,5]; print a</span>
+<span class="sd">        &gt;&gt;&gt; [1,2,3,4,5]</span>
+
+<span class="sd">        This function modifies the current object. Same behaviour as</span>
+
+<span class="sd">        &gt;&gt;&gt; a = [1,2]; b = a; b+=[7,8]; print(a,b)</span>
+<span class="sd">        &gt;&gt;&gt; [1, 2, 7, 8] [1, 2, 7, 8]</span>
+
+<span class="sd">        .. seealso:: :meth:`__add__`</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">_ssas</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ssa</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="c1"># --- compress related functions ---</span>
+
+<div class="viewcode-block" id="MultiSpecies.filter"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.filter">[docs]</a>    <span class="nd">@append_doc_of</span><span class="p">(</span><span class="n">_SingleSpecies</span><span class="o">.</span><span class="n">filter</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">ScalarProperty</span><span class="p">):</span>
+            <span class="n">sp</span> <span class="o">=</span> <span class="n">condition</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sp</span> <span class="o">=</span> <span class="n">particle_scalars</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_ssas</span> <span class="o">=</span> <span class="p">[</span><span class="n">ssa</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_compresslog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compresslog</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">condition</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.compress"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.compress">[docs]</a>    <span class="nd">@append_doc_of</span><span class="p">(</span><span class="n">_SingleSpecies</span><span class="o">.</span><span class="n">compress</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unknown condition&#39;</span><span class="p">):</span>
+        <span class="n">condition</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ssai</span><span class="p">,</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">):</span>  <span class="c1"># condition is list of booleans</span>
+            <span class="k">if</span> <span class="n">condition</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;bool&#39;</span><span class="p">):</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ssa</span><span class="p">)</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">_ssas</span><span class="p">[</span><span class="n">ssai</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssa</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">condition</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">n</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="n">n</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># condition is list of particle IDs</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">_ssas</span><span class="p">[</span><span class="n">ssai</span><span class="p">]</span> <span class="o">=</span> <span class="n">ssa</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_compresslog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compresslog</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+    <span class="k">def</span> <span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        invert the selection of particles.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_ssas</span> <span class="o">=</span> <span class="p">[</span><span class="o">~</span><span class="n">ssa</span> <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_compresslog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compresslog</span><span class="p">,</span> <span class="s1">&#39;inverted&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="c1"># --- other user friendly functions</span>
+
+<div class="viewcode-block" id="MultiSpecies.compressfn"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.compressfn">[docs]</a>    <span class="k">def</span> <span class="nf">compressfn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conditionf</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;unknown condition&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        like :meth:`compress`, but accepts a function.</span>
+
+<span class="sd">        Returns a new MultiSpecies instance.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">conditionf</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">conditionf</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">conditionf</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.uncompress"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.uncompress">[docs]</a>    <span class="k">def</span> <span class="nf">uncompress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns a new MultiSpecies instance, with all previous calls of</span>
+<span class="sd">        :meth:`compress` or :meth:`filter` undone.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_compresslog</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_ssas</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">uncompress</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.getcompresslog"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.getcompresslog">[docs]</a>    <span class="k">def</span> <span class="nf">getcompresslog</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;all&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compresslog</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">ssa</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">ssa</span><span class="o">.</span><span class="n">species</span><span class="p">:</span> <span class="n">ssa</span><span class="o">.</span><span class="n">compresslog</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+    <span class="c1"># --- Methods to access particle properties</span>
+
+    <span class="nd">@append_doc_of</span><span class="p">(</span><span class="n">_SingleSpecies</span><span class="o">.</span><span class="fm">__call__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Access to particle properties via the expression,</span>
+<span class="sd">        which is used to calculate them.</span>
+
+<span class="sd">        This is **only** function to actually access the data. Every other function</span>
+<span class="sd">        which allows data access must call this one internally!</span>
+
+<span class="sd">        Supported types</span>
+<span class="sd">          * ScalarProperty</span>
+<span class="sd">          * str: will be converted to a ScalarProperty by particle_scalars.__call__.</span>
+<span class="sd">            Therefore known quantities will be recognized</span>
+<span class="sd">          * callable, which acts on the MultiSpecies object. This will work, but</span>
+<span class="sd">            maybe removed in a future release.</span>
+
+<span class="sd">        The list of known particle scalars can be accessed by</span>
+<span class="sd">        ``postpic.particle_scalars``.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">          * ``self(&#39;x&#39;)``</span>
+<span class="sd">          * ``self(&#39;sqrt(px**2 + py**2 + pz**2)&#39;)``</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">ScalarProperty</span><span class="p">):</span>
+            <span class="c1"># best case</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__call_sp</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">bs</span> <span class="o">=</span> <span class="n">basestring</span>  <span class="c1"># python2</span>
+        <span class="k">except</span><span class="p">(</span><span class="ne">NameError</span><span class="p">):</span>
+            <span class="n">bs</span> <span class="o">=</span> <span class="nb">str</span>  <span class="c1"># python3</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">bs</span><span class="p">):</span>
+            <span class="c1"># create temporary ScalarProperty object</span>
+            <span class="n">sp</span> <span class="o">=</span> <span class="n">particle_scalars</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__call_sp</span><span class="p">(</span><span class="n">sp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__call_func</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call_sp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sp</span><span class="p">):</span>
+        <span class="c1"># sp MUST be ScalarProperty</span>
+        <span class="k">def</span> <span class="nf">ssdata</span><span class="p">(</span><span class="n">ss</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">ss</span><span class="p">(</span><span class="n">sp</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="p">():</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">a</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Happens, if only missing species were added with</span>
+            <span class="c1"># ignore_missing_species = True.</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ssdata</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ssas</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="c1"># hope it does what it should...</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">        You are accessing particle properties via the function </span><span class="si">{}</span><span class="s1">.</span>
+<span class="s1">        The Calculation of particle properties using functions is deprecated.</span>
+<span class="s1">        Use a str or a ScalarProperty object instead. This will also allow postic to enable</span>
+<span class="s1">        certain optimizations. When in doubt, use the str.</span>
+<span class="s1">        &#39;&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">func</span><span class="p">))</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="c1"># --- &quot;A scalar for every particle&quot;-functions.</span>
+
+<div class="viewcode-block" id="MultiSpecies.time"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.time">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span></div>
+    <span class="n">time</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;time&#39;</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;s&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.weight"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.weight">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">)</span></div>
+    <span class="n">weight</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Particle weight&#39;</span>
+    <span class="n">weight</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;npartpermacro&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.ID"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.ID">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;id&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">ID</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.mass"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.mass">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># SI</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;mass&#39;</span><span class="p">)</span></div>
+    <span class="n">mass</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;kg&#39;</span>
+    <span class="n">mass</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.mass_u"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.mass_u">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">mass_u</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;mass_u&#39;</span><span class="p">)</span></div>
+    <span class="n">mass_u</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;u&#39;</span>
+    <span class="n">mass_u</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.charge"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.charge">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">charge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># SI</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;charge&#39;</span><span class="p">)</span></div>
+    <span class="n">charge</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span>
+    <span class="n">charge</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;q&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.charge_e"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.charge_e">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">charge_e</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;charge_e&#39;</span><span class="p">)</span></div>
+    <span class="n">charge</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;qe&#39;</span>
+    <span class="n">charge</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;q&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Eruhe"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Eruhe">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Eruhe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Eruhe&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.Px"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Px">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;px&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Px</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;px&#39;</span><span class="p">)</span></div>
+    <span class="n">Px</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">Px</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Px&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Py"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Py">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;py&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Py</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;py&#39;</span><span class="p">)</span></div>
+    <span class="n">Py</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">Py</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Py&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Pz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Pz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;pz&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Pz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;pz&#39;</span><span class="p">)</span></div>
+    <span class="n">Pz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">Pz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Pz&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.P"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.P">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;p&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">P</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">)</span></div>
+    <span class="n">P</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">P</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;P&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.X"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.X">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;x&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">X</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span></div>
+    <span class="n">X</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;X&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.X_um"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.X_um">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;x_um&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">X_um</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;x_um&#39;</span><span class="p">)</span></div>
+    <span class="n">X_um</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\mu m$&#39;</span>
+    <span class="n">X_um</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;X&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Y"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Y">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;y&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span></div>
+    <span class="n">Y</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">Y</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Y&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Y_um"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Y_um">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;Y_mu&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Y_um</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;y_um&#39;</span><span class="p">)</span></div>
+    <span class="n">Y_um</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\mu m$&#39;</span>
+    <span class="n">Y_um</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Y&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Z"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Z">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;z&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Z</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">)</span></div>
+    <span class="n">Z</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">Z</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Z&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Z_um"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Z_um">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;z_um&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Z_um</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;z_um&#39;</span><span class="p">)</span></div>
+    <span class="n">Z_um</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\mu m$&#39;</span>
+    <span class="n">Z_um</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Z&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.beta"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.beta">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">)</span></div>
+    <span class="n">beta</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\beta$&#39;</span>
+    <span class="n">beta</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beta&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.betax"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.betax">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">betax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;betax&#39;</span><span class="p">)</span></div>
+    <span class="n">betax</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\beta$&#39;</span>
+    <span class="n">betax</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;betax&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.betay"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.betay">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">betay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;betay&#39;</span><span class="p">)</span></div>
+    <span class="n">betay</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\beta$&#39;</span>
+    <span class="n">betay</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;betay&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.betaz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.betaz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">betaz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;betaz&#39;</span><span class="p">)</span></div>
+    <span class="n">betaz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\beta$&#39;</span>
+    <span class="n">betaz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;betaz&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.V"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.V">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;v&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">V</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)</span></div>
+    <span class="n">V</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+    <span class="n">V</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;V&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Vx"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Vx">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;vx&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Vx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;vx&#39;</span><span class="p">)</span></div>
+    <span class="n">Vx</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+    <span class="n">Vx</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Vx&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Vy"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Vy">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;vy&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Vy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;vy&#39;</span><span class="p">)</span></div>
+    <span class="n">Vy</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+    <span class="n">Vy</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Vy&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Vz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Vz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;vz&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Vz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;vz&#39;</span><span class="p">)</span></div>
+    <span class="n">Vz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+    <span class="n">Vz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Vz&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.gamma"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.gamma">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">)</span></div>
+    <span class="n">gamma</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\gamma$&#39;</span>
+    <span class="n">gamma</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gamma&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.gamma_m1"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.gamma_m1">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">gamma_m1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;gamma_m1&#39;</span><span class="p">)</span></div>
+    <span class="n">gamma_m1</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;$\gamma - 1$&#39;</span>
+    <span class="n">gamma_m1</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gamma_m1&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;J&#39;</span>
+    <span class="n">Ekin</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin_MeV"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin_MeV">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin_MeV</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin_MeV&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin_MeV</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;MeV&#39;</span>
+    <span class="n">Ekin_MeV</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin_MeV_amu"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin_MeV_amu">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin_MeV_amu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin_MeV_amu&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin_MeV_amu</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;MeV / amu&#39;</span>
+    <span class="n">Ekin_MeV_amu</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin / amu&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin_MeV_qm"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin_MeV_qm">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin_MeV_qm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin_MeV_qm&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin_MeV_qm</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;MeV*q/m&#39;</span>
+    <span class="n">Ekin_MeV_qm</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin * q/m&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin_keV"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin_keV">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin_keV</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin_keV&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin_keV</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;keV&#39;</span>
+    <span class="n">Ekin_keV</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin_keV_amu"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin_keV_amu">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin_keV_amu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin_keV_amu&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin_keV_amu</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;keV / amu&#39;</span>
+    <span class="n">Ekin_keV_amu</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin / amu&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.Ekin_keV_qm"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.Ekin_keV_qm">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Ekin_keV_qm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;Ekin_keV_qm&#39;</span><span class="p">)</span></div>
+    <span class="n">Ekin_keV_qm</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;keV*q/m&#39;</span>
+    <span class="n">Ekin_keV_qm</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ekin * q/m&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_xy"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_xy">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_xy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;angle_xy&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_xy</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_xy</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;anglexy&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_yz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_yz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_yz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;ange_yz&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_yz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_yz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;angleyz&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_zx"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_zx">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_zx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;angle_zx&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_zx</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_zx</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;anglezx&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_yx"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_yx">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_yx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;angle_yx&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_yx</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_yx</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;angleyx&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_zy"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_zy">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_zy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;angle_zy&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_zy</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_zy</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;anglezy&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_xz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_xz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_xz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;angle_xz&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_xz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_xz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;anglexz&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.angle_xaxis"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.angle_xaxis">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">angle_xaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;angle_xaxis&#39;</span><span class="p">)</span></div>
+    <span class="n">angle_xaxis</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;rad&#39;</span>
+    <span class="n">angle_xaxis</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;angle_xaxis&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.r_xy"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.r_xy">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">r_xy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;r_xy&#39;</span><span class="p">)</span></div>
+    <span class="n">r_xy</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">r_xy</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;r_xy&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.r_yz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.r_yz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">r_yz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;r_yz&#39;</span><span class="p">)</span></div>
+    <span class="n">r_yz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">r_yz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;r_yz&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.r_zx"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.r_zx">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">r_zx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;r_zx&#39;</span><span class="p">)</span></div>
+    <span class="n">r_zx</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">r_zx</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;r_zx&#39;</span>
+
+<div class="viewcode-block" id="MultiSpecies.r_xyz"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.r_xyz">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s1">&#39;Use self(&quot;</span><span class="si">{name}</span><span class="s1">&quot;) instead.&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">r_xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;r_xyz&#39;</span><span class="p">)</span></div>
+    <span class="n">r_xyz</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+    <span class="n">r_xyz</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;r_xyz&#39;</span>
+    <span class="c1"># ---- Functions for measuring particle collection related values</span>
+
+<div class="viewcode-block" id="MultiSpecies.mean"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The mean of a value given by the expression `expr`.</span>
+<span class="sd">        The particle weight of the individual particles</span>
+<span class="sd">        will be automatically included in the calculation.</span>
+<span class="sd">        An additional weight can be given using the keyword `weights`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">weights</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;weight * (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="p">(</span><span class="n">expr</span><span class="p">),</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.var"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.var">[docs]</a>    <span class="k">def</span> <span class="nf">var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s1">&#39;1&#39;</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The variance of a value given by the expression `expr`.</span>
+<span class="sd">        The particle weight of the individual particles</span>
+<span class="sd">        will be automatically included in the calculation.</span>
+<span class="sd">        An additional weight can be given using the keyword `weights`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;weight * (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">((</span><span class="n">data</span> <span class="o">-</span> <span class="n">m</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.quantile"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.quantile">[docs]</a>    <span class="k">def</span> <span class="nf">quantile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The qth-quantile of the distribution of a value given by the expression `expr`.</span>
+<span class="sd">        q can be a scalar or a list of quantiles to be calculated simultaneously.</span>
+<span class="sd">        The particle weight of the individual particles</span>
+<span class="sd">        will be automatically included in the calculation.</span>
+<span class="sd">        An additional weight can be given using the keyword `weights`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">weights</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">q</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">q</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Quantile(s) q (</span><span class="si">{:}</span><span class="s1">) must be in range [0, 1]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;weight * (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+        <span class="n">sortidx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">wcs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="n">sortidx</span><span class="p">])</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">wcs</span><span class="p">,</span> <span class="n">wcs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">q</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="n">sortidx</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span></div>
+
+<div class="viewcode-block" id="MultiSpecies.median"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.median">[docs]</a>    <span class="k">def</span> <span class="nf">median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The median of a value given by the expression `expr`.</span>
+<span class="sd">        The particle weight of the individual particles</span>
+<span class="sd">        will be automatically included in the calculation.</span>
+<span class="sd">        An additional weight can be given using the keyword `weights`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span></div>
+
+    <span class="c1"># ---- Functions to create a Histogram. ---</span>
+
+    <span class="k">def</span> <span class="nf">_createHistgram</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">sps</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an 3d Histogram.</span>
+
+<span class="sd">        Attributes</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *sps : a kind, that self.__call__ can evalute to</span>
+<span class="sd">            returns a list of scalar values for the x/y/z axis.</span>
+<span class="sd">        simgrid : boolean, optional</span>
+<span class="sd">            enforces the same grid as used in the simulation.</span>
+<span class="sd">            Implies simextent=True. Defaults to False.</span>
+<span class="sd">        simextent : boolean, optional</span>
+<span class="sd">            enforces, that the axis show the same extent as used in the</span>
+<span class="sd">            simulation. Defaults to False.</span>
+<span class="sd">        weights : function, optional</span>
+<span class="sd">            applies additional weights to the macroparticles, for example</span>
+<span class="sd">            &#39;gamma&#39; or &#39;q&#39; to weight the particle by its charge.</span>
+<span class="sd">            Defaults to &#39;1&#39; (no additional weight).</span>
+<span class="sd">        rangex : list of two values, optional</span>
+<span class="sd">            the xrange to include into the histogram</span>
+<span class="sd">            Defaults to None, determins the range by the range of scalars given.</span>
+<span class="sd">        rangey : list of two values, optional</span>
+<span class="sd">            the yrange to include into the histogram</span>
+<span class="sd">            Defaults to None, determins the range by the range of scalars given.</span>
+<span class="sd">        rangez : list of two values, optional</span>
+<span class="sd">            the zrange to include into the histogram</span>
+<span class="sd">            Defaults to None, determins the range by the range of scalars given.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;optargsh&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;keyword &quot;optargsh&quot; is deprecated. Use &quot;bins&quot; and &quot;shape&quot; &#39;</span>
+                          <span class="s1">&#39;arguments directly on &quot;createField&quot;.&#39;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+            <span class="n">optargsh</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;optargsh&#39;</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">optargsh</span><span class="p">)</span>
+        <span class="n">simextent</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;simextent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">simgrid</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;simgrid&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">rangex</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;rangex&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">rangey</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;rangey&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">rangez</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;rangez&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span>
+        <span class="n">force</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;force&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;bins&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;got an unexpected keyword argument </span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Only 1D, 2D or 3D Histograms can be created.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">simgrid</span><span class="p">:</span>
+            <span class="n">simextent</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">force</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">(</span><span class="n">sp</span><span class="p">)</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">sps</span><span class="p">]</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[[]]</span>  <span class="c1"># Return empty histogram</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">(</span><span class="n">sp</span><span class="p">)</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">sps</span><span class="p">]</span>
+        <span class="c1"># TODO: Falls rangex oder rangey gegeben ist,</span>
+        <span class="c1"># ist die Gesamtteilchenzahl falsch berechnet, weil die Teilchen die</span>
+        <span class="c1"># ausserhalb des sichtbaren Bereiches liegen mitgezaehlt werden.</span>
+        <span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span><span class="n">rangex</span><span class="p">,</span> <span class="n">rangey</span><span class="p">,</span> <span class="n">rangez</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">simextent</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sps</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simextent</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">sp</span><span class="p">))</span>
+                <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp</span> <span class="k">if</span> <span class="n">tmp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">simgrid</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sps</span><span class="p">):</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simgridpoints</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">sp</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">tmp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># no data points. create empy histogram</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">createedges</span><span class="p">(</span><span class="n">rangei</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">rangei</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">rangei</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rangei</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">edges</span> <span class="o">=</span> <span class="p">[</span><span class="n">createedges</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)),</span> <span class="n">ranges</span><span class="p">)]</span>
+            <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">edges</span>  <span class="c1"># empty histogram: h == 0 everywhere</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="s1">&#39;weight * (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>  <span class="c1"># Particle Size * additional weights</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="n">histogramdd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
+                               <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="n">ranges</span><span class="p">,</span>
+                               <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">dV</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="n">edge</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">edge</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">])</span>
+        <span class="n">h</span> <span class="o">/=</span> <span class="n">dV</span>
+        <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">edges</span>  <span class="c1"># h, (xedges, yedges, zedges)</span>
+
+<div class="viewcode-block" id="MultiSpecies.createField"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.MultiSpecies.createField">[docs]</a>    <span class="k">def</span> <span class="nf">createField</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">sps</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an n-d Histogram enclosed in a Field object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *sps</span>
+<span class="sd">            list of scalarfunctions/strings/scalar-properties,</span>
+<span class="sd">            that will be evaluated to data for each axis.</span>
+<span class="sd">            the number of args given determins the dimensionality of the</span>
+<span class="sd">            field returned by this function (maximum 3)</span>
+<span class="sd">        name: string, optional</span>
+<span class="sd">            addes a name. usually used for generating savenames.</span>
+<span class="sd">            Defaults to &quot;distfn&quot;.</span>
+<span class="sd">        title: string, options</span>
+<span class="sd">            overrides the title. Autocreated if title==None.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        simgrid : boolean, optional</span>
+<span class="sd">            enforces the same grid as used in the simulation.</span>
+<span class="sd">            Implies simextent=True. Defaults to False.</span>
+<span class="sd">        simextent : boolean, optional</span>
+<span class="sd">            enforces, that the axis show the same extent as used in the</span>
+<span class="sd">            simulation. Defaults to False.</span>
+<span class="sd">        weights : function, optional</span>
+<span class="sd">            applies additional weights to the macroparticles, for example</span>
+<span class="sd">            &#39;gamma&#39; or &#39;q&#39; to weight the particle by its charge.</span>
+<span class="sd">            Defaults to &#39;1&#39; (no additional weight).</span>
+<span class="sd">        rangex : list of two values, optional</span>
+<span class="sd">            the xrange to include into the histogram.</span>
+<span class="sd">            Defaults to None, determins the range by the range of scalars given.</span>
+<span class="sd">        rangey : list of two values, optional</span>
+<span class="sd">            the yrange to include into the histogram.</span>
+<span class="sd">            Defaults to None, determins the range by the range of scalars given.</span>
+<span class="sd">        rangez : list of two values, optional</span>
+<span class="sd">            the zrange to include into the histogram.</span>
+<span class="sd">            Defaults to None, determins the range by the range of scalars given.</span>
+<span class="sd">        bins: sequence or int</span>
+<span class="sd">            The number of bins to use for each dimension</span>
+<span class="sd">        shape: int</span>
+<span class="sd">            possible choices are:</span>
+<span class="sd">            * 0 - use nearest grid point (NGP)</span>
+<span class="sd">            * 1 - use tophat shape of width 1 bin</span>
+<span class="sd">            * 2 - triangular shape (default)</span>
+<span class="sd">            * 3 - spline 3 shape</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;distfn&#39;</span><span class="p">)</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">h</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_createHistgram</span><span class="p">(</span><span class="o">*</span><span class="n">sps</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">edgekwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">edg</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">edg</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;xedges&#39;</span><span class="p">,</span> <span class="s1">&#39;yedges&#39;</span><span class="p">,</span> <span class="s1">&#39;zedges&#39;</span><span class="p">],</span> <span class="n">edges</span><span class="p">)}</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="o">**</span><span class="n">edgekwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;weights&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">_findscalarattr</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;weights&#39;</span><span class="p">],</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">species</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">title</span> <span class="k">if</span> <span class="n">title</span> <span class="k">else</span> <span class="n">ret</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># override if title is given</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sps</span><span class="p">):</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">_findscalarattr</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">_findscalarattr</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">infostring</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:.0f}</span><span class="s1"> npart in </span><span class="si">{:.0f}</span><span class="s1"> species&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npart</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nspecies</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">infos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getcompresslog</span><span class="p">()[</span><span class="s1">&#39;all&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="ParticleHistory"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.ParticleHistory">[docs]</a><span class="k">class</span> <span class="nc">ParticleHistory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Represents a list of particles including their history that can be found in</span>
+<span class="sd">    all the dumps defined</span>
+<span class="sd">    by the simulation reader sr.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sr: iterable of datareader</span>
+<span class="sd">        a collection of datareader to use. Usually a Simulationreader object</span>
+<span class="sd">    speciess: string or iterable of strings</span>
+<span class="sd">        a species name or a list of species names. Those particles can be included</span>
+<span class="sd">        into the history.</span>
+<span class="sd">    ids: iterable of int</span>
+<span class="sd">        list of ids to use (default: None). If this is None all particles in speciess will</span>
+<span class="sd">        be tracked. If a list of ids is given, these ids will be serached in speciess only.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sr</span><span class="p">,</span> <span class="n">speciess</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># the simulation reader (collection of dumpreader)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">=</span> <span class="n">sr</span>
+        <span class="c1"># list of species names to search in for the particle id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">speciess</span> <span class="o">=</span> <span class="p">[</span><span class="n">speciess</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">speciess</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">speciess</span>
+        <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_findids</span><span class="p">()</span>  <span class="c1"># List of integers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="c1"># lookup dict used by collect</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_updatelookupdict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        returns a shallow copy of the object.</span>
+<span class="sd">        This method is called by `copy.copy(obj)`.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="c1"># _updatelookupdict creates a new _id2i dictionary. Therefore no need to copy that here.</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">_updatelookupdict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        updates `self._id2i`.</span>
+<span class="sd">        `self._id2i` is a dictionary mapping from a particle ID</span>
+<span class="sd">        to the array index of that particle.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id2i</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">))}</span>
+
+    <span class="k">def</span> <span class="nf">_findids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        finds which ids are prensent in all dumps and the speciess specified.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">idsfound</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">dr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="p">:</span>
+            <span class="n">ms</span> <span class="o">=</span> <span class="n">MultiSpecies</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">speciess</span><span class="p">,</span> <span class="n">ignore_missing_species</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">idsfound</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ms</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">))</span>
+            <span class="k">del</span> <span class="n">ms</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">idsfound</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># counts the number of particles present</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_collectfromdump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dr</span><span class="p">,</span> <span class="n">scalarfs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        dr - the dumpreader</span>
+<span class="sd">        scalarfs - a list of functions which return scalar values when applied to a dumpreader</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">           list of ids, [list scalar values, list of scalar values, ... ]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">MultiSpecies</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">speciess</span><span class="p">,</span> <span class="n">ignore_missing_species</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+        <span class="n">scalars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">scalarfs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">ms</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scalarfs</span><span class="p">)):</span>
+            <span class="n">scalars</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">ms</span><span class="p">(</span><span class="n">scalarfs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ms</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">ms</span>  <span class="c1"># close file to not exceed limit of max open files</span>
+        <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">scalars</span>
+
+<div class="viewcode-block" id="ParticleHistory.skip"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.ParticleHistory.skip">[docs]</a>    <span class="k">def</span> <span class="nf">skip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        takes only everth (n+1)-th particle</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[::</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">_updatelookupdict</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="ParticleHistory.collect"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.ParticleHistory.collect">[docs]</a>    <span class="k">def</span> <span class="nf">collect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">scalarfs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Collects the given particle properties for all particles for all times.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        -----------</span>
+<span class="sd">        *scalarfs: the scalarfunction(s) defining the particle property</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        --------</span>
+<span class="sd">        numpy.ndarray holding the different particles in the same order as the list of `self.ids`,</span>
+<span class="sd">        meaning the particle on position `particle_idx` has the ID `self.ids[particle_idx]`.</span>
+<span class="sd">        every array element holds the history for a single particle.</span>
+<span class="sd">        Indexorder of returned array: [particle_idx][scalarf_idx, collection_idx]</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">particlelist</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">))]</span>
+        <span class="k">for</span> <span class="n">dr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="p">:</span>
+            <span class="n">ids</span><span class="p">,</span> <span class="n">scalars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collectfromdump</span><span class="p">(</span><span class="n">dr</span><span class="p">,</span> <span class="n">scalarfs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id2i</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span>
+                <span class="n">particlelist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scalars</span><span class="p">[:,</span> <span class="n">k</span><span class="p">])</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">particlelist</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

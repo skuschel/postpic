@@ -1,0 +1,360 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.plotting package &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="postpic.particles package" href="postpic.particles.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-postpic.plotting">
+<span id="postpic-plotting-package"></span><h1>postpic.plotting package<a class="headerlink" href="#module-postpic.plotting" title="Permalink to this headline">¶</a></h1>
+<p>The plot subpackage should provide an interface to various plot backends.</p>
+<dl class="py function">
+<dt id="postpic.plotting.use">
+<code class="sig-prename descclassname">postpic.plotting.</code><code class="sig-name descname">use</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">plotcls</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting.html#use"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.use" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-postpic.plotting.plotter_matplotlib">
+<span id="postpic-plotting-plotter-matplotlib-module"></span><h2>postpic.plotting.plotter_matplotlib module<a class="headerlink" href="#module-postpic.plotting.plotter_matplotlib" title="Permalink to this headline">¶</a></h2>
+<p>This package provides the MatplotlibPlotter Class.</p>
+<p>This Class can be used to plot Field Objects using the matplotlib interface.</p>
+<dl class="py class">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.plotting.plotter_matplotlib.</code><code class="sig-name descname">MatplotlibPlotter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reader</span></em>, <em class="sig-param"><span class="n">outdir</span><span class="o">=</span><span class="default_value">'./'</span></em>, <em class="sig-param"><span class="n">autosave</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">project</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ext</span><span class="o">=</span><span class="default_value">'png'</span></em>, <em class="sig-param"><span class="n">size_inches</span><span class="o">=</span><span class="default_value">9, 7</span></em>, <em class="sig-param"><span class="n">dpi</span><span class="o">=</span><span class="default_value">160</span></em>, <em class="sig-param"><span class="n">facecolor</span><span class="o">=</span><span class="default_value">1, 1, 1, 0.01</span></em>, <em class="sig-param"><span class="n">transparent</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Provides Methods to modify figures and axes objects for convenient
+plotting.
+It also autogenerates savenames and annotates the plot if a reader
+is given. A reader can be a dumpreader or a simulationreder.</p>
+<dl class="py class">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap">
+<em class="property">class </em><code class="sig-name descname">LinearSegmentedColormap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">segmentdata</span></em>, <em class="sig-param"><span class="n">N</span><span class="o">=</span><span class="default_value">256</span></em>, <em class="sig-param"><span class="n">gamma</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.colors.Colormap</span></code></p>
+<p>Colormap objects based on lookup tables using linear segments.</p>
+<p>The lookup table is generated using linear interpolation for each
+primary color, with the 0-1 domain divided into any number of
+segments.</p>
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap.from_list">
+<em class="property">static </em><code class="sig-name descname">from_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">colors</span></em>, <em class="sig-param"><span class="n">N</span><span class="o">=</span><span class="default_value">256</span></em>, <em class="sig-param"><span class="n">gamma</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap.from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a <cite>LinearSegmentedColormap</cite> from a list of colors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the colormap.</p></li>
+<li><p><strong>colors</strong> (<em>array-like of colors</em><em> or </em><em>array-like of</em><em> (</em><em>value</em><em>, </em><em>color</em><em>)</em>) – If only colors are given, they are equidistantly mapped from the
+range <span class="math notranslate nohighlight">\([0, 1]\)</span>; i.e. 0 maps to <code class="docutils literal notranslate"><span class="pre">colors[0]</span></code> and 1 maps to
+<code class="docutils literal notranslate"><span class="pre">colors[-1]</span></code>.
+If (value, color) pairs are given, the mapping is from <em>value</em>
+to <em>color</em>. This can be used to divide the range unevenly.</p></li>
+<li><p><strong>N</strong> (<em>int</em>) – The number of rgb quantization levels.</p></li>
+<li><p><strong>gamma</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap.reversed">
+<code class="sig-name descname">reversed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap.reversed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reversed instance of the Colormap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – The name for the reversed colormap. If it’s None the
+name will be the name of the parent colormap + “_r”.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The reversed colormap.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap" title="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap">LinearSegmentedColormap</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap.set_gamma">
+<code class="sig-name descname">set_gamma</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gamma</span></em><span class="sig-paren">)</span><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.LinearSegmentedColormap.set_gamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a new gamma value and regenerate color map.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addField1d">
+<em class="property">static </em><code class="sig-name descname">addField1d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">field</span></em>, <em class="sig-param"><span class="n">log10plot</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">xlim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ylim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">scaletight</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.addField1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addField1d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addField2d">
+<em class="property">static </em><code class="sig-name descname">addField2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">figax</span></em>, <em class="sig-param"><span class="n">field</span></em>, <em class="sig-param"><span class="n">log10plot</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">interpolation</span><span class="o">=</span><span class="default_value">'none'</span></em>, <em class="sig-param"><span class="n">contourlevels</span><span class="o">=</span><span class="default_value">array([], dtype=float64)</span></em>, <em class="sig-param"><span class="n">saveandclose</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">xlim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ylim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">clim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">savecsv</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">lineoutx</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">lineouty</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.addField2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addField2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addFields1d">
+<em class="property">static </em><code class="sig-name descname">addFields1d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">fields</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.addFields1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addFields1d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addaxislabels">
+<em class="property">static </em><code class="sig-name descname">addaxislabels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">field</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.addaxislabels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.addaxislabels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.annotate">
+<em class="property">static </em><code class="sig-name descname">annotate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">figorax</span></em>, <em class="sig-param"><span class="n">title</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">step</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">project</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dump</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infostring</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infos</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.annotate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.annotate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.annotate_fromfield">
+<em class="property">static </em><code class="sig-name descname">annotate_fromfield</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">figorax</span></em>, <em class="sig-param"><span class="n">field</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.annotate_fromfield"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.annotate_fromfield" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.annotate_fromreader">
+<em class="property">static </em><code class="sig-name descname">annotate_fromreader</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">figorax</span></em>, <em class="sig-param"><span class="n">reader</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.annotate_fromreader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.annotate_fromreader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.axesformatterx">
+<code class="sig-name descname">axesformatterx</code><em class="property"> = &lt;matplotlib.ticker.ScalarFormatter object&gt;</em><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.axesformatterx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.axesformattery">
+<code class="sig-name descname">axesformattery</code><em class="property"> = &lt;matplotlib.ticker.ScalarFormatter object&gt;</em><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.axesformattery" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.efieldcdict">
+<code class="sig-name descname">efieldcdict</code><em class="property"> = {'blue': ((0, 1, 1), (0.5, 1, 1), (1, 0, 0)), 'green': ((0, 0, 0), (0.5, 1, 1), (1, 0, 0)), 'red': ((0, 0, 0), (0.5, 1, 1), (1.0, 1, 1))}</em><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.efieldcdict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.lastsavename">
+<code class="sig-name descname">lastsavename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.lastsavename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.lastsavename" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the last savenme. If there wasnt a last a new savename
+is created.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.matplotlib">
+<code class="sig-name descname">matplotlib</code><em class="property"> = &lt;module 'matplotlib' from '/usr/lib/python3.8/site-packages/matplotlib/__init__.py'&gt;</em><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.matplotlib" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotField">
+<code class="sig-name descname">plotField</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">field</span></em>, <em class="sig-param"><span class="n">autoreduce</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">maxlen</span><span class="o">=</span><span class="default_value">6000</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.plotField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotField" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the main method, that should be used for plotting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotField2d">
+<code class="sig-name descname">plotField2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">field</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.plotField2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotField2d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotFields">
+<code class="sig-name descname">plotFields</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">fields</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.plotFields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotFields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotFields1d">
+<code class="sig-name descname">plotFields1d</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">fields</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.plotFields1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotFields1d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotallderived">
+<code class="sig-name descname">plotallderived</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpreader</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.plotallderived"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.plotallderived" title="Permalink to this definition">¶</a></dt>
+<dd><p>plots all fields dumped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.project">
+<em class="property">property </em><code class="sig-name descname">project</code><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.project" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.savefig">
+<code class="sig-name descname">savefig</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fig</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.savefig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.savefig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.savename">
+<code class="sig-name descname">savename</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">ext</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.savename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.savename" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.settext_ax">
+<em class="property">static </em><code class="sig-name descname">settext_ax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em>, <em class="sig-param"><span class="n">title</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ur</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ur2</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ul</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ul2</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">center</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.settext_ax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.settext_ax" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.settext_fig">
+<em class="property">static </em><code class="sig-name descname">settext_fig</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fig</span></em>, <em class="sig-param"><span class="n">title</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ur</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ur2</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ul</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ul2</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">center</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.settext_fig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.settext_fig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.symmap">
+<code class="sig-name descname">symmap</code><em class="property"> = &lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.symmap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.symmetricclim">
+<em class="property">static </em><code class="sig-name descname">symmetricclim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ax</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.symmetricclim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.symmetricclim" title="Permalink to this definition">¶</a></dt>
+<dd><p>symmetrize the clim around 0.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.plotting.plotter_matplotlib.MatplotlibPlotter.symmetricclimaximage">
+<em class="property">static </em><code class="sig-name descname">symmetricclimaximage</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">aximage</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/plotting/plotter_matplotlib.html#MatplotlibPlotter.symmetricclimaximage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.plotting.plotter_matplotlib.MatplotlibPlotter.symmetricclimaximage" title="Permalink to this definition">¶</a></dt>
+<dd><p>symmetrize the clim around 0.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">postpic</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="postpic.html">postpic package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="postpic.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="postpic.datareader.html">postpic.datareader package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.io.html">postpic.io package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.particles.html">postpic.particles package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">postpic.plotting package</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.plotting.plotter_matplotlib">postpic.plotting.plotter_matplotlib module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.datahandling">postpic.datahandling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.experimental">postpic.experimental module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.helper">postpic.helper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.helper_fft">postpic.helper_fft module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">postpic</a><ul>
+  <li><a href="postpic.html">postpic package</a><ul>
+      <li>Previous: <a href="postpic.particles.html" title="previous chapter">postpic.particles package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/apidoc/postpic.plotting.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc/postpic.plotting.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

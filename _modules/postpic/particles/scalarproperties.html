@@ -1,0 +1,344 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.particles.scalarproperties &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.particles.scalarproperties</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel 2017</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Mapping</span>
+
+<span class="kn">import</span> <span class="nn">numexpr</span> <span class="k">as</span> <span class="nn">ne</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ScalarProperty&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="ScalarProperty"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.ScalarProperty">[docs]</a><span class="k">class</span> <span class="nc">ScalarProperty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">_evaluate</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">ne</span><span class="o">.</span><span class="n">evaluate</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Represents a scalar particle property.</span>
+
+<span class="sd">        expr - The expression how to calcualte the value (string).</span>
+<span class="sd">        name - the name the property can be accessed by.</span>
+<span class="sd">        unit - unit of property.</span>
+<span class="sd">        symbol - symbol used in formulas. Defaults to &#39;name&#39; if omitted.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_expr</span> <span class="o">=</span> <span class="n">expr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">unit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_symbol</span> <span class="o">=</span> <span class="n">symbol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_func_cache</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Optimized numexpr function if available</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expr</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_symbol</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_symbol</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The optimized numexpr function.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func_cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_func_cache</span> <span class="o">=</span> <span class="n">ne</span><span class="o">.</span><span class="n">NumExpr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func_cache</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">input_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The list of variables used within this expression.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="o">.</span><span class="n">input_names</span>
+
+<div class="viewcode-block" id="ScalarProperty.evaluate"><a class="viewcode-back" href="../../../apidoc/postpic.particles.html#postpic.ScalarProperty.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">vars</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        vars must be a dictionary containing variables used</span>
+<span class="sd">        within the expression &quot;expr&quot;.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="nb">vars</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_names</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;expr&#39;</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="s1">&#39;symbol&#39;</span><span class="p">]:</span>
+            <span class="k">yield</span> <span class="n">k</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">formatstring</span> <span class="o">=</span> <span class="s1">&#39;ScalarProperty(&quot;</span><span class="si">{expr}</span><span class="s1">&quot;, name=&quot;</span><span class="si">{name}</span><span class="s1">&quot;, unit=&quot;</span><span class="si">{unit}</span><span class="s1">&quot;, symbol=&quot;</span><span class="si">{symbol}</span><span class="s1">&quot;)&#39;</span>
+        <span class="k">return</span> <span class="n">formatstring</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+
+
+<span class="k">class</span> <span class="nc">ScalarPropertyContext</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        only used internally to store the list of known particle</span>
+<span class="sd">        properties (scalar particle values). Provides functions to add</span>
+<span class="sd">        or remove properties during runtime.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">k</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sp</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        register a new ScalarProperty, such, that</span>
+<span class="sd">        this will be identified by its symbol.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;The symbol </span><span class="si">{}</span><span class="s1"> is already known!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">symbol</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">sp</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Impossible to add the anonymous ScalarProperty </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sp</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">sp</span><span class="o">.</span><span class="n">symbol</span><span class="p">:</span> <span class="n">sp</span><span class="p">})</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># order alphabetically to increase readability</span>
+        <span class="n">scalars</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; = &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">expr</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">scalars</span><span class="p">]</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;--&gt; </span><span class="si">{}</span><span class="s1"> known particle scalars.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        tries to identify the ScalarProperty by its expression or symbol.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">expr</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">expr</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">expr</span> <span class="o">==</span> <span class="n">expr</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="c1"># if not found return an anonymous ScalarProperty</span>
+        <span class="k">return</span> <span class="n">ScalarProperty</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+
+
+<span class="c1"># template: ScalarProperty(&#39;&#39;, &#39;&#39;, &#39;&#39;),</span>
+<span class="n">_defaultscalars</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;t&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;npartpermacro&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="s1">&#39;npartpermacro&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;kg&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="s1">&#39;kg&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;mass / atomic_mass&#39;</span><span class="p">,</span> <span class="s1">&#39;mass_u&#39;</span><span class="p">,</span> <span class="s1">&#39;amu&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;mass / atomic_mass&#39;</span><span class="p">,</span> <span class="s1">&#39;mass_u&#39;</span><span class="p">,</span> <span class="s1">&#39;amu&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;m_u&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;charge&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;q&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;charge / elementary_charge&#39;</span><span class="p">,</span> <span class="s1">&#39;charge_e&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;charge / elementary_charge&#39;</span><span class="p">,</span> <span class="s1">&#39;charge_e&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;q_e&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;x * 1e6&#39;</span><span class="p">,</span> <span class="s1">&#39;x_um&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mu$ m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;y * 1e6&#39;</span><span class="p">,</span> <span class="s1">&#39;y_um&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mu$ m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;y * 1e6&#39;</span><span class="p">,</span> <span class="s1">&#39;z_um&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\mu$ m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;px&#39;</span><span class="p">,</span> <span class="s1">&#39;px&#39;</span><span class="p">,</span> <span class="s1">&#39;kg*m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;py&#39;</span><span class="p">,</span> <span class="s1">&#39;py&#39;</span><span class="p">,</span> <span class="s1">&#39;kg*m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;pz&#39;</span><span class="p">,</span> <span class="s1">&#39;pz&#39;</span><span class="p">,</span> <span class="s1">&#39;kg*m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(px**2 + py**2 + pz**2)&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;kg*m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;(px**2 + py**2 + pz**2)/(mass * c)**2&#39;</span><span class="p">,</span> <span class="s1">&#39;_np2&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;_np2 / (sqrt(1 + _np2) + 1)&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma_m1&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>  <span class="c1"># gamma - 1</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;_np2 / (sqrt(1 + _np2) + 1) + 1&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;gamma * mass&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma_m&#39;</span><span class="p">,</span> <span class="s1">&#39;kg&#39;</span><span class="p">),</span>  <span class="c1"># gamma * mass</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;beta * c&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;px / (gamma * mass)&#39;</span><span class="p">,</span> <span class="s1">&#39;vx&#39;</span><span class="p">,</span> <span class="s1">&#39;m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;py / (gamma * mass)&#39;</span><span class="p">,</span> <span class="s1">&#39;vy&#39;</span><span class="p">,</span> <span class="s1">&#39;m/s&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;pz / (gamma * mass)&#39;</span><span class="p">,</span> <span class="s1">&#39;vz&#39;</span><span class="p">,</span> <span class="s1">&#39;m/s&#39;</span><span class="p">),</span>
+    <span class="c1"># beta = sqrt(gamma**2 - 1) / gamma</span>
+    <span class="c1">#      = sqrt(gamma_m1**2 + 2 * gamma_m1) / gamma</span>
+    <span class="c1">#      = sqrt(gamma_m1**2 + 2 * gamma_m1) / (gamma_m1 + 1)</span>
+    <span class="c1"># numerically more stable and gamma_m1 has to be calculated just once.</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(gamma_m1**2 + 2 * gamma_m1) / (gamma_m1 + 1)&#39;</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;vx / c&#39;</span><span class="p">,</span> <span class="s1">&#39;betax&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;vy / c&#39;</span><span class="p">,</span> <span class="s1">&#39;betay&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;vz / c&#39;</span><span class="p">,</span> <span class="s1">&#39;betaz&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;mass * c**2&#39;</span><span class="p">,</span> <span class="s1">&#39;Eruhe&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;gamma_m1 * mass * c**2&#39;</span><span class="p">,</span> <span class="s1">&#39;Ekin&#39;</span><span class="p">,</span> <span class="s1">&#39;J&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;Ekin / elementary_charge / 1e6&#39;</span><span class="p">,</span> <span class="s1">&#39;Ekin_MeV&#39;</span><span class="p">,</span> <span class="s1">&#39;MeV&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;Ekin / elementary_charge / 1e6 / mass_u&#39;</span><span class="p">,</span> <span class="s1">&#39;Ekin_MeV_amu&#39;</span><span class="p">,</span> <span class="s1">&#39;MeV/u&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;Ekin / elementary_charge / 1e6 / mass_u * charge_e&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;Ekin_MeV_qm&#39;</span><span class="p">,</span> <span class="s1">&#39;MeV * q/m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;Ekin / elementary_charge / 1e3&#39;</span><span class="p">,</span> <span class="s1">&#39;Ekin_keV&#39;</span><span class="p">,</span> <span class="s1">&#39;keV/u&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;Ekin / elementary_charge / 1e3 / mass_u&#39;</span><span class="p">,</span> <span class="s1">&#39;Ekin_keV_amu&#39;</span><span class="p">,</span> <span class="s1">&#39;keV/u&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;Ekin / elementary_charge / 1e3 / mass_u * charge_e&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;Ekin_keV_qm&#39;</span><span class="p">,</span> <span class="s1">&#39;keV * q/m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(py, px)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_xy&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(px, py)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_yx&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(pz, py)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_yz&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(py, pz)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_zy&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(px, pz)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_zx&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(pz, px)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_xz&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(sqrt(py**2 + pz**2), px)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_xaxis&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(sqrt(pz**2 + px**2), py)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_yaxis&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;arctan2(sqrt(px**2 + py**2), pz)&#39;</span><span class="p">,</span> <span class="s1">&#39;angle_zaxis&#39;</span><span class="p">,</span> <span class="s1">&#39;rad&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(x**2 + y**2)&#39;</span><span class="p">,</span> <span class="s1">&#39;r_xy&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(y**2 + z**2)&#39;</span><span class="p">,</span> <span class="s1">&#39;r_yz&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(z**2 + x**2)&#39;</span><span class="p">,</span> <span class="s1">&#39;r_zx&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+    <span class="n">ScalarProperty</span><span class="p">(</span><span class="s1">&#39;sqrt(x**2 + y**2 + z**2)&#39;</span><span class="p">,</span> <span class="s1">&#39;r_xyz&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="c1"># ---- List of default scalar particle properties and how to calculate them</span>
+<span class="k">def</span> <span class="nf">createdefaultscalarcontext</span><span class="p">():</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">ScalarPropertyContext</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_s</span> <span class="ow">in</span> <span class="n">_defaultscalars</span><span class="p">:</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_s</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,1685 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.particles package &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="postpic.plotting package" href="postpic.plotting.html" />
+    <link rel="prev" title="postpic.io package" href="postpic.io.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-postpic.particles">
+<span id="postpic-particles-package"></span><h1>postpic.particles package<a class="headerlink" href="#module-postpic.particles" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="postpic.particles.MultiSpecies">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.</code><code class="sig-name descname">MultiSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpreader</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">speciess</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The MultiSpecies class. Different MultiSpecies can be
+added together to create a combined collection.</p>
+<dl class="simple">
+<dt>ignore_missing_species = False</dt><dd><p>set to true to ignore missing species.</p>
+</dd>
+</dl>
+<p>The MultiSpecies class will return a list of values for every
+particle property.</p>
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin">
+<code class="sig-name descname">Ekin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin is deprecated. Use self(“Ekin”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin_MeV">
+<code class="sig-name descname">Ekin_MeV</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_MeV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin_MeV" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_MeV is deprecated. Use self(“Ekin_MeV”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin_MeV_amu">
+<code class="sig-name descname">Ekin_MeV_amu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_MeV_amu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin_MeV_amu" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_MeV_amu is deprecated. Use self(“Ekin_MeV_amu”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin_MeV_qm">
+<code class="sig-name descname">Ekin_MeV_qm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_MeV_qm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin_MeV_qm" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_MeV_qm is deprecated. Use self(“Ekin_MeV_qm”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin_keV">
+<code class="sig-name descname">Ekin_keV</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_keV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin_keV" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_keV is deprecated. Use self(“Ekin_keV”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin_keV_amu">
+<code class="sig-name descname">Ekin_keV_amu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_keV_amu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin_keV_amu" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_keV_amu is deprecated. Use self(“Ekin_keV_amu”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Ekin_keV_qm">
+<code class="sig-name descname">Ekin_keV_qm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_keV_qm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Ekin_keV_qm" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_keV_qm is deprecated. Use self(“Ekin_keV_qm”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Eruhe">
+<code class="sig-name descname">Eruhe</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Eruhe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Eruhe" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Eruhe is deprecated. Use self(“Eruhe”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.ID">
+<code class="sig-name descname">ID</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.ID" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function ID is deprecated. Use self(“id”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.P">
+<code class="sig-name descname">P</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.P"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.P" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function P is deprecated. Use self(“p”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Px">
+<code class="sig-name descname">Px</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Px"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Px" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Px is deprecated. Use self(“px”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Py">
+<code class="sig-name descname">Py</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Py"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Py" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Py is deprecated. Use self(“py”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Pz">
+<code class="sig-name descname">Pz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Pz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Pz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Pz is deprecated. Use self(“pz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.V">
+<code class="sig-name descname">V</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.V"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.V" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function V is deprecated. Use self(“v”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Vx">
+<code class="sig-name descname">Vx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Vx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Vx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Vx is deprecated. Use self(“vx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Vy">
+<code class="sig-name descname">Vy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Vy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Vy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Vy is deprecated. Use self(“vy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Vz">
+<code class="sig-name descname">Vz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Vz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Vz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Vz is deprecated. Use self(“vz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.X">
+<code class="sig-name descname">X</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.X"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.X" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function X is deprecated. Use self(“x”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.X_um">
+<code class="sig-name descname">X_um</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.X_um"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.X_um" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function X_um is deprecated. Use self(“x_um”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Y">
+<code class="sig-name descname">Y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Y"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Y" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Y is deprecated. Use self(“y”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Y_um">
+<code class="sig-name descname">Y_um</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Y_um"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Y_um" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Y_um is deprecated. Use self(“Y_mu”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Z">
+<code class="sig-name descname">Z</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Z" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Z is deprecated. Use self(“z”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.Z_um">
+<code class="sig-name descname">Z_um</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Z_um"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.Z_um" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Z_um is deprecated. Use self(“z_um”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpreader</span></em>, <em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">ignore_missing_species</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>adds a species to this MultiSpecies.
+This function modifies the current Object and always returns None.</p>
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">species can be a single species name</code></dt>
+<dd><p>or a reserved name for collection of species, such as
+ions    adds all available particles that are ions
+nonions adds all available particles that are not ions
+ejected
+noejected
+all</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">Optional arguments</code></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">--------</code></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">ignore_missing_species = False</code></dt>
+<dd><p>set to True to ignore if the species is missing.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_xaxis">
+<code class="sig-name descname">angle_xaxis</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_xaxis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_xaxis" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_xaxis is deprecated. Use self(“angle_xaxis”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_xy">
+<code class="sig-name descname">angle_xy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_xy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_xy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_xy is deprecated. Use self(“angle_xy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_xz">
+<code class="sig-name descname">angle_xz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_xz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_xz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_xz is deprecated. Use self(“angle_xz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_yx">
+<code class="sig-name descname">angle_yx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_yx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_yx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_yx is deprecated. Use self(“angle_yx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_yz">
+<code class="sig-name descname">angle_yz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_yz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_yz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_yz is deprecated. Use self(“angle_yz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_zx">
+<code class="sig-name descname">angle_zx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_zx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_zx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_zx is deprecated. Use self(“angle_zx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.angle_zy">
+<code class="sig-name descname">angle_zy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_zy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.angle_zy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_zy is deprecated. Use self(“angle_zy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.beta">
+<code class="sig-name descname">beta</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.beta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.beta" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function beta is deprecated. Use self(“beta”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.betax">
+<code class="sig-name descname">betax</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.betax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.betax" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function betax is deprecated. Use self(“betax”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.betay">
+<code class="sig-name descname">betay</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.betay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.betay" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function betay is deprecated. Use self(“betay”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.betaz">
+<code class="sig-name descname">betaz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.betaz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.betaz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function betaz is deprecated. Use self(“betaz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.charge">
+<code class="sig-name descname">charge</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.charge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.charge" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function charge is deprecated. Use self(“charge”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.charge_e">
+<code class="sig-name descname">charge_e</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.charge_e"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.charge_e" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function charge_e is deprecated. Use self(“charge_e”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.compress">
+<code class="sig-name descname">compress</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">condition</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'unknown condition'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.compress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.compress" title="Permalink to this definition">¶</a></dt>
+<dd><p>works like numpy.compress.
+Additionaly you can specify a name, that gets saved in the compresslog.
+Returns a new MultiSpecies instance. <cite>compress</cite> gives you a lot of control,
+but in most cases <a class="reference internal" href="#postpic.particles.MultiSpecies.filter" title="postpic.particles.MultiSpecies.filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filter()</span></code></a> will be sufficient and keeps your code more readable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>condition</strong> (<em>1D numpy array</em>) – <p>Condition can be one out of two choices:</p>
+<ul>
+<li><p><cite>condition =  [True, False, True, True, … , True, False]</cite></p>
+<p>condition is a list of length N, specifing which particles to keep. The length
+of the list must be equal to the length of the MultiSpecies instance,
+otherwise a ValueError is raised.
+Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cfintospectrometer</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ms</span><span class="p">:</span> <span class="n">ms</span><span class="p">(</span><span class="s1">&#39;abs(angle_xaxis) &lt; 30e-3&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ms2</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">cfintospectrometer</span><span class="p">(</span><span class="n">ms</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;&lt; 30mrad offaxis&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Consider using <a class="reference internal" href="#postpic.particles.MultiSpecies.filter" title="postpic.particles.MultiSpecies.filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filter()</span></code></a> instead.</p>
+</li>
+<li><p><cite>condtition = [7, 2000, 4, 5, 91, … , 765, 809]</cite></p>
+<p>condition can be a list of arbitraty length. Only the particles
+with the ids listed here will be kept.</p>
+</li>
+</ul>
+</p></li>
+<li><p><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – an optional name of the condition. This can later be reviewed by
+calling ‘self.compresslog()’</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.compressfn">
+<code class="sig-name descname">compressfn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conditionf</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'unknown condition'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.compressfn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.compressfn" title="Permalink to this definition">¶</a></dt>
+<dd><p>like <a class="reference internal" href="#postpic.particles.MultiSpecies.compress" title="postpic.particles.MultiSpecies.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compress()</span></code></a>, but accepts a function.</p>
+<p>Returns a new MultiSpecies instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.createField">
+<code class="sig-name descname">createField</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">sps</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.createField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.createField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an n-d Histogram enclosed in a Field object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*sps</strong> – list of scalarfunctions/strings/scalar-properties,
+that will be evaluated to data for each axis.
+the number of args given determins the dimensionality of the
+field returned by this function (maximum 3)</p></li>
+<li><p><strong>name</strong> (<em>string</em><em>, </em><em>optional</em>) – addes a name. usually used for generating savenames.
+Defaults to “distfn”.</p></li>
+<li><p><strong>title</strong> (<em>string</em><em>, </em><em>options</em>) – overrides the title. Autocreated if title==None.
+Defaults to None.</p></li>
+<li><p><strong>simgrid</strong> (<em>boolean</em><em>, </em><em>optional</em>) – enforces the same grid as used in the simulation.
+Implies simextent=True. Defaults to False.</p></li>
+<li><p><strong>simextent</strong> (<em>boolean</em><em>, </em><em>optional</em>) – enforces, that the axis show the same extent as used in the
+simulation. Defaults to False.</p></li>
+<li><p><strong>weights</strong> (<em>function</em><em>, </em><em>optional</em>) – applies additional weights to the macroparticles, for example
+‘gamma’ or ‘q’ to weight the particle by its charge.
+Defaults to ‘1’ (no additional weight).</p></li>
+<li><p><strong>rangex</strong> (<em>list of two values</em><em>, </em><em>optional</em>) – the xrange to include into the histogram.
+Defaults to None, determins the range by the range of scalars given.</p></li>
+<li><p><strong>rangey</strong> (<em>list of two values</em><em>, </em><em>optional</em>) – the yrange to include into the histogram.
+Defaults to None, determins the range by the range of scalars given.</p></li>
+<li><p><strong>rangez</strong> (<em>list of two values</em><em>, </em><em>optional</em>) – the zrange to include into the histogram.
+Defaults to None, determins the range by the range of scalars given.</p></li>
+<li><p><strong>bins</strong> (<em>sequence</em><em> or </em><em>int</em>) – The number of bins to use for each dimension</p></li>
+<li><p><strong>shape</strong> (<em>int</em>) – possible choices are:
+* 0 - use nearest grid point (NGP)
+* 1 - use tophat shape of width 1 bin
+* 2 - triangular shape (default)
+* 3 - spline 3 shape</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.dumpreader">
+<em class="property">property </em><code class="sig-name descname">dumpreader</code><a class="headerlink" href="#postpic.particles.MultiSpecies.dumpreader" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the dumpreader if the dumpreader of <strong>all</strong> species
+are pointing to the same dump. This should be mostly the case.</p>
+<p>Otherwise returns None.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.filter">
+<code class="sig-name descname">filter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">condition</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>like <a class="reference internal" href="#postpic.particles.MultiSpecies.compress" title="postpic.particles.MultiSpecies.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compress()</span></code></a>, but takes a ScalarProperty object instead which is required
+to evalute to a boolean list. Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ms2</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;gamma &gt; 12&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>condition</strong> (<em>str</em>) – A string, which can also be used at <cite>ms(condition)</cite> and evaluates</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.gamma">
+<code class="sig-name descname">gamma</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.gamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.gamma" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function gamma is deprecated. Use self(“gamma”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.gamma_m1">
+<code class="sig-name descname">gamma_m1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.gamma_m1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.gamma_m1" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function gamma_m1 is deprecated. Use self(“gamma_m1”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.getcompresslog">
+<code class="sig-name descname">getcompresslog</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.getcompresslog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.getcompresslog" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.initial_npart">
+<em class="property">property </em><code class="sig-name descname">initial_npart</code><a class="headerlink" href="#postpic.particles.MultiSpecies.initial_npart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Original number of particles (before the use of compression or filter).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.mass">
+<code class="sig-name descname">mass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.mass" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function mass is deprecated. Use self(“mass”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.mass_u">
+<code class="sig-name descname">mass_u</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.mass_u"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.mass_u" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function mass_u is deprecated. Use self(“mass_u”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.mean">
+<code class="sig-name descname">mean</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>The mean of a value given by the expression <cite>expr</cite>.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.median">
+<code class="sig-name descname">median</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.median"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.median" title="Permalink to this definition">¶</a></dt>
+<dd><p>The median of a value given by the expression <cite>expr</cite>.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.particles.MultiSpecies.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>an alias to self.species</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.npart">
+<em class="property">property </em><code class="sig-name descname">npart</code><a class="headerlink" href="#postpic.particles.MultiSpecies.npart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of Particles.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.nspecies">
+<em class="property">property </em><code class="sig-name descname">nspecies</code><a class="headerlink" href="#postpic.particles.MultiSpecies.nspecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of species.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.quantile">
+<code class="sig-name descname">quantile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.quantile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.quantile" title="Permalink to this definition">¶</a></dt>
+<dd><p>The qth-quantile of the distribution of a value given by the expression <cite>expr</cite>.
+q can be a scalar or a list of quantiles to be calculated simultaneously.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.r_xy">
+<code class="sig-name descname">r_xy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_xy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.r_xy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_xy is deprecated. Use self(“r_xy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.r_xyz">
+<code class="sig-name descname">r_xyz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_xyz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.r_xyz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_xyz is deprecated. Use self(“r_xyz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.r_yz">
+<code class="sig-name descname">r_yz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_yz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.r_yz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_yz is deprecated. Use self(“r_yz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.r_zx">
+<code class="sig-name descname">r_zx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_zx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.r_zx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_zx is deprecated. Use self(“r_zx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.simextent">
+<code class="sig-name descname">simextent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.simextent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.simextent" title="Permalink to this definition">¶</a></dt>
+<dd><p>the combined simextent for all species and dumps included in this MultiSpecies object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.simgridpoints">
+<code class="sig-name descname">simgridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.simgridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.simgridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>this function is for convenience only and is likely to be removed in the future.
+Particlarly it is impossible to define the grid of the simulation if the
+MultiSpecies object consists of multiple dumps from different simulations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.species">
+<em class="property">property </em><code class="sig-name descname">species</code><a class="headerlink" href="#postpic.particles.MultiSpecies.species" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns an string name for the species involved.
+Basically only returns unique names from all species
+(used for plotting and labeling purposes – not for completeness).
+May be overwritten.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.speciess">
+<em class="property">property </em><code class="sig-name descname">speciess</code><a class="headerlink" href="#postpic.particles.MultiSpecies.speciess" title="Permalink to this definition">¶</a></dt>
+<dd><p>a complete list of all species involved.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.time">
+<code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.time" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function time is deprecated. Use self(“time”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.uncompress">
+<code class="sig-name descname">uncompress</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.uncompress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.uncompress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a new MultiSpecies instance, with all previous calls of
+<a class="reference internal" href="#postpic.particles.MultiSpecies.compress" title="postpic.particles.MultiSpecies.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compress()</span></code></a> or <a class="reference internal" href="#postpic.particles.MultiSpecies.filter" title="postpic.particles.MultiSpecies.filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filter()</span></code></a> undone.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.var">
+<code class="sig-name descname">var</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">'1'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.var" title="Permalink to this definition">¶</a></dt>
+<dd><p>The variance of a value given by the expression <cite>expr</cite>.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.MultiSpecies.weight">
+<code class="sig-name descname">weight</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.weight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.MultiSpecies.weight" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function weight is deprecated. Use self(“weight”) instead.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.particles.ParticleHistory">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.</code><code class="sig-name descname">ParticleHistory</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sr</span></em>, <em class="sig-param"><span class="n">speciess</span></em>, <em class="sig-param"><span class="n">ids</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#ParticleHistory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.ParticleHistory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents a list of particles including their history that can be found in
+all the dumps defined
+by the simulation reader sr.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sr</strong> (<em>iterable of datareader</em>) – a collection of datareader to use. Usually a Simulationreader object</p></li>
+<li><p><strong>speciess</strong> (<em>string</em><em> or </em><em>iterable of strings</em>) – a species name or a list of species names. Those particles can be included
+into the history.</p></li>
+<li><p><strong>ids</strong> (<em>iterable of int</em>) – list of ids to use (default: None). If this is None all particles in speciess will
+be tracked. If a list of ids is given, these ids will be serached in speciess only.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.particles.ParticleHistory.collect">
+<code class="sig-name descname">collect</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">scalarfs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#ParticleHistory.collect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.ParticleHistory.collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collects the given particle properties for all particles for all times.</p>
+<p><a href="#id1"><span class="problematic" id="id2">*</span></a>scalarfs: the scalarfunction(s) defining the particle property</p>
+<p>numpy.ndarray holding the different particles in the same order as the list of <cite>self.ids</cite>,
+meaning the particle on position <cite>particle_idx</cite> has the ID <cite>self.ids[particle_idx]</cite>.
+every array element holds the history for a single particle.
+Indexorder of returned array: [particle_idx][scalarf_idx, collection_idx]</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.ParticleHistory.skip">
+<code class="sig-name descname">skip</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#ParticleHistory.skip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.ParticleHistory.skip" title="Permalink to this definition">¶</a></dt>
+<dd><p>takes only everth (n+1)-th particle</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.particles.ScalarProperty">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.</code><code class="sig-name descname">ScalarProperty</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">unit</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/scalarproperties.html#ScalarProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.ScalarProperty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="postpic.particles.ScalarProperty.evaluate">
+<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vars</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/scalarproperties.html#ScalarProperty.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.ScalarProperty.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>vars must be a dictionary containing variables used
+within the expression “expr”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.ScalarProperty.expr">
+<em class="property">property </em><code class="sig-name descname">expr</code><a class="headerlink" href="#postpic.particles.ScalarProperty.expr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.ScalarProperty.input_names">
+<em class="property">property </em><code class="sig-name descname">input_names</code><a class="headerlink" href="#postpic.particles.ScalarProperty.input_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of variables used within this expression.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.ScalarProperty.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.particles.ScalarProperty.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.ScalarProperty.symbol">
+<em class="property">property </em><code class="sig-name descname">symbol</code><a class="headerlink" href="#postpic.particles.ScalarProperty.symbol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.ScalarProperty.unit">
+<em class="property">property </em><code class="sig-name descname">unit</code><a class="headerlink" href="#postpic.particles.ScalarProperty.unit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.particles.SpeciesIdentifier">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.</code><code class="sig-name descname">SpeciesIdentifier</code><a class="reference internal" href="../_modules/postpic/particles/_routines.html#SpeciesIdentifier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.SpeciesIdentifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="postpic.html#postpic.helper.PhysicalConstants" title="postpic.helper.PhysicalConstants"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.helper.PhysicalConstants</span></code></a></p>
+<p>This Class provides static methods for deriving particle properties
+from species Names. The only reason for this to be a class is that it
+can be used as a mixin.</p>
+<dl class="py method">
+<dt id="postpic.particles.SpeciesIdentifier.identifyspecies">
+<em class="property">classmethod </em><code class="sig-name descname">identifyspecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/_routines.html#SpeciesIdentifier.identifyspecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.SpeciesIdentifier.identifyspecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing particle informations deduced from
+the species name.
+The following keys in the dictionary will always be present:
+name   species name string
+mass    kg (SI)
+charge  C (SI)
+tracer  boolean
+ejected boolean</p>
+<p>Valid Examples:
+Periodic Table symbol + charge state: c6, F2, H1, C6b
+ionm#c# defining mass and charge:  ionm12c2, ionc20m110
+advanced examples:
+ejected_tracer_ionc5m20b, ejected_tracer_electronx,
+ejected_c6b, tracer_proton, protonb</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.SpeciesIdentifier.isejected">
+<em class="property">static </em><code class="sig-name descname">isejected</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/_routines.html#SpeciesIdentifier.isejected"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.SpeciesIdentifier.isejected" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.SpeciesIdentifier.ision">
+<em class="property">classmethod </em><code class="sig-name descname">ision</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/_routines.html#SpeciesIdentifier.ision"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.SpeciesIdentifier.ision" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.particles.histogramdd">
+<code class="sig-prename descclassname">postpic.particles.</code><code class="sig-name descname">histogramdd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/_routines.html#histogramdd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.histogramdd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a histogram of the data. This function has the similar signature and return values as
+<cite>numpy.histogramdd</cite>.
+In addition this function supports the <cite>shape</cite> keyword argument to choose
+the particle shape used. If used with <cite>shape=0</cite> the results of this function and the
+<cite>numpy.histogramdd</cite> are identical, however, this function is approx. factor 2 or 3 faster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>sequence of ndarray</em><em> or </em><em>ndarray</em><em> (</em><em>1D</em><em> or </em><em>2D</em><em>)</em>) – <dl class="simple">
+<dt>The input (particle) data for the histogram.</dt><dd><ul>
+<li><p>A 1D numpy array (for 1D histogram).</p></li>
+<li><p>A sequence providing the data for the different axis, i.e.
+<cite>(datax, datay, dataz)</cite> (preferred).</p></li>
+<li><p>A (N, D)-array, i.e. <cite>[[x1, y1, z1], [x2, y2, z2]]</cite> – must be a numpy array!</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>bins</strong> (<em>sequence</em><em> or </em><em>int</em>) – The number of bins to use for each dimension</p></li>
+<li><p><strong>range</strong> (<em>sequence</em><em>, </em><em>optional</em>) – A sequence of lower and upper bin edges to be used if the edges are not given
+explicitly in bins. Defaults to the minimum and maximum values along each dimension.</p></li>
+<li><p><strong>weights</strong> (<em>1D numpy array</em>) – The weights to be used for each data point</p></li>
+<li><p><strong>shape</strong> (<em>int</em>) – <dl class="simple">
+<dt>possible choices are:</dt><dd><ul>
+<li><p>0 - use nearest grid point (NGP)</p></li>
+<li><p>1 - use tophat shape of width 1 bin</p></li>
+<li><p>2 - triangular shape (default)</p></li>
+<li><p>3 - spline 3 shape</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>H</strong> (<em>ndarray</em>) – the final histogram</p></li>
+<li><p><strong>edges</strong> (<em>list</em>) – A list of D arrays describing the edges for each dimension</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.particles.identifyspecies">
+<code class="sig-prename descclassname">postpic.particles.</code><code class="sig-name descname">identifyspecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em><span class="sig-paren">)</span><a class="headerlink" href="#postpic.particles.identifyspecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing particle informations deduced from
+the species name.
+The following keys in the dictionary will always be present:
+name   species name string
+mass    kg (SI)
+charge  C (SI)
+tracer  boolean
+ejected boolean</p>
+<p>Valid Examples:
+Periodic Table symbol + charge state: c6, F2, H1, C6b
+ionm#c# defining mass and charge:  ionm12c2, ionc20m110
+advanced examples:
+ejected_tracer_ionc5m20b, ejected_tracer_electronx,
+ejected_c6b, tracer_proton, protonb</p>
+</dd></dl>
+
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-postpic.particles.particles">
+<span id="postpic-particles-particles-module"></span><h2>postpic.particles.particles module<a class="headerlink" href="#module-postpic.particles.particles" title="Permalink to this headline">¶</a></h2>
+<p>Particle related routines.</p>
+<dl class="py class">
+<dt id="postpic.particles.particles.MultiSpecies">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.particles.</code><code class="sig-name descname">MultiSpecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpreader</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">speciess</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The MultiSpecies class. Different MultiSpecies can be
+added together to create a combined collection.</p>
+<dl class="simple">
+<dt>ignore_missing_species = False</dt><dd><p>set to true to ignore missing species.</p>
+</dd>
+</dl>
+<p>The MultiSpecies class will return a list of values for every
+particle property.</p>
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin">
+<code class="sig-name descname">Ekin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin is deprecated. Use self(“Ekin”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin_MeV">
+<code class="sig-name descname">Ekin_MeV</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_MeV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin_MeV" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_MeV is deprecated. Use self(“Ekin_MeV”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin_MeV_amu">
+<code class="sig-name descname">Ekin_MeV_amu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_MeV_amu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin_MeV_amu" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_MeV_amu is deprecated. Use self(“Ekin_MeV_amu”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin_MeV_qm">
+<code class="sig-name descname">Ekin_MeV_qm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_MeV_qm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin_MeV_qm" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_MeV_qm is deprecated. Use self(“Ekin_MeV_qm”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin_keV">
+<code class="sig-name descname">Ekin_keV</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_keV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin_keV" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_keV is deprecated. Use self(“Ekin_keV”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin_keV_amu">
+<code class="sig-name descname">Ekin_keV_amu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_keV_amu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin_keV_amu" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_keV_amu is deprecated. Use self(“Ekin_keV_amu”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Ekin_keV_qm">
+<code class="sig-name descname">Ekin_keV_qm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Ekin_keV_qm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Ekin_keV_qm" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Ekin_keV_qm is deprecated. Use self(“Ekin_keV_qm”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Eruhe">
+<code class="sig-name descname">Eruhe</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Eruhe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Eruhe" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Eruhe is deprecated. Use self(“Eruhe”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.ID">
+<code class="sig-name descname">ID</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.ID" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function ID is deprecated. Use self(“id”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.P">
+<code class="sig-name descname">P</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.P"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.P" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function P is deprecated. Use self(“p”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Px">
+<code class="sig-name descname">Px</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Px"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Px" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Px is deprecated. Use self(“px”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Py">
+<code class="sig-name descname">Py</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Py"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Py" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Py is deprecated. Use self(“py”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Pz">
+<code class="sig-name descname">Pz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Pz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Pz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Pz is deprecated. Use self(“pz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.V">
+<code class="sig-name descname">V</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.V"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.V" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function V is deprecated. Use self(“v”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Vx">
+<code class="sig-name descname">Vx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Vx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Vx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Vx is deprecated. Use self(“vx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Vy">
+<code class="sig-name descname">Vy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Vy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Vy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Vy is deprecated. Use self(“vy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Vz">
+<code class="sig-name descname">Vz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Vz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Vz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Vz is deprecated. Use self(“vz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.X">
+<code class="sig-name descname">X</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.X"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.X" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function X is deprecated. Use self(“x”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.X_um">
+<code class="sig-name descname">X_um</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.X_um"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.X_um" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function X_um is deprecated. Use self(“x_um”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Y">
+<code class="sig-name descname">Y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Y"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Y" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Y is deprecated. Use self(“y”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Y_um">
+<code class="sig-name descname">Y_um</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Y_um"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Y_um" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Y_um is deprecated. Use self(“Y_mu”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Z">
+<code class="sig-name descname">Z</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Z"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Z" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Z is deprecated. Use self(“z”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.Z_um">
+<code class="sig-name descname">Z_um</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.Z_um"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.Z_um" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function Z_um is deprecated. Use self(“z_um”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.add">
+<code class="sig-name descname">add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpreader</span></em>, <em class="sig-param"><span class="n">species</span></em>, <em class="sig-param"><span class="n">ignore_missing_species</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>adds a species to this MultiSpecies.
+This function modifies the current Object and always returns None.</p>
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">species can be a single species name</code></dt>
+<dd><p>or a reserved name for collection of species, such as
+ions    adds all available particles that are ions
+nonions adds all available particles that are not ions
+ejected
+noejected
+all</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">Optional arguments</code></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">--------</code></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">ignore_missing_species = False</code></dt>
+<dd><p>set to True to ignore if the species is missing.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_xaxis">
+<code class="sig-name descname">angle_xaxis</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_xaxis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_xaxis" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_xaxis is deprecated. Use self(“angle_xaxis”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_xy">
+<code class="sig-name descname">angle_xy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_xy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_xy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_xy is deprecated. Use self(“angle_xy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_xz">
+<code class="sig-name descname">angle_xz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_xz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_xz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_xz is deprecated. Use self(“angle_xz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_yx">
+<code class="sig-name descname">angle_yx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_yx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_yx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_yx is deprecated. Use self(“angle_yx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_yz">
+<code class="sig-name descname">angle_yz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_yz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_yz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_yz is deprecated. Use self(“angle_yz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_zx">
+<code class="sig-name descname">angle_zx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_zx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_zx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_zx is deprecated. Use self(“angle_zx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.angle_zy">
+<code class="sig-name descname">angle_zy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.angle_zy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.angle_zy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function angle_zy is deprecated. Use self(“angle_zy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.beta">
+<code class="sig-name descname">beta</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.beta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.beta" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function beta is deprecated. Use self(“beta”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.betax">
+<code class="sig-name descname">betax</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.betax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.betax" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function betax is deprecated. Use self(“betax”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.betay">
+<code class="sig-name descname">betay</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.betay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.betay" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function betay is deprecated. Use self(“betay”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.betaz">
+<code class="sig-name descname">betaz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.betaz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.betaz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function betaz is deprecated. Use self(“betaz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.charge">
+<code class="sig-name descname">charge</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.charge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.charge" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function charge is deprecated. Use self(“charge”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.charge_e">
+<code class="sig-name descname">charge_e</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.charge_e"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.charge_e" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function charge_e is deprecated. Use self(“charge_e”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.compress">
+<code class="sig-name descname">compress</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">condition</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'unknown condition'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.compress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.compress" title="Permalink to this definition">¶</a></dt>
+<dd><p>works like numpy.compress.
+Additionaly you can specify a name, that gets saved in the compresslog.
+Returns a new MultiSpecies instance. <cite>compress</cite> gives you a lot of control,
+but in most cases <a class="reference internal" href="#postpic.particles.particles.MultiSpecies.filter" title="postpic.particles.particles.MultiSpecies.filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filter()</span></code></a> will be sufficient and keeps your code more readable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>condition</strong> (<em>1D numpy array</em>) – <p>Condition can be one out of two choices:</p>
+<ul>
+<li><p><cite>condition =  [True, False, True, True, … , True, False]</cite></p>
+<p>condition is a list of length N, specifing which particles to keep. The length
+of the list must be equal to the length of the MultiSpecies instance,
+otherwise a ValueError is raised.
+Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cfintospectrometer</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ms</span><span class="p">:</span> <span class="n">ms</span><span class="p">(</span><span class="s1">&#39;abs(angle_xaxis) &lt; 30e-3&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ms2</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">cfintospectrometer</span><span class="p">(</span><span class="n">ms</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;&lt; 30mrad offaxis&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Consider using <a class="reference internal" href="#postpic.particles.particles.MultiSpecies.filter" title="postpic.particles.particles.MultiSpecies.filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filter()</span></code></a> instead.</p>
+</li>
+<li><p><cite>condtition = [7, 2000, 4, 5, 91, … , 765, 809]</cite></p>
+<p>condition can be a list of arbitraty length. Only the particles
+with the ids listed here will be kept.</p>
+</li>
+</ul>
+</p></li>
+<li><p><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – an optional name of the condition. This can later be reviewed by
+calling ‘self.compresslog()’</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.compressfn">
+<code class="sig-name descname">compressfn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conditionf</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'unknown condition'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.compressfn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.compressfn" title="Permalink to this definition">¶</a></dt>
+<dd><p>like <a class="reference internal" href="#postpic.particles.particles.MultiSpecies.compress" title="postpic.particles.particles.MultiSpecies.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compress()</span></code></a>, but accepts a function.</p>
+<p>Returns a new MultiSpecies instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.createField">
+<code class="sig-name descname">createField</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">sps</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.createField"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.createField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an n-d Histogram enclosed in a Field object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*sps</strong> – list of scalarfunctions/strings/scalar-properties,
+that will be evaluated to data for each axis.
+the number of args given determins the dimensionality of the
+field returned by this function (maximum 3)</p></li>
+<li><p><strong>name</strong> (<em>string</em><em>, </em><em>optional</em>) – addes a name. usually used for generating savenames.
+Defaults to “distfn”.</p></li>
+<li><p><strong>title</strong> (<em>string</em><em>, </em><em>options</em>) – overrides the title. Autocreated if title==None.
+Defaults to None.</p></li>
+<li><p><strong>simgrid</strong> (<em>boolean</em><em>, </em><em>optional</em>) – enforces the same grid as used in the simulation.
+Implies simextent=True. Defaults to False.</p></li>
+<li><p><strong>simextent</strong> (<em>boolean</em><em>, </em><em>optional</em>) – enforces, that the axis show the same extent as used in the
+simulation. Defaults to False.</p></li>
+<li><p><strong>weights</strong> (<em>function</em><em>, </em><em>optional</em>) – applies additional weights to the macroparticles, for example
+‘gamma’ or ‘q’ to weight the particle by its charge.
+Defaults to ‘1’ (no additional weight).</p></li>
+<li><p><strong>rangex</strong> (<em>list of two values</em><em>, </em><em>optional</em>) – the xrange to include into the histogram.
+Defaults to None, determins the range by the range of scalars given.</p></li>
+<li><p><strong>rangey</strong> (<em>list of two values</em><em>, </em><em>optional</em>) – the yrange to include into the histogram.
+Defaults to None, determins the range by the range of scalars given.</p></li>
+<li><p><strong>rangez</strong> (<em>list of two values</em><em>, </em><em>optional</em>) – the zrange to include into the histogram.
+Defaults to None, determins the range by the range of scalars given.</p></li>
+<li><p><strong>bins</strong> (<em>sequence</em><em> or </em><em>int</em>) – The number of bins to use for each dimension</p></li>
+<li><p><strong>shape</strong> (<em>int</em>) – possible choices are:
+* 0 - use nearest grid point (NGP)
+* 1 - use tophat shape of width 1 bin
+* 2 - triangular shape (default)
+* 3 - spline 3 shape</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.dumpreader">
+<em class="property">property </em><code class="sig-name descname">dumpreader</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.dumpreader" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the dumpreader if the dumpreader of <strong>all</strong> species
+are pointing to the same dump. This should be mostly the case.</p>
+<p>Otherwise returns None.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.filter">
+<code class="sig-name descname">filter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">condition</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>like <a class="reference internal" href="#postpic.particles.particles.MultiSpecies.compress" title="postpic.particles.particles.MultiSpecies.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compress()</span></code></a>, but takes a ScalarProperty object instead which is required
+to evalute to a boolean list. Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ms2</span> <span class="o">=</span> <span class="n">ms</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="s1">&#39;gamma &gt; 12&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>condition</strong> (<em>str</em>) – A string, which can also be used at <cite>ms(condition)</cite> and evaluates</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.gamma">
+<code class="sig-name descname">gamma</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.gamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.gamma" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function gamma is deprecated. Use self(“gamma”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.gamma_m1">
+<code class="sig-name descname">gamma_m1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.gamma_m1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.gamma_m1" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function gamma_m1 is deprecated. Use self(“gamma_m1”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.getcompresslog">
+<code class="sig-name descname">getcompresslog</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.getcompresslog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.getcompresslog" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.initial_npart">
+<em class="property">property </em><code class="sig-name descname">initial_npart</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.initial_npart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Original number of particles (before the use of compression or filter).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.mass">
+<code class="sig-name descname">mass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.mass" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function mass is deprecated. Use self(“mass”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.mass_u">
+<code class="sig-name descname">mass_u</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.mass_u"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.mass_u" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function mass_u is deprecated. Use self(“mass_u”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.mean">
+<code class="sig-name descname">mean</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>The mean of a value given by the expression <cite>expr</cite>.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.median">
+<code class="sig-name descname">median</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.median"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.median" title="Permalink to this definition">¶</a></dt>
+<dd><p>The median of a value given by the expression <cite>expr</cite>.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>an alias to self.species</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.npart">
+<em class="property">property </em><code class="sig-name descname">npart</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.npart" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of Particles.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.nspecies">
+<em class="property">property </em><code class="sig-name descname">nspecies</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.nspecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of species.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.quantile">
+<code class="sig-name descname">quantile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">q</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.quantile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.quantile" title="Permalink to this definition">¶</a></dt>
+<dd><p>The qth-quantile of the distribution of a value given by the expression <cite>expr</cite>.
+q can be a scalar or a list of quantiles to be calculated simultaneously.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.r_xy">
+<code class="sig-name descname">r_xy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_xy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.r_xy" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_xy is deprecated. Use self(“r_xy”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.r_xyz">
+<code class="sig-name descname">r_xyz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_xyz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.r_xyz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_xyz is deprecated. Use self(“r_xyz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.r_yz">
+<code class="sig-name descname">r_yz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_yz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.r_yz" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_yz is deprecated. Use self(“r_yz”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.r_zx">
+<code class="sig-name descname">r_zx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.r_zx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.r_zx" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function r_zx is deprecated. Use self(“r_zx”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.simextent">
+<code class="sig-name descname">simextent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.simextent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.simextent" title="Permalink to this definition">¶</a></dt>
+<dd><p>the combined simextent for all species and dumps included in this MultiSpecies object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.simgridpoints">
+<code class="sig-name descname">simgridpoints</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">axis</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.simgridpoints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.simgridpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>this function is for convenience only and is likely to be removed in the future.
+Particlarly it is impossible to define the grid of the simulation if the
+MultiSpecies object consists of multiple dumps from different simulations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.species">
+<em class="property">property </em><code class="sig-name descname">species</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.species" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns an string name for the species involved.
+Basically only returns unique names from all species
+(used for plotting and labeling purposes – not for completeness).
+May be overwritten.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.speciess">
+<em class="property">property </em><code class="sig-name descname">speciess</code><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.speciess" title="Permalink to this definition">¶</a></dt>
+<dd><p>a complete list of all species involved.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.time">
+<code class="sig-name descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.time" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function time is deprecated. Use self(“time”) instead.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.uncompress">
+<code class="sig-name descname">uncompress</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.uncompress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.uncompress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a new MultiSpecies instance, with all previous calls of
+<a class="reference internal" href="#postpic.particles.particles.MultiSpecies.compress" title="postpic.particles.particles.MultiSpecies.compress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compress()</span></code></a> or <a class="reference internal" href="#postpic.particles.particles.MultiSpecies.filter" title="postpic.particles.particles.MultiSpecies.filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filter()</span></code></a> undone.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.var">
+<code class="sig-name descname">var</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">'1'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.var" title="Permalink to this definition">¶</a></dt>
+<dd><p>The variance of a value given by the expression <cite>expr</cite>.
+The particle weight of the individual particles
+will be automatically included in the calculation.
+An additional weight can be given using the keyword <cite>weights</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.MultiSpecies.weight">
+<code class="sig-name descname">weight</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#MultiSpecies.weight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.MultiSpecies.weight" title="Permalink to this definition">¶</a></dt>
+<dd><div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version unknown: </span>The function weight is deprecated. Use self(“weight”) instead.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="postpic.particles.particles.ParticleHistory">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.particles.</code><code class="sig-name descname">ParticleHistory</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sr</span></em>, <em class="sig-param"><span class="n">speciess</span></em>, <em class="sig-param"><span class="n">ids</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#ParticleHistory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.ParticleHistory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents a list of particles including their history that can be found in
+all the dumps defined
+by the simulation reader sr.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sr</strong> (<em>iterable of datareader</em>) – a collection of datareader to use. Usually a Simulationreader object</p></li>
+<li><p><strong>speciess</strong> (<em>string</em><em> or </em><em>iterable of strings</em>) – a species name or a list of species names. Those particles can be included
+into the history.</p></li>
+<li><p><strong>ids</strong> (<em>iterable of int</em>) – list of ids to use (default: None). If this is None all particles in speciess will
+be tracked. If a list of ids is given, these ids will be serached in speciess only.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="postpic.particles.particles.ParticleHistory.collect">
+<code class="sig-name descname">collect</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">scalarfs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#ParticleHistory.collect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.ParticleHistory.collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collects the given particle properties for all particles for all times.</p>
+<p><a href="#id3"><span class="problematic" id="id4">*</span></a>scalarfs: the scalarfunction(s) defining the particle property</p>
+<p>numpy.ndarray holding the different particles in the same order as the list of <cite>self.ids</cite>,
+meaning the particle on position <cite>particle_idx</cite> has the ID <cite>self.ids[particle_idx]</cite>.
+every array element holds the history for a single particle.
+Indexorder of returned array: [particle_idx][scalarf_idx, collection_idx]</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.particles.ParticleHistory.skip">
+<code class="sig-name descname">skip</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/particles.html#ParticleHistory.skip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.particles.ParticleHistory.skip" title="Permalink to this definition">¶</a></dt>
+<dd><p>takes only everth (n+1)-th particle</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.particles.particles.identifyspecies">
+<code class="sig-prename descclassname">postpic.particles.particles.</code><code class="sig-name descname">identifyspecies</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">species</span></em><span class="sig-paren">)</span><a class="headerlink" href="#postpic.particles.particles.identifyspecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary containing particle informations deduced from
+the species name.
+The following keys in the dictionary will always be present:
+name   species name string
+mass    kg (SI)
+charge  C (SI)
+tracer  boolean
+ejected boolean</p>
+<p>Valid Examples:
+Periodic Table symbol + charge state: c6, F2, H1, C6b
+ionm#c# defining mass and charge:  ionm12c2, ionc20m110
+advanced examples:
+ejected_tracer_ionc5m20b, ejected_tracer_electronx,
+ejected_c6b, tracer_proton, protonb</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-postpic.particles.scalarproperties">
+<span id="postpic-particles-scalarproperties-module"></span><h2>postpic.particles.scalarproperties module<a class="headerlink" href="#module-postpic.particles.scalarproperties" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="postpic.particles.scalarproperties.ScalarProperty">
+<em class="property">class </em><code class="sig-prename descclassname">postpic.particles.scalarproperties.</code><code class="sig-name descname">ScalarProperty</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">expr</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">unit</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/scalarproperties.html#ScalarProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="postpic.particles.scalarproperties.ScalarProperty.evaluate">
+<code class="sig-name descname">evaluate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vars</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/postpic/particles/scalarproperties.html#ScalarProperty.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>vars must be a dictionary containing variables used
+within the expression “expr”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.scalarproperties.ScalarProperty.expr">
+<em class="property">property </em><code class="sig-name descname">expr</code><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty.expr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.scalarproperties.ScalarProperty.input_names">
+<em class="property">property </em><code class="sig-name descname">input_names</code><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty.input_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of variables used within this expression.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.scalarproperties.ScalarProperty.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.scalarproperties.ScalarProperty.symbol">
+<em class="property">property </em><code class="sig-name descname">symbol</code><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty.symbol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="postpic.particles.scalarproperties.ScalarProperty.unit">
+<em class="property">property </em><code class="sig-name descname">unit</code><a class="headerlink" href="#postpic.particles.scalarproperties.ScalarProperty.unit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">postpic</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="postpic.html">postpic package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="postpic.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="postpic.datareader.html">postpic.datareader package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.io.html">postpic.io package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">postpic.particles package</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.particles.particles">postpic.particles.particles module</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#module-postpic.particles.scalarproperties">postpic.particles.scalarproperties module</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="postpic.plotting.html">postpic.plotting package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.datahandling">postpic.datahandling module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.experimental">postpic.experimental module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.helper">postpic.helper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postpic.html#module-postpic.helper_fft">postpic.helper_fft module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">postpic</a><ul>
+  <li><a href="postpic.html">postpic package</a><ul>
+      <li>Previous: <a href="postpic.io.html" title="previous chapter">postpic.io package</a></li>
+      <li>Next: <a href="postpic.plotting.html" title="next chapter">postpic.plotting package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/apidoc/postpic.particles.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc/postpic.particles.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>postpic.experimental &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for postpic.experimental</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># This file is part of postpic.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1"># (at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1"># postpic is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU General Public License</span>
+<span class="c1"># along with postpic. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1"># Stephan Kuschel, 2017</span>
+<span class="c1"># Alexander Blinne, 2017</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Some experimental algorithms for your reference. Please note that these algorithms</span>
+<span class="sd">are not meant to be used as is and may need adjustment in order to be applicable</span>
+<span class="sd">to a wider range of cases.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">helper</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;kspace_propagate_adaptive&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_kspace_propagate_adaptive_generator</span><span class="p">(</span><span class="n">field_in</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                         <span class="n">yield_zeroth_step</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An adaptive method to use Fourier propagation (provided by the function</span>
+<span class="sd">    `helper.kspace_propagate`) to get far field data.</span>
+<span class="sd">    The field is padded, propagated and automatically sliced in repeating steps.</span>
+
+<span class="sd">    Note that this method is highly experimental and should not be trusted as is:</span>
+<span class="sd">    It is merely meant as a recipe so you don&#39;t have to write your own function from scratch!</span>
+
+<span class="sd">    `field_in`: input field in either spatial or frequency domain</span>
+<span class="sd">    `axis`: The direction in which to propagate. Currently only propagation parallel to the</span>
+<span class="sd">    positive x, y or z direction is implemented.</span>
+<span class="sd">    `yield_zeroth_step`: boolean that determines if the initial step is also output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">transform_state</span> <span class="o">=</span> <span class="n">field_in</span><span class="o">.</span><span class="n">_transform_state</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">transform_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;kspace must have the same transform_state on all axes. &quot;</span>
+                         <span class="s2">&quot;Please make sure that either all axes &#39;live&#39; in spatial domain or all &quot;</span>
+                         <span class="s2">&quot;axes &#39;live&#39; in frequency domain.&quot;</span><span class="p">)</span>
+
+    <span class="n">do_fft</span> <span class="o">=</span> <span class="n">transform_state</span>
+
+    <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+        <span class="n">complex_ex</span> <span class="o">=</span> <span class="n">field_in</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">complex_ex</span> <span class="o">=</span> <span class="n">field_in</span>
+
+    <span class="n">moving_window_vect</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">complex_ex</span><span class="o">.</span><span class="n">dimensions</span>
+    <span class="n">moving_window_vect</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">complex_ex</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">extent</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">yield_zeroth_step</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">t</span><span class="p">,</span> <span class="n">field_in</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">complex_ex</span> <span class="o">=</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">autoreduce</span><span class="p">()</span>
+
+        <span class="c1"># print(complex_ex.axes[0].physical_length, complex_ex.axes[1].physical_length)</span>
+        <span class="n">lengths</span> <span class="o">=</span> <span class="p">[</span><span class="n">ax</span><span class="o">.</span><span class="n">physical_length</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">axes</span><span class="p">]</span>
+        <span class="n">transv_lengths</span> <span class="o">=</span> <span class="n">lengths</span><span class="p">[:]</span>
+        <span class="k">del</span> <span class="n">transv_lengths</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+
+        <span class="n">distance</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">transv_lengths</span><span class="p">)</span>
+        <span class="n">timestep</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">*</span><span class="n">distance</span> <span class="o">/</span> <span class="n">helper</span><span class="o">.</span><span class="n">PhysicalConstants</span><span class="o">.</span><span class="n">c</span>
+
+        <span class="c1"># propagation distance since beginning</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">complex_ex</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">extent</span><span class="p">)</span> <span class="o">-</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">distance</span>
+
+        <span class="c1"># box length in propagation direction</span>
+        <span class="n">xlen</span> <span class="o">=</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">physical_length</span>
+
+        <span class="c1"># padding in prop. dir</span>
+        <span class="n">xpad</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">/</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">xlen</span><span class="p">)</span>
+
+        <span class="c1"># pad distance in transverse directions and xpad in prop. dir</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="p">[</span><span class="n">distance</span><span class="p">]</span> <span class="o">*</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">dimensions</span>
+        <span class="n">pad</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">xpad</span><span class="p">,</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">xpad</span><span class="p">]</span>
+
+        <span class="c1"># do padding and fft autopadding</span>
+        <span class="n">complex_ex</span> <span class="o">=</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">pad</span><span class="p">)</span><span class="o">.</span><span class="n">fft_autopad</span><span class="p">()</span>
+
+        <span class="c1"># do propagation</span>
+        <span class="n">complex_ex</span> <span class="o">=</span> <span class="n">helper</span><span class="o">.</span><span class="n">kspace_propagate</span><span class="p">(</span><span class="n">complex_ex</span><span class="p">,</span> <span class="n">timestep</span><span class="p">,</span>
+                                             <span class="n">moving_window_vect</span><span class="o">=</span><span class="n">moving_window_vect</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">+=</span> <span class="n">timestep</span>
+
+        <span class="c1"># remove low field strength outer region</span>
+        <span class="n">complex_ex</span> <span class="o">=</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">autocutout</span><span class="p">(</span><span class="n">fractions</span><span class="o">=</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">do_fft</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">t</span><span class="p">,</span> <span class="n">complex_ex</span><span class="o">.</span><span class="n">fft</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">t</span><span class="p">,</span> <span class="n">complex_ex</span>
+
+
+<div class="viewcode-block" id="kspace_propagate_adaptive"><a class="viewcode-back" href="../../apidoc/postpic.html#postpic.experimental.kspace_propagate_adaptive">[docs]</a><span class="nd">@helper</span><span class="o">.</span><span class="n">prepend_doc_of</span><span class="p">(</span><span class="n">_kspace_propagate_adaptive_generator</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">kspace_propagate_adaptive</span><span class="p">(</span><span class="n">field_in</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_final</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    `t_final`: The time at which to stop the adaptive propagation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gen</span> <span class="o">=</span> <span class="n">_kspace_propagate_adaptive_generator</span><span class="p">(</span><span class="n">field_in</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">gen</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">t</span><span class="p">,</span> <span class="n">f</span>
+        <span class="k">if</span> <span class="n">t_final</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="n">t_final</span><span class="p">:</span>
+            <span class="k">break</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Changelog of postpic &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Contributing to the postpic code base" href="CONTRIBUTING.html" />
+    <link rel="prev" title="Getting started" href="getstarted.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="changelog-of-postpic">
+<h1>Changelog of postpic<a class="headerlink" href="#changelog-of-postpic" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="current-master">
+<h2>current master<a class="headerlink" href="#current-master" title="Permalink to this headline">¶</a></h2>
+<p><strong>Highlights</strong></p>
+<ul class="simple">
+<li><p>Parallelized implementation of <cite>Field.map_coordinates</cite></p></li>
+<li><p>Added support for reading files written by the fbpic v0.13.0 code ( <a class="reference external" href="https://github.com/fbpic">https://github.com/fbpic</a> ). The fields can be accessed by <cite>Er</cite> and <cite>Etheta</cite>, which have been introduced to the fbpic data reader. Particles are saved in Cartesian coordinates, hence the interface does not change there.</p></li>
+<li><p>Reimplementation of <cite>Field.fft</cite>, see below.</p></li>
+</ul>
+<p><strong>Incompatible adjustments to previous version</strong></p>
+<ul class="simple">
+<li><p>Reimplementation of <cite>Field.fft</cite>. This changes the phases of Fourier transforms in a way to make it more consistent. However, if your code depends on the phases, <cite>Field.fft()</cite> now has a parameter <cite>old_behaviour</cite> that can be used to switch back to the old behaviour.</p></li>
+<li><p>Indexing a field by a number (integer or float) will now remove the according axis altogether, instead of leaving behind a length-1 axis.</p></li>
+</ul>
+<p>A new class <cite>KeepDim</cite> was introduced through which the old behaviour can still be used.
+Behaviour of PostPic before this change:
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">field.shape</span> <span class="pre">==</span> <span class="pre">(x,y,z)</span>
+<span class="pre">field[:,</span> <span class="pre">0.0,</span> <span class="pre">:].shape</span> <span class="pre">==</span> <span class="pre">(x,1,z)</span>
+<span class="pre">`</span></code>
+Using the new class <cite>KeepDim</cite>, it is possible to retain that behaviour in the new version:
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">field.shape</span> <span class="pre">==</span> <span class="pre">(x,y,z)</span>
+<span class="pre">field[:,</span> <span class="pre">0.0,</span> <span class="pre">:].shape</span> <span class="pre">==</span> <span class="pre">(x,</span> <span class="pre">z)</span>
+<span class="pre">field[:,</span> <span class="pre">KeepDim(0.0),</span> <span class="pre">:].shape</span> <span class="pre">==</span> <span class="pre">(x,1,z)</span>
+<span class="pre">`</span></code></p>
+<p><strong>Other improvements and new features</strong></p>
+<ul class="simple">
+<li><p>New convenience method <cite>Field.copy</cite></p></li>
+</ul>
+</div>
+<div class="section" id="v0-4">
+<h2>v0.4<a class="headerlink" href="#v0-4" title="Permalink to this headline">¶</a></h2>
+<p>2019-01-14</p>
+<p><strong>Highlights</strong></p>
+<ul class="simple">
+<li><p>Improved interoperability with numpy:
+* <cite>Field</cite> now understands most of numpy’s broadcasting
+* <cite>Field</cite> can be used as an argument to numpy’s ufuncs.</p></li>
+<li><p>Import and export routines for <cite>Field</cite> incuding vtk, compatible with [paraview](<a class="reference external" href="https://www.paraview.org/">https://www.paraview.org/</a>).</p></li>
+<li><p>Coordinate mapping and transform for <cite>Field</cite>.</p></li>
+<li><p>Brand new <cite>Multispecies.__call__</cite> interface: This takes an expression, which is evaluated by <cite>numexr</cite>, increasing the speed of per-particle scalar computations strongly. It’s also really user-friendly.</p></li>
+</ul>
+<p><strong>Incompatible adjustments to previous version</strong>
+* <cite>postpic.Field</cite> method <cite>exporttocsv</cite> is removed. Use <cite>export</cite> instead.
+* <cite>postpic.Field</cite> method <cite>transform</cite> is renamed to <cite>map_coordinates</cite>, matching the underlying scipy-function.
+* <cite>postpic.Field</cite> method <cite>mean</cite> has now an interface matching <cite>ndarray.mean</cite>. This means that, if the <cite>axis</cite> argument is not given, it averages across all axes instead the last axis.
+* <cite>postpic.Field.map_coordinates</cite> applies now the Jacobian determinant of the transformation, in order to preserve the definite integral.
+In your code you will need to turn calls to <cite>Field.transform</cite> into calls to <cite>Field.map_coordinates</cite> and set the keyword argument <cite>preserve_integral=False</cite> to get the old behaviour.
+* <cite>postpic.MultiSpecies.createField</cite> has now keyword arguments (<cite>bins</cite>, <cite>shape</cite>), which replace the corresponding entries from the <cite>optargsh</cite> dictionary. The use of the`optargsh` keyword argument has been deprecated.
+* The functions <cite>MultiSpecies.compress</cite>, <cite>MultiSpecies.filter</cite>, <cite>MultiSpecies.uncompress</cite> and <cite>ParticleHistory.skip</cite> return a new object now. Before this release, they modified the current object. Assuming  <cite>ms</cite> is a <cite>MultiSpecies</cite> object, the corresponding adjustemens read:&lt;br&gt;
+old: <cite>ms.filter(‘gamma &gt; 2’)`&lt;br&gt;
+new: `ms = ms.filter(‘gamma &gt; 2’)</cite>
+* <cite>plotter_matplotlib</cite> has a new default symmetric colormap</p>
+<p><strong>Other improvements and new features</strong>
+* Overload of the <cite>~</cite> (invert) operator on <cite>postpic.MultiSpecies</cite>. If <cite>ms</cite> is a MultiSpecies object with filtered particles (created by the use of <cite>compress</cite> or <cite>filter</cite>), then <cite>~ms</cite> inverts the selection of particles.
+* <cite>postpic.Field</cite> has methods <cite>.loadfrom</cite> and <cite>.saveto</cite>. These can be used to save a Field to a ` .npz` file for later use. Use <cite>.loadfrom</cite> to load a Field object from such a file. All attributes of the Field are restored.
+* <cite>postpic.Field</cite> has methods <cite>.export</cite> and <cite>.import</cite>. These are used to export fields to and import fields from foreign file formats such as <cite>.csv</cite>, <cite>.vtk</cite>, <cite>.png</cite>, <cite>.tif</cite>, <cite>.jpg</cite>. It is not guaranteed to get all attributes back after <cite>.export`ing and than `.import`ing a Field. Some formats are not available for both methods.
+* `postpic</cite> has a new function <cite>time_profile_at_plane</cite> that ‘measures’ the temporal profile of a pulse while passing through a plane
+* <cite>postpic</cite> has a new function <cite>unstagger_fields</cite> that will take a set of staggered fields and returns the fields after removing the stagger
+* <cite>postpic</cite> has a new function <cite>export_vector_vtk</cite> that takes up to three fields and exports them as a vector field in the <cite>.vtk</cite> format
+* <cite>postpic</cite> has a new function <cite>export_scalars_vtk</cite> that takes up to four fields and exports them as multiple scalar fields on the same grid in the <cite>.vtk</cite> format
+* <cite>postpic.Field</cite> works now with all numpy ufuncs, also with <cite>ufunc.reduce</cite>, <cite>ufunc.outer</cite>, <cite>ufunc.accumulate</cite> and <cite>ufunc.at</cite>
+* <cite>postpic.Field</cite> now supports broadcasting like numpy arrays, for binary operators as well as binary ufunc operations
+* <cite>postpic.Field</cite> has methods <cite>.swapaxes</cite>, <cite>.transpose</cite> and properties <cite>.T</cite> and <cite>ndim</cite> compatible to numpy.ndarray
+* <cite>postpic.Field</cite> has methods <cite>all</cite>, <cite>any</cite>, <cite>max</cite>, <cite>min</cite>, <cite>prod</cite>, <cite>sum</cite>, <cite>ptp</cite>, <cite>std</cite>, <cite>var</cite>, <cite>mean</cite>, <cite>clip</cite> compatible to numpy.ndarray
+* <cite>postpic.Field</cite> has a new method <cite>map_axis_grid</cite> for transforming the coordinates only along one axis which is simpler than <cite>map_coordinates</cite>, but also takes care of the Jacobian
+* <cite>postpic.Field</cite> has a new method <cite>autocutout</cite> used to slice away close-to-zero regions from the borders
+* <cite>postpic.Field</cite> has a new method <cite>fft_autopad</cite> used to pad a small number of grid points to each axis such that the dimensions of the Field are favourable to FFTW
+* <cite>postpic.Field</cite> has a new method <cite>adjust_stagger_to</cite> to adjust the grid origin to match the grid origin of another field
+* <cite>postpic.Field</cite> has a new method <cite>phase</cite> to get the unwrapped phase of the field
+* <cite>postpic.Field</cite> has a new method <cite>derivative</cite> to calculate the derivative of a field
+* <cite>postpic.Field</cite> has new methods <cite>flip</cite> and <cite>rot90</cite> similar to <cite>np.flip()</cite> and <cite>np.rot90()</cite>
+* <cite>postpic.Field.topolar</cite> has new defaults for extent and shape
+* <cite>postpic.Field.integrate</cite> now uses the simpson method by default
+* <cite>postpic.Field.integrate</cite> now has a new ‘fast’ method that uses numexpr, suitable for large datasets
+* New module <cite>postpic.experimental</cite> to contain experimental algorithms for your reference. These algorithms are not meant to be useable as-is, but may serve as recipes to write your own algorithms.
+* k-space reconstruction from EPOCH dumps has greatly improved accuracy due to a new algorithm correctly incorporating the frequency response of the implicit linear interpolation performed by EPOCH’s half-steps
+* <cite>plotter_matplotlib.plotField</cite> allows to override <cite>aspect</cite> option to <cite>imshow</cite></p>
+</div>
+<div class="section" id="v0-3-1">
+<h2>v0.3.1<a class="headerlink" href="#v0-3-1" title="Permalink to this headline">¶</a></h2>
+<p>2017-10-03</p>
+<p>Only internal changes. Versioning is handled by [versioneer](<a class="reference external" href="https://github.com/warner/python-versioneer">https://github.com/warner/python-versioneer</a>).</p>
+</div>
+<div class="section" id="v0-3">
+<h2>v0.3<a class="headerlink" href="#v0-3" title="Permalink to this headline">¶</a></h2>
+<p>2017-09-28</p>
+<p>Many improvements in terms of speed and features. Unfortunately some changes are not backwards-compatible to v0.2.3, so you may have to adapt your code to the new interface. For details, see the corresponding section below.</p>
+<p><strong>Highlights</strong>
+* kspace reconstruction and propagation of EM waves.
+* <cite>postpic.Field</cite> properly handles operator overloading and slicing. Slicing can be index based (integers) or referring the actual physical extent on the axis of a Field object (using floats).
+* Expression based interface to particle properties (see below)</p>
+<p><strong>Incompatible adjustments to previous version</strong>
+* New dependency: Postpic requires the <cite>numexpr</cite> package to be installed now.
+* Expression based interface of for particles: If <cite>ms</cite> is a <cite>postpic.MultiSpecies</cite> object, then the call <cite>ms.X()</cite> has been deprecated. Use <cite>ms(‘x’)</cite> instead. This new particle interface can handle expressions that the <cite>numexpr</cite> package understands. Also <cite>ms(‘sqrt(x**2 + gamma - id)’)</cite> is valid. This interface is easier to use, has better functionality and is faster due to <cite>numexpr</cite>.
+The list of known per particle scalars and their definitions is available at <cite>postpic.particle_scalars</cite>. In addition all constants of <cite>scipy.constants.*</cite> can be used.
+In case you find particle scalar that you use regularly which is not in the list, please open an issue and let us know!
+* The <cite>postpic.Field</cite> class now behaves more like an <cite>numpy.ndarray</cite> which means that almost all functions return a new field object instead of modifying the current. This change affects the following functions: <cite>half_resolution</cite>, <cite>autoreduce</cite>, <cite>cutout</cite>, <cite>mean</cite>.</p>
+<p><strong>Other improvements and new features</strong>
+* <cite>postpic.helper.kspace</cite> can reconstruct the correct k-space from three EM fields provided to distinguish between forward and backward propagating waves (thanks to &#64;Ablinne)
+* <cite>postpic.helper.kspace_propagate</cite> will turn the phases in k-space to propagate the EM-wave.
+* List of new functions in <cite>postpic</cite> from <cite>postpic.helper</cite> (thanks to &#64;Ablinne): <cite>kspace_epoch_like</cite>, <cite>kspace</cite>, <cite>kspace_propagate</cite>.
+* <cite>Field.fft</cite> function for fft optimized with pyfftw (thanks to &#64;Ablinne).
+* <cite>Field.__getitem__</cite> to slice a Field object. If integers are provided, it will interpret them as gridpoints. If float are provided they are interpreted as the physical region of the data and slice along the corresponding axis positions (thanks to &#64;Ablinne).
+* <cite>Field</cite> class has been massively impoved (thanks to &#64;Ablinne): The operator overloading is now properly implemented and thanks to <cite>__array__</cite> method, it can be interpreted by numpy as an ndarray whenever necessary.
+* List of new functions of the <cite>Field</cite> class (thanks to &#64;Ablinne): <cite>meshgrid</cite>, <cite>conj</cite>, <cite>replace_data</cite>, <cite>pad</cite>, <cite>transform</cite>, <cite>squeeze</cite>, <cite>integrate</cite>, <cite>fft</cite>, <cite>shift_grid_by</cite>, <cite>__getitem__</cite>, <cite>__setitem__</cite>, <cite>evaluate</cite>.
+* List of new properties of the <cite>Field</cite> class (thanks to &#64;Ablinne): <cite>matrix</cite>, <cite>real</cite>, <cite>imag</cite>, <cite>angle</cite>.
+* Many performance optimizations using pyfftw library (optional) or numexpr (now required by postpic) or by avoiding in memory data copying.
+* Lots of fixes</p>
+</div>
+<div class="section" id="v0-2-3">
+<h2>v0.2.3<a class="headerlink" href="#v0-2-3" title="Permalink to this headline">¶</a></h2>
+<p>2017-02-17</p>
+<p>This release brings some bugfixes and various new features.</p>
+<p><strong>Bugfixes</strong>
+* Particle property Bz.
+* plotting of contourlevels.</p>
+<p><strong>Improvements and new features</strong>
+* openPMD support (thanks to &#64;ax3l).
+* ParticleHistory class to collect particle information over the entire simulation.
+* added particle properties v{x,y,z} and beta{x,y,z}.
+* Lots of performance improvemts: particle data will be much less copied in memory now.</p>
+</div>
+<div class="section" id="v0-2-2-and-earlier">
+<h2>v0.2.2 and earlier<a class="headerlink" href="#v0-2-2-and-earlier" title="Permalink to this headline">¶</a></h2>
+<p>There hasnt been any changelog. Dont use those versions anymore.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getstarted.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog of postpic</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#current-master">current master</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-4">v0.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-3-1">v0.3.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-3">v0.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-2-3">v0.2.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-2-2-and-earlier">v0.2.2 and earlier</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="getstarted.html" title="previous chapter">Getting started</a></li>
+      <li>Next: <a href="CONTRIBUTING.html" title="next chapter">Contributing to the postpic code base</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/CHANGELOG.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/CHANGELOG.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

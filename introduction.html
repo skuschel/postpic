@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Introduction &#8212; postpic v0.4+146.g6b74ab9 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started" href="getstarted.html" />
+    <link rel="prev" title="Welcome to postpic’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-postpic">
+<span id="introduction"></span><h1>Introduction<a class="headerlink" href="#module-postpic" title="Permalink to this headline">¶</a></h1>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 100%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>POSTPIC</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p><em>The open source particle-in-cell post processor.</em></p>
+</div></blockquote>
+<p>Particle-in-cell simulations are a valuable tool for the simulation of non-equelibrium
+systems in plasma- or astrophysics.
+Such simulations usually produce a large amount of data consisting of electric and magnetic
+field data as well as particle positions and momenta. While there are various PIC codes freely
+available, the task of post-processing – essentially condensing the large amounts of data
+into small units suitable for plotting routines – is typically left to each user individually.
+As post-processing may be a time consuming and error-prone process,
+this python package has been developed.</p>
+<p><em>Postpic</em> can handle two different types of data:</p>
+<dl class="simple">
+<dt>Field data</dt><dd><p>which is data sampled on a predefined grid, such as electic and magnetic fields, particle- or
+charge densities, currents, etc.
+Fields are usually the data, which can be plotted directly.
+See <a class="reference internal" href="apidoc/postpic.html#postpic.Field" title="postpic.Field"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.Field</span></code></a>.</p>
+</dd>
+<dt>Particle data</dt><dd><p>which is data of multiple particles and for each particle positions (<cite>x</cite>, <cite>y</cite>, <cite>z</cite>) and
+momenta (<cite>px</cite>, <cite>py</cite>, <cite>pz</cite>) are known. Particles usually also have <cite>weight</cite>,
+<cite>charge</cite>, <cite>time</cite> and a unique <cite>id</cite>.
+Postpic can transform particle data to field data using the same algorithm and particle shapes,
+which are used in most PIC Simulations. The particle-to-grid routines are written in C
+for maximum performance. See <a class="reference internal" href="apidoc/postpic.html#postpic.MultiSpecies" title="postpic.MultiSpecies"><code class="xref py py-class docutils literal notranslate"><span class="pre">postpic.MultiSpecies</span></code></a>.</p>
+</dd>
+</dl>
+<div class="section" id="what-is-postpic">
+<h2>What is postpic?<a class="headerlink" href="#what-is-postpic" title="Permalink to this headline">¶</a></h2>
+<p>Postpic is an open-source package aiming to ease the postprocessing of particle-in-cell simulation data. Particle-in-cell simulations are often used to simulate the behaviour of plasmas in non-equilibrium states.</p>
+<span class="target" id="module-postpic.datareader"></span><p>The Datareader package contains methods and interfaces to read data from
+any Simulation.</p>
+<p>The basic concept consits of two different types of readers:</p>
+<div class="section" id="the-dumpreader">
+<h3>The Dumpreader<a class="headerlink" href="#the-dumpreader" title="Permalink to this headline">¶</a></h3>
+<p>This has to be subclassed from Dumpreader_ifc and allows to read a single dump
+created by the simulation. To identify which dump should be read its
+initialized with a dumpidentifier. This dumpidentifier can be almost anything,
+but in the easiest case this is the filepath pointing to a single file
+containing every information about this simulation dump. With this information
+the dumpreader must be able to read all data regarding this dump (which is a
+lot: X, Y, Z, Px, Py, Py, weight, mass, charge, ID,.. for all particle species,
+electric and magnetic fields on grid, the grid itself, mabe particle ids,…)</p>
+</div>
+<div class="section" id="the-simulationreader">
+<h3>The Simulationreader<a class="headerlink" href="#the-simulationreader" title="Permalink to this headline">¶</a></h3>
+<p>This has to be subclassed from Simulationreader_ifc and allows to read a full
+list of simulation dumps. Thus an alternate Name for this class could be
+“Dumpsequence”. This allows the code to track particles from different times
+of the simulation or create plots with a time axis.</p>
+<p>Stephan Kuschel 2014</p>
+</div>
+<dl class="py function">
+<dt id="postpic.readDump">
+<code class="sig-prename descclassname">postpic.</code><code class="sig-name descname">readDump</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dumpidentifier</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/postpic/datareader.html#readDump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.readDump" title="Permalink to this definition">¶</a></dt>
+<dd><p>After using the fucntion <a class="reference internal" href="apidoc/postpic.html#postpic.chooseCode" title="postpic.chooseCode"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.chooseCode()</span></code></a>, this function should
+be the main function for reading a dump into postpic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dumpidentifier</strong> (<em>str</em>) – Identifies the dump. For most dumpreaders this is a string
+poining to the file or folder. See what the specific
+reader of your format expects.</p></li>
+<li><p><strong>**kwargs</strong> – will be forwarded to the dumpreader.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the dumpreader for this specific data dump.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dumpreader</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="postpic.readSim">
+<code class="sig-prename descclassname">postpic.</code><code class="sig-name descname">readSim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">simidentifier</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/postpic/datareader.html#readSim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#postpic.readSim" title="Permalink to this definition">¶</a></dt>
+<dd><p>After using the function <a class="reference internal" href="apidoc/postpic.html#postpic.chooseCode" title="postpic.chooseCode"><code class="xref py py-func docutils literal notranslate"><span class="pre">postpic.chooseCode()</span></code></a>, this function should
+be the main function for reading a simulation into postpic.
+A simulation is equivalent to a series of dumps in a specific order
+(not neccessarily time order).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>simidentifier</strong> (<em>str</em>) – Identifies the simulation.
+For EPOCH this should be a string pointing to a <cite>.visit</cite> file.
+Specifics depend on the current simreader class,
+as set by <cite>chooseCode</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – will be forwarded to the simreader.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the Simulationreader</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">postpic</a></h1>
+
+
+
+<p class="blurb">the open-source partice-in-cell postprocessor.</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=skuschel&repo=postpic&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-postpic">What is postpic?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-dumpreader">The Dumpreader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-simulationreader">The Simulationreader</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getstarted.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog of postpic</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing to the postpic code base</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apidoc/modules.html">postpic</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to postpic’s documentation!</a></li>
+      <li>Next: <a href="getstarted.html" title="next chapter">Getting started</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/introduction.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, the postpic developers.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/introduction.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/skuschel/postpic" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
