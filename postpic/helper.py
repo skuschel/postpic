@@ -35,7 +35,9 @@ import warnings
 import functools
 import math
 import numexpr as ne
+import scipy
 from scipy.ndimage import _ni_support, _nd_image, spline_filter
+
 
 if sys.version_info[0:2] >= (3, 5):
     from concurrent.futures import ThreadPoolExecutor
@@ -284,8 +286,14 @@ def map_coordinates_parallel(input, coordinates, output=None, order=3, mode='con
 
     def map_coordinates_chunk(arg):
         sub_filtered, sub_coordinates, sub_output = arg
-        _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
-                                      sub_output, order, mode, cval, None, None)
+        if scipy.__version__ < '1.6.0':
+            _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
+                                          sub_output, order, mode, cval, None, None)
+        else:
+            # changed in scipy v1.6.0
+            # https://github.com/scipy/scipy/commit/9c299da04b9c419786a56c8e657aaabeb35f9069
+            _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
+                                          sub_output, order, mode, cval, 0, None, None)
 
     if chunklen > 0:
         list_of_chunk_args = list(chunk_arguments(filtered, coordinates, output))
