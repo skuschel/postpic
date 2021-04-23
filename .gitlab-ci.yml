@@ -1,6 +1,6 @@
 
 
-#image: python:latest
+image: python:latest
 
 
 before_script:
