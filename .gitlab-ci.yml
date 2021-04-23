@@ -1,0 +1,16 @@
+
+
+image: python:latest
+
+
+before_script:
+  - python -V  # Print out python version for debugging
+
+stages:
+  - test
+
+job1:
+  stage: test
+  script:
+    - python -m pip install -r pip-requirements.txt
+    - ./run-tests.py
