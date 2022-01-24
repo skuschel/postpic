@@ -76,3 +76,6 @@ target/
 # if using spyder for development
 .spyderworkspace
 .spyderproject
+
+# ignored for github codespaces
+.venv
