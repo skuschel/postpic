@@ -39,6 +39,9 @@ class MatplotlibPlotter(object):
     '''
 
     import matplotlib.ticker
+    # workaroung needed for ScalarFormatter()
+    # see https://github.com/matplotlib/matplotlib/issues/22305
+    import matplotlib.font_manager
     axesformatterx = matplotlib.ticker.ScalarFormatter()
     axesformatterx.set_powerlimits((-2, 3))
     axesformattery = matplotlib.ticker.ScalarFormatter()
