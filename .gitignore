@@ -68,7 +68,7 @@ target/
 .pydevproject
 *.png
 *.swp
- 
+.idea/
 
 # there might be ipython notebooks
 .ipynb_checkpoints
