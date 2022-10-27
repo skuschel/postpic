@@ -79,7 +79,7 @@ class _SingleSpecies(object):
         if species not in dumpreader.listSpecies():
             # A better way would be to test if len(self) == 0,
             # but that may require heavy IO
-            raise(KeyError('species "{:}" does not exist in {:}'.format(species, dumpreader)))
+            raise KeyError('species "{:}" does not exist in {:}'.format(species, dumpreader))
         self.species = species
         self._dumpreader = dumpreader
         self.compresslog = []
@@ -136,7 +136,7 @@ class _SingleSpecies(object):
         elif key in ['mass', 'charge']:
             try:
                 ret = self._dumpreader.getSpecies(self.species, key)
-            except(KeyError):
+            except KeyError:
                 # in the special case of mass or charge try to deduce mass or charge
                 # from the species name.
                 self._idfy = identifyspecies(self.species)
@@ -277,7 +277,7 @@ class _SingleSpecies(object):
                 # len(3) will yield a TypeError, len([3]) returns 1
                 ret = len(self._readatomic(key))
                 break
-            except(TypeError, KeyError):
+            except (TypeError, KeyError):
                 pass
         return ret
 
@@ -321,7 +321,7 @@ class _SingleSpecies(object):
             for source in [np, scipy.constants]:
                 try:
                     _vars[name] = getattr(source, name)
-                except(AttributeError):
+                except AttributeError:
                     pass
             if name not in _vars:
                 raise KeyError('"{}" not found!'.format(name))
@@ -391,7 +391,7 @@ class MultiSpecies(object):
             dr0 = self._ssas[0].dumpreader
             if all([dr0 == ssa.dumpreader for ssa in self._ssas]):
                 return dr0
-        except(IndexError, KeyError):
+        except (IndexError, KeyError):
             return None
 
     def simextent(self, axis):
@@ -411,7 +411,7 @@ class MultiSpecies(object):
         '''
         try:
             ret = self._ssas[0].dumpreader.simgridpoints(axis)
-        except(AttributeError, KeyError):
+        except (AttributeError, KeyError):
             return None
 
     @property
@@ -509,7 +509,7 @@ class MultiSpecies(object):
             if ignore_missing_species:
                 try:
                     self._ssas.append(_SingleSpecies(dumpreader, species))
-                except(KeyError):
+                except KeyError:
                     pass
             else:
                 self._ssas.append(_SingleSpecies(dumpreader, species))
@@ -649,7 +649,7 @@ class MultiSpecies(object):
             return self.__call_sp(expr)
         try:
             bs = basestring  # python2
-        except(NameError):
+        except NameError:
             bs = str  # python3
         if isinstance(expr, bs):
             # create temporary ScalarProperty object

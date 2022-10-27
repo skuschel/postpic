@@ -88,7 +88,7 @@ class Hdf5reader(Dumpreader_ifc):
         axis = helper.axesidentify[axis]
         try:
             return np.float64(self["ElecMultiField"][..., axis])
-        except(KeyError):
+        except KeyError:
             return None
 
     def dataB(self, axis, **kwargs):
@@ -96,7 +96,7 @@ class Hdf5reader(Dumpreader_ifc):
         axis = helper.axesidentify[axis]
         try:
             return np.float64(self["MagMultiField"][..., axis])
-        except(KeyError):
+        except KeyError:
             return None
 
     def grid(self, axis):

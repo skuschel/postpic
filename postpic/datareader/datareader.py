@@ -220,7 +220,7 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
         for key in self._simgridkeys():
             try:
                 return self.gridpoints(key, axis)
-            except(KeyError):
+            except KeyError:
                 pass
         raise KeyError
 
@@ -234,7 +234,7 @@ class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
                 offset = self.gridoffset(key, axis)
                 n = self.gridpoints(key, axis)
                 return np.array([offset, offset + self.gridspacing(key, axis) * n])
-            except(KeyError):
+            except KeyError:
                 pass
         raise KeyError('Unable to resolve "simexent" for axis "{:}"'.format(axis))
 

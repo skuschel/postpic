@@ -124,7 +124,7 @@ class OpenPMDreader(Dumpreader_ifc):
             try:
                 gs = self.gridspacing(k, None)
                 return len(gs)
-            except(KeyError):
+            except KeyError:
                 pass
         raise KeyError('number of simdimensions could not be retrieved for {}'.format(self))
 
@@ -170,7 +170,7 @@ class OpenPMDreader(Dumpreader_ifc):
             if offsetkey is not None:
                 data += self.data(offsetkey.format(species))
             ret = np.asarray(data, dtype=np.float64)
-        except(IndexError):
+        except IndexError:
             raise KeyError
         return ret
 

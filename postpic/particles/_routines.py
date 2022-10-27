@@ -88,7 +88,7 @@ def histogramdd(data, **kwargs):
         if shape[0] > 3 and len(shape) == 2:  # (N, D) array
             # data[:,i] will create a view consuming only microseconds
             data = [data[:, i] for i in range(shape[1])]
-    except(AttributeError):
+    except AttributeError:
         pass
 
     # upcast 1D if length 1 dimensions are omitted
@@ -122,7 +122,7 @@ def histogramdd(data, **kwargs):
                 if not np.isscalar(ranges[ax][i]):
                     # if value can be accessed it must be a scalar value
                     raise ValueError('range="{}" not properly formatted.'.format(kwrange))
-            except(TypeError):
+            except TypeError:
                 ranges[ax][i] = f(d)
     kwrange = ranges
 
