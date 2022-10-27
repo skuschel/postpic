@@ -74,7 +74,7 @@ class Sdfreader(Dumpreader_ifc):
         import sdf
         try:
             sdfversion = sdf.__version__
-        except(AttributeError):
+        except AttributeError:
             sdfversion = '0.0.0'
         if sdfversion < '2.2.0':
             raise ImportError('Upgrade sdf package to 2.2.0 or higher.')
@@ -210,7 +210,7 @@ class Sdfreader(Dumpreader_ifc):
                    12: lambda s: self['Particles/Charge/' + s].data}
         try:
             ret = options[attribid](species)
-        except(IndexError):
+        except IndexError:
             raise KeyError('Attribute "{}" of species "{}" not found.'.format(attrib, species))
         return ret
 
