@@ -1,7 +1,7 @@
 --index-url https://pypi.python.org/simple/
 
 pycodestyle
-nose
+nose2
 cython>=0.18
 numpy>=1.8
 
