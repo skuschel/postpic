@@ -57,6 +57,7 @@ import os
 import numbers
 
 import numpy as np
+from packaging.version import parse as parse_version
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
 import scipy.integrate
@@ -1807,7 +1808,6 @@ class Field(NDArrayOperatorsMixin):
             return self._integrate_scipy(axes, method)
 
     def _derivative(self, axis):
-        from pkg_resources import parse_version
         if parse_version(np.__version__) < parse_version('1.9'):
             if not self.axes[axis].islinear():
                 raise ValueError('This method can only be applied to linear axes.')
@@ -2026,7 +2026,6 @@ class Field(NDArrayOperatorsMixin):
         my_fft_args = dict(norm='ortho')
 
         # Workaround for missing `fft` argument `norm='ortho'`
-        from pkg_resources import parse_version
         if parse_version(np.__version__) < parse_version('1.10'):
             del my_fft_args['norm']
             if transform_state is False:

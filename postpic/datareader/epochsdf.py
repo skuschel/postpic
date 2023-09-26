@@ -37,6 +37,7 @@ import numpy as np
 import re
 from .. import helper
 from warnings import warn
+from packaging.version import parse as parse_version
 
 __all__ = ['Sdfreader', 'Visitreader']
 
@@ -76,7 +77,7 @@ class Sdfreader(Dumpreader_ifc):
             sdfversion = sdf.__version__
         except AttributeError:
             sdfversion = '0.0.0'
-        if sdfversion < '2.2.0':
+        if parse_version(sdfversion) < parse_version('2.2.0'):
             raise ImportError('Upgrade sdf package to 2.2.0 or higher.')
         if not os.path.isfile(sdffile):
             raise IOError('File "' + str(sdffile) + '" doesnt exist.')

@@ -35,6 +35,7 @@ import warnings
 import functools
 import math
 import numexpr as ne
+from packaging.version import parse as parse_version
 import scipy
 from scipy.ndimage import _ni_support, _nd_image, spline_filter
 
@@ -286,7 +287,7 @@ def map_coordinates_parallel(input, coordinates, output=None, order=3, mode='con
 
     def map_coordinates_chunk(arg):
         sub_filtered, sub_coordinates, sub_output = arg
-        if scipy.__version__ < '1.6.0':
+        if parse_version(scipy.__version__) < parse_version('1.6.0'):
             _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
                                           sub_output, order, mode, cval, None, None)
         else:
@@ -389,7 +390,6 @@ def approx_jacobian(transform):
     def fun(*coords):
         ravel_coords = [np.ravel(c) for c in coords]
 
-        from pkg_resources import parse_version
         if parse_version(np.__version__) < parse_version('1.13'):
             if not all(islinear(r) for r in ravel_coords):
                 raise NotImplemented('Numerically approximating the Jacobian on a transform to a '
