@@ -2,7 +2,7 @@
 
 pycodestyle
 nose2
-cython>=0.18
+Cython>=0.18
 numpy>=1.8
 
 # required for building the docs
