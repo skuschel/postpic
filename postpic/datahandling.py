@@ -958,11 +958,19 @@ class Field(NDArrayOperatorsMixin):
 
     @property
     def grid_nodes(self):
-        return np.squeeze([a.grid_node for a in self.axes])
+        ret = [a.grid_node for a in self.axes]
+        # Squeeze first dim if possible
+        if len(ret) == 1:
+            return ret[0]
+        return ret
 
     @property
     def grid(self):
-        return np.squeeze([a.grid for a in self.axes])
+        ret = [a.grid for a in self.axes]
+        # Squeeze first dim if possible
+        if len(ret) == 1:
+            return ret[0]
+        return ret
 
     def meshgrid(self, sparse=True):
         return meshgrid(*[ax.grid for ax in self.axes], indexing='ij', sparse=sparse)
