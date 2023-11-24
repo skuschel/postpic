@@ -65,7 +65,7 @@ def run_alltests(python='python', fast=False, skip_setup=False):
     # make sure .pyx sources are up to date and compiled
     if not skip_setup:
         # should be the same as `./setup.py develop --user`
-        runcmd('{python} -m pip install --break-system-packages --user -e .'.format(**cmdrpl))
+        runcmd('{python} -m pip install -e .'.format(**cmdrpl))
 
     # find pep8 or pycodestyle (its successor)
     try:
