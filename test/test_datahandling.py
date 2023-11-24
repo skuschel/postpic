@@ -347,7 +347,12 @@ class TestField(unittest.TestCase):
         if sys.version_info.major == 3 and sys.version_info.minor < 5:
             y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
         else:
-            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # Due to https://github.com/pydata/numexpr/commit/397cc98359301d0e7b96aaa6d3c79419d1d4f189
+            # numexpr raises an Value Error "Expression has forbidden control character" for
+            # y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # reported in https://github.com/pydata/numexpr/issues/459
+            im = 1.j
+            y = ne.evaluate('exp(im*x) + 2.*exp(5*im*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
@@ -358,7 +363,12 @@ class TestField(unittest.TestCase):
         if sys.version_info.major == 3 and sys.version_info.minor < 5:
             y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
         else:
-            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # Due to https://github.com/pydata/numexpr/commit/397cc98359301d0e7b96aaa6d3c79419d1d4f189
+            # numexpr raises an Value Error "Expression has forbidden control character" for
+            # y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # reported in https://github.com/pydata/numexpr/issues/459
+            im = 1.j
+            y = ne.evaluate('exp(im*x) + 2.*exp(5*im*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
