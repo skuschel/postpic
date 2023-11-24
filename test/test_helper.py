@@ -25,14 +25,14 @@ class TestSpeciesIdentifier(unittest.TestCase):
     def test_identifyspecies_ion(self):
         idfy = pp.identifyspecies
         self.checkion(idfy('proton'), 1, 1, False, False, True)
-        self.checkion(idfy('H1'), 1, 1, False, False, True)
-        self.checkion(idfy('tracer_O3'), 16, 3, False, True, True)
-        self.checkion(idfy('ejected_tracer_C4'), 12, 4, True, True, True)
+        self.checkion(idfy('H1'), 1.008, 1, False, False, True)
+        self.checkion(idfy('tracer_O3'), 15.999, 3, False, True, True)
+        self.checkion(idfy('ejected_tracer_C4'), 12.011, 4, True, True, True)
         self.checkion(idfy('ionm3c7'), 3, 7, False, False, True)
         self.checkion(idfy('ionm30c70xx5'), 30, 70, False, False, True)
-        self.checkion(idfy('tracer_ejected_Au27a'), 197, 27, True, True, True)
-        self.checkion(idfy('ejected_tracer_Au27'), 197, 27, True, True, True)
-        self.checkion(idfy('tracer_blahh_Au27x'), 197, 27, False, True, True)
+        self.checkion(idfy('tracer_ejected_Au27a'), 196.967, 27, True, True, True)
+        self.checkion(idfy('ejected_tracer_Au27'), 196.967, 27, True, True, True)
+        self.checkion(idfy('tracer_blahh_Au27x'), 196.967, 27, False, True, True)
 
     def test_identifyspecies_electron(self):
         idfy = pp.identifyspecies
@@ -58,17 +58,17 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.assertEqual(x['w'], True)
         self.assertEqual(x['33'], True)
         self.assertEqual(x['He5'], True)
-        self.checkion(x, 16,3, False, True, True)
+        self.checkion(x, 15.999,3, False, True, True)
 
     def test_identifyspecies_extendedsyntax(self):
         idfy = pp.identifyspecies
-        self.checkion(idfy('H'), 1, 0, False, False, True)
-        self.checkion(idfy('HPlus'), 1, 1, False, False, True)
-        self.checkion(idfy('H1Plus'), 1, 1, False, False, True)
+        self.checkion(idfy('H'), 1.008, 0, False, False, True)
+        self.checkion(idfy('HPlus'), 1.008, 1, False, False, True)
+        self.checkion(idfy('H1Plus'), 1.008, 1, False, False, True)
         #self.checkion(idfy('Hplus'), 1, 1, False, False, True)
-        self.checkion(idfy('HePlusPlus'), 4, 2, False, False, True)
-        self.checkion(idfy('He2Plus'), 4, 2, False, False, True)
-        self.checkion(idfy('HPlus'), 1, 1, False, False, True)
+        self.checkion(idfy('HePlusPlus'), 4.003, 2, False, False, True)
+        self.checkion(idfy('He2Plus'), 4.003, 2, False, False, True)
+        self.checkion(idfy('HPlus'), 1.008, 1, False, False, True)
         self.checke(idfy('HElectron'), 1, -1, False, False, False)
         self.checke(idfy('HElectrons'), 1, -1, False, False, False)
         self.checke(idfy('HElec'), 1, -1, False, False, False)
@@ -81,10 +81,10 @@ class TestSpeciesIdentifier(unittest.TestCase):
         self.checke(idfy('HElectron'), 1, -1, False, False, False)
         self.checke(idfy('HeElectron'), 1, -1, False, False, False)
         self.checke(idfy('Heelectron'), 1, -1, False, False, False)
-        self.checkion(idfy('Helectron'), 4, 0, False, False, True)
+        self.checkion(idfy('Helectron'), 4.003, 0, False, False, True)
         # Tiny differences may decide about Ne or electrons
         self.checke(idfy('NElectron'), 1, -1, False, False, False)
-        self.checkion(idfy('Nelectron'), 20.2, 0, False, False, True)
+        self.checkion(idfy('Nelectron'), 20.180, 0, False, False, True)
         self.checke(idfy('Neelectron'), 1, -1, False, False, False)
 
 
