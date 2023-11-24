@@ -25,6 +25,7 @@
 
 import sys
 import os
+from packaging.version import parse as parse_version
 
 
 def runcmd(cmd):
@@ -45,7 +46,7 @@ def runcmd(cmd):
 
 def run_autopep8(args):
         import autopep8
-        if autopep8.__version__ < '1.2':
+        if parse_version(autopep8.__version__) < parse_version('1.2'):
             print('upgrade to autopep8 >= 1.2 (installed: {:})'.format(str(autopep8.__version__)))
             exit(1)
         autopep8mode = '--in-place' if args.autopep8 == 'fix' else '--diff'
@@ -64,7 +65,7 @@ def run_alltests(python='python', fast=False, skip_setup=False):
     # make sure .pyx sources are up to date and compiled
     if not skip_setup:
         # should be the same as `./setup.py develop --user`
-        runcmd('{python} -m pip install --user -e .'.format(**cmdrpl))
+        runcmd('{python} -m pip install -e .'.format(**cmdrpl))
 
     # find pep8 or pycodestyle (its successor)
     try:
@@ -83,8 +84,8 @@ def run_alltests(python='python', fast=False, skip_setup=False):
     cmds = ['{python} -m pycodestyle --version',
             '{python} -m {pycodestyle} postpic --statistics --count --show-source '
             '--ignore=W391,E123,E226,E24,W504 --max-line-length=99',
-            '{python} -m nose --exe']
-    cmdo = ['{python} setup.py build_sphinx',
+            '{python} -m nose2 -B']
+    cmdo = ['make -C doc/ html',
             '{python} ' + os.path.join('examples', 'simpleexample.py'),
             '{python} ' + os.path.join('examples', 'particleshapedemo.py'),
             '{python} ' + os.path.join('examples', 'time_cythonfunctions.py'),

@@ -8,7 +8,7 @@ import numpy.testing as npt
 import numexpr as ne
 import copy
 import scipy.integrate
-import pkg_resources as pr
+from packaging.version import parse as parse_version
 import sys
 
 class TestAxis(unittest.TestCase):
@@ -347,7 +347,12 @@ class TestField(unittest.TestCase):
         if sys.version_info.major == 3 and sys.version_info.minor < 5:
             y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
         else:
-            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # Due to https://github.com/pydata/numexpr/commit/397cc98359301d0e7b96aaa6d3c79419d1d4f189
+            # numexpr raises an Value Error "Expression has forbidden control character" for
+            # y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # reported in https://github.com/pydata/numexpr/issues/459
+            im = 1.j
+            y = ne.evaluate('exp(im*x) + 2.*exp(5*im*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
@@ -358,7 +363,12 @@ class TestField(unittest.TestCase):
         if sys.version_info.major == 3 and sys.version_info.minor < 5:
             y = np.exp(1.j*x) + 2.*np.exp(5.j*x)
         else:
-            y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # Due to https://github.com/pydata/numexpr/commit/397cc98359301d0e7b96aaa6d3c79419d1d4f189
+            # numexpr raises an Value Error "Expression has forbidden control character" for
+            # y = ne.evaluate('exp(1.j*x) + 2.*exp(5.j*x)')
+            # reported in https://github.com/pydata/numexpr/issues/459
+            im = 1.j
+            y = ne.evaluate('exp(im*x) + 2.*exp(5*im*x)')
         y = dh.Field(y, axes=[dh.Axis(grid=x)])
         yf = y.fft()
 
@@ -721,7 +731,7 @@ class TestField(unittest.TestCase):
         b = np.std(self.f2d)
         self.assertTrue(np.isclose(b.matrix, 5.766281297335398))
 
-    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.13"),
+    @unittest.skipIf(parse_version(np.__version__) < parse_version("1.13"),
                      "This behaviour is not supported for numpy older than 1.13")
     def test_numpy_methods_2(self):
         a = np.mean(self.f2d, keepdims=True)
@@ -730,7 +740,7 @@ class TestField(unittest.TestCase):
         np.std(self.f2d, out=a, keepdims=True)
         self.assertEqual(a.matrix[0,0], 5.766281297335398)
 
-    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.13"),
+    @unittest.skipIf(parse_version(np.__version__) < parse_version("1.13"),
                      "This behaviour is not supported for numpy older than 1.13")
     def test_numpy_ufuncs(self):
         a = np.add.reduce(self.f2d, axis=1)
@@ -741,7 +751,7 @@ class TestField(unittest.TestCase):
         self.assertEqual(b.axes, self.f1d.axes + self.f2d.axes)
         self.assertAllEqual(b.matrix, np.multiply.outer(self.f1d.matrix, self.f2d.matrix))
 
-    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+    @unittest.skipIf(parse_version(np.__version__) < parse_version("1.12"),
                  "This behaviour is not supported for numpy older than 1.12")
     def test_flip(self):
         f2df = self.f2d.flip(axis=-1)
@@ -750,7 +760,7 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(0).flip(1))
         self.assertAllEqual(self.f2d, self.f2d.flip(0).flip(1).flip(1).flip(0))
 
-    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+    @unittest.skipIf(parse_version(np.__version__) < parse_version("1.12"),
                  "This behaviour is not supported for numpy older than 1.12")
     def test_rot90(self):
         f2dr = self.f2d.rot90().rot90().rot90().rot90()
@@ -766,7 +776,7 @@ class TestField(unittest.TestCase):
         self.assertAllEqual(self.f2d, f2dr)
         self.assertAllEqual(self.f2d.extent, f2dr.extent)
 
-    @unittest.skipIf(pr.parse_version(np.__version__) < pr.parse_version("1.12"),
+    @unittest.skipIf(parse_version(np.__version__) < parse_version("1.12"),
                  "This behaviour is not supported for numpy older than 1.12")
     def test_rot90_2(self):
         f2dr = np.rot90(self.f2d, k=4)

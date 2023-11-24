@@ -42,12 +42,14 @@ setup(name='postpic',
                         # does not work for python 2
                         'numpy>=1.8', 'numpy>=1.9;python_version<"3.0"',
                         'scipy', 'future', 'urllib3', 'numexpr',
-                        'cython>=0.18', 'functools32;python_version<"3.0"'],
+                        'cython>=0.18', 'functools32;python_version<"3.0"',
+                        'packaging'],
       extras_require = {
         'h5 reader for openPMD support':  ['h5py'],
         'sdf support for EPOCH reader':  ['sdf'],
         'PyPNG read png files': ['pypng'],
-        'Pillow to read other image files': ['pillow']},
+        'Pillow to read other image files': ['pillow'],
+        'Phase unwrapping routines': ['scikit-image']},
       keywords = ['PIC', 'particle-in-cell', 'plasma', 'physics', 'plasma physics',
                   'laser', 'laser plasma', 'particle acceleration'],
       classifiers=[
