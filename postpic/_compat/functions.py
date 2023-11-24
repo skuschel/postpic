@@ -24,7 +24,7 @@ were not present in older versions of these libraries
 
 import numpy as np
 import scipy as sp
-import scipy.signal as sps
+import scipy.signal.windows as sps
 import collections
 
 try:
