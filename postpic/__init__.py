@@ -79,3 +79,4 @@ __git_version__ = get_versions()['full-revisionid']
 if __version__ == '0+unknown':
     __version__ = __git_version__
 del get_versions
+
