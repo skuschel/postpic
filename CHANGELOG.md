@@ -4,6 +4,15 @@ Changelog of postpic
 current master
 --------------
 
+
+v0.5
+----
+
+2022-10-22
+
+This is the last version with python 2 support. Changes in setuptools (see for example python [PEP 517](https://peps.python.org/pep-0517/) and [PEP 660](https://peps.python.org/pep-0660/) ) require changes in the setup. Backward compatibility will therefore be dropped. Current tests already do not inlcude python2 anymore.
+
+
 **Highlights**
 
 * Parallelized implementation of `Field.map_coordinates`
