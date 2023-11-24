@@ -145,7 +145,7 @@ class _SingleSpecies(object):
             ret = self._dumpreader.getSpecies(self.species, key)
         # now that we have got the data, check if compress was used and/or maybe cache value
         ret = np.int64(ret) if key == 'id' else np.float64(ret)
-        if ret.shape is ():  # cache single scalars always
+        if ret.shape == ():  # cache single scalars always
             self._cache[key] = ret
         elif self._compressboollist is not None:
             ret = ret[self._compressboollist]  # avoid executing this line too often.
@@ -227,7 +227,7 @@ class _SingleSpecies(object):
         else:
             ret._compressboollist[ret._compressboollist] = condition
         for key in ret._cache:
-            if ret._cache[key].shape is not ():
+            if ret._cache[key].shape != ():
                 ret._cache[key] = ret._cache[key][condition]
         return ret
 
@@ -257,7 +257,7 @@ class _SingleSpecies(object):
         ret._cache = {}  # clear cache
         if self._compressboollist is None:
             ret._compressboollist = np.asarray(False)
-        elif self._compressboollist.shape is () and bool(self._compressboollist) is False:
+        elif self._compressboollist.shape == () and bool(self._compressboollist) is False:
             ret._compressboollist = None
         else:
             ret._compressboollist = ~self._compressboollist
@@ -267,7 +267,7 @@ class _SingleSpecies(object):
     # --- Only very basic functions
 
     def __len__(self):  # = number of particles
-        # find a valid dataset to count number of paricles
+        # find a valid dataset to count number of particles
         # return 0 if no valid dataset can be found
         ret = 0
         if self._compressboollist is not None:
@@ -662,7 +662,7 @@ class MultiSpecies(object):
         # sp MUST be ScalarProperty
         def ssdata(ss):
             a = ss(sp)
-            if a.shape is ():
+            if a.shape == ():
                 a = np.repeat(a, len(ss))
             return a
         if len(self._ssas) == 0:

@@ -2016,10 +2016,10 @@ class Field(NDArrayOperatorsMixin):
         dx = {i: self.axes[i].spacing for i in axes}
 
         # Unit volume of transform
-        dV = np.product(list(dx.values()))
+        dV = np.prod(list(dx.values()))
 
         # Number of grid cells of transform
-        N = np.product([self.shape[i] for i in axes])
+        N = np.prod([self.shape[i] for i in axes])
 
         # Total volume of transform
         V = dV*N
