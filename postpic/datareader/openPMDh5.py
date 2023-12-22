@@ -46,16 +46,23 @@ class OpenPMDreader(Dumpreader_ifc):
     Args:
       h5file : String
         A String containing the relative Path to the .h5 file.
+
+    Kwargs:
+      iteration: Integer
+        An integer indicating the iteration to be loaded. Default is None, leading
+        to the first iteration found in the h5file.
     '''
 
-    def __init__(self, h5file, **kwargs):
+    def __init__(self, h5file, iteration=None, **kwargs):
         super(OpenPMDreader, self).__init__(h5file, **kwargs)
         import os.path
         import h5py
         if not os.path.isfile(h5file):
             raise IOError('File "' + str(h5file) + '" doesnt exist.')
         self._h5 = h5py.File(h5file, 'r')
-        self._iteration = int(list(self._h5['data'].keys())[0])
+        self._iteration = iteration
+        if self._iteration is None:
+            self._iteration = int(list(self._h5['data'].keys())[0])
         self._data = self._h5['/data/{:d}/'.format(self._iteration)]
         self.attrs = self._data.attrs
 
