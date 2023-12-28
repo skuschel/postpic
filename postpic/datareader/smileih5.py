@@ -20,7 +20,7 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from . import OpenPMDreader
+from .openPMDh5 import OpenPMDreader
 from . import Simulationreader_ifc
 from .. import helper
 import os.path
@@ -30,7 +30,7 @@ import glob
 __all__ = ['SmileiReader', 'SmileiSeries']
 
 
-def createh5indexfile(indexfile, fnames):
+def _generateh5indexfile(indexfile, fnames):
     '''
     Creates a h5 index file called indexfile containing external links to all h5
     datasets which are in in the h5 filelist fnames. This is fast as datasets
@@ -43,8 +43,8 @@ def createh5indexfile(indexfile, fnames):
         # indexfile already exists. do not recreate
         return
 
-    dirname = osp.dirname(fnames[0])
-    indexfile = osp.join(dirname, indexfile)
+    dirname = os.path.dirname(fnames[0])
+    indexfile = os.path.join(dirname, indexfile)
 
     def visitf(key):
         # key is a string
@@ -58,40 +58,64 @@ def createh5indexfile(indexfile, fnames):
                 hf.visit(visitf)
 
 
+def _getindexfile(path):
+    '''
+    Returns the name of the index file after the file has been
+    generated (File generation only if it doesnt exist)
+    '''
+    indexfile = os.path.join(path, '.postpic-smilei-index.h5')
+    if not os.path.isfile(indexfile):
+        # find all h5 files
+        h5files = glob.glob(os.path.join(path, '*.h5'))
+        print('generating index file "{}" from the following'
+              'h5 files: {}'.format(indexfile, h5files))
+        _generateh5indexfile(indexfile, h5files)
+    return indexfile
+
+
 class SmileiReader(OpenPMDreader):
     '''
-    The Smilei reader will combine the information of different h5 files.
-    Should work by pointing to the directory of the simulation
-    `simreader = SmileiReader('path/to/simulation/*.h5', 1000)`,
+    The Smilei reader can read  a single h5 file or combine the information of
+    all h5 files in the same directory.
+    Use either
+    `simreader = SmileiReader('path/to/simulation/fields0.h5', 1000)`,
     where 1000 points to iteration 1000 of the simulation.
+    or use
+    `simreader = SmileiReader('path/to/simulation/', 1000)`
+    to combine all h5 files in this directory.
+    Internally the second command will create a new file called
+    `.postpic-smilei-index.h5` which contains external links to all
+    datasets in this directory.
 
     Args:
       h5file : String
-        A String containing the relative Path to the h5 files of the simulation.
-        Will be expanded using glob. Hidden files starting with `.` will be ignored.
+        A String containing the relative Path to the h5 files of the simulation
+        or the path to a single h5 file.
+        Hidden files starting with `.` will be ignored.
 
-    Kwargs:
       iteration : Integer
         An integer indicating the iteration to be loaded. Default is None, leading
         to the first iteration found in the h5file to be loaded.
     '''
 
-    def __init__(self, h5filesstr, iteration=None):
+    def __init__(self, h5file, iteration=None):
         # The class given to super is the OpenPMDreader class, not the SmileiReader class.
         # This is on purpose to NOT run the `OpenPMDreader.__init__`.
-        super(OpenPMDreader, self).__init__(h5filesstr)
+        super(OpenPMDreader, self).__init__(h5file)
         # Smilei uses multiple h5 files and also the iteration encoding differs from openPMD.
-        h5files = glob.glob(h5filesstr)
-        if len(h5files) == 0:
-            raise IOError('No h5 files found matching {}'.format(h5filesstr))
-        path = os.path.basename(h5filesstr)
-        indexfile = os.path.join(path, '.postpic_smilei_index.h5')
-        createh5indexfile(indexfile, h5files)
+        if os.path.isfile(h5file):
+            self._h5 = h5py.File(h5file, 'r')
+        elif os.path.isdir(h5file):
+            indexfile = _getindexfile(h5file)
+            self._h5 = h5py.File(indexfile, 'r')
+        else:
+            raise IOError('"{}" is neither a h5 file nor a directory'
+                          'containing h5 files'.format(h5file))
 
-        self._h5 = h5py.File(indexfile, 'r')
-        self._iteration = int(iteration)
-        if self._iteration is None:
+        if iteration is None:
             self._iteration = int(list(self._h5['data'].keys())[0])
+        else:
+            self._iteration = int(iteration)
         self._data = self._h5['/data/{:010d}/'.format(self._iteration)]
         self.attrs = self._data.attrs
 
@@ -104,17 +128,27 @@ class SmileiReader(OpenPMDreader):
     def _keyE(self, component, **kwargs):
         # Smilei deviates from openPMD standard: Ex instead of E/x
         axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
-        return 'fields/E{}'.format(axsuffix)
+        return 'E{}'.format(axsuffix)
 
     def _keyB(self, component, **kwargs):
         # Smilei deviates from openPMD standard: Bx instead of B/x
         axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
-        return 'fields/B{}'.format(axsuffix)
+        return 'B{}'.format(axsuffix)
 
     def _simgridkeys(self):
         # Smilei deviates from openPMD standard: Ex instead of E/x
-        return ['fields/Ex', 'fields/Ey', 'fields/Ez',
-                'fields/Bx', 'fields/By', 'fields/Bz']
+        return ['Ex', 'Ey', 'Ez',
+                'Bx', 'By', 'Bz']
+
+    def getderived(self):
+        '''
+        return all other fields dumped, except E and B.
+        '''
+        ret = []
+        self['.'].visit(ret.append)
+        # TODO: remove E and B fields and particles from list
+        ret.sort()
+        return ret
 
     def __str__(self):
         return '<SmileiReader at "{}" at iteration {:d}>'.format(self.dumpidentifier,
@@ -129,9 +163,9 @@ class SmileiSeries(Simulationreader_ifc):
     but possibly containing different data.
     `simreader = SmileiSeries('path/to/simulation/')`
 
-    Or point this to a single file an you will only get the
+    Alternatively point this to a single file and you will only get
     the iterations which are present in that file:
-    `simreader = SmileiSeries('path/to/simulation/fields0.h5')`
+    `simreader = SmileiSeries('path/to/simulation/Fields0.h5')`
     '''
 
     def __init__(self, h5file, dumpreadercls=SmileiReader, **kwargs):
@@ -143,7 +177,10 @@ class SmileiSeries(Simulationreader_ifc):
             with h5py.File(h5file, 'r') as h5:
                 self._dumpkeys = list(h5['data'].keys())
         elif os.path.isdir(h5file):
-            pass  # TODO
+            indexfile = _getindexfile(h5file)
+            self._h5 = h5py.File(indexfile, 'r')
+            with h5py.File(indexfile, 'r') as h5:
+                self._dumpkeys = list(h5['data'].keys())
         else:
             raise IOError('{} does not exist.'.format(h5file))
 
