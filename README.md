@@ -8,6 +8,10 @@ Postpic is an open-source post-processor for Particle-in-cell (PIC) simulations 
 
 **For working examples, please go to  https://github.com/skuschel/postpic-examples**
 
+With questions, issues, ideas or general remarks feel free to get in touch via
+* the public matrix chatroom: https://matrix.to/#/#postpic:matrix.org
+* or use the [Github issue tracker](https://github.com/skuschel/postpic/issues) 
+
 The (technical, but complete) documentation is hosted on
 https://skuschel.github.io/postpic/
 
