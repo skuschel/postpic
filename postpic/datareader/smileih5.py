@@ -177,7 +177,7 @@ class SmileiReader(OpenPMDreader):
         #F_total = F_total.swapaxes(0, 1)
         return F_total
     
-    def getComplex(self, key,theta=0):
+    def getExpanded(self, key,theta=0):
         
         array_list=[]
         modes=self.getAMmodes()[-1]
@@ -194,6 +194,12 @@ class SmileiReader(OpenPMDreader):
         #mod_complex_data = np.transpose(mod_complex_data, (0, 2, 1))     #Modified array of shape (Nmodes, Nr, Nx)
         return SmileiReader._modeexpansion_naiv(rawdata=mod_complex_data,theta=theta)
     
+    def check_pattern(self,key):
+        field_pattern=re.compile(r'^{}.*_mode_'.format(key))
+        match = [True if re.match(field_pattern, s) else False for s in list(self._data)]
+
+        return match
+    
     def data(self, key, **kwargs):
         '''
         should work with any key, that contains data, thus on every hdf5.Dataset,
@@ -201,11 +207,9 @@ class SmileiReader(OpenPMDreader):
         as a numpy array. Constant records will be detected and converted to
         a numpy array containing a single value only.
         '''
-        field_pattern=re.compile(r'^{}.*_mode_'.format(key))
-        match = [True if re.match(field_pattern, s) else False for s in list(self._data)]
 
-        if True in match:
-            return self.getComplex(key=key, **kwargs)
+        if key in self.getAMmodes()[0]:
+            return self.getExpanded(key=key, **kwargs)
         else:
             record = self._data[key]
         
@@ -250,30 +254,39 @@ class SmileiReader(OpenPMDreader):
     # override inherited method to count points after mode expansion
     def gridoffset(self, key, axis):
         axid = helper.axesidentify[axis]
+        
         if axid == 91:  # theta
             return 0
+        elif key in self.getAMmodes()[0] and axid in [0,90]:
+            key="{}_mode_0".format(key)
+            axid = int(axid/90)
+            return super(SmileiReader, self).gridoffset(key=key, axis=axid)
         else:
-            # r, theta, z
-            axidremap = {90: 0, 2: 1}[axid]
-            return super(SmileiReader, self).gridoffset(key, axidremap)
+            return super(SmileiReader, self).gridoffset(key, axis)
 
     # override inherited method to count points after mode expansion
     def gridspacing(self, key, axis):
         axid = helper.axesidentify[axis]
-        if axid == 91:  # theta
-            return 2 * np.pi / self.gridpoints(key, axis)
+        
+        if key in self.getAMmodes()[0] and axid in [0,90]:
+            key="{}_mode_0".format(key)
+            axid = int(axid/90)
+            return super(SmileiReader, self).gridspacing(key=key, axis=axid)
         else:
-            # r, theta, z
-            axidremap = {90: 0, 2: 1}[axid]
-            return super(SmileiReader, self).gridspacing(key, axidremap)
+            return super(SmileiReader, self).gridspacing(key, axis)
     
     # override inherited method to count points after mode expansion
     def gridpoints(self, key, axis):
         axid = helper.axesidentify[axis]
-        axid =int(axid/90)
-        (Nx, Nr) = self._data[key].shape
-        Nr=Nr/2
-        return (Nx,Nr)[axid]
+        
+        if key in self.getAMmodes()[0]:
+            key="{}_mode_0".format(key)
+            (Nx, Nr) = self._data[key].shape
+            Nr=Nr/2
+            axid =int(axid/90)
+            return (Nx,Nr)[axid]
+        else:
+            return super(SmileiReader, self).gridpoints(key=key,axis=axis)
 
 
 class SmileiSeries(Simulationreader_ifc):
