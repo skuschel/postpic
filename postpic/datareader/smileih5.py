@@ -75,6 +75,7 @@ def _getindexfile(path):
         _generateh5indexfile(indexfile, h5files)
     return indexfile
 
+
 class SmileiReader(OpenPMDreader):
     '''
     The Smilei reader can read  a single h5 file or combine the information of
@@ -120,18 +121,22 @@ class SmileiReader(OpenPMDreader):
             raise IOError("Iteration {} is in valid".format(iteration))
         else:
             self._iteration = int(iteration)
-        
+
         self._data = self._h5['/data/{:010d}/'.format(self._iteration)]
         self.attrs = self._data.attrs
 
-    #To return the number of AM modes and Field names in the dump.
-    def getAMmodes(self):    
-        strings=np.array(self._data)
-        mask =  np.array(["_mode_" in s for s in strings])
-        arr=strings[mask]
+    def getAMmodes(self):
+        '''
+        This method is used to get the prefix of field names and
+        No.of AM modes available in the dump.
+        And it works only for AM mode technique.
+        '''
+        strings = np.array(self._data)
+        mask = np.array(["_mode_" in s for s in strings])
+        arr = strings[mask]
         max_suffix = float('-inf')
         max_suffix_string = None
-        prefix_list=[]
+        prefix_list = []
 
         for i in arr:
             prefix, suffix = i.split('_mode_')
@@ -141,46 +146,61 @@ class SmileiReader(OpenPMDreader):
                 max_suffix_string = i
             prefix_list.append(prefix)
 
-        availModes=[i for i in range(0,int(max_suffix_string[-1])+1)]
-        return [prefix_list, int(max_suffix_string[-1])+1, availModes]
-    
+        availModes = [i for i in range(0, int(max_suffix_string[-1])+1)]
+
+        # [field names prefix, available AM modes]
+        return [prefix_list, availModes]
+
     @staticmethod
-    def _modeexpansion_naiv(rawdata, theta=0, M=None):
+    def _modeexpansion_naiv(rawdata, theta=0):
         '''
-        converts to radial data using `modeexpansion`, possibly for multiple
-        theta at once.
+        This method performes mode expansion of the raw data (an array consisting of complex
+        numbers) for both single and multiple theta vaues.
+
+        The output array has the shape (No.of theta, Nx, Nr)
+
+        Args:
+            rawdata : numpy array
+            The elements of this array are complex numbers, this got structured from the
+            raw data dumped in h5 file through getExpanded(key, theta) function.
+
+            theta : float/integer OR list of floats/integer
+
+        Output F_total is an array of real numbers which has shape (Np.of theta, Nx, Nr),
+        this F_total is the real value summation of the fourier series.
         '''
         if np.asarray(theta).shape is ():
             # single theta
             theta = [theta]
-        # multiple theta
-        #data = np.asarray([SmileiReader._modeexpansion_naiv_single(rawdata, theta=t)
-        #                   for t in theta])
-        # switch from (theta, r, z) to (r, theta, z)
-        
-        Nt=len(theta)
-        (Nm, Nr, Nx) = rawdata.shape
-        F_total = np.zeros((Nt,Nr,Nx))                       
-        mode =[m for m in range(0,Nm)]
 
-        if M is not None:
-            if Nm ==1 and M not in SmileiReader.getAMmodes[-1]:
-                raise IOError('Mode {} not available in dump'.format(M))
+        Nt = len(theta)
+        (Nm, Nr, Nx) = rawdata.shape
+        F_total = np.zeros((Nt, Nr, Nx))
+        mode = [m for m in range(0, Nm)]
 
         for t in theta:
-            index=theta.index(t)
-            if M is None:
-                for m in mode:
-                    F_total[index] += np.real(rawdata[m])*np.cos(m*t)+np.imag(rawdata[m])*np.sin(m*t)
-            else:
-                F_total[index] += np.real(rawdata[0])*np.cos(M*t)+np.imag(rawdata[0])*np.sin(M*t)
-        #F_total = F_total.swapaxes(0, 1)
+            index = theta.index(t)
+
+            for m in mode:
+                F_total[index] += np.real(rawdata[m])*np.cos(m*t)
+                +np.imag(rawdata[m])*np.sin(m*t)
+
         return F_total
-    
-    def getExpanded(self, key,theta=0):
-        
-        array_list=[]
-        modes=self.getAMmodes()[-1]
+
+    def getExpanded(self, key, theta=0):
+        '''
+        getExpanded() method converts the raw data real number array from h5file into
+        a complex number array (This convertion is important while performing mode expansion)
+        and finally returns the mode expanded array.
+
+        This method takes input from the h5files dump which has the following format,
+        field array = [[real_1,imag_1,real_2,image_2,.....],...]
+        The shape of this field array is (Nx, 2x Nr)
+        After real->complex conversion, the field array shape takes the form (Nx, Nr)
+        This final array is fed into _modeexpansion_naiv method.
+        '''
+        array_list = []
+        modes = self.getAMmodes()[-1]
         for mode in modes:
 
             field_name = key+"_mode_"+str(mode)
@@ -189,30 +209,33 @@ class SmileiReader(OpenPMDreader):
             reshaped_array = field_array.reshape(field_array_shape[0], field_array_shape[1]//2, 2)
             complex_array = reshaped_array[:, :, 0] + 1j * reshaped_array[:, :, 1]
             array_list.append(complex_array)
-        
-        mod_complex_data= np.stack(array_list,axis=0)                    #Modified array of shape (Nmodes, Nx, Nr)
-        #mod_complex_data = np.transpose(mod_complex_data, (0, 2, 1))     #Modified array of shape (Nmodes, Nr, Nx)
-        return SmileiReader._modeexpansion_naiv(rawdata=mod_complex_data,theta=theta)
-    
-    def check_pattern(self,key):
-        field_pattern=re.compile(r'^{}.*_mode_'.format(key))
-        match = [True if re.match(field_pattern, s) else False for s in list(self._data)]
+        # Modified array of shape (Nmodes, Nx, Nr)
+        mod_complex_data = np.stack(array_list, axis=0)
 
-        return match
-    
+        return SmileiReader._modeexpansion_naiv(rawdata=mod_complex_data, theta=theta)
+
     def data(self, key, **kwargs):
         '''
         should work with any key, that contains data, thus on every hdf5.Dataset,
         but not on hdf5.Group. Will extract the data, convert it to SI and return it
         as a numpy array. Constant records will be detected and converted to
         a numpy array containing a single value only.
+
+        If the key is in AM mode dump, then it performs the mode expansion.
+        The theta values for which we need to perform
+        mode expansion can be given as keyword args.
+
+        Example:
+            Data = data(key='El', theta=[0,pi/2,pi])
+            Now the Data array has the shape (3, Nx, Nr)
         '''
 
+        # checking whether the key is in AM mode dump
         if key in self.getAMmodes()[0]:
             return self.getExpanded(key=key, **kwargs)
         else:
             record = self._data[key]
-        
+
         if "value" in record.attrs:
             # constant data (a single int or float)
             ret = np.float64(record.attrs['value']) * record.attrs['unitSI']
@@ -220,7 +243,7 @@ class SmileiReader(OpenPMDreader):
             # array data
             ret = np.float64(record[()]) * record.attrs['unitSI']
         return ret
-        
+
     def _keyE(self, component, **kwargs):
         # Smilei deviates from openPMD standard: Ex instead of E/x
         axsuffix = {0: 'x', 1: 'y', 2: 'z', 90: 'r', 91: 't'}[helper.axesidentify[component]]
@@ -233,9 +256,9 @@ class SmileiReader(OpenPMDreader):
 
     def _simgridkeys(self):
         # Smilei deviates from openPMD standard: Ex instead of E/x
-        return ['Ex', 'Ey', 'Ez','Er','El','Et',
-                'Bx', 'By', 'Bz','Br','Bl','Bt',
-                'Jx','Jy','Jz','Jr','Jl','Jt','Rho']
+        return ['Ex', 'Ey', 'Ez', 'Er', 'El', 'Et',
+                'Bx', 'By', 'Bz', 'Br', 'Bl', 'Bt',
+                'Jx', 'Jy', 'Jz', 'Jr', 'Jl', 'Jt', 'Rho']
 
     def getderived(self):
         '''
@@ -250,43 +273,43 @@ class SmileiReader(OpenPMDreader):
     def __str__(self):
         return '<SmileiReader at "{}" at iteration {:d}>'.format(self.dumpidentifier,
                                                                  self.timestep())
-    
-    # override inherited method to count points after mode expansion
+
+    # To get the offsets of the grid.
     def gridoffset(self, key, axis):
         axid = helper.axesidentify[axis]
-        
+
         if axid == 91:  # theta
             return 0
-        elif key in self.getAMmodes()[0] and axid in [0,90]:
-            key="{}_mode_0".format(key)
+        elif key in self.getAMmodes()[0] and axid in [0, 90]:
+            key = "{}_mode_0".format(key)
             axid = int(axid/90)
             return super(SmileiReader, self).gridoffset(key=key, axis=axid)
         else:
             return super(SmileiReader, self).gridoffset(key, axis)
 
-    # override inherited method to count points after mode expansion
+    # To get the grid spacing.
     def gridspacing(self, key, axis):
         axid = helper.axesidentify[axis]
-        
-        if key in self.getAMmodes()[0] and axid in [0,90]:
-            key="{}_mode_0".format(key)
+
+        if key in self.getAMmodes()[0] and axid in [0, 90]:
+            key = "{}_mode_0".format(key)
             axid = int(axid/90)
             return super(SmileiReader, self).gridspacing(key=key, axis=axid)
         else:
             return super(SmileiReader, self).gridspacing(key, axis)
-    
-    # override inherited method to count points after mode expansion
+
+    # To get the grid points
     def gridpoints(self, key, axis):
         axid = helper.axesidentify[axis]
-        
+
         if key in self.getAMmodes()[0]:
-            key="{}_mode_0".format(key)
+            key = "{}_mode_0".format(key)
             (Nx, Nr) = self._data[key].shape
-            Nr=Nr/2
-            axid =int(axid/90)
-            return (Nx,Nr)[axid]
+            Nr = Nr/2
+            axid = int(axid/90)
+            return (Nx, Nr)[axid]
         else:
-            return super(SmileiReader, self).gridpoints(key=key,axis=axis)
+            return super(SmileiReader, self).gridpoints(key=key, axis=axis)
 
 
 class SmileiSeries(Simulationreader_ifc):
