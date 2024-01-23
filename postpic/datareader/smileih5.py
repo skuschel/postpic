@@ -16,6 +16,7 @@
 #
 # Stephan Kuschel, 2023
 # Carolin Goll, 2023
+# Vinith Samson J, 2024
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -125,32 +126,6 @@ class SmileiReader(OpenPMDreader):
         self._data = self._h5['/data/{:010d}/'.format(self._iteration)]
         self.attrs = self._data.attrs
 
-    def getAMmodes(self):
-        '''
-        This method is used to get the prefix of field names and
-        No.of AM modes available in the dump.
-        And it works only for AM mode technique.
-        '''
-        strings = np.array(self._data)
-        mask = np.array(["_mode_" in s for s in strings])
-        arr = strings[mask]
-        max_suffix = float('-inf')
-        max_suffix_string = None
-        prefix_list = []
-
-        for i in arr:
-            prefix, suffix = i.split('_mode_')
-            suffix_int = int(suffix)
-            if suffix_int > max_suffix:
-                max_suffix = suffix_int
-                max_suffix_string = i
-            prefix_list.append(prefix)
-
-        availModes = [i for i in range(0, int(max_suffix_string[-1])+1)]
-
-        # [field names prefix, available AM modes]
-        return [prefix_list, availModes]
-
     @staticmethod
     def _modeexpansion_naiv(rawdata, theta=0):
         '''
@@ -187,9 +162,39 @@ class SmileiReader(OpenPMDreader):
 
         return F_total
 
-    def getExpanded(self, key, theta=0):
+# --- Level 0 methods ---
+
+    def _listAMmodes(self):
         '''
-        getExpanded() method converts the raw data real number array from h5file into
+        This method is used to get the list of
+        [prefix of field names, No.of AM modes] available in the dump.
+        And it works only for AM mode technique.
+        '''
+        strings = np.array(self._data)
+        mask = np.array(["_mode_" in s for s in strings])
+        arr = strings[mask]
+        max_suffix = float('-inf')
+        max_suffix_string = None
+        prefix_list = []
+
+        for i in arr:
+            prefix, suffix = i.split('_mode_')
+            suffix_int = int(suffix)
+            if suffix_int > max_suffix:
+                max_suffix = suffix_int
+                max_suffix_string = i
+            prefix_list.append(prefix)
+
+        availModes = [i for i in range(0, int(max_suffix_string[-1])+1)]
+
+        # [field names prefix, available AM modes]
+        return [prefix_list, availModes]
+
+# --- Level 1 methods ---
+
+    def _getExpanded(self, key, theta=0):
+        '''
+        _getExpanded() method converts the raw data real number array from h5file into
         a complex number array (This convertion is important while performing mode expansion)
         and finally returns the mode expanded array.
 
@@ -200,7 +205,7 @@ class SmileiReader(OpenPMDreader):
         This final array is fed into _modeexpansion_naiv method.
         '''
         array_list = []
-        modes = self.getAMmodes()[-1]
+        modes = self._listAMmodes()[-1]
         for mode in modes:
 
             field_name = key+"_mode_"+str(mode)
@@ -209,6 +214,7 @@ class SmileiReader(OpenPMDreader):
             reshaped_array = field_array.reshape(field_array_shape[0], field_array_shape[1]//2, 2)
             complex_array = reshaped_array[:, :, 0] + 1j * reshaped_array[:, :, 1]
             array_list.append(complex_array)
+
         # Modified array of shape (Nmodes, Nx, Nr)
         mod_complex_data = np.stack(array_list, axis=0)
 
@@ -227,12 +233,12 @@ class SmileiReader(OpenPMDreader):
 
         Example:
             Data = data(key='El', theta=[0,pi/2,pi])
-            Now the Data array has the shape (3, Nx, Nr)
+            Now the Data will array have the shape (3, Nx, Nr)
         '''
 
         # checking whether the key is in AM mode dump
-        if key in self.getAMmodes()[0]:
-            return self.getExpanded(key=key, **kwargs)
+        if key in self._listAMmodes()[0]:
+            return self._getExpanded(key=key, **kwargs)
         else:
             record = self._data[key]
 
@@ -243,6 +249,45 @@ class SmileiReader(OpenPMDreader):
             # array data
             ret = np.float64(record[()]) * record.attrs['unitSI']
         return ret
+
+    # To get the offsets of the grid.
+    def gridoffset(self, key, axis):
+        axid = helper.axesidentify[axis]
+
+        if axid == 91:  # theta
+            return 0
+        elif key in self._listAMmodes()[0] and axid in [0, 90]:
+            key = "{}_mode_0".format(key)
+            axid = int(axid/90)
+            return super(SmileiReader, self).gridoffset(key=key, axis=axid)
+        else:
+            return super(SmileiReader, self).gridoffset(key, axis)
+
+    # To get the grid spacing.
+    def gridspacing(self, key, axis):
+        axid = helper.axesidentify[axis]
+
+        if key in self._listAMmodes()[0] and axid in [0, 90]:
+            key = "{}_mode_0".format(key)
+            axid = int(axid/90)
+            return super(SmileiReader, self).gridspacing(key=key, axis=axid)
+        else:
+            return super(SmileiReader, self).gridspacing(key, axis)
+
+    # To get the grid points
+    def gridpoints(self, key, axis):
+        axid = helper.axesidentify[axis]
+
+        if key in self._listAMmodes()[0]:
+            key = "{}_mode_0".format(key)
+            (Nx, Nr) = self._data[key].shape
+            Nr = Nr/2
+            axid = int(axid/90)
+            return (Nx, Nr)[axid]
+        else:
+            return super(SmileiReader, self).gridpoints(key=key, axis=axis)
+
+# --- Level 2 methods ---
 
     def _keyE(self, component, **kwargs):
         # Smilei deviates from openPMD standard: Ex instead of E/x
@@ -273,43 +318,6 @@ class SmileiReader(OpenPMDreader):
     def __str__(self):
         return '<SmileiReader at "{}" at iteration {:d}>'.format(self.dumpidentifier,
                                                                  self.timestep())
-
-    # To get the offsets of the grid.
-    def gridoffset(self, key, axis):
-        axid = helper.axesidentify[axis]
-
-        if axid == 91:  # theta
-            return 0
-        elif key in self.getAMmodes()[0] and axid in [0, 90]:
-            key = "{}_mode_0".format(key)
-            axid = int(axid/90)
-            return super(SmileiReader, self).gridoffset(key=key, axis=axid)
-        else:
-            return super(SmileiReader, self).gridoffset(key, axis)
-
-    # To get the grid spacing.
-    def gridspacing(self, key, axis):
-        axid = helper.axesidentify[axis]
-
-        if key in self.getAMmodes()[0] and axid in [0, 90]:
-            key = "{}_mode_0".format(key)
-            axid = int(axid/90)
-            return super(SmileiReader, self).gridspacing(key=key, axis=axid)
-        else:
-            return super(SmileiReader, self).gridspacing(key, axis)
-
-    # To get the grid points
-    def gridpoints(self, key, axis):
-        axid = helper.axesidentify[axis]
-
-        if key in self.getAMmodes()[0]:
-            key = "{}_mode_0".format(key)
-            (Nx, Nr) = self._data[key].shape
-            Nr = Nr/2
-            axid = int(axid/90)
-            return (Nx, Nr)[axid]
-        else:
-            return super(SmileiReader, self).gridpoints(key=key, axis=axis)
 
 
 class SmileiSeries(Simulationreader_ifc):
