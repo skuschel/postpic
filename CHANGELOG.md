@@ -4,32 +4,18 @@ Changelog of postpic
 current master
 --------------
 
-v0.6
-----
-
-2023-01-23
-
-This is the first version which is compatible with `Smilei` PIC (https://smileipic.github.io/Smilei/) data format. The addon datareader code is `smileih5.py` (https://github.com/skuschel/postpic/blob/dev/postpic/datareader/smileih5.py). Might be slower in runtime compared to `happi` module, a default data processing module for smilei (https://github.com/SmileiPIC/Smilei/tree/master/happi). But soon will be optimised.
 
 **Highlights**
 
-* Quick and efficient way of importing h5file using index file method, so that multiple .h5 files can be imported at the same time.
-* Added support for files written by the smilei `version v4.8` (https://github.com/SmileiPIC/Smilei/releases/tag/v4.8).
-* Azimuthal Mode decomposition technique is implimented.
-* Can extract field data from both Cartesian and Azimuthal mode decomposed fields.
+* Add support to read the `Smilei` PIC (https://smileipic.github.io/Smilei/) data format in both cartesian and azimuthal geometry. Postpic uses a build in azimuthal mode expansion very similar to the one used for fbpic.
+* To read smilei data, postpic only relies on the hdf5 package and not smilei's happi module for data access. Paricle ID's (ParticleTracking as described by smilei) can be read directly from the hdf5. Happi requires to sort the IDs and write a new hdf5, which can be twice as big as the original dumps. Using postpic's access this step will be skipped and thus access is much faster (but by default with unordered particle IDs as in any other code).
+
 
 **Incompatible adjustments to previous version**
 
-* The `data()`, `gridoffset()`, `gridpoints()`, `gridspacing()` and `_modeexpansion_naiv()` methods were altered from `openPMDh5.py` standards format due to different data dumping format of SmileiPIC.
-* Since the Azimuthal mode field data dump format were different from FBpic dump format, a new method `_getExpanded()` is introduced to structure the data dumped by SmileiPIC into an array of complex numbers which is then fed into `_modeexpansion_naiv()` method.
+
 
 **Other improvements and new features**
-
-* The fields (`both cartesian and Azimuthal mode`) can be accessed by method `data(key, **kwargs)`, the keys are in the format `El`, `Bx`, `Rho` etc.,
-* The species data also can be accessed by `x`, `Px`, `q`, `w` etc.,
-* Azimuthal Mode decomposition technique is implimented, by mentioning theta (either single value or list of angles) as kwargs in `data` method.
-* Gridoffset, gridpoints and gridspacing data can be accessed using `gridoffset(key, axis)`, `gridpoints(key, axis)` and `gridspacing(key, axis)` methods respectively.
-* List of Azimuthal fields names and Modes available in the dump can be obtained using `_listAMmodes()` method.
 
 
 v0.5
