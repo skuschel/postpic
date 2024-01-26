@@ -144,23 +144,22 @@ class SmileiReader(OpenPMDreader):
         Output F_total is an array of real numbers which has shape (Np.of theta, Nx, Nr),
         this F_total is the real value summation of the fourier series.
         '''
-        if np.asarray(theta).shape is ():
-            # single theta
+        if np.array(theta).shape is ():
             theta = [theta]
 
-        Nt = len(theta)
-        (Nm, Nr, Nx) = rawdata.shape
-        F_total = np.zeros((Nt, Nr, Nx))
-        mode = [m for m in range(0, Nm)]
+        array_list = []
 
+        (Nm, Nx, Nr) = rawdata.shape
+        F_total = np.zeros((Nx, Nr))
+        mode = [m for m in range(0, Nm)]
         for t in theta:
-            index = theta.index(t)
 
             for m in mode:
-                F_total[index] += np.real(rawdata[m])*np.cos(m*t)
-                +np.imag(rawdata[m])*np.sin(m*t)
+                F_total += np.real(rawdata[m])*np.cos(m*t)+np.imag(rawdata[m])*np.sin(m*t)
+            array_list.append(F_total)
 
-        return F_total
+        mod_F_total = np.stack(array_list, axis=0)
+        return mod_F_total
 
 # --- Level 0 methods ---
 
@@ -209,7 +208,7 @@ class SmileiReader(OpenPMDreader):
         for mode in modes:
 
             field_name = key+"_mode_"+str(mode)
-            field_array = np.array(self._data[field_name])*(self._data[field_name].attrs['unitSI'])
+            field_array = np.array(self._data[field_name])
             field_array_shape = field_array.shape
             reshaped_array = field_array.reshape(field_array_shape[0], field_array_shape[1]//2, 2)
             complex_array = reshaped_array[:, :, 0] + 1j * reshaped_array[:, :, 1]
@@ -217,8 +216,8 @@ class SmileiReader(OpenPMDreader):
 
         # Modified array of shape (Nmodes, Nx, Nr)
         mod_complex_data = np.stack(array_list, axis=0)
-
-        return SmileiReader._modeexpansion_naiv(rawdata=mod_complex_data, theta=theta)
+        factor = self._data["{}_mode_0".format(key)].attrs['unitSI']
+        return SmileiReader._modeexpansion_naiv(rawdata=mod_complex_data, theta=theta)*factor
 
     def data(self, key, **kwargs):
         '''
