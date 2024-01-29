@@ -188,6 +188,10 @@ def chooseCode(code):
         from .vsimhdf5 import Hdf5reader, VSimReader
         setdumpreadercls(Hdf5reader)
         setsimreadercls(VSimReader)
+    elif code.lower() in ['smilei']:
+        from .smileih5 import SmileiReader, SmileiSeries
+        setdumpreadercls(SmileiReader)
+        setsimreadercls(SmileiSeries)
     elif code.lower() in ['dummy']:
         from .dummy import Dummyreader, Dummysim
         setdumpreadercls(Dummyreader)

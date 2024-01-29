@@ -4,6 +4,7 @@ pycodestyle
 nose2
 Cython>=0.18
 numpy>=1.8
+setuptools
 
 # required for building the docs
 recommonmark

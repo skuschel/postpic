@@ -5,6 +5,19 @@ current master
 --------------
 
 
+**Highlights**
+
+* Add support to read the `Smilei` PIC (https://smileipic.github.io/Smilei/) data format in both cartesian and azimuthal geometry. Postpic uses a build in azimuthal mode expansion very similar to the one used for fbpic.
+* To read smilei data, postpic only relies on the hdf5 package and not smilei's happi module for data access. Paricle ID's (ParticleTracking as described by smilei) can be read directly from the hdf5. Happi requires to sort the IDs and write a new hdf5, which can be twice as big as the original dumps. Using postpic's access this step will be skipped and thus access is much faster (but by default with unordered particle IDs as in any other code).
+
+
+**Incompatible adjustments to previous version**
+
+
+
+**Other improvements and new features**
+
+
 v0.5
 ----
 
