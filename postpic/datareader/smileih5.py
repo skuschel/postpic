@@ -172,6 +172,8 @@ class SmileiReader(OpenPMDreader):
         strings = np.array(self._data)
         mask = np.array(["_mode_" in s for s in strings])
         arr = strings[mask]
+        if len(arr) == 0:
+            return ([], [])
         max_suffix = float('-inf')
         max_suffix_string = None
         prefix_list = []
