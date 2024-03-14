@@ -144,7 +144,7 @@ class SmileiReader(OpenPMDreader):
         Output F_total is an array of real numbers which has shape (Np.of theta, Nx, Nr),
         this F_total is the real value summation of the fourier series.
         '''
-        if np.array(theta).shape is ():
+        if np.array(theta).shape == ():
             theta = [theta]
 
         array_list = []
