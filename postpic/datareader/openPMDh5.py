@@ -255,7 +255,7 @@ class FbpicReader(OpenPMDreader):
         converts to radial data using `modeexpansion`, possibly for multiple
         theta at once.
         '''
-        if np.asarray(theta).shape is ():
+        if np.asarray(theta).shape == ():
             # single theta
             theta = [theta]
         # multiple theta
