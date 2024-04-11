@@ -51,7 +51,9 @@ def _generateh5indexfile(indexfile, fnames):
     indexfile = os.path.join(dirname, indexfile)
 
     def visitf(key):
-        # key is a string
+        # key is a strings
+        if key.endswith('latest_IDs'):
+            return
         # only link if key points to a dataset. Do not link groups
         if isinstance(hf[key], h5py._hl.dataset.Dataset):
             ih[key] = h5py.ExternalLink(fname, key)
