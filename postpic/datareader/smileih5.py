@@ -381,7 +381,7 @@ class SmileiSeries(Simulationreader_ifc):
             indexfile = _getindexfile(h5file)
             self._h5 = h5py.File(indexfile, 'r')
             with h5py.File(indexfile, 'r') as h5:
-                self._dumpkeys = list(h5['data'].keys())
+                self._dumpkeys = [int(i) for i in h5['data'].keys()]
         else:
             raise IOError('{} does not exist.'.format(h5file))
 
