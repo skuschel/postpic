@@ -48,11 +48,13 @@ def _generateh5indexfile(indexfile, fnames):
         return
 
     def visitf(key):
-        # key is a strings
+        # key is a string
         if key.endswith('latest_IDs'):
             return
-        # only link if key points to a dataset. Do not link groups
-        if isinstance(hf[key], h5py._hl.dataset.Dataset):
+        # only link if key points to a dataset. Generally do not link groups.
+        # However single scalars (identified by ´value in hf[key].attrs´)
+        # maybe a group and must be linked as well.
+        if isinstance(hf[key], h5py._hl.dataset.Dataset) or "value" in hf[key].attrs:
             ih[key] = h5py.ExternalLink(fname, key)
 
     with h5py.File(indexfile, 'w') as ih:
