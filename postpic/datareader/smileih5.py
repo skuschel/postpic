@@ -47,9 +47,6 @@ def _generateh5indexfile(indexfile, fnames):
         # indexfile already exists. do not recreate
         return
 
-    dirname = os.path.dirname(fnames[0])
-    indexfile = os.path.join(dirname, indexfile)
-
     def visitf(key):
         # key is a strings
         if key.endswith('latest_IDs'):
