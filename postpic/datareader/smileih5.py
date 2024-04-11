@@ -56,6 +56,10 @@ def _generateh5indexfile(indexfile, fnames):
         # maybe a group and must be linked as well.
         if isinstance(hf[key], h5py._hl.dataset.Dataset) or "value" in hf[key].attrs:
             ih[key] = h5py.ExternalLink(fname, key)
+        elif isinstance(hf[key], h5py._hl.group.Group) and key not in ih:
+            ih.create_group(key)
+            for attr in hf[key].attrs:
+                ih[key].attrs[attr] = hf[key].attrs[attr]
 
     with h5py.File(indexfile, 'w') as ih:
         for fname in fnames:
