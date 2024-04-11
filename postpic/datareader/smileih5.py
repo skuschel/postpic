@@ -308,6 +308,36 @@ class SmileiReader(OpenPMDreader):
                 'Bx', 'By', 'Bz', 'Br', 'Bl', 'Bt',
                 'Jx', 'Jy', 'Jz', 'Jr', 'Jl', 'Jt', 'Rho']
 
+    def getSpecies(self, species, attrib):
+        """
+        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of
+        this particle species.
+        """
+        attribid = helper.attribidentify[attrib]
+        options = {9: 'particles/{}/weight',
+                   0: 'particles/{}/position/x',
+                   1: 'particles/{}/position/y',
+                   2: 'particles/{}/position/z',
+                   3: 'particles/{}/momentum/x',
+                   4: 'particles/{}/momentum/y',
+                   5: 'particles/{}/momentum/z',
+                   10: 'particles/{}/id',
+                   11: 'particles/{}/mass',
+                   12: 'particles/{}/charge'}
+        optionsoffset = {0: 'particles/{}/positionOffset/x',
+                         1: 'particles/{}/positionOffset/y',
+                         2: 'particles/{}/positionOffset/z'}
+        key = options[attribid]
+        offsetkey = optionsoffset.get(attribid)
+        try:
+            data = self.data(key.format(species))
+            if offsetkey is not None:
+                data += self.data(offsetkey.format(species))
+            ret = np.asarray(data, dtype=np.float64)
+        except IndexError:
+            raise KeyError
+        return ret
+
     def getderived(self):
         '''
         return all other fields dumped, except E and B.
