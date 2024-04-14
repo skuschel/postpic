@@ -47,14 +47,19 @@ def _generateh5indexfile(indexfile, fnames):
         # indexfile already exists. do not recreate
         return
 
-    dirname = os.path.dirname(fnames[0])
-    indexfile = os.path.join(dirname, indexfile)
-
     def visitf(key):
         # key is a string
-        # only link if key points to a dataset. Do not link groups
-        if isinstance(hf[key], h5py._hl.dataset.Dataset):
+        if key.endswith('latest_IDs'):
+            return
+        # only link if key points to a dataset. Generally do not link groups.
+        # However single scalars (identified by ´value in hf[key].attrs´)
+        # maybe a group and must be linked as well.
+        if isinstance(hf[key], h5py._hl.dataset.Dataset) or "value" in hf[key].attrs:
             ih[key] = h5py.ExternalLink(fname, key)
+        elif isinstance(hf[key], h5py._hl.group.Group) and key not in ih:
+            ih.create_group(key)
+            for attr in hf[key].attrs:
+                ih[key].attrs[attr] = hf[key].attrs[attr]
 
     with h5py.File(indexfile, 'w') as ih:
         for fname in fnames:
@@ -306,6 +311,36 @@ class SmileiReader(OpenPMDreader):
                 'Bx', 'By', 'Bz', 'Br', 'Bl', 'Bt',
                 'Jx', 'Jy', 'Jz', 'Jr', 'Jl', 'Jt', 'Rho']
 
+    def getSpecies(self, species, attrib):
+        """
+        Returns one of the attributes out of (x,y,z,px,py,pz,weight,ID,mass,charge) of
+        this particle species.
+        """
+        attribid = helper.attribidentify[attrib]
+        options = {9: 'particles/{}/weight',
+                   0: 'particles/{}/position/x',
+                   1: 'particles/{}/position/y',
+                   2: 'particles/{}/position/z',
+                   3: 'particles/{}/momentum/x',
+                   4: 'particles/{}/momentum/y',
+                   5: 'particles/{}/momentum/z',
+                   10: 'particles/{}/id',
+                   11: 'particles/{}/mass',
+                   12: 'particles/{}/charge'}
+        optionsoffset = {0: 'particles/{}/positionOffset/x',
+                         1: 'particles/{}/positionOffset/y',
+                         2: 'particles/{}/positionOffset/z'}
+        key = options[attribid]
+        offsetkey = optionsoffset.get(attribid)
+        try:
+            data = self.data(key.format(species))
+            if offsetkey is not None:
+                data += self.data(offsetkey.format(species))
+            ret = np.asarray(data, dtype=np.float64)
+        except IndexError:
+            raise KeyError
+        return ret
+
     def getderived(self):
         '''
         return all other fields dumped, except E and B.
@@ -346,7 +381,7 @@ class SmileiSeries(Simulationreader_ifc):
             indexfile = _getindexfile(h5file)
             self._h5 = h5py.File(indexfile, 'r')
             with h5py.File(indexfile, 'r') as h5:
-                self._dumpkeys = list(h5['data'].keys())
+                self._dumpkeys = [int(i) for i in h5['data'].keys()]
         else:
             raise IOError('{} does not exist.'.format(h5file))
 
