@@ -370,3 +370,6 @@ class Simulationreader_ifc(Sequence):
 
     def times(self):
         return np.array([s.time() for s in self])
+    
+    def timesteps(self):
+        return np.array([s.timestep() for s in self])
