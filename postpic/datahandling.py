@@ -1742,7 +1742,7 @@ class Field(NDArrayOperatorsMixin):
     def _integrate_scipy(self, axes, method):
         ret = copy.copy(self)
         for axis in reversed(sorted(axes)):
-            ret._matrix = method(ret, ret.axes[axis].grid, axis=axis)
+            ret._matrix = method(ret, x=ret.axes[axis].grid, axis=axis)
             del ret.axes[axis]
             del ret.axes_transform_state[axis]
             del ret.transformed_axes_origins[axis]
@@ -1787,7 +1787,7 @@ class Field(NDArrayOperatorsMixin):
 
         return ret
 
-    def integrate(self, axes=None, method=scipy.integrate.simps):
+    def integrate(self, axes=None, method=scipy.integrate.simpson):
         '''
         Calculates the definite integral along the given axes.
 
