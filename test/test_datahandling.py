@@ -612,8 +612,8 @@ class TestField(unittest.TestCase):
         print('type(a.matrix)', type(a.matrix))
         self.assertTrue(np.isclose(a, b))
 
-        b = self.f2d_fine.integrate(method=scipy.integrate.simps)
-        c = self.f2d_fine.integrate(method=scipy.integrate.trapz)
+        b = self.f2d_fine.integrate(method=scipy.integrate.simpson)
+        c = self.f2d_fine.integrate(method=scipy.integrate.trapezoid)
 
         self.assertTrue(np.isclose(b, 0))
         self.assertTrue(np.isclose(c, 0))

@@ -946,7 +946,7 @@ def _linear_phase(field, dx, phi0=0.0):
 
     # calculate linear phase
     # arg = sum([dx[i]*mesh[i] for i in dx.keys()])
-    arg_expr = '+'.join('({}*k{})'.format(repr(v), i) for i, v in dx.items())
+    arg_expr = '+'.join('({:}*k{})'.format(v, i) for i, v in dx.items())
 
     if transform_state is True:
         exp_ikdx_expr = 'exp(1j * ({arg} + phi0))'.format(arg=arg_expr)
@@ -1039,7 +1039,7 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
             raise ValueError("Argument moving_window_vect has the wrong length. "
                              "Please make sure that len(moving_window_vect) == kspace.dimensions.")
 
-        moving_window_vect = np.asfarray(moving_window_vect)
+        moving_window_vect = np.asarray(moving_window_vect, dtype=np.float64)
         moving_window_vect /= npl.norm(moving_window_vect)
         moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
 
@@ -1057,7 +1057,7 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
         # m = kspace.matrix.copy()
         # m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) < 0.0] = 0.0
         # kspace = kspace.replace_data(m)
-        arg_expr = '+'.join('({}*k{})'.format(repr(v), i)
+        arg_expr = '+'.join('({:}*k{})'.format(v, i)
                             for i, v
                             in enumerate(moving_window_vect))
         numexpr_vars = dict(kspace=kspace)

@@ -132,7 +132,7 @@ class Dummyreader(Dumpreader_ifc):
 
     def simextent(self, axis):
         g = self.grid(None, axis)
-        return np.asfarray([g[0], g[-1]])
+        return np.asarray([g[0], g[-1]], dtype=np.float64)
 
     def gridnode(self, key, axis):
         '''
