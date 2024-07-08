@@ -794,6 +794,7 @@ class Field(NDArrayOperatorsMixin):
                 ats = self.axes_transform_state[:]
                 tao = self.transformed_axes_origins[:]
                 reduceaxis = kwargs.get('axis', 0)
+                reduceaxis = range(len(axes)) if reduceaxis is None else reduceaxis
                 if not isinstance(reduceaxis, Iterable):
                     reduceaxis = (reduceaxis,)
                 for axis in reversed(sorted(set(reduceaxis))):
