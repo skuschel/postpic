@@ -946,7 +946,7 @@ def _linear_phase(field, dx, phi0=0.0):
 
     # calculate linear phase
     # arg = sum([dx[i]*mesh[i] for i in dx.keys()])
-    arg_expr = '+'.join('({}*k{})'.format(repr(v), i) for i, v in dx.items())
+    arg_expr = '+'.join('({:}*k{})'.format(v, i) for i, v in dx.items())
 
     if transform_state is True:
         exp_ikdx_expr = 'exp(1j * ({arg} + phi0))'.format(arg=arg_expr)
@@ -1057,7 +1057,7 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
         # m = kspace.matrix.copy()
         # m[sum(k*dx for k, dx in zip(kspace.meshgrid(), moving_window_vect)) < 0.0] = 0.0
         # kspace = kspace.replace_data(m)
-        arg_expr = '+'.join('({}*k{})'.format(repr(v), i)
+        arg_expr = '+'.join('({:}*k{})'.format(v, i)
                             for i, v
                             in enumerate(moving_window_vect))
         numexpr_vars = dict(kspace=kspace)
