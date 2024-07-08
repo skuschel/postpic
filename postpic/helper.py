@@ -1039,7 +1039,7 @@ def _kspace_propagate_generator(kspace, dt, moving_window_vect=None,
             raise ValueError("Argument moving_window_vect has the wrong length. "
                              "Please make sure that len(moving_window_vect) == kspace.dimensions.")
 
-        moving_window_vect = np.asfarray(moving_window_vect)
+        moving_window_vect = np.asarray(moving_window_vect, dtype=np.float64)
         moving_window_vect /= npl.norm(moving_window_vect)
         moving_window_dict = dict(enumerate([dz*x for x in moving_window_vect]))
 
