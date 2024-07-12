@@ -175,7 +175,7 @@ _defaultscalars = [
     ScalarProperty('y', 'y', 'm'),
     ScalarProperty('y * 1e6', 'y_um', r'$\mu$ m'),
     ScalarProperty('z', 'z', 'm'),
-    ScalarProperty('y * 1e6', 'z_um', r'$\mu$ m'),
+    ScalarProperty('z * 1e6', 'z_um', r'$\mu$ m'),
     ScalarProperty('px', 'px', 'kg*m/s'),
     ScalarProperty('py', 'py', 'kg*m/s'),
     ScalarProperty('pz', 'pz', 'kg*m/s'),

@@ -13,9 +13,12 @@ current master
 
 **Incompatible adjustments to previous version**
 
+* `scipy.integrate.simps` has been removed in scipy 1.14. Postpic uses `scipy.integrate.simpson` which has been introduced in scipy 1.6.0 (Dec 31st 2020).
 
 
 **Other improvements and new features**
+
+* Compatibility with numpy 2.0 and the sanitizer checks of numexpr 2.8.6. ([#281](https://github.com/skuschel/postpic/pull/281) -- [a304e73](https://github.com/skuschel/postpic/commit/a304e7370259b3b09873a998ccc8f6a6c0241b2c))
 
 
 v0.5
