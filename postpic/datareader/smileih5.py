@@ -216,7 +216,7 @@ class SmileiReader(OpenPMDreader):
 
             field_name = key+"_mode_"+str(mode)
             field_array = np.array(self._data[field_name])
-            # The fields for the LaserEnvelope are real, therefor the hdf5-file has a slightly different struture.
+            # The Envelope Fields are real without imaginary part.
             if key.startswith('Env_'):
                 complex_array = field_array
             else:
