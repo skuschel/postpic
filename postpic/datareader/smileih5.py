@@ -216,9 +216,13 @@ class SmileiReader(OpenPMDreader):
 
             field_name = key+"_mode_"+str(mode)
             field_array = np.array(self._data[field_name])
-            field_array_shape = field_array.shape
-            reshaped_array = field_array.reshape(field_array_shape[0], field_array_shape[1]//2, 2)
-            complex_array = reshaped_array[:, :, 0] + 1j * reshaped_array[:, :, 1]
+            #The fields for the LaserEnvelope are real, therefor the hdf5-file has a slightly different struture.
+            if key.startswith('Env_'):
+                complex_array = field_array
+            else: 
+                field_array_shape = field_array.shape
+                reshaped_array = field_array.reshape(field_array_shape[0], field_array_shape[1]//2, 2)
+                complex_array = reshaped_array[:, :, 0] + 1j * reshaped_array[:, :, 1]
             array_list.append(complex_array)
 
         # Modified array of shape (Nmodes, Nx, Nr)
