@@ -221,7 +221,8 @@ class SmileiReader(OpenPMDreader):
                 complex_array = field_array
             else:
                 field_array_shape = field_array.shape
-                reshaped_array = field_array.reshape(field_array_shape[0], field_array_shape[1]//2, 2)
+                reshaped_array = field_array.reshape(field_array_shape[0],
+                                                     field_array_shape[1]//2, 2)
                 complex_array = reshaped_array[:, :, 0] + 1j * reshaped_array[:, :, 1]
             array_list.append(complex_array)
 
