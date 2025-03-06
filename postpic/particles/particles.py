@@ -1280,58 +1280,53 @@ class ParticleHistory(object):
         ret = [np.asarray(p).T for p in particlelist]
         return ret
 
-		
-		
-    def exportToHdf5(self, minimum, maximum, filename, *scalarfs):
+    '''
+    Exports the collected data to an hdf5-file. If the file with the same name
+    already exists, it will be deleted!
 
-	    if minimum > maximum:
-	        raise Exception("Minimum is higher than maximum!")
+    Parameters:
+    -----------
+    filename:   whole name or path of the file which the data will be exported to.
+    *scalarfs:  the scalarfunction(s) defining the particle property.
+                Id and weight will always be stored, so they do not have to be
+                specified here.
 
-	    if minimum > len(self.ids) or maximum > len(self.ids):
-	        raise Exception("Minimum or maximum is out of bounds!")
+    Returns:
+    -----------
+    The same as collect(): The list of particles with the defined properties.
+    The hdf5 file will have the structure:
+    - dset: Ids
+    - particles/Id/track: track data (ID, weight, scalarfs)
+    - particles/Id/weight: weights
+    '''
+    def exportToHdf5(self, filename, *scalarfs):
 
-	    scalarfs = ("id", "weight") + scalarfs
+        scalarfs = ("id", "weight") + scalarfs
+        print("The following scalars will be exported to {}: {}.".format(filename, scalarfs))
+        part_data = self.collect(*scalarfs)
+        print("Finished collecting electron data.")
 
-	    print("The following scalars will be exported to the file {}: {}.".format(filename, scalarfs))
-    
-	    ids_sorted = np.sort(self.ids)
-	    ids_selection = ids_sorted[minimum:maximum] #[1000:3000]
-	    part_data = self.collect(*scalarfs)#"time", "x", "y", "z", "px", "py", "pz", "weight", "Ekin")
-	    print("Finished collecting electron data.")
+        timesteps_parts = []
+        for i in range(0, len(part_data)):
+            timesteps_parts.append(len(part_data[i][0]))
 
+        import h5py
 
-	    #As not all electrons have the same number of timesteps, the list of lengths has to be computed seperately.
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            print("No file there to delete!")
+        f = h5py.File(filename, "w")
+        dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
 
-	    timesteps_parts = []
-	    for i in range(0, len(part_data)):
-	        timesteps_parts.append(len(part_data[i][0]))
+        for id in range(0, len(self.ids)):
+            f.create_dataset("particles/{}/track".format(int(self.ids[id])), data=part_data[id])
+            weight = part_data[id][1][0]
+            f.create_dataset("particles/{}/weight".format(int(self.ids[id])), data=weight)
+            if id % 1000 == 0:
+                print("Electron {} was saved to the hdf5-file.".format(id))
 
+        f.close()
+        print("File closed.")
+        return part_data
 
-	    import copy
-	    part_data2 = copy.deepcopy(part_data)
- 
-	    #for i in range(0, len(part_data)):
-	     #   for j in range(0, timesteps_parts[i]):
-	      #      for p in range(len(scalarfs)):
-	       #         part_data2[i][p][j] = part_data[i][p][j]
-            
-	    import h5py
-
-	    try:
-	        os.remove(filename)
-	    except:
-	        print("No file there to delete!")
-	    f = h5py.File(filename, "w")
-	    dset_ids = f.create_dataset("Ids", data = ids_selection, dtype=np.int64)
-
-	    for id in range(0, len(ids_selection)):
-	        f.create_dataset("particles/{}/track".format(int(ids_selection[id])), data = part_data[id]) #(7, len(part_data2[id][0])), 
-	        f.create_dataset("particles/{}/weight".format(int(ids_selection[id])), data = part_data[id][1][0])
-	        #print(ids_selection[id])
-	        if id%1000 == 0:
-	            print("Electron {} was saved to the hdf5-file.".format(id))
-
-	    f.close()
-	    print("File closed.")
-		
-	    return ids_selection
