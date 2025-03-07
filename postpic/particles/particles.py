@@ -1309,6 +1309,7 @@ class ParticleHistory(object):
             timesteps_parts.append(len(part_data[i][0]))
 
         import h5py
+        import os
 
         try:
             os.remove(filename)
