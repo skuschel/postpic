@@ -1192,7 +1192,7 @@ class ParticleHistory(object):
         if ids is None:
             self.ids = self._findids()  # List of integers
         else:
-            self.ids = np.asarray(ids, dtype=np.int)
+            self.ids = np.asarray(ids, dtype=np.int64)
         # lookup dict used by collect
         self._updatelookupdict()
 
@@ -1224,7 +1224,7 @@ class ParticleHistory(object):
             ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
             idsfound |= set(ms('id'))
             del ms
-        return np.asarray(list(idsfound), dtype=np.int)
+        return np.asarray(list(idsfound), dtype=np.int64)
 
     def __len__(self):
         # counts the number of particles present
@@ -1243,7 +1243,7 @@ class ParticleHistory(object):
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
             scalars[i, :] = ms(scalarfs[i])
-        ids = np.asarray(ms('id'), dtype=np.int)
+        ids = np.asarray(ms('id'), dtype=np.int64)
         del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
