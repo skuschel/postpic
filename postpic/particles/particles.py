@@ -1279,3 +1279,51 @@ class ParticleHistory(object):
                 particlelist[i].append(scalars[:, k])
         ret = [np.asarray(p).T for p in particlelist]
         return ret
+
+    def exportToHdf5(self, filename, *scalarfs):
+        '''
+        Exports the collected data to an hdf5-file. If the file with the same name
+        already exists, it will be deleted!
+        Parameters:
+        -----------
+        filename:   whole name or path of the file which the data will be exported to.
+        *scalarfs:  the scalarfunction(s) defining the particle property.
+                Id and weight will always be stored, so they do not have to be
+                specified here.
+
+        Returns:
+        -----------
+        The same as collect(): The list of particles with the defined properties.
+        The hdf5 file will have the structure:
+        - dset: Ids
+        - particles/Id/track: track data (ID, weight, scalarfs)
+        - particles/Id/weight: weights
+        '''
+        scalarfs = ("id", "weight") + scalarfs
+        print("The following scalars will be exported to {}: {}.".format(filename, scalarfs))
+        part_data = self.collect(*scalarfs)
+        print("Finished collecting electron data.")
+
+        timesteps_parts = []
+        for i in range(0, len(part_data)):
+            timesteps_parts.append(len(part_data[i][0]))
+
+        import h5py
+
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            print("No file there to delete!")
+        f = h5py.File(filename, "w")
+        dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
+
+        for id in range(0, len(self.ids)):
+            f.create_dataset("particles/{}/track".format(int(self.ids[id])), data=part_data[id])
+            weight = part_data[id][1][0]
+            f.create_dataset("particles/{}/weight".format(int(self.ids[id])), data=weight)
+            if id % 1000 == 0:
+                print("Electron {} was saved to the hdf5-file.".format(id))
+
+        f.close()
+        print("File closed.")
+        return part_data
