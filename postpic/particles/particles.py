@@ -1302,10 +1302,6 @@ class ParticleHistory(object):
         scalarfs = ("id", "weight") + scalarfs
         part_data = self.collect(*scalarfs)
 
-        timesteps_parts = []
-        for i in range(0, len(part_data)):
-            timesteps_parts.append(len(part_data[i][0]))
-
         import h5py
 
         f = h5py.File(filename, "w")
