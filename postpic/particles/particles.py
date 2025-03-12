@@ -1296,7 +1296,7 @@ class ParticleHistory(object):
         The same as collect(): The list of particles with the defined properties.
         The hdf5 file will have the structure:
         - dset: Ids
-        - particles/Id/track: track data (ID, weight, scalarfs)
+        - particles/Id/track: track data (id, weight, *scalarfs)
         - particles/Id/weight: weights
         '''
         scalarfs = ("id", "weight") + scalarfs
@@ -1304,13 +1304,13 @@ class ParticleHistory(object):
 
         import h5py
 
-        f = h5py.File(filename, "w")
-        dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
+        with h5py.File(filename, "w") as f:
+            dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
+            f.attrs['scalars'] = scalarfs
 
-        for id in range(0, len(self.ids)):
-            f.create_dataset("particles/{}/track".format(int(self.ids[id])), data=part_data[id])
-            weight = part_data[id][1][0]
-            f.create_dataset("particles/{}/weight".format(int(self.ids[id])), data=weight)
-        f.close()
+            for i in range(0, len(self.ids)):
+                f.create_dataset("particles/{}/track".format(int(self.ids[i])), data=part_data[i])
+                weight = part_data[i][1][0]
+                f.create_dataset("particles/{}/weight".format(int(self.ids[i])), data=weight)
 
         return part_data
