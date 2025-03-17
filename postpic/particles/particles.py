@@ -1280,7 +1280,7 @@ class ParticleHistory(object):
         ret = [np.asarray(p).T for p in particlelist]
         return ret
 
-    def exportToHdf5(self, filename, *scalarfs):
+    def exporttoh5(self, filename, *scalarfs):
         '''
         Exports the collected data to an hdf5-file. If the file with the same name
         already exists, it will be deleted!
