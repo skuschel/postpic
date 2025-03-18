@@ -162,7 +162,7 @@ class MatplotlibPlotter(object):
         ul = project
         ul2 = dump
         ur2 = infostring
-        center = None if infos == [] or infos == [''] else infos
+        center = None if (infos is None or len(infos) == 0) else infos
         import matplotlib
         func = MatplotlibPlotter.settext_ax if isinstance(figorax, matplotlib.axes.Axes) \
             else MatplotlibPlotter.settext_fig

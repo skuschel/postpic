@@ -1192,7 +1192,7 @@ class ParticleHistory(object):
         if ids is None:
             self.ids = self._findids()  # List of integers
         else:
-            self.ids = np.asarray(ids, dtype=np.int)
+            self.ids = np.asarray(ids, dtype=np.int64)
         # lookup dict used by collect
         self._updatelookupdict()
 
@@ -1224,7 +1224,7 @@ class ParticleHistory(object):
             ms = MultiSpecies(dr, *self.speciess, ignore_missing_species=True)
             idsfound |= set(ms('id'))
             del ms
-        return np.asarray(list(idsfound), dtype=np.int)
+        return np.asarray(list(idsfound), dtype=np.int64)
 
     def __len__(self):
         # counts the number of particles present
@@ -1243,7 +1243,7 @@ class ParticleHistory(object):
         scalars = np.zeros((len(scalarfs), len(ms)))
         for i in range(len(scalarfs)):
             scalars[i, :] = ms(scalarfs[i])
-        ids = np.asarray(ms('id'), dtype=np.int)
+        ids = np.asarray(ms('id'), dtype=np.int64)
         del ms  # close file to not exceed limit of max open files
         return ids, scalars
 
@@ -1279,3 +1279,38 @@ class ParticleHistory(object):
                 particlelist[i].append(scalars[:, k])
         ret = [np.asarray(p).T for p in particlelist]
         return ret
+
+    def exporttoh5(self, filename, *scalarfs):
+        '''
+        Exports the collected data to an hdf5-file. If the file with the same name
+        already exists, it will be deleted!
+        Parameters:
+        -----------
+        filename:   whole name or path of the file which the data will be exported to.
+        *scalarfs:  the scalarfunction(s) defining the particle property.
+                Id and weight will always be stored, so they do not have to be
+                specified here.
+
+        Returns:
+        -----------
+        The same as collect(): The list of particles with the defined properties.
+        The hdf5 file will have the structure:
+        - dset: Ids
+        - particles/Id/track: track data (id, weight, *scalarfs)
+        - particles/Id/weight: weights
+        '''
+        scalarfs = ("id", "weight") + scalarfs
+        part_data = self.collect(*scalarfs)
+
+        import h5py
+
+        with h5py.File(filename, "w") as f:
+            dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
+            f.attrs['scalars'] = scalarfs
+
+            for i in range(0, len(self.ids)):
+                f.create_dataset("particles/{}/track".format(int(self.ids[i])), data=part_data[i])
+                weight = part_data[i][1][0]
+                f.create_dataset("particles/{}/weight".format(int(self.ids[i])), data=weight)
+
+        return part_data
