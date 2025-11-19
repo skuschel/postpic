@@ -1283,13 +1283,13 @@ class ParticleHistory(object):
     def exporttoh5(self, filename, *scalarfs):
         '''
         Exports the collected data to an hdf5-file. If the file with the same name
-        already exists, it will be deleted!
+        already exists, it will be deleted! Change: Now, weight and Id have to be
+        written as they will not be automatically added!
+
         Parameters:
         -----------
         filename:   whole name or path of the file which the data will be exported to.
         *scalarfs:  the scalarfunction(s) defining the particle property.
-                Id and weight will always be stored, so they do not have to be
-                specified here.
 
         Returns:
         -----------
@@ -1299,18 +1299,41 @@ class ParticleHistory(object):
         - particles/Id/track: track data (id, weight, *scalarfs)
         - particles/Id/weight: weights
         '''
-        scalarfs = ("id", "weight") + scalarfs
+        scalarfs = ("weight", ) + scalarfs
         part_data = self.collect(*scalarfs)
 
         import h5py
 
         with h5py.File(filename, "w") as f:
             dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
-            f.attrs['scalars'] = scalarfs
+            f.attrs['PostPic_scalars'] = scalarfs[1:]
 
             for i in range(0, len(self.ids)):
-                f.create_dataset("particles/{}/track".format(int(self.ids[i])), data=part_data[i])
-                weight = part_data[i][1][0]
-                f.create_dataset("particles/{}/weight".format(int(self.ids[i])), data=weight)
+                f.create_dataset("particles/{}/track".format(int(self.ids[i])),
+                                 data=part_data[i][1:][:])
+                weight = part_data[i][0][0]
+                f.create_dataset("particles/{}/weight".format(int(self.ids[i])),
+                                 data=weight)
 
         return part_data
+
+    def exporttoh5_hyena(self, filename):
+        '''
+        Exports the collected data to an hdf5-file for the hyena-format.
+
+        Parameters:
+        -----------
+        filename:   whole name or path of the file which the data will be exported to.
+
+        Returns:
+        -----------
+        The same as collect(): The list of particles with the defined properties.
+        The hdf5 file will have the structure:
+        - dset: Ids
+        - particles/Id/track: track data ("time*c*1e6", "x_um", "y_um", "z_um",
+            "px/m_e/c", "py/m_e/c", "pz/m_e/c")
+        - particles/Id/weight: weights
+        '''
+
+        return self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
+                               "z_um", "px/m_e/c", "py/m_e/c", "pz/m_e/c")
