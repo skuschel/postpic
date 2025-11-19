@@ -17,12 +17,13 @@
 # You should have received a copy of the GNU General Public License
 # along with postpic. If not, see <http://www.gnu.org/licenses/>.
 #
+
 from setuptools import setup, find_packages
 from Cython.Build import cythonize
 import numpy
 import os
-
 import versioneer
+
 
 setup(name='postpic',
       version=versioneer.get_version(),
@@ -41,7 +42,9 @@ setup(name='postpic',
                         # ndarray.tobytes was introduced in np 1.9 and workaround in vtk routines
                         # does not work for python 2
                         'numpy>=1.8', 'numpy>=1.9;python_version<"3.0"',
-                        'scipy>=1.6', 'future', 'urllib3', 'numexpr',
+                        'scipy>=1.6', 'scipy<= 1.15;python_version=="3.10"',
+                        'future', 'urllib3',
+                        'contourpy <= 1.3.1; python_version=="3.10"', 'numexpr',
                         'cython>=0.18', 'functools32;python_version<"3.0"',
                         'packaging'],
       extras_require = {
