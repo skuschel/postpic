@@ -20,7 +20,7 @@ current master
 
 * Compatibility with numpy 2.0 and the sanitizer checks of numexpr 2.8.6. ([#281](https://github.com/skuschel/postpic/pull/281) -- [a304e73](https://github.com/skuschel/postpic/commit/a304e7370259b3b09873a998ccc8f6a6c0241b2c))
 * New function exporttoh5 to export particle tracks directly into an hdf5 file; updated depracted np.int()-function. ([#291](https://github.com/skuschel/postpic/pull/291))
-
+* exprottoh5 does not set automatically save ids and weight in the tracks group, they will have to be explicitly stated but will still be written in their respective gropus in the file ([#299] (https://github.com/skuschel/postpic/pull/299))
 
 v0.5
 ----
