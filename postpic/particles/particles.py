@@ -1283,8 +1283,7 @@ class ParticleHistory(object):
     def exporttoh5(self, filename, *scalarfs):
         '''
         Exports the collected data to an hdf5-file. If the file with the same name
-        already exists, it will be deleted! Change: Now, weight and Id have to be
-        written as they will not be automatically added!
+        already exists, it will be deleted!
 
         Parameters:
         -----------
@@ -1306,8 +1305,8 @@ class ParticleHistory(object):
 
         with h5py.File(filename, "w") as f:
             dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
-            f.attrs['PostPic_scalars'] = scalarfs[1:]
-
+            parts = f.create_group("particles")
+            parts.attrs['PostPic_scalars'] = scalarfs[1:]
             for i in range(0, len(self.ids)):
                 f.create_dataset("particles/{}/track".format(int(self.ids[i])),
                                  data=part_data[i][1:][:])
@@ -1319,21 +1318,10 @@ class ParticleHistory(object):
 
     def exporttoh5_hyena(self, filename):
         '''
-        Exports the collected data to an hdf5-file for the hyena-format.
-
-        Parameters:
-        -----------
-        filename:   whole name or path of the file which the data will be exported to.
-
-        Returns:
-        -----------
-        The same as collect(): The list of particles with the defined properties.
-        The hdf5 file will have the structure:
-        - dset: Ids
-        - particles/Id/track: track data ("time*c*1e6", "x_um", "y_um", "z_um",
-            "px/m_e/c", "py/m_e/c", "pz/m_e/c")
-        - particles/Id/weight: weights
+        same as:
+        self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
+                    "z_um", "px/m_e/c", "py/m_e/c", "pz/m_e/c")
         '''
 
         return self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
-                               "z_um", "px/m_e/c", "py/m_e/c", "pz/m_e/c")
+                               "z_um", "px/mass/c", "py/mass/c", "pz/mass/c")
