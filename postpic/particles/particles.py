@@ -1320,7 +1320,7 @@ class ParticleHistory(object):
         '''
         same as:
         self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
-                    "z_um", "px/m_e/c", "py/m_e/c", "pz/m_e/c")
+                    "z_um", "px/mass/c", "py/mass/c", "pz/mass/c")
         '''
 
         return self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
