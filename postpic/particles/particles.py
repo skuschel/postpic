@@ -1284,12 +1284,11 @@ class ParticleHistory(object):
         '''
         Exports the collected data to an hdf5-file. If the file with the same name
         already exists, it will be deleted!
+
         Parameters:
         -----------
         filename:   whole name or path of the file which the data will be exported to.
         *scalarfs:  the scalarfunction(s) defining the particle property.
-                Id and weight will always be stored, so they do not have to be
-                specified here.
 
         Returns:
         -----------
@@ -1299,18 +1298,30 @@ class ParticleHistory(object):
         - particles/Id/track: track data (id, weight, *scalarfs)
         - particles/Id/weight: weights
         '''
-        scalarfs = ("id", "weight") + scalarfs
+        scalarfs = ("weight", ) + scalarfs
         part_data = self.collect(*scalarfs)
 
         import h5py
 
         with h5py.File(filename, "w") as f:
             dset_ids = f.create_dataset("Ids", data=self.ids, dtype=np.int64)
-            f.attrs['scalars'] = scalarfs
-
+            parts = f.create_group("particles")
+            parts.attrs['PostPic_scalars'] = scalarfs[1:]
             for i in range(0, len(self.ids)):
-                f.create_dataset("particles/{}/track".format(int(self.ids[i])), data=part_data[i])
-                weight = part_data[i][1][0]
-                f.create_dataset("particles/{}/weight".format(int(self.ids[i])), data=weight)
+                f.create_dataset("particles/{}/track".format(int(self.ids[i])),
+                                 data=part_data[i][1:][:])
+                weight = part_data[i][0][0]
+                f.create_dataset("particles/{}/weight".format(int(self.ids[i])),
+                                 data=weight)
 
         return part_data
+
+    def exporttoh5_hyena(self, filename):
+        '''
+        same as:
+        self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
+                    "z_um", "px/mass/c", "py/mass/c", "pz/mass/c")
+        '''
+
+        return self.exporttoh5(filename, "time*c*1e6", "x_um", "y_um",
+                               "z_um", "px/mass/c", "py/mass/c", "pz/mass/c")
