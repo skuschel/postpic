@@ -1651,7 +1651,7 @@ class Field(NDArrayOperatorsMixin):
     min = _reducing_numpy_method("min")
     prod = _reducing_numpy_method("prod")
     sum = _reducing_numpy_method("sum")
-    ptp = _reducing_numpy_method("ptp")
+    # ptp = _reducing_numpy_method("ptp")
     std = _reducing_numpy_method("std")
     mean = _reducing_numpy_method("mean")
     var = _reducing_numpy_method("var")
