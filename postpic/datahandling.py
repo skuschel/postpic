@@ -739,11 +739,11 @@ class Field(NDArrayOperatorsMixin):
     # make sure that np.array() * Field() returns a Field and not a plain array
     __array_priority__ = 1
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         '''
         will be called by numpy function in case an numpy array is needed.
         '''
-        return np.asanyarray(self.matrix, dtype=dtype)
+        return np.asanyarray(self.matrix, dtype=dtype, copy=copy)
 
     # What kind of other objects do we support? so far any kind of numpy array or scalar number
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
@@ -1651,7 +1651,6 @@ class Field(NDArrayOperatorsMixin):
     min = _reducing_numpy_method("min")
     prod = _reducing_numpy_method("prod")
     sum = _reducing_numpy_method("sum")
-    ptp = _reducing_numpy_method("ptp")
     std = _reducing_numpy_method("std")
     mean = _reducing_numpy_method("mean")
     var = _reducing_numpy_method("var")
