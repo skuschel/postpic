@@ -22,8 +22,7 @@ The postpic.io module provides free functions for importing and exporting data.
 '''
 
 import numpy as np
-
-import pkg_resources as pr
+import packaging.version as pr
 
 from .common import _header_string
 
@@ -79,7 +78,7 @@ def _import_field_npy(filename):
     import a field object from a file written by _export_field_npy()
     '''
     from ..datahandling import Field, Axis
-    if pr.parse_version(np.__version__) < pr.parse_version('1.11'):
+    if pr.parse(np.__version__) < pr.parse('1.11'):
         import_file = np.load(filename)
     else:
         import_file = np.load(filename, allow_pickle=True)
