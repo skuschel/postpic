@@ -242,7 +242,7 @@ class _SingleSpecies(object):
         if isinstance(idx, np.ndarray):
             idx[idx == len(condition)] = 0
         else:
-            idx = [] 
+            idx = []
         bools = condition[idx] == ids
         return self._compress_bool(bools)
 
