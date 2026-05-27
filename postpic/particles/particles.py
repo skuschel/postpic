@@ -239,7 +239,10 @@ class _SingleSpecies(object):
         condition.sort()
         ids = self.id()
         idx = np.searchsorted(condition, ids)
-        idx[idx == len(condition)] = 0
+        if isinstance(idx, np.ndarray):
+            idx[idx == len(condition)] = 0
+        else:
+            idx = [] 
         bools = condition[idx] == ids
         return self._compress_bool(bools)
 
@@ -1272,7 +1275,8 @@ class ParticleHistory(object):
         Indexorder of returned array: [particle_idx][scalarf_idx, collection_idx]
         '''
         particlelist = [list() for _ in range(len(self.ids))]
-        for dr in self.sr:
+        from tqdm.notebook import tqdm
+        for dr in tqdm(self.sr):
             ids, scalars = self._collectfromdump(dr, scalarfs)
             for k in range(len(ids)):
                 i = self._id2i[ids[k]]
