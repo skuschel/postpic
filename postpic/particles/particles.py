@@ -238,12 +238,12 @@ class _SingleSpecies(object):
         # but benchmarked to be 1500 times faster :)
         condition.sort()
         ids = self.id()
+        if not isinstance(ids, np.ndarray):
+            ids = [ids]
         idx = np.searchsorted(condition, ids)
-        if isinstance(idx, np.ndarray):
-            idx[idx == len(condition)] = 0
-        else:
-            idx = []
+        idx[idx == len(condition)] = 0
         bools = condition[idx] == ids
+        print(bools)
         return self._compress_bool(bools)
 
     def uncompress(self):
@@ -278,7 +278,10 @@ class _SingleSpecies(object):
         for key in self._atomicprops:
             try:
                 # len(3) will yield a TypeError, len([3]) returns 1
-                ret = len(self._readatomic(key))
+                value = self._readatomic(key)
+                if not isinstance(value, np.ndarray):
+                    value = [value]
+                ret = len(value)
                 break
             except (TypeError, KeyError):
                 pass
