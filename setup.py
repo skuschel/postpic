@@ -26,6 +26,7 @@ import versioneer
 
 
 setup(
+        version=versioneer.get_version(),
         cmdclass=versioneer.get_cmdclass(),
         ext_modules = cythonize("postpic/particles/_particlestogrid.pyx"),
         include_dirs = [numpy.get_include()],
