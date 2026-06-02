@@ -92,7 +92,10 @@ class OpenPMDreader(Dumpreader_ifc):
             ret = np.float64(record.attrs['value']) * record.attrs['unitSI']
         else:
             # array data
-            ret = np.float64(record[()]) * record.attrs['unitSI']
+            if len(record[()]) == 1:
+                ret = np.float64(record[()][0]) * record.attrs['unitSI']
+            else:
+                ret = np.float64(record[()]) * record.attrs['unitSI']
         return ret
 
     def gridoffset(self, key, axis):

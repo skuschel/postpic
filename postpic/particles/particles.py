@@ -243,7 +243,6 @@ class _SingleSpecies(object):
         idx = np.searchsorted(condition, ids)
         idx[idx == len(condition)] = 0
         bools = condition[idx] == ids
-        print(bools)
         return self._compress_bool(bools)
 
     def uncompress(self):
