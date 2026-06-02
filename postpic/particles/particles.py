@@ -1277,8 +1277,7 @@ class ParticleHistory(object):
         Indexorder of returned array: [particle_idx][scalarf_idx, collection_idx]
         '''
         particlelist = [list() for _ in range(len(self.ids))]
-        from tqdm.notebook import tqdm
-        for dr in tqdm(self.sr):
+        for dr in self.sr:
             ids, scalars = self._collectfromdump(dr, scalarfs)
             for k in range(len(ids)):
                 i = self._id2i[ids[k]]
