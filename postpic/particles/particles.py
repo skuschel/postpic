@@ -1275,7 +1275,7 @@ class ParticleHistory(object):
         try:
             from tqdm.auto import tqdm
             itera = tqdm(self.sr)
-        except ModuleNotFoundError:
+        except ImportError:
             itera = self.sr
         for dr in itera:
             ids, scalars = self._collectfromdump(dr, scalarfs)
