@@ -91,7 +91,7 @@ class OpenPMDreader(Dumpreader_ifc):
             # constant data (a single int or float)
             ret = np.float64(record.attrs['value']) * record.attrs['unitSI']
         else:
-            # array data
+            # array data. If there is only one particle in the array, make it a scalar
             if len(record[()]) == 1:
                 ret = np.float64(record[()][0]) * record.attrs['unitSI']
             else:
