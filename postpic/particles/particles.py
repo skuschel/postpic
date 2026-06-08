@@ -237,7 +237,7 @@ class _SingleSpecies(object):
         # bools = np.array([idx in condition for idx in self.ID()])
         # but benchmarked to be 1500 times faster :)
         condition.sort()
-        ids = self.id()
+        ids = np.atleast_1d(self.id())
         idx = np.searchsorted(condition, ids)
         idx[idx == len(condition)] = 0
         bools = condition[idx] == ids
@@ -275,7 +275,8 @@ class _SingleSpecies(object):
         for key in self._atomicprops:
             try:
                 # len(3) will yield a TypeError, len([3]) returns 1
-                ret = len(self._readatomic(key))
+                value = np.atleast_1d(self._readatomic(key))
+                ret = len(value)
                 break
             except (TypeError, KeyError):
                 pass
