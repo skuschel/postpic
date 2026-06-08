@@ -41,7 +41,6 @@ of the simulation or create plots with a time axis.
 
 Stephan Kuschel 2014
 '''
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .datareader import *
 

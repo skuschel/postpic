@@ -120,8 +120,6 @@ def main():
                                 'This means that by default the same version is used that '
                                 'executes this script.'
                                )
-    pyversiongroup.add_argument('-2', action='store_const', dest='pycmd', const='python2',
-                                help='same as "--pycmd python2"')
     pyversiongroup.add_argument('-3', action='store_const', dest='pycmd', const='python3',
                                 help='same as "--pycmd python3"')
     args = parser.parse_args()

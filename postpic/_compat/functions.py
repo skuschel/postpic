@@ -27,10 +27,7 @@ import scipy as sp
 import scipy.signal.windows as sps
 import collections
 
-try:
-    from collections.abc import Iterable
-except ImportError:
-    from collections import Iterable
+from collections.abc import Iterable
 
 
 def np_meshgrid(*args, **kwargs):

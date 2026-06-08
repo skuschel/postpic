@@ -12,13 +12,11 @@ authors = [{ name = "Stephan Kuschel", email = "stephan.kuschel@gmail.de" }]
 keywords = ['PIC', 'particle-in-cell', 'plasma', 'physics', 'plasma physics',
                   'laser', 'laser plasma', 'particle acceleration']
 dependencies = [
-    'matplotlib>=3.0', # ndarray.tobytes was introduced in np 1.9 and workaround in vtk routines
-                        # does not work for python 2 war 1.3
+    'matplotlib>=3.0',
     'matplotlib<=3.10; python_version=="3.10"',
     'numpy>=1.8', 
     'scipy>=1.6', 'scipy<=1.15;python_version=="3.10"',
     'scipy<=1.17;python_version<="3.11"',
-    'future',
     'urllib3',
     'contourpy<= 1.3.1; python_version=="3.10"',
     'numexpr',

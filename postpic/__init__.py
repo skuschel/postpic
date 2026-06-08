@@ -48,7 +48,6 @@ Particle data
   for maximum performance. See :class:`postpic.MultiSpecies`.
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from . import helper
 from . import datahandling

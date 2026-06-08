@@ -17,15 +17,9 @@
 # Stephan Kuschel 2015
 # Alexander Blinne, 2017
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-from future.utils import with_metaclass
-
 import abc
 
-try:
-    from collections.abc import Sequence
-except ImportError:
-    from collections import Sequence
+from collections.abc import Sequence
 
 import warnings
 import numpy as np
@@ -35,7 +29,7 @@ from .._field_calc import FieldAnalyzer
 __all__ = ['Dumpreader_ifc', 'Simulationreader_ifc']
 
 
-class Dumpreader_ifc(with_metaclass(abc.ABCMeta, FieldAnalyzer)):
+class Dumpreader_ifc(FieldAnalyzer, metaclass=abc.ABCMeta):
     '''
     Interface class for reading a single dump. A dump contains informations
     about the  simulation at a single timestep (Usually E- and B-Fields on
