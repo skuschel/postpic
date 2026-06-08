@@ -788,5 +788,44 @@ class TestField(unittest.TestCase):
         # self.assertAllEqual(f2drot.extent, f2dr.extent)
 
 
+    def test_boolean_indexing_setitem(self):
+        # Test __setitem__ with boolean Field index (main use case from the issue)
+        a = self.f2d.replace_data(self.f2d.matrix.copy())
+        a[a < 10] = 0
+        self.assertAllEqual(a.matrix, np.where(self.f2d.matrix < 10, 0, self.f2d.matrix))
+
+        # Test __setitem__ with boolean numpy array index
+        b = self.f2d.replace_data(self.f2d.matrix.copy())
+        mask = b.matrix > 10
+        b[mask] = -1
+        self.assertAllEqual(b.matrix, np.where(self.f2d.matrix > 10, -1, self.f2d.matrix))
+
+        # Axes should remain unchanged after boolean setitem
+        self.assertEqual(a.axes, self.f2d.axes)
+        self.assertEqual(b.axes, self.f2d.axes)
+
+    def test_boolean_indexing_getitem(self):
+        # Test __getitem__ with boolean Field index returns numpy array
+        a = self.f2d
+        result = a[a > 10]
+        self.assertIsInstance(result, np.ndarray)
+        self.assertAllEqual(result, self.f2d.matrix[self.f2d.matrix > 10])
+
+        # Test __getitem__ with boolean numpy array index returns numpy array
+        mask = a.matrix > 10
+        result2 = a[mask]
+        self.assertIsInstance(result2, np.ndarray)
+        self.assertAllEqual(result2, self.f2d.matrix[self.f2d.matrix > 10])
+
+    def test_boolean_indexing_1d(self):
+        # Test boolean indexing on 1D Field
+        a = self.f1d.replace_data(self.f1d.matrix.copy())
+        a[a < 5] = 0
+        expected = self.f1d.matrix.copy()
+        expected[expected < 5] = 0
+        self.assertAllEqual(a.matrix, expected)
+        self.assertEqual(a.axes, self.f1d.axes)
+
+
 if __name__ == '__main__':
     unittest.main()
