@@ -23,8 +23,6 @@ The postpic.io module provides free functions for importing and exporting data.
 
 import numpy as np
 
-from packaging.version import parse as parse_version
-
 from .common import _header_string
 
 
@@ -79,10 +77,7 @@ def _import_field_npy(filename):
     import a field object from a file written by _export_field_npy()
     '''
     from ..datahandling import Field, Axis
-    if parse_version(np.__version__) < parse_version('1.11'):
-        import_file = np.load(filename)
-    else:
-        import_file = np.load(filename, allow_pickle=True)
+    import_file = np.load(filename, allow_pickle=True)
 
     # Axes Objects
     length_edges = import_file['meta_length_edges']
