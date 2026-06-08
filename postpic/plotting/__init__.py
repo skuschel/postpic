@@ -17,7 +17,6 @@
 '''
 The plot subpackage should provide an interface to various plot backends.
 '''
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 plottercls = None
 

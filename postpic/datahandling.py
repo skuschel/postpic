@@ -42,14 +42,10 @@ but N+1 'grid_nodes' as depicted here:
   |                   |   extent
 
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 
-try:
-    from collections.abc import Iterable, Mapping
-except ImportError:
-    from collections import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 import copy
 import warnings
@@ -69,15 +65,9 @@ from . import helper
 from . import io
 from .helper_fft import fft
 
-if sys.version[0] == '2':
-    import functools32 as functools
-else:
-    import functools
+import functools
 
-if sys.version[0] == '2':
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest
+from itertools import zip_longest
 
 
 try:

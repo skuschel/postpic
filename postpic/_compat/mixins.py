@@ -9,9 +9,6 @@ Copied from:
 d51b538ba80d36841cc57911d77ea61cd1d3fb25/numpy/lib/mixins.py>
 """
 
-from __future__ import division, absolute_import, print_function
-
-import sys
 
 from numpy.core import umath as um
 
@@ -164,9 +161,6 @@ class NDArrayOperatorsMixin(object):
     __add__, __radd__, __iadd__ = _numeric_methods(um.add, 'add')
     __sub__, __rsub__, __isub__ = _numeric_methods(um.subtract, 'sub')
     __mul__, __rmul__, __imul__ = _numeric_methods(um.multiply, 'mul')
-    if sys.version_info.major < 3:
-        # Python 3 uses only __truediv__ and __floordiv__
-        __div__, __rdiv__, __idiv__ = _numeric_methods(um.divide, 'div')
     __truediv__, __rtruediv__, __itruediv__ = _numeric_methods(
         um.true_divide, 'truediv')
     __floordiv__, __rfloordiv__, __ifloordiv__ = _numeric_methods(

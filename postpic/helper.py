@@ -19,7 +19,6 @@
 """
 Some global constants that are used in the code.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 import copy
@@ -40,12 +39,8 @@ import scipy
 from scipy.ndimage import _ni_support, _nd_image, spline_filter
 
 
-if sys.version_info[0:2] >= (3, 5):
-    from concurrent.futures import ThreadPoolExecutor
-    have_concurrent_futures = True
-else:
-    from multiprocessing.pool import ThreadPool as ThreadPoolExecutor
-    have_concurrent_futures = False
+from concurrent.futures import ThreadPoolExecutor
+have_concurrent_futures = True
 
 
 __all__ = ['PhysicalConstants', 'unstagger_fields', 'kspace_epoch_like', 'kspace',

@@ -18,7 +18,6 @@
 # Carolin Goll, 2023
 # Vinith Samson J, 2024
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from .openPMDh5 import OpenPMDreader
 from . import Simulationreader_ifc

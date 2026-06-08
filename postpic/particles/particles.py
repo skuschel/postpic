@@ -18,7 +18,6 @@
 """
 Particle related routines.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 import copy
@@ -648,11 +647,7 @@ class MultiSpecies(object):
         if isinstance(expr, ScalarProperty):
             # best case
             return self.__call_sp(expr)
-        try:
-            bs = basestring  # python2
-        except NameError:
-            bs = str  # python3
-        if isinstance(expr, bs):
+        if isinstance(expr, str):
             # create temporary ScalarProperty object
             sp = particle_scalars(expr)
             return self.__call_sp(sp)

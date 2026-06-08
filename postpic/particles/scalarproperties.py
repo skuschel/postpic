@@ -16,14 +16,10 @@
 #
 # Stephan Kuschel 2017
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import warnings
 
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 
 import numexpr as ne
 

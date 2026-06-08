@@ -23,7 +23,6 @@ Dependecies:
 h5py  The Python actual reader for hdf5 file format.
 Georg Wittig, Stephan Kuschel 2014
 '''
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from . import Dumpreader_ifc
 from . import Simulationreader_ifc

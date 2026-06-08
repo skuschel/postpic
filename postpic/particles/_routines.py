@@ -18,14 +18,10 @@
 """
 Particle related functions.
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
 
-try:
-    from collections.abc import Iterable
-except ImportError:
-    from collections import Iterable
+from collections.abc import Iterable
 
 from . import _particlestogrid as ptg
 from ..helper import PhysicalConstants

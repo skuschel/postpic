@@ -21,12 +21,7 @@ Helper for fft functions.
 
 If available, pyffw will be used to speed up calculations efficiently.
 """
-import sys
-
-if sys.version[0] == '2':
-    import functools32 as functools
-else:
-    import functools
+import functools
 
 
 __all__ = ['fft']
