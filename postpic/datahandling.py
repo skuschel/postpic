@@ -2170,7 +2170,7 @@ class Field(NDArrayOperatorsMixin):
             ret.matrix = spnd.shift(self.matrix, -shift_px, order=1, mode='nearest')
         else:
             real, imag = self.matrix.real.copy(), self.matrix.imag.copy()
-            ret.matrix = np.empty_like(matrix)
+            ret.matrix = np.empty_like(self.matrix)
             spnd.shift(real, -shift_px, output=ret.matrix.real, order=1, mode='nearest')
             spnd.shift(imag, -shift_px, output=ret.matrix.imag, order=1, mode='nearest')
 
