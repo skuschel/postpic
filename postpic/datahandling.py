@@ -57,7 +57,6 @@ import os
 import numbers
 
 import numpy as np
-from packaging.version import parse as parse_version
 import scipy.ndimage as spnd
 import scipy.interpolate as spinterp
 import scipy.integrate
@@ -1816,20 +1815,8 @@ class Field(NDArrayOperatorsMixin):
             return self._integrate_scipy(axes, method)
 
     def _derivative(self, axis):
-        if parse_version(np.__version__) < parse_version('1.9'):
-            if not self.axes[axis].islinear():
-                raise ValueError('This method can only be applied to linear axes.')
-            g = np.gradient(self, self.axes[axis].spacing)
-            if self.dimensions > 1:
-                g = g[axis]
-            der_field = self.replace_data(g)
-        elif parse_version(np.__version__) < parse_version('1.13'):
-            if not self.axes[axis].islinear():
-                raise ValueError('This method can only be applied to linear axes.')
-            der_field = self.replace_data(np.gradient(self, self.axes[axis].spacing, axis=axis))
-        else:
-            # this works fine even on non-linear axes
-            der_field = self.replace_data(np.gradient(self, self.axes[axis].grid, axis=axis))
+        # this works fine even on non-linear axes
+        der_field = self.replace_data(np.gradient(self, self.axes[axis].grid, axis=axis))
 
         der_field.name = "{}'".format(self.name)
         return der_field
@@ -2032,14 +2019,6 @@ class Field(NDArrayOperatorsMixin):
         fftnorm = np.sqrt(V/Vk)
 
         my_fft_args = dict(norm='ortho')
-
-        # Workaround for missing `fft` argument `norm='ortho'`
-        if parse_version(np.__version__) < parse_version('1.10'):
-            del my_fft_args['norm']
-            if transform_state is False:
-                fftnorm /= np.sqrt(N)
-            elif transform_state is True:
-                fftnorm *= np.sqrt(N)
 
         # make a copy with complex type
         # copy is made explicitly once, so that all further operations (except fft itself,

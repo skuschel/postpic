@@ -35,7 +35,6 @@ import warnings
 import functools
 import math
 import numexpr as ne
-from packaging.version import parse as parse_version
 import scipy
 from scipy.ndimage import _ni_support, _nd_image, spline_filter
 
@@ -287,14 +286,10 @@ def map_coordinates_parallel(input, coordinates, output=None, order=3, mode='con
 
     def map_coordinates_chunk(arg):
         sub_filtered, sub_coordinates, sub_output = arg
-        if parse_version(scipy.__version__) < parse_version('1.6.0'):
-            _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
-                                          sub_output, order, mode, cval, None, None)
-        else:
-            # changed in scipy v1.6.0
-            # https://github.com/scipy/scipy/commit/9c299da04b9c419786a56c8e657aaabeb35f9069
-            _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
-                                          sub_output, order, mode, cval, 0, None, None)
+        # changed in scipy v1.6.0
+        # https://github.com/scipy/scipy/commit/9c299da04b9c419786a56c8e657aaabeb35f9069
+        _nd_image.geometric_transform(sub_filtered, None, sub_coordinates, None, None,
+                                      sub_output, order, mode, cval, 0, None, None)
 
     if chunklen > 0:
         list_of_chunk_args = list(chunk_arguments(filtered, coordinates, output))
@@ -389,12 +384,6 @@ def approx_jacobian(transform):
     '''
     def fun(*coords):
         ravel_coords = [np.ravel(c) for c in coords]
-
-        if parse_version(np.__version__) < parse_version('1.13'):
-            if not all(islinear(r) for r in ravel_coords):
-                raise NotImplemented('Numerically approximating the Jacobian on a transform to a '
-                                     'non-equidistant grid is not implemented for numpy < 1.13.')
-            ravel_coords = [(r[-1]-r[0])/(len(r)-1) for r in ravel_coords]
 
         if len(coords) == 1:
             # this specific case breaks np.broadcast in numpy 1.8.1 and older
