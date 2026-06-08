@@ -278,7 +278,7 @@ class FbpicReader(OpenPMDreader):
         Nth = (Nm+1)//2
         if Ntheta is None or Ntheta < Nth:
             Ntheta = Nth
-        fd = np.empty((Nr, Ntheta, Nz), dtype=np.complex128)
+        fd = np.zeros((Nr, Ntheta, Nz), dtype=np.complex128)
 
         fd[:, 0, :].real = rawdata[0, :, :]
         rawdatasw = np.swapaxes(rawdata, 0, 1)
