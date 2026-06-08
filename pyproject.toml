@@ -49,6 +49,7 @@ sdf_support_epoch = ['sdf']
 pypng_png_reading = ['pypng']
 pillow_read_other_image_files = ['pillow']
 phase_unwrapping_routines = ['scikit-image']
+tqdm_particle_history = ['tqdm']
 
 [project.urls]
 Homepage = "https://github.com/skuschel/postpic"
