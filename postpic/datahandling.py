@@ -2313,8 +2313,23 @@ class Field(NDArrayOperatorsMixin):
 
         return tuple(ax._normalize_slice(sl) for ax, sl in zip(self.axes, key))
 
+    def _boolean_mask(self, key):
+        '''
+        If `key` is a boolean index (boolean numpy array or boolean Field), return the
+        corresponding boolean numpy array. Otherwise return None.
+        '''
+        if isinstance(key, type(self)):
+            key = key.matrix
+        if isinstance(key, np.ndarray) and np.issubdtype(key.dtype, np.bool_):
+            return key
+        return None
+
     # Operator overloading
     def __getitem__(self, key):
+        mask = self._boolean_mask(key)
+        if mask is not None:
+            return self.matrix[mask]
+
         old_shape = self.shape
 
         slices = self._normalize_slices(key)
@@ -2340,5 +2355,9 @@ class Field(NDArrayOperatorsMixin):
         return ret
 
     def __setitem__(self, key, other):
+        mask = self._boolean_mask(key)
+        if mask is not None:
+            self._matrix[mask] = other
+            return
         key = self._normalize_slices(key)
         self._matrix[key] = other
