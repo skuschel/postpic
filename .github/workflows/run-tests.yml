@@ -8,12 +8,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -25,10 +25,7 @@ jobs:
         python --version
         python -c 'import numpy; print(numpy.__version__)'
         python -c 'import cython; print(cython.__version__)'
-        python ./setup.py develop
-      # python -m pip -vvv install -e .
-      # fails with "ModuleNotFoundError: No module named 'Cython'"
-      # running setup.py directly is just a workaround.
+        python -m pip install -e .
     - name: run tests
       run: |
         source env/bin/activate
@@ -39,14 +36,14 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        python-version: [3.12]
+        python-version: ["3.13"]
 
 # have to copy steps from above, as anchors are currently
 # not supported by github workflow (Jan 2020).
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -56,10 +53,7 @@ jobs:
         python --version
         python -c 'import numpy; print(numpy.__version__)'
         python -c 'import cython; print(cython.__version__)'
-        python ./setup.py develop
-      # python -m pip -vvv install -e .
-      # fails with "ModuleNotFoundError: No module named 'Cython'"
-      # running setup.py directly is just a workaround.
+        python -m pip install -e .
     - name: run tests
       run: |
         python run-tests.py --skip-setup
