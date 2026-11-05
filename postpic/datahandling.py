@@ -1077,27 +1077,16 @@ class Field(NDArrayOperatorsMixin):
         """
         call_frame = sys._getframe(1)
 
-        clear_local_dict = False
         if local_dict is None:
-            local_dict = call_frame.f_locals
-            clear_local_dict = True
-        try:
-            frame_globals = call_frame.f_globals
-            if global_dict is None:
-                global_dict = frame_globals
+            # Copy into a plain dict: since Python 3.13 (PEP 667) `f_locals` is a
+            # write-through `FrameLocalsProxy`, not a dict.
+            local_dict = dict(call_frame.f_locals)
+        if global_dict is None:
+            global_dict = call_frame.f_globals
+        del call_frame
 
-            # If `call_frame` is the top frame of the interpreter we can't clear its
-            # `local_dict`, because it is actually the `global_dict`.
-            clear_local_dict = clear_local_dict and frame_globals is not local_dict
-
-            ret = self.replace_data(ne.evaluate(ex, local_dict=local_dict,
-                                                global_dict=global_dict, **kwargs))
-
-        finally:
-            if clear_local_dict:
-                local_dict.clear()
-
-        return ret
+        return self.replace_data(ne.evaluate(ex, local_dict=local_dict,
+                                             global_dict=global_dict, **kwargs))
 
     def pad(self, pad_width, mode='constant', **kwargs):
         '''
