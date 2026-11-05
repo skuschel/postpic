@@ -45,6 +45,7 @@ but N+1 'grid_nodes' as depicted here:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+import inspect
 
 try:
     from collections.abc import Iterable, Mapping
@@ -1080,7 +1081,15 @@ class Field(NDArrayOperatorsMixin):
         if local_dict is None:
             # Copy into a plain dict: since Python 3.13 (PEP 667) `f_locals` is a
             # write-through `FrameLocalsProxy`, not a dict.
-            local_dict = dict(call_frame.f_locals)
+            frame_locals = call_frame.f_locals
+            local_dict = dict(frame_locals)
+            # On Python < 3.13, `f_locals` of a function frame is a dict cached on the
+            # frame, which keeps references to all of the caller's locals alive until
+            # the frame exits. Clear it to not retain large arrays. Do not touch
+            # module or class namespaces (not CO_OPTIMIZED), as these are the real ones.
+            if isinstance(frame_locals, dict) \
+                    and call_frame.f_code.co_flags & inspect.CO_OPTIMIZED:
+                frame_locals.clear()
         if global_dict is None:
             global_dict = call_frame.f_globals
         del call_frame
