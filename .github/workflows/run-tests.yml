@@ -25,10 +25,7 @@ jobs:
         python --version
         python -c 'import numpy; print(numpy.__version__)'
         python -c 'import cython; print(cython.__version__)'
-        python ./setup.py develop
-      # python -m pip -vvv install -e .
-      # fails with "ModuleNotFoundError: No module named 'Cython'"
-      # running setup.py directly is just a workaround.
+        python -m pip install -e .
     - name: run tests
       run: |
         source env/bin/activate
@@ -56,10 +53,7 @@ jobs:
         python --version
         python -c 'import numpy; print(numpy.__version__)'
         python -c 'import cython; print(cython.__version__)'
-        python ./setup.py develop
-      # python -m pip -vvv install -e .
-      # fails with "ModuleNotFoundError: No module named 'Cython'"
-      # running setup.py directly is just a workaround.
+        python -m pip install -e .
     - name: run tests
       run: |
         python run-tests.py --skip-setup
